@@ -37,13 +37,10 @@ setup(
         "Documentation": "https://brainpy.readthedocs.io/",
         "Source Code": "https://github.com/brainpy/BrainPy",
     },
-    dependency_links=[
-        'https://storage.googleapis.com/jax-releases/jax_cuda_releases.html',
-    ],
     extras_require={
         'cpu': ['jax[cpu]', 'brainstate[cpu]', 'brainunit[cpu]', 'brainevent[cpu]'],
         'cuda12': ['jax[cuda12]', 'brainstate[cuda12]', 'brainunit[cuda12]', 'brainevent[cuda12]'],
-        'tpu': ['jax[tpu]', 'brainstate[cuda12]', 'brainunit[cuda12]', 'brainevent[cuda12]'],
+        'tpu': ['jax[tpu]', 'brainstate[tpu]', 'brainunit[tpu]', 'brainevent[tpu]'],
     },
     keywords=('computational neuroscience, '
               'brain-inspired computation, '

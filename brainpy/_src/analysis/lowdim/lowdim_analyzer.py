@@ -287,7 +287,7 @@ class Num1DAnalyzer(LowDimAnalyzer):
 
   @property
   def F_dfxdx(self):
-    """The function to evaluate :math:`\frac{df_x(*\mathrm{vars}, *\mathrm{pars})}{dx}`."""
+    r"""The function to evaluate :math:`\frac{df_x(*\mathrm{vars}, *\mathrm{pars})}{dx}`."""
     if C.F_dfxdx not in self.analyzed_results:
       dfx = bm.vector_grad(self.F_fx, argnums=0)
       self.analyzed_results[C.F_dfxdx] = jax.jit(dfx, device=self.jit_device)
@@ -416,7 +416,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
 
   @property
   def F_fy(self):
-    """The function to evaluate :math:`f_y(*\mathrm{vars}, *\mathrm{pars})`.
+    r"""The function to evaluate :math:`f_y(*\mathrm{vars}, *\mathrm{pars})`.
 
     This function has been transformed into the standard call.
     For instance, if the user has the ``target_vars=("v1", "v2")`` and
@@ -525,7 +525,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
 
   @property
   def F_dfxdy(self):
-    """The function to evaluate :math:`\frac{df_x (*\mathrm{vars}, *\mathrm{pars})}{dy}`."""
+    r"""The function to evaluate :math:`\frac{df_x (*\mathrm{vars}, *\mathrm{pars})}{dy}`."""
     if C.F_dfxdy not in self.analyzed_results:
       dfxdy = bm.vector_grad(self.F_fx, argnums=1)
       self.analyzed_results[C.F_dfxdy] = jax.jit(dfxdy, device=self.jit_device)
@@ -533,7 +533,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
 
   @property
   def F_dfydx(self):
-    """The function to evaluate :math:`\frac{df_y (*\mathrm{vars}, *\mathrm{pars})}{dx}`."""
+    r"""The function to evaluate :math:`\frac{df_y (*\mathrm{vars}, *\mathrm{pars})}{dx}`."""
     if C.F_dfydx not in self.analyzed_results:
       dfydx = bm.vector_grad(self.F_fy, argnums=0)
       self.analyzed_results[C.F_dfydx] = jax.jit(dfydx, device=self.jit_device)
@@ -541,7 +541,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
 
   @property
   def F_dfydy(self):
-    """The function to evaluate :math:`\frac{df_y (*\mathrm{vars}, *\mathrm{pars})}{dy}`."""
+    r"""The function to evaluate :math:`\frac{df_y (*\mathrm{vars}, *\mathrm{pars})}{dy}`."""
     if C.F_dfydy not in self.analyzed_results:
       dfydy = bm.vector_grad(self.F_fy, argnums=1)
       self.analyzed_results[C.F_dfydy] = jax.jit(dfydy, device=self.jit_device)
@@ -549,7 +549,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
 
   @property
   def F_jacobian(self):
-    """The function to evaluate :math:`J(*\mathrm{vars}, *\mathrm{pars})`."""
+    r"""The function to evaluate :math:`J(*\mathrm{vars}, *\mathrm{pars})`."""
     if C.F_jacobian not in self.analyzed_results:
       @partial(bm.jacobian, argnums=(0, 1))
       def f_jacobian(*var_and_pars):
@@ -1037,7 +1037,7 @@ class Num3DAnalyzer(Num2DAnalyzer):
 
   @property
   def F_fz(self):
-    """The function to evaluate :math:`f_y(*\mathrm{vars}, *\mathrm{pars})`."""
+    r"""The function to evaluate :math:`f_y(*\mathrm{vars}, *\mathrm{pars})`."""
     if C.F_fz not in self.analyzed_results:
       variables, arguments = utils.get_args(self.model.f_derivatives[self.z_var])
       wrapper = utils.std_derivative(arguments, self.target_var_names, self.target_par_names)

@@ -172,7 +172,7 @@ class Bifurcation2D(Num2DAnalyzer):
                        tol_aux=1e-8, tol_unique=1e-2, tol_opt_candidate=None,
                        num_par_segments=1, num_fp_segment=1, nullcline_aux_filter=1.,
                        select_candidates='aux_rank', num_rank=100):
-    """Make the bifurcation analysis.
+    r"""Make the bifurcation analysis.
 
     Parameters::
 
