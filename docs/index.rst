@@ -110,7 +110,7 @@ Learn more
 
 
 .. note::
-   BrainPy now is rewritten based on [brainstate](https://github.com/chaobrain/brainstate).
+   BrainPy is rewritten based on `brainstate <https://github.com/chaobrain/brainstate>`_ since August 2025.
 
 
 
