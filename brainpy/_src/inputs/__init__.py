@@ -7,4 +7,3 @@ You can access them through ``brainpy.inputs.XXX``.
 """
 
 from .currents import *
-

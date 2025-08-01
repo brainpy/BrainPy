@@ -2,11 +2,11 @@
 import warnings
 from typing import Sequence, Union
 
+import brainstate
 import jax
 import jax.numpy as jnp
 
 import brainpy.math as bm
-import brainstate
 from brainpy import check
 from brainpy._src.math.object_transform.base import BrainPyObject
 from brainpy.errors import MathError

@@ -5,9 +5,9 @@ from jax.numpy import linalg
 from ._utils import _compatible_with_brainpy_array
 
 __all__ = [
-  'cholesky', 'cond', 'det', 'eig', 'eigh', 'eigvals', 'eigvalsh', 'inv', 'svd',
-  'lstsq', 'matrix_power', 'matrix_rank', 'norm', 'pinv', 'qr', 'solve', 'slogdet',
-  'tensorinv', 'tensorsolve', 'multi_dot'
+    'cholesky', 'cond', 'det', 'eig', 'eigh', 'eigvals', 'eigvalsh', 'inv', 'svd',
+    'lstsq', 'matrix_power', 'matrix_rank', 'norm', 'pinv', 'qr', 'solve', 'slogdet',
+    'tensorinv', 'tensorsolve', 'multi_dot'
 ]
 
 cholesky = _compatible_with_brainpy_array(linalg.cholesky, module='linalg.')

@@ -2,14 +2,14 @@
 
 from typing import Tuple, Optional
 
+import brainevent
 import jax
-
 import numpy as np
+
 from brainpy._src.math.jitconn.matvec import (mv_prob_homo,
                                               mv_prob_uniform,
                                               mv_prob_normal)
 from brainpy._src.math.ndarray import BaseArray as Array
-import brainevent
 
 __all__ = [
     'event_mv_prob_homo',

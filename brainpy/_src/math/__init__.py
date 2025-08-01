@@ -19,7 +19,6 @@ This module provides basic mathematical operations, including:
 Details in the following.
 """
 
-
 # necessity to wrap the jax.numpy.ndarray:
 # 1. for parameters and variables which want to
 #    modify in the JIT mode, this wrapper is necessary.
@@ -30,31 +29,25 @@ Details in the following.
 #
 
 
-# data structure
-from .ndarray import *
-from .delayvars import *
-
+from . import activations
+from . import random, linalg, fft
+from . import surrogate, event, sparse, jitconn
 # functions
 from .activations import *
-from . import activations
-
-# high-level numpy operations
-from .datatypes import *
-from .interoperability import *
 from .compat_numpy import *
 from .compat_tensorflow import *
-from .others import *
-from . import random, linalg, fft
-
-# operators
-from .pre_syn_post import *
-from . import surrogate, event, sparse, jitconn
-
-# Variable and Objects for object-oriented JAX transformations
-from .object_transform import *
-
+# high-level numpy operations
+from .datatypes import *
+from .delayvars import *
+from .environment import *
+from .interoperability import *
 # environment settings
 from .modes import *
-from .environment import *
+# data structure
+from .ndarray import *
+# Variable and Objects for object-oriented JAX transformations
+from .object_transform import *
+from .others import *
+# operators
+from .pre_syn_post import *
 from .scales import *
-

@@ -7,136 +7,138 @@ from brainpy.types import ArrayType
 from .base import SynOut
 
 __all__ = [
-  'COBA',
-  'CUBA',
-  'MgBlock'
+    'COBA',
+    'CUBA',
+    'MgBlock'
 ]
 
 
 class COBA(SynOut):
-  r"""Conductance-based synaptic output.
+    r"""Conductance-based synaptic output.
 
-  Given the synaptic conductance, the model output the post-synaptic current with
+    Given the synaptic conductance, the model output the post-synaptic current with
 
-  .. math::
+    .. math::
 
-     I_{syn}(t) = g_{\mathrm{syn}}(t) (E - V(t))
+       I_{syn}(t) = g_{\mathrm{syn}}(t) (E - V(t))
 
-  Parameters::
+    Parameters::
 
-  E: float, ArrayType, ndarray
-    The reversal potential.
-  sharding: sequence of str
-    The axis names for variable for parallelization.
-  name: str
-    The model name.
-  scaling: brainpy.Scaling
-    The scaling object.
+    E: float, ArrayType, ndarray
+      The reversal potential.
+    sharding: sequence of str
+      The axis names for variable for parallelization.
+    name: str
+      The model name.
+    scaling: brainpy.Scaling
+      The scaling object.
 
-  See Also::
+    See Also::
 
-  CUBA
-  """
+    CUBA
+    """
 
-  def __init__(
-      self,
-      E: Union[float, ArrayType],
-      sharding: Optional[Sequence[str]] = None,
-      name: Optional[str] = None,
-      scaling: Optional[bm.Scaling] = None,
-  ):
-    super().__init__(name=name, scaling=scaling)
+    def __init__(
+        self,
+        E: Union[float, ArrayType],
+        sharding: Optional[Sequence[str]] = None,
+        name: Optional[str] = None,
+        scaling: Optional[bm.Scaling] = None,
+    ):
+        super().__init__(name=name, scaling=scaling)
 
-    self.sharding = sharding
-    self.E = self.offset_scaling(init.parameter(E, np.shape(E), sharding=sharding))
+        self.sharding = sharding
+        self.E = self.offset_scaling(init.parameter(E, np.shape(E), sharding=sharding))
 
-  def update(self, conductance, potential):
-    return conductance * (self.E - potential)
+    def update(self, conductance, potential):
+        return conductance * (self.E - potential)
 
 
 class CUBA(SynOut):
-  r"""Current-based synaptic output.
+    r"""Current-based synaptic output.
 
-  Given the conductance, this model outputs the post-synaptic current with a identity function:
+    Given the conductance, this model outputs the post-synaptic current with a identity function:
 
-  .. math::
+    .. math::
 
-     I_{\mathrm{syn}}(t) = g_{\mathrm{syn}}(t)
+       I_{\mathrm{syn}}(t) = g_{\mathrm{syn}}(t)
 
-  Parameters::
+    Parameters::
 
-  name: str
-    The model name.
-  scaling: brainpy.Scaling
-    The scaling object.
+    name: str
+      The model name.
+    scaling: brainpy.Scaling
+      The scaling object.
 
-  See Also::
+    See Also::
 
-  COBA
-  """
-  def __init__(
-      self,
-      name: Optional[str] = None,
-      scaling: Optional[bm.Scaling] = None,
-  ):
-    super().__init__(name=name, scaling=scaling)
+    COBA
+    """
 
-  def update(self, conductance, potential=None):
-    return conductance
+    def __init__(
+        self,
+        name: Optional[str] = None,
+        scaling: Optional[bm.Scaling] = None,
+    ):
+        super().__init__(name=name, scaling=scaling)
+
+    def update(self, conductance, potential=None):
+        return conductance
 
 
 class MgBlock(SynOut):
-  r"""Synaptic output based on Magnesium blocking.
+    r"""Synaptic output based on Magnesium blocking.
 
-  Given the synaptic conductance, the model output the post-synaptic current with
+    Given the synaptic conductance, the model output the post-synaptic current with
 
-  .. math::
+    .. math::
 
-     I_{syn}(t) = g_{\mathrm{syn}}(t) (E - V(t)) g_{\infty}(V,[{Mg}^{2+}]_{o})
+       I_{syn}(t) = g_{\mathrm{syn}}(t) (E - V(t)) g_{\infty}(V,[{Mg}^{2+}]_{o})
 
-  where The fraction of channels :math:`g_{\infty}` that are not blocked by magnesium can be fitted to
+    where The fraction of channels :math:`g_{\infty}` that are not blocked by magnesium can be fitted to
 
-  .. math::
+    .. math::
 
-     g_{\infty}(V,[{Mg}^{2+}]_{o}) = (1+{e}^{-\alpha V} \frac{[{Mg}^{2+}]_{o}} {\beta})^{-1}
+       g_{\infty}(V,[{Mg}^{2+}]_{o}) = (1+{e}^{-\alpha V} \frac{[{Mg}^{2+}]_{o}} {\beta})^{-1}
 
-  Here :math:`[{Mg}^{2+}]_{o}` is the extracellular magnesium concentration.
+    Here :math:`[{Mg}^{2+}]_{o}` is the extracellular magnesium concentration.
 
-  Parameters::
+    Parameters::
 
-  E: float, ArrayType
-    The reversal potential for the synaptic current. [mV]
-  alpha: float, ArrayType
-    Binding constant. Default 0.062
-  beta: float, ArrayType
-    Unbinding constant. Default 3.57
-  cc_Mg: float, ArrayType
-    Concentration of Magnesium ion. Default 1.2 [mM].
-  sharding: sequence of str
-    The axis names for variable for parallelization.
-  name: str
-    The model name.
-  """
-  def __init__(
-      self,
-      E: Union[float, ArrayType] = 0.,
-      cc_Mg: Union[float, ArrayType] = 1.2,
-      alpha: Union[float, ArrayType] = 0.062,
-      beta: Union[float, ArrayType] = 3.57,
-      V_offset: Union[float, ArrayType] = 0.,
-      sharding: Optional[Sequence[str]] = None,
-      name: Optional[str] = None,
-      scaling: Optional[bm.Scaling] = None,
-  ):
-    super().__init__(name=name, scaling=scaling)
+    E: float, ArrayType
+      The reversal potential for the synaptic current. [mV]
+    alpha: float, ArrayType
+      Binding constant. Default 0.062
+    beta: float, ArrayType
+      Unbinding constant. Default 3.57
+    cc_Mg: float, ArrayType
+      Concentration of Magnesium ion. Default 1.2 [mM].
+    sharding: sequence of str
+      The axis names for variable for parallelization.
+    name: str
+      The model name.
+    """
 
-    self.sharding = sharding
-    self.E = self.offset_scaling(init.parameter(E, np.shape(E), sharding=sharding))
-    self.V_offset = self.offset_scaling(init.parameter(V_offset, np.shape(V_offset), sharding=sharding))
-    self.cc_Mg = init.parameter(cc_Mg, np.shape(cc_Mg), sharding=sharding)
-    self.alpha = self.inv_scaling(init.parameter(alpha, np.shape(alpha), sharding=sharding))
-    self.beta = init.parameter(beta, np.shape(beta), sharding=sharding)
+    def __init__(
+        self,
+        E: Union[float, ArrayType] = 0.,
+        cc_Mg: Union[float, ArrayType] = 1.2,
+        alpha: Union[float, ArrayType] = 0.062,
+        beta: Union[float, ArrayType] = 3.57,
+        V_offset: Union[float, ArrayType] = 0.,
+        sharding: Optional[Sequence[str]] = None,
+        name: Optional[str] = None,
+        scaling: Optional[bm.Scaling] = None,
+    ):
+        super().__init__(name=name, scaling=scaling)
 
-  def update(self, conductance, potential):
-    norm = (1 + self.cc_Mg / self.beta * bm.exp(self.alpha * (self.V_offset - potential)))
-    return conductance * (self.E - potential) / norm
+        self.sharding = sharding
+        self.E = self.offset_scaling(init.parameter(E, np.shape(E), sharding=sharding))
+        self.V_offset = self.offset_scaling(init.parameter(V_offset, np.shape(V_offset), sharding=sharding))
+        self.cc_Mg = init.parameter(cc_Mg, np.shape(cc_Mg), sharding=sharding)
+        self.alpha = self.inv_scaling(init.parameter(alpha, np.shape(alpha), sharding=sharding))
+        self.beta = init.parameter(beta, np.shape(beta), sharding=sharding)
+
+    def update(self, conductance, potential):
+        norm = (1 + self.cc_Mg / self.beta * bm.exp(self.alpha * (self.V_offset - potential)))
+        return conductance * (self.E - potential) / norm

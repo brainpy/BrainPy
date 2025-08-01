@@ -11,89 +11,89 @@ from .interoperability import *
 from .ndarray import Array, BaseArray
 
 __all__ = [
-  'full', 'full_like', 'eye', 'identity', 'diag', 'tri', 'tril', 'triu',
-  'empty', 'empty_like', 'ones', 'ones_like', 'zeros', 'zeros_like',
-  'array', 'asarray', 'arange', 'linspace', 'logspace', 'fill_diagonal',
+    'full', 'full_like', 'eye', 'identity', 'diag', 'tri', 'tril', 'triu',
+    'empty', 'empty_like', 'ones', 'ones_like', 'zeros', 'zeros_like',
+    'array', 'asarray', 'arange', 'linspace', 'logspace', 'fill_diagonal',
 
-  # math funcs
-  'real', 'imag', 'conj', 'conjugate', 'ndim', 'isreal', 'isscalar',
-  'add', 'reciprocal', 'negative', 'positive', 'multiply', 'divide',
-  'power', 'subtract', 'true_divide', 'floor_divide', 'float_power',
-  'fmod', 'mod', 'modf', 'divmod', 'remainder', 'abs', 'exp', 'exp2',
-  'expm1', 'log', 'log10', 'log1p', 'log2', 'logaddexp', 'logaddexp2',
-  'lcm', 'gcd', 'arccos', 'arccosh', 'arcsin', 'arcsinh', 'arctan',
-  'arctan2', 'arctanh', 'cos', 'cosh', 'sin', 'sinc', 'sinh', 'tan',
-  'tanh', 'deg2rad', 'hypot', 'rad2deg', 'degrees', 'radians', 'round',
-  'around', 'round_', 'rint', 'floor', 'ceil', 'trunc', 'fix', 'prod',
-  'sum', 'diff', 'median', 'nancumprod', 'nancumsum', 'nanprod', 'nansum',
-  'cumprod', 'cumsum', 'ediff1d', 'cross', 'isfinite', 'isinf',
-  'isnan', 'signbit', 'copysign', 'nextafter', 'ldexp', 'frexp', 'convolve',
-  'sqrt', 'cbrt', 'square', 'absolute', 'fabs', 'sign', 'heaviside',
-  'maximum', 'minimum', 'fmax', 'fmin', 'interp', 'clip', 'angle',
+    # math funcs
+    'real', 'imag', 'conj', 'conjugate', 'ndim', 'isreal', 'isscalar',
+    'add', 'reciprocal', 'negative', 'positive', 'multiply', 'divide',
+    'power', 'subtract', 'true_divide', 'floor_divide', 'float_power',
+    'fmod', 'mod', 'modf', 'divmod', 'remainder', 'abs', 'exp', 'exp2',
+    'expm1', 'log', 'log10', 'log1p', 'log2', 'logaddexp', 'logaddexp2',
+    'lcm', 'gcd', 'arccos', 'arccosh', 'arcsin', 'arcsinh', 'arctan',
+    'arctan2', 'arctanh', 'cos', 'cosh', 'sin', 'sinc', 'sinh', 'tan',
+    'tanh', 'deg2rad', 'hypot', 'rad2deg', 'degrees', 'radians', 'round',
+    'around', 'round_', 'rint', 'floor', 'ceil', 'trunc', 'fix', 'prod',
+    'sum', 'diff', 'median', 'nancumprod', 'nancumsum', 'nanprod', 'nansum',
+    'cumprod', 'cumsum', 'ediff1d', 'cross', 'isfinite', 'isinf',
+    'isnan', 'signbit', 'copysign', 'nextafter', 'ldexp', 'frexp', 'convolve',
+    'sqrt', 'cbrt', 'square', 'absolute', 'fabs', 'sign', 'heaviside',
+    'maximum', 'minimum', 'fmax', 'fmin', 'interp', 'clip', 'angle',
 
-  # Elementwise bit operations
-  'bitwise_and', 'bitwise_not', 'bitwise_or', 'bitwise_xor',
-  'invert', 'left_shift', 'right_shift',
+    # Elementwise bit operations
+    'bitwise_and', 'bitwise_not', 'bitwise_or', 'bitwise_xor',
+    'invert', 'left_shift', 'right_shift',
 
-  # logic funcs
-  'equal', 'not_equal', 'greater', 'greater_equal', 'less', 'less_equal',
-  'array_equal', 'isclose', 'allclose', 'logical_and', 'logical_not',
-  'logical_or', 'logical_xor', 'all', 'any', "alltrue", 'sometrue',
+    # logic funcs
+    'equal', 'not_equal', 'greater', 'greater_equal', 'less', 'less_equal',
+    'array_equal', 'isclose', 'allclose', 'logical_and', 'logical_not',
+    'logical_or', 'logical_xor', 'all', 'any', "alltrue", 'sometrue',
 
-  # array manipulation
-  'shape', 'size', 'reshape', 'ravel', 'moveaxis', 'transpose', 'swapaxes',
-  'concatenate', 'stack', 'vstack', 'hstack', 'dstack', 'column_stack',
-  'split', 'dsplit', 'hsplit', 'vsplit', 'tile', 'repeat', 'unique',
-  'append', 'flip', 'fliplr', 'flipud', 'roll', 'atleast_1d', 'atleast_2d',
-  'atleast_3d', 'expand_dims', 'squeeze', 'sort', 'argsort', 'argmax', 'argmin',
-  'argwhere', 'nonzero', 'flatnonzero', 'where', 'searchsorted', 'extract',
-  'count_nonzero', 'max', 'min', 'amax', 'amin',
+    # array manipulation
+    'shape', 'size', 'reshape', 'ravel', 'moveaxis', 'transpose', 'swapaxes',
+    'concatenate', 'stack', 'vstack', 'hstack', 'dstack', 'column_stack',
+    'split', 'dsplit', 'hsplit', 'vsplit', 'tile', 'repeat', 'unique',
+    'append', 'flip', 'fliplr', 'flipud', 'roll', 'atleast_1d', 'atleast_2d',
+    'atleast_3d', 'expand_dims', 'squeeze', 'sort', 'argsort', 'argmax', 'argmin',
+    'argwhere', 'nonzero', 'flatnonzero', 'where', 'searchsorted', 'extract',
+    'count_nonzero', 'max', 'min', 'amax', 'amin',
 
-  # array creation
-  'array_split', 'meshgrid', 'vander',
+    # array creation
+    'array_split', 'meshgrid', 'vander',
 
-  # indexing funcs
-  'nonzero', 'where', 'tril_indices', 'tril_indices_from', 'triu_indices',
-  'triu_indices_from', 'take', 'select',
+    # indexing funcs
+    'nonzero', 'where', 'tril_indices', 'tril_indices_from', 'triu_indices',
+    'triu_indices_from', 'take', 'select',
 
-  # statistic funcs
-  'nanmin', 'nanmax', 'ptp', 'percentile', 'nanpercentile', 'quantile', 'nanquantile',
-  'median', 'average', 'mean', 'std', 'var', 'nanmedian', 'nanmean', 'nanstd', 'nanvar',
-  'corrcoef', 'correlate', 'cov', 'histogram', 'bincount', 'digitize',
+    # statistic funcs
+    'nanmin', 'nanmax', 'ptp', 'percentile', 'nanpercentile', 'quantile', 'nanquantile',
+    'median', 'average', 'mean', 'std', 'var', 'nanmedian', 'nanmean', 'nanstd', 'nanvar',
+    'corrcoef', 'correlate', 'cov', 'histogram', 'bincount', 'digitize',
 
-  # window funcs
-  'bartlett', 'blackman', 'hamming', 'hanning', 'kaiser',
+    # window funcs
+    'bartlett', 'blackman', 'hamming', 'hanning', 'kaiser',
 
-  # constants
-  'e', 'pi', 'inf',
+    # constants
+    'e', 'pi', 'inf',
 
-  # linear algebra
-  'dot', 'vdot', 'inner', 'outer', 'kron', 'matmul', 'trace',
+    # linear algebra
+    'dot', 'vdot', 'inner', 'outer', 'kron', 'matmul', 'trace',
 
-  # data types
-  'dtype', 'finfo', 'iinfo',
+    # data types
+    'dtype', 'finfo', 'iinfo',
 
-  # more
-  'product', 'row_stack', 'apply_over_axes', 'apply_along_axis', 'array_equiv',
-  'array_repr', 'array_str', 'block', 'broadcast_arrays', 'broadcast_shapes',
-  'broadcast_to', 'compress', 'cumproduct', 'diag_indices', 'diag_indices_from',
-  'diagflat', 'diagonal', 'einsum', 'einsum_path', 'geomspace', 'gradient',
-  'histogram2d', 'histogram_bin_edges', 'histogramdd', 'i0', 'in1d', 'indices',
-  'insert', 'intersect1d', 'iscomplex', 'isin', 'ix_', 'lexsort', 'load',
-  'save', 'savez', 'mask_indices', 'msort', 'nan_to_num', 'nanargmax', 'setdiff1d',
-  'nanargmin', 'pad', 'poly', 'polyadd', 'polyder', 'polyfit', 'polyint',
-  'polymul', 'polysub', 'polyval', 'resize', 'rollaxis', 'roots', 'rot90',
-  'setxor1d', 'tensordot', 'trim_zeros', 'union1d', 'unravel_index', 'unwrap',
-  'take_along_axis', 'can_cast', 'choose', 'copy', 'frombuffer', 'fromfile',
-  'fromfunction', 'fromiter', 'fromstring', 'get_printoptions', 'iscomplexobj',
-  'isneginf', 'isposinf', 'isrealobj', 'issubdtype', 'issubsctype', 'iterable',
-  'packbits', 'piecewise', 'printoptions', 'set_printoptions', 'promote_types',
-  'ravel_multi_index', 'result_type', 'sort_complex', 'unpackbits', 'delete',
+    # more
+    'product', 'row_stack', 'apply_over_axes', 'apply_along_axis', 'array_equiv',
+    'array_repr', 'array_str', 'block', 'broadcast_arrays', 'broadcast_shapes',
+    'broadcast_to', 'compress', 'cumproduct', 'diag_indices', 'diag_indices_from',
+    'diagflat', 'diagonal', 'einsum', 'einsum_path', 'geomspace', 'gradient',
+    'histogram2d', 'histogram_bin_edges', 'histogramdd', 'i0', 'in1d', 'indices',
+    'insert', 'intersect1d', 'iscomplex', 'isin', 'ix_', 'lexsort', 'load',
+    'save', 'savez', 'mask_indices', 'msort', 'nan_to_num', 'nanargmax', 'setdiff1d',
+    'nanargmin', 'pad', 'poly', 'polyadd', 'polyder', 'polyfit', 'polyint',
+    'polymul', 'polysub', 'polyval', 'resize', 'rollaxis', 'roots', 'rot90',
+    'setxor1d', 'tensordot', 'trim_zeros', 'union1d', 'unravel_index', 'unwrap',
+    'take_along_axis', 'can_cast', 'choose', 'copy', 'frombuffer', 'fromfile',
+    'fromfunction', 'fromiter', 'fromstring', 'get_printoptions', 'iscomplexobj',
+    'isneginf', 'isposinf', 'isrealobj', 'issubdtype', 'issubsctype', 'iterable',
+    'packbits', 'piecewise', 'printoptions', 'set_printoptions', 'promote_types',
+    'ravel_multi_index', 'result_type', 'sort_complex', 'unpackbits', 'delete',
 
-  # unique
-  'asanyarray', 'ascontiguousarray', 'asfarray', 'asscalar', 'common_type', 'genfromtxt',
-  'loadtxt', 'info', 'place', 'polydiv', 'put', 'putmask', 'safe_eval',
-  'savetxt', 'savez_compressed', 'show_config', 'typename', 'copyto', 'matrix', 'asmatrix', 'mat',
+    # unique
+    'asanyarray', 'ascontiguousarray', 'asfarray', 'asscalar', 'common_type', 'genfromtxt',
+    'loadtxt', 'info', 'place', 'polydiv', 'put', 'putmask', 'safe_eval',
+    'savetxt', 'savez_compressed', 'show_config', 'typename', 'copyto', 'matrix', 'asmatrix', 'mat',
 
 ]
 
@@ -102,129 +102,129 @@ _max = max
 
 
 def _return(a):
-  return Array(a)
+    return Array(a)
 
 
 def fill_diagonal(a, val, inplace=True):
-  if a.ndim < 2:
-    raise ValueError(f'Only support tensor has dimension >= 2, but got {a.shape}')
-  if not isinstance(a, BaseArray) and inplace:
-    raise ValueError('``fill_diagonal()`` is used in in-place updating, therefore '
-                     'it requires a brainpy Array. If you want to disable '
-                     'inplace updating, use ``fill_diagonal(inplace=False)``.')
-  val = val.value if isinstance(val, BaseArray) else val
-  i, j = jnp.diag_indices(_min(a.shape[-2:]))
-  r = as_jax(a).at[..., i, j].set(val)
-  if inplace:
-    a.value = r
-  else:
-    return r
+    if a.ndim < 2:
+        raise ValueError(f'Only support tensor has dimension >= 2, but got {a.shape}')
+    if not isinstance(a, BaseArray) and inplace:
+        raise ValueError('``fill_diagonal()`` is used in in-place updating, therefore '
+                         'it requires a brainpy Array. If you want to disable '
+                         'inplace updating, use ``fill_diagonal(inplace=False)``.')
+    val = val.value if isinstance(val, BaseArray) else val
+    i, j = jnp.diag_indices(_min(a.shape[-2:]))
+    r = as_jax(a).at[..., i, j].set(val)
+    if inplace:
+        a.value = r
+    else:
+        return r
 
 
 def zeros(shape, dtype=None):
-  return _return(jnp.zeros(shape, dtype=dtype))
+    return _return(jnp.zeros(shape, dtype=dtype))
 
 
 def ones(shape, dtype=None):
-  return _return(jnp.ones(shape, dtype=dtype))
+    return _return(jnp.ones(shape, dtype=dtype))
 
 
 def empty(shape, dtype=None):
-  return _return(jnp.zeros(shape, dtype=dtype))
+    return _return(jnp.zeros(shape, dtype=dtype))
 
 
 def zeros_like(a, dtype=None, shape=None):
-  a = _as_jax_array_(a)
-  return _return(jnp.zeros_like(a, dtype=dtype, shape=shape))
+    a = _as_jax_array_(a)
+    return _return(jnp.zeros_like(a, dtype=dtype, shape=shape))
 
 
 def ones_like(a, dtype=None, shape=None):
-  a = _as_jax_array_(a)
-  return _return(jnp.ones_like(a, dtype=dtype, shape=shape))
+    a = _as_jax_array_(a)
+    return _return(jnp.ones_like(a, dtype=dtype, shape=shape))
 
 
 def empty_like(a, dtype=None, shape=None):
-  a = _as_jax_array_(a)
-  return _return(jnp.zeros_like(a, dtype=dtype, shape=shape))
+    a = _as_jax_array_(a)
+    return _return(jnp.zeros_like(a, dtype=dtype, shape=shape))
 
 
 def array(a, dtype=None, copy=True, order="K", ndmin=0) -> Array:
-  a = _as_jax_array_(a)
-  try:
-    res = jnp.array(a, dtype=dtype, copy=copy, order=order, ndmin=ndmin)
-  except TypeError:
-    leaves, tree = tree_flatten(a, is_leaf=lambda a: isinstance(a, BaseArray))
-    leaves = [_as_jax_array_(l) for l in leaves]
-    a = tree_unflatten(tree, leaves)
-    res = jnp.array(a, dtype=dtype, copy=copy, order=order, ndmin=ndmin)
-  return _return(res)
-
-
-def asarray(a, dtype=None, order=None):
-  a = _as_jax_array_(a)
-  try:
-    res = jnp.asarray(a=a, dtype=dtype, order=order)
-  except TypeError:
-    leaves, tree = tree_flatten(a, is_leaf=lambda a: isinstance(a, BaseArray))
-    leaves = [_as_jax_array_(l) for l in leaves]
-    arrays = tree_unflatten(tree, leaves)
-    res = jnp.asarray(a=arrays, dtype=dtype, order=order)
-  return _return(res)
-
-
-def arange(*args, **kwargs):
-  args = [_as_jax_array_(a) for a in args]
-  kwargs = {k: _as_jax_array_(v) for k, v in kwargs.items()}
-  return _return(jnp.arange(*args, **kwargs))
-
-
-def linspace(*args, **kwargs):
-  args = [_as_jax_array_(a) for a in args]
-  kwargs = {k: _as_jax_array_(v) for k, v in kwargs.items()}
-  res = jnp.linspace(*args, **kwargs)
-  if isinstance(res, tuple):
-    return _return(res[0]), res[1]
-  else:
+    a = _as_jax_array_(a)
+    try:
+        res = jnp.array(a, dtype=dtype, copy=copy, order=order, ndmin=ndmin)
+    except TypeError:
+        leaves, tree = tree_flatten(a, is_leaf=lambda a: isinstance(a, BaseArray))
+        leaves = [_as_jax_array_(l) for l in leaves]
+        a = tree_unflatten(tree, leaves)
+        res = jnp.array(a, dtype=dtype, copy=copy, order=order, ndmin=ndmin)
     return _return(res)
 
 
+def asarray(a, dtype=None, order=None):
+    a = _as_jax_array_(a)
+    try:
+        res = jnp.asarray(a=a, dtype=dtype, order=order)
+    except TypeError:
+        leaves, tree = tree_flatten(a, is_leaf=lambda a: isinstance(a, BaseArray))
+        leaves = [_as_jax_array_(l) for l in leaves]
+        arrays = tree_unflatten(tree, leaves)
+        res = jnp.asarray(a=arrays, dtype=dtype, order=order)
+    return _return(res)
+
+
+def arange(*args, **kwargs):
+    args = [_as_jax_array_(a) for a in args]
+    kwargs = {k: _as_jax_array_(v) for k, v in kwargs.items()}
+    return _return(jnp.arange(*args, **kwargs))
+
+
+def linspace(*args, **kwargs):
+    args = [_as_jax_array_(a) for a in args]
+    kwargs = {k: _as_jax_array_(v) for k, v in kwargs.items()}
+    res = jnp.linspace(*args, **kwargs)
+    if isinstance(res, tuple):
+        return _return(res[0]), res[1]
+    else:
+        return _return(res)
+
+
 def logspace(*args, **kwargs):
-  args = [_as_jax_array_(a) for a in args]
-  kwargs = {k: _as_jax_array_(v) for k, v in kwargs.items()}
-  return _return(jnp.logspace(*args, **kwargs))
+    args = [_as_jax_array_(a) for a in args]
+    kwargs = {k: _as_jax_array_(v) for k, v in kwargs.items()}
+    return _return(jnp.logspace(*args, **kwargs))
 
 
 def asanyarray(a, dtype=None, order=None):
-  return asarray(a, dtype=dtype, order=order)
+    return asarray(a, dtype=dtype, order=order)
 
 
 def ascontiguousarray(a, dtype=None, order=None):
-  return asarray(a, dtype=dtype, order=order)
+    return asarray(a, dtype=dtype, order=order)
 
 
 def asfarray(a, dtype=None):
-  if not np.issubdtype(dtype, np.inexact):
-    dtype = np.float64
-  return asarray(a, dtype=dtype)
+    if not np.issubdtype(dtype, np.inexact):
+        dtype = np.float64
+    return asarray(a, dtype=dtype)
 
 
 def in1d(ar1, ar2, assume_unique: bool = False, invert: bool = False) -> Array:
-  del assume_unique
-  ar1_flat = ravel(ar1)
-  ar2_flat = ravel(ar2)
-  # Note: an algorithm based on searchsorted has better scaling, but in practice
-  # is very slow on accelerators because it relies on lax control flow. If XLA
-  # ever supports binary search natively, we should switch to this:
-  #   ar2_flat = jnp.sort(ar2_flat)
-  #   ind = jnp.searchsorted(ar2_flat, ar1_flat)
-  #   if invert:
-  #     return ar1_flat != ar2_flat[ind]
-  #   else:
-  #     return ar1_flat == ar2_flat[ind]
-  if invert:
-    return asarray((ar1_flat[:, None] != ar2_flat[None, :]).all(-1))
-  else:
-    return asarray((ar1_flat[:, None] == ar2_flat[None, :]).any(-1))
+    del assume_unique
+    ar1_flat = ravel(ar1)
+    ar2_flat = ravel(ar2)
+    # Note: an algorithm based on searchsorted has better scaling, but in practice
+    # is very slow on accelerators because it relies on lax control flow. If XLA
+    # ever supports binary search natively, we should switch to this:
+    #   ar2_flat = jnp.sort(ar2_flat)
+    #   ind = jnp.searchsorted(ar2_flat, ar1_flat)
+    #   if invert:
+    #     return ar1_flat != ar2_flat[ind]
+    #   else:
+    #     return ar1_flat == ar2_flat[ind]
+    if invert:
+        return asarray((ar1_flat[:, None] != ar2_flat[None, :]).all(-1))
+    else:
+        return asarray((ar1_flat[:, None] == ar2_flat[None, :]).any(-1))
 
 
 # Others
@@ -272,29 +272,29 @@ mask_indices = _compatible_with_brainpy_array(jnp.mask_indices)
 
 
 def msort(a):
-  """
-  Return a copy of an array sorted along the first axis.
+    """
+    Return a copy of an array sorted along the first axis.
 
-  Parameters::
-  
-  a : array_like
-      Array to be sorted.
+    Parameters::
 
-  Returns::
-  
-  sorted_array : ndarray
-      Array of the same type and shape as `a`.
+    a : array_like
+        Array to be sorted.
 
-  See Also::
-  
-  sort
+    Returns::
 
-  Notes::
-  
-  ``brainpy.math.msort(a)`` is equivalent to  ``brainpy.math.sort(a, axis=0)``.
+    sorted_array : ndarray
+        Array of the same type and shape as `a`.
 
-  """
-  return sort(a, axis=0)
+    See Also::
+
+    sort
+
+    Notes::
+
+    ``brainpy.math.msort(a)`` is equivalent to  ``brainpy.math.sort(a, axis=0)``.
+
+    """
+    return sort(a, axis=0)
 
 
 nan_to_num = _compatible_with_brainpy_array(jnp.nan_to_num)
@@ -402,9 +402,9 @@ nansum = _compatible_with_brainpy_array(jnp.nansum)
 ediff1d = _compatible_with_brainpy_array(jnp.ediff1d)
 cross = _compatible_with_brainpy_array(jnp.cross)
 if jax.__version__ >= '0.4.18':
-  trapz = _compatible_with_brainpy_array(jax.scipy.integrate.trapezoid)
+    trapz = _compatible_with_brainpy_array(jax.scipy.integrate.trapezoid)
 else:
-  trapz = _compatible_with_brainpy_array(jnp.trapz)
+    trapz = _compatible_with_brainpy_array(jnp.trapz)
 isfinite = _compatible_with_brainpy_array(jnp.isfinite)
 isinf = _compatible_with_brainpy_array(jnp.isinf)
 isnan = _compatible_with_brainpy_array(jnp.isnan)
@@ -455,84 +455,84 @@ sometrue = any
 
 
 def shape(a):
-  """
-  Return the shape of an array.
+    """
+    Return the shape of an array.
 
-  Parameters::
-  
-  a : array_like
-      Input array.
+    Parameters::
 
-  Returns::
-  
-  shape : tuple of ints
-      The elements of the shape tuple give the lengths of the
-      corresponding array dimensions.
+    a : array_like
+        Input array.
 
-  See Also::
-  
-  len : ``len(a)`` is equivalent to ``np.shape(a)[0]`` for N-D arrays with
-        ``N>=1``.
-  ndarray.shape : Equivalent array method.
+    Returns::
 
-  Examples::
-  
-  >>> brainpy.math.shape(brainpy.math.eye(3))
-  (3, 3)
-  >>> brainpy.math.shape([[1, 3]])
-  (1, 2)
-  >>> brainpy.math.shape([0])
-  (1,)
-  >>> brainpy.math.shape(0)
-  ()
+    shape : tuple of ints
+        The elements of the shape tuple give the lengths of the
+        corresponding array dimensions.
 
-  """
-  if isinstance(a, (BaseArray, jax.Array, np.ndarray)):
-    return a.shape
-  else:
-    return np.shape(a)
+    See Also::
+
+    len : ``len(a)`` is equivalent to ``np.shape(a)[0]`` for N-D arrays with
+          ``N>=1``.
+    ndarray.shape : Equivalent array method.
+
+    Examples::
+
+    >>> brainpy.math.shape(brainpy.math.eye(3))
+    (3, 3)
+    >>> brainpy.math.shape([[1, 3]])
+    (1, 2)
+    >>> brainpy.math.shape([0])
+    (1,)
+    >>> brainpy.math.shape(0)
+    ()
+
+    """
+    if isinstance(a, (BaseArray, jax.Array, np.ndarray)):
+        return a.shape
+    else:
+        return np.shape(a)
 
 
 def size(a, axis=None):
-  """
-  Return the number of elements along a given axis.
+    """
+    Return the number of elements along a given axis.
 
-  Parameters::
-  
-  a : array_like
-      Input data.
-  axis : int, optional
-      Axis along which the elements are counted.  By default, give
-      the total number of elements.
+    Parameters::
 
-  Returns::
-  
-  element_count : int
-      Number of elements along the specified axis.
+    a : array_like
+        Input data.
+    axis : int, optional
+        Axis along which the elements are counted.  By default, give
+        the total number of elements.
 
-  See Also::
-  
-  shape : dimensions of array
-  Array.shape : dimensions of array
-  Array.size : number of elements in array
+    Returns::
 
-  Examples::
-  
-  >>> a = brainpy.math.array([[1,2,3], [4,5,6]])
-  >>> brainpy.math.size(a)
-  6
-  >>> brainpy.math.size(a, 1)
-  3
-  >>> brainpy.math.size(a, 0)
-  2
-  """
-  if isinstance(a, (BaseArray, jax.Array, np.ndarray)):
-    if axis is None:
-      return a.size
+    element_count : int
+        Number of elements along the specified axis.
+
+    See Also::
+
+    shape : dimensions of array
+    Array.shape : dimensions of array
+    Array.size : number of elements in array
+
+    Examples::
+
+    >>> a = brainpy.math.array([[1,2,3], [4,5,6]])
+    >>> brainpy.math.size(a)
+    6
+    >>> brainpy.math.size(a, 1)
+    3
+    >>> brainpy.math.size(a, 0)
+    2
+    """
+    if isinstance(a, (BaseArray, jax.Array, np.ndarray)):
+        if axis is None:
+            return a.size
+        else:
+            return a.shape[axis]
     else:
-      return a.shape[axis]
-  else:
-    return np.size(a, axis=axis)
+        return np.size(a, axis=axis)
 
 
 reshape = _compatible_with_brainpy_array(jnp.reshape)
@@ -673,12 +673,13 @@ result_type = _compatible_with_brainpy_array(jnp.result_type)
 sort_complex = _compatible_with_brainpy_array(jnp.sort_complex)
 unpackbits = _compatible_with_brainpy_array(jnp.unpackbits)
 
+
 # Unique APIs
 # -----------
 
 
 def asscalar(a):
-  return a.item()
+    return a.item()
 
 
 array_type = [[np.half, np.single, np.double, np.longdouble],
@@ -693,23 +694,23 @@ array_precision = {np.half: 0,
 
 
 def common_type(*arrays):
-  is_complex = False
-  precision = 0
-  for a in arrays:
-    t = a.dtype.type
-    if iscomplexobj(a):
-      is_complex = True
-    if issubclass(t, jnp.integer):
-      p = 2  # array_precision[_nx.double]
+    is_complex = False
+    precision = 0
+    for a in arrays:
+        t = a.dtype.type
+        if iscomplexobj(a):
+            is_complex = True
+        if issubclass(t, jnp.integer):
+            p = 2  # array_precision[_nx.double]
+        else:
+            p = array_precision.get(t, None)
+            if p is None:
+                raise TypeError("can't get common type for non-numeric array")
+        precision = _max(precision, p)
+    if is_complex:
+        return array_type[1][precision]
     else:
-      p = array_precision.get(t, None)
-      if p is None:
-        raise TypeError("can't get common type for non-numeric array")
-    precision = _max(precision, p)
-  if is_complex:
-    return array_type[1][precision]
-  else:
-    return array_type[0][precision]
+        return array_type[0][precision]
 
 
 genfromtxt = lambda *args, **kwargs: asarray(np.genfromtxt(*args, **kwargs))
@@ -718,44 +719,44 @@ info = np.info
 
 
 def place(arr, mask, vals):
-  if not isinstance(arr, BaseArray):
-    raise ValueError(f'Must be an instance of brainpy Array, but we got {type(arr)}')
-  arr[mask] = vals
+    if not isinstance(arr, BaseArray):
+        raise ValueError(f'Must be an instance of brainpy Array, but we got {type(arr)}')
+    arr[mask] = vals
 
 
 polydiv = _compatible_with_brainpy_array(jnp.polydiv)
 
 
 def put(a, ind, v):
-  if not isinstance(a, BaseArray):
-    raise ValueError(f'Must be an instance of brainpy Array, but we got {type(a)}')
-  a[ind] = v
+    if not isinstance(a, BaseArray):
+        raise ValueError(f'Must be an instance of brainpy Array, but we got {type(a)}')
+    a[ind] = v
 
 
 def putmask(a, mask, values):
-  if not isinstance(a, BaseArray):
-    raise ValueError(f'Must be an instance of brainpy Array, but we got {type(a)}')
-  if a.shape != values.shape:
-    raise ValueError('Only support the shapes of "a" and "values" are consistent.')
-  a[mask] = values
+    if not isinstance(a, BaseArray):
+        raise ValueError(f'Must be an instance of brainpy Array, but we got {type(a)}')
+    if a.shape != values.shape:
+        raise ValueError('Only support the shapes of "a" and "values" are consistent.')
+    a[mask] = values
 
 
 def safe_eval(source):
-  return tree_map(Array, np.safe_eval(source))
+    return tree_map(Array, np.safe_eval(source))
 
 
 def savetxt(fname, X, fmt='%.18e', delimiter=' ', newline='\n', header='',
             footer='', comments='# ', encoding=None):
-  X = as_numpy(X)
-  np.savetxt(fname, X, fmt=fmt, delimiter=delimiter, newline=newline, header=header,
-             footer=footer, comments=comments, encoding=encoding)
+    X = as_numpy(X)
+    np.savetxt(fname, X, fmt=fmt, delimiter=delimiter, newline=newline, header=header,
+               footer=footer, comments=comments, encoding=encoding)
 
 
 def savez_compressed(file, *args, **kwds):
-  args = tuple([(as_numpy(a) if isinstance(a, (jnp.ndarray, BaseArray)) else a) for a in args])
-  kwds = {k: (as_numpy(v) if isinstance(v, (jnp.ndarray, BaseArray)) else v)
-          for k, v in kwds.items()}
-  np.savez_compressed(file, *args, **kwds)
+    args = tuple([(as_numpy(a) if isinstance(a, (jnp.ndarray, BaseArray)) else a) for a in args])
+    kwds = {k: (as_numpy(v) if isinstance(v, (jnp.ndarray, BaseArray)) else v)
+            for k, v in kwds.items()}
+    np.savez_compressed(file, *args, **kwds)
 
 
 show_config = np.show_config
@@ -763,30 +764,30 @@ typename = np.typename
 
 
 def copyto(dst, src):
-  if not isinstance(dst, BaseArray):
-    raise ValueError('dst must be an instance of ArrayType.')
-  dst[:] = src
+    if not isinstance(dst, BaseArray):
+        raise ValueError('dst must be an instance of ArrayType.')
+    dst[:] = src
 
 
 def matrix(data, dtype=None):
-  data = array(data, copy=True, dtype=dtype)
-  if data.ndim > 2:
-    raise ValueError(f'shape too large {data.shape} to be a matrix.')
-  if data.ndim != 2:
-    for i in range(2 - data.ndim):
-      data = expand_dims(data, 0)
-  return data
+    data = array(data, copy=True, dtype=dtype)
+    if data.ndim > 2:
+        raise ValueError(f'shape too large {data.shape} to be a matrix.')
+    if data.ndim != 2:
+        for i in range(2 - data.ndim):
+            data = expand_dims(data, 0)
+    return data
 
 
 def asmatrix(data, dtype=None):
-  data = array(data, dtype=dtype)
-  if data.ndim > 2:
-    raise ValueError(f'shape too large {data.shape} to be a matrix.')
-  if data.ndim != 2:
-    for i in range(2 - data.ndim):
-      data = expand_dims(data, 0)
-  return data
+    data = array(data, dtype=dtype)
+    if data.ndim > 2:
+        raise ValueError(f'shape too large {data.shape} to be a matrix.')
+    if data.ndim != 2:
+        for i in range(2 - data.ndim):
+            data = expand_dims(data, 0)
+    return data
 
 
 def mat(data, dtype=None):
-  return asmatrix(data, dtype=dtype)
+    return asmatrix(data, dtype=dtype)

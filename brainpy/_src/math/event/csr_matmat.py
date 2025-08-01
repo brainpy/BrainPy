@@ -3,11 +3,10 @@
 
 from typing import Union, Tuple
 
+import brainevent
 from jax import numpy as jnp
 
 from brainpy._src.math.ndarray import BaseArray as Array
-
-import brainevent
 
 __all__ = [
     'csrmm',

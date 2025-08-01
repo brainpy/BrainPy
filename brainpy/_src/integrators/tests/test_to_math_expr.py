@@ -18,31 +18,31 @@ import brainpy as bp
 
 
 class EINet3(bp.DynSysGroup):
-  def __init__(self):
-    super().__init__()
-    self.N = bp.dyn.LifRef(4000, V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.,
-                           V_initializer=bp.init.Normal(-55., 2.))
-    self.delay = bp.VarDelay(self.N.spike, entries={'I': None})
-    self.E = bp.dyn.HalfProjAlignPostMg(comm=bp.dnn.EventJitFPHomoLinear(3200, 4000, prob=0.02, weight=0.6),
-                                        syn=bp.dyn.Expon.desc(size=4000, tau=5.),
-                                        out=bp.dyn.COBA.desc(E=0.),
-                                        post=self.N)
-    self.I = bp.dyn.HalfProjAlignPostMg(comm=bp.dnn.EventJitFPHomoLinear(800, 4000, prob=0.02, weight=6.7),
-                                        syn=bp.dyn.Expon.desc(size=4000, tau=10.),
-                                        out=bp.dyn.COBA.desc(E=-80.),
-                                        post=self.N)
+    def __init__(self):
+        super().__init__()
+        self.N = bp.dyn.LifRef(4000, V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.,
+                               V_initializer=bp.init.Normal(-55., 2.))
+        self.delay = bp.VarDelay(self.N.spike, entries={'I': None})
+        self.E = bp.dyn.HalfProjAlignPostMg(comm=bp.dnn.EventJitFPHomoLinear(3200, 4000, prob=0.02, weight=0.6),
+                                            syn=bp.dyn.Expon.desc(size=4000, tau=5.),
+                                            out=bp.dyn.COBA.desc(E=0.),
+                                            post=self.N)
+        self.I = bp.dyn.HalfProjAlignPostMg(comm=bp.dnn.EventJitFPHomoLinear(800, 4000, prob=0.02, weight=6.7),
+                                            syn=bp.dyn.Expon.desc(size=4000, tau=10.),
+                                            out=bp.dyn.COBA.desc(E=-80.),
+                                            post=self.N)
 
-  def update(self, input):
-    spk = self.delay.at('I')
-    self.E(spk[:3200])
-    self.I(spk[3200:])
-    self.delay(self.N(input))
-    return self.N.spike.value
+    def update(self, input):
+        spk = self.delay.at('I')
+        self.E(spk[:3200])
+        self.I(spk[3200:])
+        self.delay(self.N(input))
+        return self.N.spike.value
 
 
 def test1():
-  model = EINet3()
+    model = EINet3()
 
-  bp.integrators.compile_integrators(model.step_run, 0, 0.)
-  for intg in model.nodes().subset(bp.Integrator).values():
-    print(intg.to_math_expr())
+    bp.integrators.compile_integrators(model.step_run, 0, 0.)
+    for intg in model.nodes().subset(bp.Integrator).values():
+        print(intg.to_math_expr())

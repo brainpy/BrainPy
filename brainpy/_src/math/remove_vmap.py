@@ -1,50 +1,51 @@
 # -*- coding: utf-8 -*-
 
 
-import jax.numpy as jnp
 import jax
+import jax.numpy as jnp
+
 if jax.__version__ >= '0.5.0':
-  from jax.extend.core import Primitive
+    from jax.extend.core import Primitive
 else:
-  from jax.core import Primitive
+    from jax.core import Primitive
 from jax.core import ShapedArray
 from jax.interpreters import batching, mlir, xla
 from .ndarray import BaseArray
 
 __all__ = [
-  'remove_vmap'
+    'remove_vmap'
 ]
 
 
 def remove_vmap(x, op='any'):
-  if isinstance(x, BaseArray):
-    x = x.value
-  if op == 'any':
-    return _any_without_vmap(x)
-  elif op == 'all':
-    return _all_without_vmap(x)
-  else:
-    raise ValueError(f'Do not support type: {op}')
+    if isinstance(x, BaseArray):
+        x = x.value
+    if op == 'any':
+        return _any_without_vmap(x)
+    elif op == 'all':
+        return _all_without_vmap(x)
+    else:
+        raise ValueError(f'Do not support type: {op}')
 
 
 _any_no_vmap_prim = Primitive('any_no_vmap')
 
 
 def _any_without_vmap(x):
-  return _any_no_vmap_prim.bind(x)
+    return _any_no_vmap_prim.bind(x)
 
 
 def _any_without_vmap_imp(x):
-  return jnp.any(x)
+    return jnp.any(x)
 
 
 def _any_without_vmap_abs(x):
-  return ShapedArray(shape=(), dtype=jnp.bool_)
+    return ShapedArray(shape=(), dtype=jnp.bool_)
 
 
 def _any_without_vmap_batch(x, batch_axes):
-  (x, ) = x
-  return _any_without_vmap(x), batching.not_mapped
+    (x,) = x
+    return _any_without_vmap(x), batching.not_mapped
 
 
 _any_no_vmap_prim.def_impl(_any_without_vmap_imp)
@@ -55,25 +56,24 @@ if hasattr(xla, "lower_fun"):
                              xla.lower_fun(_any_without_vmap_imp, multiple_results=False, new_style=True))
 mlir.register_lowering(_any_no_vmap_prim, mlir.lower_fun(_any_without_vmap_imp, multiple_results=False))
 
-
 _all_no_vmap_prim = Primitive('all_no_vmap')
 
 
 def _all_without_vmap(x):
-  return _all_no_vmap_prim.bind(x)
+    return _all_no_vmap_prim.bind(x)
 
 
 def _all_without_vmap_imp(x):
-  return jnp.all(x)
+    return jnp.all(x)
 
 
 def _all_without_vmap_abs(x):
-  return ShapedArray(shape=(), dtype=jnp.bool_)
+    return ShapedArray(shape=(), dtype=jnp.bool_)
 
 
 def _all_without_vmap_batch(x, batch_axes):
-  (x, ) = x
-  return _all_without_vmap(x), batching.not_mapped
+    (x,) = x
+    return _all_without_vmap(x), batching.not_mapped
 
 
 _all_no_vmap_prim.def_impl(_all_without_vmap_imp)
@@ -83,4 +83,3 @@ if hasattr(xla, "lower_fun"):
     xla.register_translation(_all_no_vmap_prim,
                              xla.lower_fun(_all_without_vmap_imp, multiple_results=False, new_style=True))
 mlir.register_lowering(_all_no_vmap_prim, mlir.lower_fun(_all_without_vmap_imp, multiple_results=False))
-

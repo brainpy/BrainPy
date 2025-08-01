@@ -2,9 +2,9 @@
 
 import unittest
 
+import jax
 import numpy as np
 
-import jax
 import brainpy.math as bm
 from brainpy._src.integrators.ode import explicit_rk
 
@@ -46,7 +46,6 @@ def run_integrator(method, show=False):
         jit=True
     )
 
-
     mon_x, mon_y, mon_z = results
     mon_x = np.array(mon_x).flatten()
     mon_y = np.array(mon_y).flatten()
@@ -87,4 +86,3 @@ class TestRKMethods(unittest.TestCase):
             assert np.linalg.norm(mon_x - _baseline_x) / (duration / dt) < 0.1
             assert np.linalg.norm(mon_y - _baseline_y) / (duration / dt) < 0.1
             assert np.linalg.norm(mon_z - _baseline_z) / (duration / dt) < 0.1
-            

@@ -9,28 +9,28 @@ _reduction_error = 'Only support reduction of "mean", "sum" and "none", but we g
 
 
 def _is_leaf(x):
-  return isinstance(x, bm.BaseArray)
+    return isinstance(x, bm.BaseArray)
 
 
 def _reduce(outputs, reduction, axis=None):
-  if reduction == 'mean':
-    return outputs.mean(axis)
-  elif reduction == 'sum':
-    return outputs.sum(axis)
-  elif reduction == 'none':
-    return outputs
-  else:
-    raise UnsupportedError(_reduction_error % reduction)
+    if reduction == 'mean':
+        return outputs.mean(axis)
+    elif reduction == 'sum':
+        return outputs.sum(axis)
+    elif reduction == 'none':
+        return outputs
+    else:
+        raise UnsupportedError(_reduction_error % reduction)
 
 
 def _multi_return(r):
-  if isinstance(r, jax.Array):
-    return r
-  elif isinstance(r, bm.BaseArray):
-    return r.value
-  else:
-    leaves = tree_flatten(r)[0]
-    r = leaves[0]
-    for leaf in leaves[1:]:
-      r += leaf
-    return r
+    if isinstance(r, jax.Array):
+        return r
+    elif isinstance(r, bm.BaseArray):
+        return r.value
+    else:
+        leaves = tree_flatten(r)[0]
+        r = leaves[0]
+        for leaf in leaves[1:]:
+            r += leaf
+        return r

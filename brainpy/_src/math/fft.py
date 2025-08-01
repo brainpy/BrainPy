@@ -5,9 +5,9 @@ import jax.numpy.fft as jfft
 from ._utils import _compatible_with_brainpy_array
 
 __all__ = [
-  "fft", "fft2", "fftfreq", "fftn", "fftshift", "hfft",
-  "ifft", "ifft2", "ifftn", "ifftshift", "ihfft", "irfft",
-  "irfft2", "irfftn", "rfft", "rfft2", "rfftfreq", "rfftn"
+    "fft", "fft2", "fftfreq", "fftn", "fftshift", "hfft",
+    "ifft", "ifft2", "ifftn", "ifftshift", "ihfft", "irfft",
+    "irfft2", "irfftn", "rfft", "rfft2", "rfftfreq", "rfftn"
 ]
 
 fft = _compatible_with_brainpy_array(jfft.fft, module='fft.')

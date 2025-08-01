@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-import importlib.util
 import numbers
 from typing import Dict, Optional, Union, Callable
 
@@ -16,10 +15,9 @@ from brainpy._src.dnn.base import Layer
 from brainpy._src.mixin import SupportOnline, SupportOffline, SupportSTDP
 from brainpy.check import is_initializer
 from brainpy.connect import csr2csc
-from brainpy.errors import MathError, PackageMissingError
+from brainpy.errors import MathError
 from brainpy.initialize import XavierNormal, ZeroInit, Initializer, parameter
 from brainpy.types import ArrayType, Sharding
-
 
 __all__ = [
     'Dense', 'Linear',

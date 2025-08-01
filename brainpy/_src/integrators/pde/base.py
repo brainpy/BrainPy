@@ -4,5 +4,4 @@ from ..base import Integrator
 
 
 class PDEIntegrator(Integrator):
-  pass
-
+    pass
