@@ -1,5 +1,5 @@
 <p align="center">
-  	<img alt="Header image of BrainPy - brain dynamics programming in Python." src="https://github.com/brainpy/BrainPy/blob/master/images/logo.png" width=80%>
+  	<img alt="Header image of BrainPy - brain dynamics programming in Python." src="https://raw.githubusercontent.com/brainpy/BrainPy/master/images/logo.png" width=80%>
 </p> 
 
 
@@ -64,9 +64,6 @@ We provide a Binder environment for BrainPy. You can use the following button to
 
 
 ## Citing 
-
-BrainPy is developed by a team in Neural Information Processing Lab at Peking University, China. 
-Our team is committed to the long-term maintenance and development of the project. 
 
 If you are using ``brainpy``, please consider citing the corresponding paper:
 
