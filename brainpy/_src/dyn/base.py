@@ -4,21 +4,20 @@ from brainpy._src.dynsys import Dynamic
 from brainpy._src.mixin import SupportAutoDelay, ParamDesc
 
 __all__ = [
-  'NeuDyn', 'SynDyn', 'IonChaDyn',
+    'NeuDyn', 'SynDyn', 'IonChaDyn',
 ]
 
 
 class NeuDyn(Dynamic, SupportAutoDelay):
-  """Neuronal Dynamics."""
-  pass
+    """Neuronal Dynamics."""
+    pass
 
 
 class SynDyn(Dynamic, SupportAutoDelay, ParamDesc):
-  """Synaptic Dynamics."""
-  pass
+    """Synaptic Dynamics."""
+    pass
 
 
 class IonChaDyn(Dynamic):
-  """Ion Channel Dynamics."""
-  pass
-
+    """Ion Channel Dynamics."""
+    pass

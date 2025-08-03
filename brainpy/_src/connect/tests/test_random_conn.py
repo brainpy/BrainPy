@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import pytest
-
 import unittest
+
+import pytest
 
 import brainpy as bp
 
@@ -87,10 +87,12 @@ def test_random_fix_post3():
         conn1 = bp.connect.FixedPostNum(num=6, seed=1234)(pre_size=3, post_size=4)
         conn1.require(bp.connect.CONN_MAT)
 
+
 def test_random_fix_total1():
     conn1 = bp.connect.FixedTotalNum(num=8, allow_multi_conn=False, seed=1234)(pre_size=3, post_size=4)
     coo1 = conn1.require(bp.connect.COO)
     conn_mat = bp.connect.coo2mat_num(ij=coo1, num_pre=3, num_post=4, num=conn1.num, seed=1234)
+
 
 def test_random_fix_total2():
     conn1 = bp.connect.FixedTotalNum(num=8, allow_multi_conn=True, seed=1234)(pre_size=3, post_size=4)

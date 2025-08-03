@@ -9,9 +9,8 @@ The JIT compilation tools for JAX backend.
 
 from typing import Callable, Union, Optional, Sequence, Any, Iterable
 
-import jax.tree
-
 import brainstate.transform
+import jax.tree
 from brainstate.compile._jit import Missing
 
 __all__ = [

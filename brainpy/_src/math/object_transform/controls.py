@@ -3,9 +3,9 @@
 import numbers
 from typing import Union, Sequence, Any, Dict, Callable, Optional
 
+import brainstate
 import jax.numpy as jnp
 
-import brainstate
 from brainpy._src.math.ndarray import Array
 
 __all__ = [
@@ -137,16 +137,16 @@ def ifelse(
         operands = ()
     elif not isinstance(operands, (tuple, list)):
         operands = (operands,)
-    
+
     # Convert non-callable branches to callables
     def make_callable(branch):
         if callable(branch):
             return branch
         else:
             return lambda *args: branch
-    
+
     branches = [make_callable(branch) for branch in branches]
-    
+
     # Convert if-elif-else chain to mutually exclusive conditions
     if isinstance(conditions, (list, tuple)) and len(conditions) > 0:
         conditions = list(conditions)
@@ -161,7 +161,7 @@ def ifelse(
                 for j in range(1, i):
                     prev_conds_false = prev_conds_false & jnp.logical_not(conditions[j])
                 exclusive_conditions.append(cond & prev_conds_false)
-        
+
         # If we have equal number of branches and conditions, the last branch is the default case
         if len(branches) == len(conditions):
             # Replace the last condition with "all previous conditions are false"
@@ -175,9 +175,9 @@ def ifelse(
             for cond in conditions[1:]:
                 all_false = all_false & jnp.logical_not(cond)
             exclusive_conditions.append(all_false)
-        
+
         conditions = exclusive_conditions
-    
+
     return brainstate.transform.ifelse(conditions, branches, *operands)
 
 

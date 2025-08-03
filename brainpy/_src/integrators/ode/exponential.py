@@ -115,255 +115,255 @@ from brainpy._src.integrators import constants as C, utils, joint_eq
 from brainpy._src.integrators.ode.base import ODEIntegrator
 from .generic import register_ode_integrator
 
-
 __all__ = [
-  'ExponentialEuler',
+    'ExponentialEuler',
 ]
 
 
 class ExponentialEuler(ODEIntegrator):
-  """Exponential Euler method using automatic differentiation.
+    """Exponential Euler method using automatic differentiation.
 
-  This method uses `brainpy.math.vector_grad <../../math/generated/brainpy.math.autograd.vector_grad.html>`_
-  to automatically infer the linear part of the given function. Therefore, it has minimal constraints
-  on your derivative function. Arbitrary complex functions can be numerically integrated with this method.
+    This method uses `brainpy.math.vector_grad <../../math/generated/brainpy.math.autograd.vector_grad.html>`_
+    to automatically infer the linear part of the given function. Therefore, it has minimal constraints
+    on your derivative function. Arbitrary complex functions can be numerically integrated with this method.
 
-  Examples::
-  
-  Here is an example uses ``ExponentialEuler`` to implement HH neuron model.
+    Examples::
 
-  .. plot::
-    :include-source: True
+    Here is an example uses ``ExponentialEuler`` to implement HH neuron model.
 
-    >>> import brainpy as bp
-    >>> import brainpy.math as bm
-    >>>
-    >>> class HH(bp.dyn.NeuDyn):
-    >>>   def __init__(self, size, ENa=55., EK=-90., EL=-65, C=1.0, gNa=35., gK=9.,
-    >>>                gL=0.1, V_th=20., phi=5.0, name=None):
-    >>>     super(HH, self).__init__(size=size, name=name)
-    >>>
-    >>>     # parameters
-    >>>     self.ENa = ENa
-    >>>     self.EK = EK
-    >>>     self.EL = EL
-    >>>     self.C = C
-    >>>     self.gNa = gNa
-    >>>     self.gK = gK
-    >>>     self.gL = gL
-    >>>     self.V_th = V_th
-    >>>     self.phi = phi
-    >>>
-    >>>     # variables
-    >>>     self.V = bm.Variable(bm.ones(size) * -65.)
-    >>>     self.h = bm.Variable(bm.ones(size) * 0.6)
-    >>>     self.n = bm.Variable(bm.ones(size) * 0.32)
-    >>>     self.spike = bm.Variable(bm.zeros(size, dtype=bool))
-    >>>     self.input = bm.Variable(bm.zeros(size))
-    >>>
-    >>>     # functions
-    >>>     self.int_h = bp.ode.ExponentialEuler(self.dh)
-    >>>     self.int_n = bp.ode.ExponentialEuler(self.dn)
-    >>>     self.int_V = bp.ode.ExponentialEuler(self.dV)
-    >>>
-    >>>   def dh(self, h, t, V):
-    >>>     alpha = 0.07 * bm.exp(-(V + 58) / 20)
-    >>>     beta = 1 / (bm.exp(-0.1 * (V + 28)) + 1)
-    >>>     dhdt = self.phi * (alpha * (1 - h) - beta * h)
-    >>>     return dhdt
-    >>>
-    >>>   def dn(self, n, t, V):
-    >>>     alpha = -0.01 * (V + 34) / (bm.exp(-0.1 * (V + 34)) - 1)
-    >>>     beta = 0.125 * bm.exp(-(V + 44) / 80)
-    >>>     dndt = self.phi * (alpha * (1 - n) - beta * n)
-    >>>     return dndt
-    >>>
-    >>>   def dV(self, V, t, h, n, Iext):
-    >>>     m_alpha = -0.1 * (V + 35) / (bm.exp(-0.1 * (V + 35)) - 1)
-    >>>     m_beta = 4 * bm.exp(-(V + 60) / 18)
-    >>>     m = m_alpha / (m_alpha + m_beta)
-    >>>     INa = self.gNa * m ** 3 * h * (V - self.ENa)
-    >>>     IK = self.gK * n ** 4 * (V - self.EK)
-    >>>     IL = self.gL * (V - self.EL)
-    >>>     dVdt = (- INa - IK - IL + Iext) / self.C
-    >>>
-    >>>     return dVdt
-    >>>
-    >>>   def update(self, tdi):
-    >>>     h = self.int_h(self.h, tdi.t, self.V, dt=tdi.dt)
-    >>>     n = self.int_n(self.n, tdi.t, self.V, dt=tdi.dt)
-    >>>     V = self.int_V(self.V, tdi.t,  self.h, self.n, self.input, dt=tdi.dt)
-    >>>     self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
-    >>>     self.V.value = V
-    >>>     self.h.value = h
-    >>>     self.n.value = n
-    >>>     self.input[:] = 0.
-    >>>
-    >>> run = bp.DSRunner(HH(1), inputs=('input', 2.), monitors=['V'], dt=0.05)
-    >>> run(100)
-    >>> bp.visualize.line_plot(run.mon.ts, run.mon.V, legend='V', show=True)
+    .. plot::
+      :include-source: True
 
-  The above example can also be defined with ``brainpy.JointEq``.
+      >>> import brainpy as bp
+      >>> import brainpy.math as bm
+      >>>
+      >>> class HH(bp.dyn.NeuDyn):
+      >>>   def __init__(self, size, ENa=55., EK=-90., EL=-65, C=1.0, gNa=35., gK=9.,
+      >>>                gL=0.1, V_th=20., phi=5.0, name=None):
+      >>>     super(HH, self).__init__(size=size, name=name)
+      >>>
+      >>>     # parameters
+      >>>     self.ENa = ENa
+      >>>     self.EK = EK
+      >>>     self.EL = EL
+      >>>     self.C = C
+      >>>     self.gNa = gNa
+      >>>     self.gK = gK
+      >>>     self.gL = gL
+      >>>     self.V_th = V_th
+      >>>     self.phi = phi
+      >>>
+      >>>     # variables
+      >>>     self.V = bm.Variable(bm.ones(size) * -65.)
+      >>>     self.h = bm.Variable(bm.ones(size) * 0.6)
+      >>>     self.n = bm.Variable(bm.ones(size) * 0.32)
+      >>>     self.spike = bm.Variable(bm.zeros(size, dtype=bool))
+      >>>     self.input = bm.Variable(bm.zeros(size))
+      >>>
+      >>>     # functions
+      >>>     self.int_h = bp.ode.ExponentialEuler(self.dh)
+      >>>     self.int_n = bp.ode.ExponentialEuler(self.dn)
+      >>>     self.int_V = bp.ode.ExponentialEuler(self.dV)
+      >>>
+      >>>   def dh(self, h, t, V):
+      >>>     alpha = 0.07 * bm.exp(-(V + 58) / 20)
+      >>>     beta = 1 / (bm.exp(-0.1 * (V + 28)) + 1)
+      >>>     dhdt = self.phi * (alpha * (1 - h) - beta * h)
+      >>>     return dhdt
+      >>>
+      >>>   def dn(self, n, t, V):
+      >>>     alpha = -0.01 * (V + 34) / (bm.exp(-0.1 * (V + 34)) - 1)
+      >>>     beta = 0.125 * bm.exp(-(V + 44) / 80)
+      >>>     dndt = self.phi * (alpha * (1 - n) - beta * n)
+      >>>     return dndt
+      >>>
+      >>>   def dV(self, V, t, h, n, Iext):
+      >>>     m_alpha = -0.1 * (V + 35) / (bm.exp(-0.1 * (V + 35)) - 1)
+      >>>     m_beta = 4 * bm.exp(-(V + 60) / 18)
+      >>>     m = m_alpha / (m_alpha + m_beta)
+      >>>     INa = self.gNa * m ** 3 * h * (V - self.ENa)
+      >>>     IK = self.gK * n ** 4 * (V - self.EK)
+      >>>     IL = self.gL * (V - self.EL)
+      >>>     dVdt = (- INa - IK - IL + Iext) / self.C
+      >>>
+      >>>     return dVdt
+      >>>
+      >>>   def update(self, tdi):
+      >>>     h = self.int_h(self.h, tdi.t, self.V, dt=tdi.dt)
+      >>>     n = self.int_n(self.n, tdi.t, self.V, dt=tdi.dt)
+      >>>     V = self.int_V(self.V, tdi.t,  self.h, self.n, self.input, dt=tdi.dt)
+      >>>     self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
+      >>>     self.V.value = V
+      >>>     self.h.value = h
+      >>>     self.n.value = n
+      >>>     self.input[:] = 0.
+      >>>
+      >>> run = bp.DSRunner(HH(1), inputs=('input', 2.), monitors=['V'], dt=0.05)
+      >>> run(100)
+      >>> bp.visualize.line_plot(run.mon.ts, run.mon.V, legend='V', show=True)
 
-  .. plot::
-    :include-source: True
+    The above example can also be defined with ``brainpy.JointEq``.
 
-    >>> import brainpy as bp
-    >>> import brainpy.math as bm
-    >>>
-    >>> class HH(bp.dyn.NeuDyn):
-    >>>   def __init__(self, size, ENa=55., EK=-90., EL=-65, C=1.0, gNa=35., gK=9.,
-    >>>                gL=0.1, V_th=20., phi=5.0, name=None):
-    >>>     super(HH, self).__init__(size=size, name=name)
-    >>>
-    >>>     # parameters
-    >>>     self.ENa = ENa
-    >>>     self.EK = EK
-    >>>     self.EL = EL
-    >>>     self.C = C
-    >>>     self.gNa = gNa
-    >>>     self.gK = gK
-    >>>     self.gL = gL
-    >>>     self.V_th = V_th
-    >>>     self.phi = phi
-    >>>
-    >>>     # variables
-    >>>     self.V = bm.Variable(bm.ones(size) * -65.)
-    >>>     self.h = bm.Variable(bm.ones(size) * 0.6)
-    >>>     self.n = bm.Variable(bm.ones(size) * 0.32)
-    >>>     self.spike = bm.Variable(bm.zeros(size, dtype=bool))
-    >>>     self.input = bm.Variable(bm.zeros(size))
-    >>>
-    >>>     # functions
-    >>>     derivative = bp.JointEq([self.dh, self.dn, self.dV])
-    >>>     self.integral = bp.ode.ExponentialEuler(derivative)
-    >>>
-    >>>   def dh(self, h, t, V):
-    >>>     alpha = 0.07 * bm.exp(-(V + 58) / 20)
-    >>>     beta = 1 / (bm.exp(-0.1 * (V + 28)) + 1)
-    >>>     dhdt = self.phi * (alpha * (1 - h) - beta * h)
-    >>>     return dhdt
-    >>>
-    >>>   def dn(self, n, t, V):
-    >>>     alpha = -0.01 * (V + 34) / (bm.exp(-0.1 * (V + 34)) - 1)
-    >>>     beta = 0.125 * bm.exp(-(V + 44) / 80)
-    >>>     dndt = self.phi * (alpha * (1 - n) - beta * n)
-    >>>     return dndt
-    >>>
-    >>>   def dV(self, V, t, h, n, Iext):
-    >>>     m_alpha = -0.1 * (V + 35) / (bm.exp(-0.1 * (V + 35)) - 1)
-    >>>     m_beta = 4 * bm.exp(-(V + 60) / 18)
-    >>>     m = m_alpha / (m_alpha + m_beta)
-    >>>     INa = self.gNa * m ** 3 * h * (V - self.ENa)
-    >>>     IK = self.gK * n ** 4 * (V - self.EK)
-    >>>     IL = self.gL * (V - self.EL)
-    >>>     dVdt = (- INa - IK - IL + Iext) / self.C
-    >>>
-    >>>     return dVdt
-    >>>
-    >>>   def update(self, tdi):
-    >>>     h, n, V = self.integral(self.h, self.n, self.V, tdi.t, self.input, dt=tdi.dt)
-    >>>     self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
-    >>>     self.V.value = V
-    >>>     self.h.value = h
-    >>>     self.n.value = n
-    >>>     self.input[:] = 0.
-    >>>
-    >>> run = bp.DSRunner(HH(1), inputs=('input', 2.), monitors=['V'], dt=0.05)
-    >>> run(100)
-    >>> bp.visualize.line_plot(run.mon.ts, run.mon.V, legend='V', show=True)
+    .. plot::
+      :include-source: True
 
-  Parameters::
-  
-  f : function, joint_eq.JointEq
-    The derivative function.
-  var_type : optional, str
-    The variable type.
-  dt : optional, float
-    The default numerical integration step.
-  name : optional, str
-    The integrator name.
-  """
+      >>> import brainpy as bp
+      >>> import brainpy.math as bm
+      >>>
+      >>> class HH(bp.dyn.NeuDyn):
+      >>>   def __init__(self, size, ENa=55., EK=-90., EL=-65, C=1.0, gNa=35., gK=9.,
+      >>>                gL=0.1, V_th=20., phi=5.0, name=None):
+      >>>     super(HH, self).__init__(size=size, name=name)
+      >>>
+      >>>     # parameters
+      >>>     self.ENa = ENa
+      >>>     self.EK = EK
+      >>>     self.EL = EL
+      >>>     self.C = C
+      >>>     self.gNa = gNa
+      >>>     self.gK = gK
+      >>>     self.gL = gL
+      >>>     self.V_th = V_th
+      >>>     self.phi = phi
+      >>>
+      >>>     # variables
+      >>>     self.V = bm.Variable(bm.ones(size) * -65.)
+      >>>     self.h = bm.Variable(bm.ones(size) * 0.6)
+      >>>     self.n = bm.Variable(bm.ones(size) * 0.32)
+      >>>     self.spike = bm.Variable(bm.zeros(size, dtype=bool))
+      >>>     self.input = bm.Variable(bm.zeros(size))
+      >>>
+      >>>     # functions
+      >>>     derivative = bp.JointEq([self.dh, self.dn, self.dV])
+      >>>     self.integral = bp.ode.ExponentialEuler(derivative)
+      >>>
+      >>>   def dh(self, h, t, V):
+      >>>     alpha = 0.07 * bm.exp(-(V + 58) / 20)
+      >>>     beta = 1 / (bm.exp(-0.1 * (V + 28)) + 1)
+      >>>     dhdt = self.phi * (alpha * (1 - h) - beta * h)
+      >>>     return dhdt
+      >>>
+      >>>   def dn(self, n, t, V):
+      >>>     alpha = -0.01 * (V + 34) / (bm.exp(-0.1 * (V + 34)) - 1)
+      >>>     beta = 0.125 * bm.exp(-(V + 44) / 80)
+      >>>     dndt = self.phi * (alpha * (1 - n) - beta * n)
+      >>>     return dndt
+      >>>
+      >>>   def dV(self, V, t, h, n, Iext):
+      >>>     m_alpha = -0.1 * (V + 35) / (bm.exp(-0.1 * (V + 35)) - 1)
+      >>>     m_beta = 4 * bm.exp(-(V + 60) / 18)
+      >>>     m = m_alpha / (m_alpha + m_beta)
+      >>>     INa = self.gNa * m ** 3 * h * (V - self.ENa)
+      >>>     IK = self.gK * n ** 4 * (V - self.EK)
+      >>>     IL = self.gL * (V - self.EL)
+      >>>     dVdt = (- INa - IK - IL + Iext) / self.C
+      >>>
+      >>>     return dVdt
+      >>>
+      >>>   def update(self, tdi):
+      >>>     h, n, V = self.integral(self.h, self.n, self.V, tdi.t, self.input, dt=tdi.dt)
+      >>>     self.spike.value = bm.logical_and(self.V < self.V_th, V >= self.V_th)
+      >>>     self.V.value = V
+      >>>     self.h.value = h
+      >>>     self.n.value = n
+      >>>     self.input[:] = 0.
+      >>>
+      >>> run = bp.DSRunner(HH(1), inputs=('input', 2.), monitors=['V'], dt=0.05)
+      >>> run(100)
+      >>> bp.visualize.line_plot(run.mon.ts, run.mon.V, legend='V', show=True)
 
-  def __init__(
-      self,
-      f,
-      var_type=None,
-      dt=None,
-      name=None,
-      show_code=False,
-      state_delays=None,
-      neutral_delays=None
-  ):
-    super(ExponentialEuler, self).__init__(f=f,
-                                           var_type=var_type,
-                                           dt=dt,
-                                           name=name,
-                                           show_code=show_code,
-                                           state_delays=state_delays,
-                                           neutral_delays=neutral_delays)
+    Parameters::
 
-    if var_type == C.SYSTEM_VAR:
-      raise NotImplementedError(f'{self.__class__.__name__} does not support {C.SYSTEM_VAR}, '
-                                f'because the auto-differentiation ')
+    f : function, joint_eq.JointEq
+      The derivative function.
+    var_type : optional, str
+      The variable type.
+    dt : optional, float
+      The default numerical integration step.
+    name : optional, str
+      The integrator name.
+    """
 
-    # build the integrator
-    self.code_lines = []
-    self.code_scope = {}
-    self.integral = self.build()
+    def __init__(
+        self,
+        f,
+        var_type=None,
+        dt=None,
+        name=None,
+        show_code=False,
+        state_delays=None,
+        neutral_delays=None
+    ):
+        super(ExponentialEuler, self).__init__(f=f,
+                                               var_type=var_type,
+                                               dt=dt,
+                                               name=name,
+                                               show_code=show_code,
+                                               state_delays=state_delays,
+                                               neutral_delays=neutral_delays)
 
-  def build(self):
-    parses = self._build_integrator(self.f)
-    all_vps = self.variables + self.parameters
+        if var_type == C.SYSTEM_VAR:
+            raise NotImplementedError(f'{self.__class__.__name__} does not support {C.SYSTEM_VAR}, '
+                                      f'because the auto-differentiation ')
 
-    @wraps(self.f)
-    def integral_func(*args, **kwargs):
-      # format arguments
-      params_in = bm.Collector()
-      for i, arg in enumerate(args):
-        params_in[all_vps[i]] = arg
-      params_in.update(kwargs)
-      if C.DT not in params_in:
-        params_in[C.DT] = self.dt
+        # build the integrator
+        self.code_lines = []
+        self.code_scope = {}
+        self.integral = self.build()
 
-      # call integrals
-      results = []
-      for i, parse in enumerate(parses):
-        f_integral, vars_, pars_ = parse
-        vps = vars_ + pars_ + [C.DT]
-        r = f_integral(params_in[vps[0]], **{arg: params_in[arg] for arg in vps[1:] if arg in params_in})
-        results.append(r)
-      return results if len(self.variables) > 1 else results[0]
+    def build(self):
+        parses = self._build_integrator(self.f)
+        all_vps = self.variables + self.parameters
 
-    return integral_func
+        @wraps(self.f)
+        def integral_func(*args, **kwargs):
+            # format arguments
+            params_in = bm.Collector()
+            for i, arg in enumerate(args):
+                params_in[all_vps[i]] = arg
+            params_in.update(kwargs)
+            if C.DT not in params_in:
+                params_in[C.DT] = self.dt
 
-  def _build_integrator(self, eq):
-    if isinstance(eq, joint_eq.JointEq):
-      results = []
-      for sub_eq in eq.eqs:
-        results.extend(self._build_integrator(sub_eq))
-      return results
-    else:
-      vars, pars, _ = utils.get_args(eq)
+            # call integrals
+            results = []
+            for i, parse in enumerate(parses):
+                f_integral, vars_, pars_ = parse
+                vps = vars_ + pars_ + [C.DT]
+                r = f_integral(params_in[vps[0]], **{arg: params_in[arg] for arg in vps[1:] if arg in params_in})
+                results.append(r)
+            return results if len(self.variables) > 1 else results[0]
 
-      # checking
-      if len(vars) != 1:
-        raise errors.DiffEqError(C.multi_vars_msg.format(cls=self.__class__.__name__,
-                                                         vars=str(vars),
-                                                         eq=str(eq)))
+        return integral_func
 
-      # integration function
-      def integral(*args, **kwargs):
-        assert len(args) > 0
-        if args[0].dtype not in [jnp.float32, jnp.float64, jnp.float16, jnp.bfloat16]:
-          raise ValueError('The input data type should be float32, float64, float16, or bfloat16 when using Exponential Euler method.'
-                           f'But we got {args[0].dtype}.')
-        dt = kwargs.pop(C.DT, self.dt)
-        linear, derivative = bm.vector_grad(eq, argnums=0, return_value=True)(*args, **kwargs)
-        phi = bm.exprel(dt * linear)
-        return args[0] + dt * phi * derivative
+    def _build_integrator(self, eq):
+        if isinstance(eq, joint_eq.JointEq):
+            results = []
+            for sub_eq in eq.eqs:
+                results.extend(self._build_integrator(sub_eq))
+            return results
+        else:
+            vars, pars, _ = utils.get_args(eq)
 
-      return [(integral, vars, pars), ]
+            # checking
+            if len(vars) != 1:
+                raise errors.DiffEqError(C.multi_vars_msg.format(cls=self.__class__.__name__,
+                                                                 vars=str(vars),
+                                                                 eq=str(eq)))
+
+            # integration function
+            def integral(*args, **kwargs):
+                assert len(args) > 0
+                if args[0].dtype not in [jnp.float32, jnp.float64, jnp.float16, jnp.bfloat16]:
+                    raise ValueError(
+                        'The input data type should be float32, float64, float16, or bfloat16 when using Exponential Euler method.'
+                        f'But we got {args[0].dtype}.')
+                dt = kwargs.pop(C.DT, self.dt)
+                linear, derivative = bm.vector_grad(eq, argnums=0, return_value=True)(*args, **kwargs)
+                phi = bm.exprel(dt * linear)
+                return args[0] + dt * phi * derivative
+
+            return [(integral, vars, pars), ]
 
 
 register_ode_integrator('exponential_euler', ExponentialEuler)

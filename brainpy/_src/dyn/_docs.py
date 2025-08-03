@@ -37,9 +37,7 @@ lif_doc = '''
     V_initializer: ArrayType, callable. The initializer of membrane potential.
 '''.strip()
 
-
 ltc_doc = 'with liquid time-constant'
-
 
 dual_exp_syn_doc = r'''
 
@@ -88,7 +86,6 @@ dual_exp_args = '''
 
 '''
 
-
 alpha_syn_doc = r'''
 
   **Model Descriptions**
@@ -115,7 +112,6 @@ alpha_syn_doc = r'''
 
 
 '''
-
 
 exp_syn_doc = r'''
 
@@ -148,7 +144,6 @@ exp_syn_doc = r'''
 
 '''
 
-
 std_doc = r'''
 
   This model filters the synaptic current by the following equation:
@@ -171,7 +166,6 @@ std_doc = r'''
   :math:`\tau` is the time constant of recovery of the synaptic vesicles.
 
 '''
-
 
 stp_doc = r'''
 
@@ -202,4 +196,3 @@ stp_doc = r'''
 
 
 '''
-

@@ -32,13 +32,6 @@ Installation
           pip install -U brainpy[tpu]
 
 
-    .. tab-item:: Ecosystem
-
-       .. code-block:: bash
-
-          pip install -U BrainX
-
-
 ----
 
 Learn more
@@ -117,7 +110,7 @@ Learn more
 
 
 .. note::
-   BrainPy now is rewritten based on [brainstate](https://github.com/chaobrain/brainstate).
+   BrainPy is rewritten based on `brainstate <https://github.com/chaobrain/brainstate>`_ since August 2025.
 
 
 

@@ -2,8 +2,8 @@
 
 import unittest
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 import brainpy.math as bm
 from brainpy._src.integrators.ode import adaptive_rk

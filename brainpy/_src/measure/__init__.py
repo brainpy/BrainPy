@@ -10,5 +10,3 @@ from . import correlation, firings, lfp
 from .correlation import *
 from .firings import *
 from .lfp import *
-
-

@@ -1,12 +1,11 @@
-import warnings
 import functools
+import warnings
 
 __all__ = [
-  'deprecated',
-  'deprecation_getattr',
-  'deprecation_getattr2',
+    'deprecated',
+    'deprecation_getattr',
+    'deprecation_getattr2',
 ]
-
 
 _update_deprecate_msg = '''
 From brainpy>=2.4.3, update() function no longer needs to receive a global shared argument.
@@ -23,7 +22,6 @@ Please use:
      t = bp.share['t']
      ...
 '''
-
 
 _input_deprecate_msg = '''
 From brainpy>=2.4.3, input() and monitor() function no longer needs to receive a global shared argument.
@@ -42,52 +40,52 @@ Please use:
 
 
 def _deprecate(msg):
-  warnings.simplefilter('always', DeprecationWarning)  # turn off filter
-  warnings.warn(msg, category=DeprecationWarning, stacklevel=2)
-  warnings.simplefilter('default', DeprecationWarning)  # reset filter
+    warnings.simplefilter('always', DeprecationWarning)  # turn off filter
+    warnings.warn(msg, category=DeprecationWarning, stacklevel=2)
+    warnings.simplefilter('default', DeprecationWarning)  # reset filter
 
 
 def deprecated(func):
-  """This is a decorator which can be used to mark functions
-  as deprecated. It will result in a warning being emitted
-  when the function is used."""
+    """This is a decorator which can be used to mark functions
+    as deprecated. It will result in a warning being emitted
+    when the function is used."""
 
-  @functools.wraps(func)
-  def new_func(*args, **kwargs):
-    _deprecate("Call to deprecated function {}.".format(func.__name__))
-    return func(*args, **kwargs)
+    @functools.wraps(func)
+    def new_func(*args, **kwargs):
+        _deprecate("Call to deprecated function {}.".format(func.__name__))
+        return func(*args, **kwargs)
 
-  return new_func
+    return new_func
 
 
 def deprecation_getattr(module, deprecations, redirects=None, redirect_module=None):
-  redirects = redirects or {}
+    redirects = redirects or {}
 
-  def get_attr(name):
-    if name in deprecations:
-      message, fn = deprecations[name]
-      if fn is None:
-        raise AttributeError(message)
-      _deprecate(message)
-      return fn
-    if name in redirects:
-      return getattr(redirect_module, name)
-    raise AttributeError(f"module {module!r} has no attribute {name!r}")
+    def get_attr(name):
+        if name in deprecations:
+            message, fn = deprecations[name]
+            if fn is None:
+                raise AttributeError(message)
+            _deprecate(message)
+            return fn
+        if name in redirects:
+            return getattr(redirect_module, name)
+        raise AttributeError(f"module {module!r} has no attribute {name!r}")
 
-  return get_attr
+    return get_attr
 
 
 def deprecation_getattr2(module, deprecations):
-  def get_attr(name):
-    if name in deprecations:
-      old_name, new_name, fn = deprecations[name]
-      message = f"{old_name} is deprecated. "
-      if new_name is not None:
-        message += f'Use {new_name} instead.'
-      if fn is None:
-        raise AttributeError(message)
-      _deprecate(message)
-      return fn
-    raise AttributeError(f"module {module!r} has no attribute {name!r}")
+    def get_attr(name):
+        if name in deprecations:
+            old_name, new_name, fn = deprecations[name]
+            message = f"{old_name} is deprecated. "
+            if new_name is not None:
+                message += f'Use {new_name} instead.'
+            if fn is None:
+                raise AttributeError(message)
+            _deprecate(message)
+            return fn
+        raise AttributeError(f"module {module!r} has no attribute {name!r}")
 
-  return get_attr
+    return get_attr
