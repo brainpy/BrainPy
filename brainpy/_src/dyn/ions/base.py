@@ -2,10 +2,12 @@
 
 from typing import Union, Optional, Dict, Sequence, Callable
 
+from brainstate.mixin import _JointGenericAlias
+
 import brainpy.math as bm
 from brainpy._src.dyn.base import IonChaDyn
 from brainpy._src.dyn.neurons.hh import HHTypedNeuron
-from brainpy._src.mixin import Container, TreeNode, _JointGenericAlias
+from brainpy._src.mixin import Container, TreeNode
 from brainpy.types import Shape
 
 __all__ = [
