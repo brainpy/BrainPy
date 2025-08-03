@@ -3,11 +3,11 @@
 import sys
 
 __all__ = [
-  'output',
+    'output',
 ]
 
 
 def output(msg, file=None):
-  if file is None:
-    file = sys.stderr
-  print(msg, file=file)
+    if file is None:
+        file = sys.stderr
+    print(msg, file=file)

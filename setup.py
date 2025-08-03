@@ -30,7 +30,7 @@ setup(
     author_email='chao.brain@qq.com',
     packages=packages,
     python_requires='>=3.10',
-    install_requires=['numpy>=1.15', 'jax', 'tqdm', 'brainstate>=0.1.6', 'brainunit', 'brainevent'],
+    install_requires=['numpy>=1.15', 'jax', 'tqdm', 'brainstate>=0.1.6', 'brainunit', 'brainevent', 'braintools'],
     url='https://github.com/brainpy/BrainPy',
     project_urls={
         "Bug Tracker": "https://github.com/brainpy/BrainPy/issues",
@@ -38,9 +38,11 @@ setup(
         "Source Code": "https://github.com/brainpy/BrainPy",
     },
     extras_require={
-        'cpu': ['jax[cpu]', 'brainstate[cpu]', 'brainunit[cpu]', 'brainevent[cpu]'],
-        'cuda12': ['jax[cuda12]', 'brainstate[cuda12]', 'brainunit[cuda12]', 'brainevent[cuda12]'],
-        'tpu': ['jax[tpu]', 'brainstate[tpu]', 'brainunit[tpu]', 'brainevent[tpu]'],
+        'cpu': ['jax[cpu]', 'brainstate[cpu]', 'brainunit[cpu]', 'brainevent[cpu]', 'braintools[cpu]'],
+        'cuda12': [
+            'jax[cuda12]', 'brainstate[cuda12]', 'brainunit[cuda12]', 'brainevent[cuda12]', 'braintools[cuda12]'
+        ],
+        'tpu': ['jax[tpu]', 'brainstate[tpu]', 'brainunit[tpu]', 'brainevent[tpu]', 'braintools[tpu]'],
     },
     keywords=('computational neuroscience, '
               'brain-inspired computation, '

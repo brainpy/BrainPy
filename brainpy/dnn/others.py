@@ -1,14 +1,12 @@
-
-
 from brainpy._src.dnn.base import (
-  Layer as Layer,
+    Layer as Layer,
 )
 from brainpy._src.dnn.dropout import (
-  Dropout as Dropout,
+    Dropout as Dropout,
 )
 from brainpy._src.dnn.function import (
-  Activation,
-  Flatten,
-  Unflatten,
-  FunAsLayer,
+    Activation,
+    Flatten,
+    Unflatten,
+    FunAsLayer,
 )

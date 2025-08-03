@@ -33,12 +33,12 @@ cell = bp.dnn.ToFlaxRNNCell(bp.dyn.RNNCell(num_in=1, num_out=1, ))
 
 
 class myRNN(nn.Module):
-  @nn.compact
-  def __call__(self, x):  # x:(batch, time, features)
-    x = nn.RNN(cell)(x)  # Use nn.RNN to unfold the recurrent cell
-    return x
+    @nn.compact
+    def __call__(self, x):  # x:(batch, time, features)
+        x = nn.RNN(cell)(x)  # Use nn.RNN to unfold the recurrent cell
+        return x
 
 
 def test_init():
-  model = myRNN()
-  model.init(jax.random.PRNGKey(0), jnp.ones([1, 10, 1]))  # batch,time,feature
+    model = myRNN()
+    model.init(jax.random.PRNGKey(0), jnp.ones([1, 10, 1]))  # batch,time,feature

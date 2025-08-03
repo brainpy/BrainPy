@@ -2,11 +2,10 @@
 
 
 __all__ = [
-  'DSAnalyzer'
+    'DSAnalyzer'
 ]
 
 
 class DSAnalyzer(object):
-  """Base class of analyzers for dynamical systems in BrainPy"""
-  pass
-
+    """Base class of analyzers for dynamical systems in BrainPy"""
+    pass

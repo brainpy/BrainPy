@@ -13,20 +13,13 @@
 # limitations under the License.
 # ==============================================================================
 
+import braintools
 
-import unittest
+get_figure = braintools.visualize.get_figure
+line_plot = braintools.visualize.line_plot
+raster_plot = braintools.visualize.raster_plot
+animate_1D = braintools.visualize.animate_1D
+animate_2D = braintools.visualize.animate_2D
+remove_axis = braintools.visualize.remove_axis
+animator = braintools.visualize.animator
 
-import brainpy as bp
-import brainpy.math as bm
-
-
-class TestNaming(unittest.TestCase):
-
-    def test_clear_name_cache(self):
-        lif = bp.dyn.LifRef(1, name='a')
-        with self.assertRaises(bp.errors.UniqueNameError):
-            lif = bp.dyn.LifRef(1, name='a')
-        bm.clear_name_cache(ignore_warn=True)
-        lif = bp.dyn.LifRef(1, name='a')
-        bm.clear_name_cache()
-        bm.clear_buffer_memory(array=False, compilation=True)

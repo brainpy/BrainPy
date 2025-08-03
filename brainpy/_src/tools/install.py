@@ -1,8 +1,6 @@
-
 __all__ = [
-  'jaxlib_install_info',
+    'jaxlib_install_info',
 ]
-
 
 jaxlib_install_info = '''
 

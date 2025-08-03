@@ -1,14 +1,12 @@
 from brainpy._src.dynsys import DynamicalSystem
 
-
 __all__ = [
-  'Layer'
+    'Layer'
 ]
 
 
 class Layer(DynamicalSystem):
-  """Base class for a layer of artificial neural network."""
+    """Base class for a layer of artificial neural network."""
 
-  def reset_state(self, *args, **kwargs):
-    pass
-
+    def reset_state(self, *args, **kwargs):
+        pass

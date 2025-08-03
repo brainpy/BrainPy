@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 from typing import Tuple, Optional, Union
 
+import brainevent
 import jax
+import numpy as np
 
 from brainpy._src.math.ndarray import BaseArray as Array
-import numpy as np
-import brainevent
-
 
 __all__ = [
     'mv_prob_homo',

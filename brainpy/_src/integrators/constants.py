@@ -4,40 +4,36 @@
 from brainpy._src.math.object_transform import naming
 
 __all__ = [
-  'DT',
-  'F',
+    'DT',
+    'F',
 
-  'SUPPORTED_VAR_TYPE',
-  'SCALAR_VAR',
-  'POP_VAR',
-  'SYSTEM_VAR',
+    'SUPPORTED_VAR_TYPE',
+    'SCALAR_VAR',
+    'POP_VAR',
+    'SYSTEM_VAR',
 
-  'SUPPORTED_WIENER_TYPE',
-  'SCALAR_WIENER',
-  'VECTOR_WIENER',
+    'SUPPORTED_WIENER_TYPE',
+    'SCALAR_WIENER',
+    'VECTOR_WIENER',
 
-  'SUPPORTED_INTG_TYPE',
-  'ITO_SDE',
-  'STRA_SDE',
+    'SUPPORTED_INTG_TYPE',
+    'ITO_SDE',
+    'STRA_SDE',
 
-  'DE_INT',
-  'ODE_INT',
-  'SDE_INT',
-  'DDE_INT',
-  'FDE_INT',
-  'PDE_INT',
+    'DE_INT',
+    'ODE_INT',
+    'SDE_INT',
+    'DDE_INT',
+    'FDE_INT',
+    'PDE_INT',
 
-  'unique_name',
-  'multi_vars_msg',
+    'unique_name',
+    'multi_vars_msg',
 ]
-
 
 DT = 'dt'
 F = 'f'
 G = 'g'
-
-
-
 
 # Ito SDE_INT
 # ---
@@ -50,8 +46,8 @@ ITO_SDE = 'Ito'
 STRA_SDE = 'Stratonovich'
 
 SUPPORTED_INTG_TYPE = [
-  ITO_SDE,
-  STRA_SDE
+    ITO_SDE,
+    STRA_SDE
 ]
 
 # ------------------------------------------------------
@@ -67,8 +63,8 @@ SCALAR_WIENER = 'scalar'
 VECTOR_WIENER = 'vector'
 
 SUPPORTED_WIENER_TYPE = [
-  SCALAR_WIENER,
-  VECTOR_WIENER
+    SCALAR_WIENER,
+    VECTOR_WIENER
 ]
 
 # ------------------------------------------------------
@@ -112,9 +108,9 @@ POP_VAR = 'population'
 SYSTEM_VAR = 'system'
 
 SUPPORTED_VAR_TYPE = [
-  SCALAR_VAR,
-  POP_VAR,
-  SYSTEM_VAR,
+    SCALAR_VAR,
+    POP_VAR,
+    SYSTEM_VAR,
 ]
 
 # ------------------------------------------------------
@@ -131,18 +127,18 @@ PDE_INT = 'brainpy_itg_of_pde'
 
 
 def unique_name(type):
-  if type == 'ode':
-    return naming.get_unique_name(ODE_INT)
-  elif type == 'sde':
-    return naming.get_unique_name(SDE_INT)
-  elif type == 'dde':
-    return naming.get_unique_name(DDE_INT)
-  elif type == 'fde':
-    return naming.get_unique_name(FDE_INT)
-  elif type == 'pde':
-    return naming.get_unique_name(PDE_INT)
-  else:
-    raise ValueError(f'Unknown differential equation type: {type}')
+    if type == 'ode':
+        return naming.get_unique_name(ODE_INT)
+    elif type == 'sde':
+        return naming.get_unique_name(SDE_INT)
+    elif type == 'dde':
+        return naming.get_unique_name(DDE_INT)
+    elif type == 'fde':
+        return naming.get_unique_name(FDE_INT)
+    elif type == 'pde':
+        return naming.get_unique_name(PDE_INT)
+    else:
+        raise ValueError(f'Unknown differential equation type: {type}')
 
 
 # Errors
