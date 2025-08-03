@@ -9,13 +9,8 @@ import brainpy.math as bm
 bm.set_platform('cpu')
 show = False
 
-import pytest
-
-pytest.skip(allow_module_level=True)
-
 
 class Test_STDP(parameterized.TestCase):
-
     @parameterized.product(
         comm_method=['csr', 'dense', 'masked_linear', 'all2all', 'one2one'],
         delay=[None, 0., 2.],
@@ -32,21 +27,36 @@ class Test_STDP(parameterized.TestCase):
                 self.post = bp.dyn.LifRef(num_post)
 
                 if comm_method == 'all2all':
-                    comm = bp.dnn.AllToAll(self.pre.num, self.post.num, weight=bp.init.Uniform(.1, 0.1))
+                    comm = bp.dnn.AllToAll(
+                        self.pre.num, self.post.num, weight=bp.init.Uniform(.1, 0.1),
+                        mode=bm.TrainingMode()
+                    )
                 elif comm_method == 'csr':
                     if syn_model == 'exp':
-                        comm = bp.dnn.EventCSRLinear(bp.conn.FixedProb(1, pre=self.pre.num, post=self.post.num),
-                                                     weight=bp.init.Uniform(0., 0.1))
+                        comm = bp.dnn.EventCSRLinear(
+                            bp.conn.FixedProb(1, pre=self.pre.num, post=self.post.num),
+                            weight=bp.init.Uniform(0., 0.1),
+                            mode=bm.TrainingMode()
+                        )
                     else:
-                        comm = bp.dnn.CSRLinear(bp.conn.FixedProb(1, pre=self.pre.num, post=self.post.num),
-                                                weight=bp.init.Uniform(0., 0.1))
+                        comm = bp.dnn.CSRLinear(
+                            bp.conn.FixedProb(1, pre=self.pre.num, post=self.post.num),
+                            weight=bp.init.Uniform(0., 0.1),
+                            mode=bm.TrainingMode()
+                        )
                 elif comm_method == 'masked_linear':
-                    comm = bp.dnn.MaskedLinear(bp.conn.FixedProb(1, pre=self.pre.num, post=self.post.num),
-                                               weight=bp.init.Uniform(0., 0.1))
+                    comm = bp.dnn.MaskedLinear(
+                        bp.conn.FixedProb(1, pre=self.pre.num, post=self.post.num),
+                        weight=bp.init.Uniform(0., 0.1),
+                        mode=bm.TrainingMode()
+                    )
                 elif comm_method == 'dense':
-                    comm = bp.dnn.Dense(self.pre.num, self.post.num, W_initializer=bp.init.Uniform(.1, 0.1))
+                    comm = bp.dnn.Dense(
+                        self.pre.num, self.post.num, W_initializer=bp.init.Uniform(.1, 0.1),
+                        mode=bm.TrainingMode()
+                    )
                 elif comm_method == 'one2one':
-                    comm = bp.dnn.OneToOne(self.pre.num, weight=bp.init.Uniform(.1, 0.1))
+                    comm = bp.dnn.OneToOne(self.pre.num, weight=bp.init.Uniform(.1, 0.1), mode=bm.TrainingMode())
                 else:
                     raise ValueError
 

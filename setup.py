@@ -17,7 +17,9 @@ with io.open(os.path.join(here, 'README.md'), 'r', encoding='utf-8') as f:
     README = f.read()
 
 # installation packages
-packages = find_packages(exclude=['lib*', 'docs', 'tests'])
+packages = find_packages(
+    exclude=['lib*', 'docs', 'tests', 'docker*', 'examples', 'scripts', 'images', 'dist']
+)
 
 # setup
 setup(
@@ -30,7 +32,9 @@ setup(
     author_email='chao.brain@qq.com',
     packages=packages,
     python_requires='>=3.10',
-    install_requires=['numpy>=1.15', 'jax', 'tqdm', 'brainstate>=0.1.6', 'brainunit', 'brainevent', 'braintools'],
+    install_requires=[
+        'numpy>=1.15', 'jax', 'tqdm', 'brainstate>=0.1.6', 'brainunit', 'brainevent>=0.0.4', 'braintools>=0.0.7'
+    ],
     url='https://github.com/brainpy/BrainPy',
     project_urls={
         "Bug Tracker": "https://github.com/brainpy/BrainPy/issues",
