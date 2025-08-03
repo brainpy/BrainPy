@@ -50,8 +50,7 @@ jobs:
           python setup.py install
       - name: Test with pytest
         run: |
-          cd brainpy
-          export IS_GITHUB_ACTIONS=1 && pytest _src/
+          pytest brainpy/_src/
 
 
   test_macos:
@@ -83,8 +82,7 @@ jobs:
 #          pip install jaxlib==0.4.30
       - name: Test with pytest
         run: |
-          cd brainpy
-          export IS_GITHUB_ACTIONS=1 && pytest _src/
+          pytest brainpy/_src/
 
 
   test_windows:
@@ -114,5 +112,4 @@ jobs:
           python setup.py install
       - name: Test with pytest
         run: |
-          cd brainpy
-          pytest _src/
+          pytest brainpy/_src/

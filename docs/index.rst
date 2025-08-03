@@ -36,8 +36,10 @@ Installation
        .. code-block:: bash
 
           pip install -U BrainX[cpu]
+
           # or
           pip install -U BrainX[cuda12]
+
           # or
           pip install -U BrainX[tpu]
 
@@ -121,7 +123,7 @@ Learn more
 
 
 .. note::
-   BrainPy is rewritten based on `brainstate <https://github.com/chaobrain/brainstate>`_ since August 2025.
+   ``BrainPy>=3.0.0`` is rewritten based on `brainstate <https://github.com/chaobrain/brainstate>`_ since August 2025.
 
 
 
