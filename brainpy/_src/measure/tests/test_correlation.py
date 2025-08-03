@@ -17,7 +17,7 @@ class TestCrossCorrelation(unittest.TestCase):
         bm.random.seed()
         spikes = bm.asarray([[1, 0, 1, 0, 1, 0, 1, 0, 0], [1, 1, 1, 1, 1, 1, 1, 0, 0]]).T
         cc1 = bp.measure.cross_correlation(spikes, 1., dt=1.)
-        f_cc = jit(partial(bp.measure.cross_correlation, numpy=False, bin=1, dt=1.))
+        f_cc = jit(partial(bp.measure.cross_correlation, bin=1, dt=1.))
         cc2 = f_cc(spikes)
         print(cc1, cc2)
         self.assertTrue(cc1 == cc2)
@@ -67,8 +67,8 @@ class TestVoltageFluctuation(unittest.TestCase):
         voltages = bm.ones((100, 10))
         r1 = bp.measure.voltage_fluctuation(voltages)
 
-        jit_f = jit(partial(bp.measure.voltage_fluctuation, numpy=False))
-        jit_f = jit(lambda a: bp.measure.voltage_fluctuation(a, numpy=False))
+        jit_f = jit(partial(bp.measure.voltage_fluctuation))
+        jit_f = jit(lambda a: bp.measure.voltage_fluctuation(a))
         r2 = jit_f(voltages)
         print(r1, r2)  # TODO: JIT results are different?
         # self.assertTrue(r1 == r2)
@@ -82,7 +82,7 @@ class TestFunctionalConnectivity(unittest.TestCase):
         act = bm.random.random((10000, 3))
         r1 = bp.measure.functional_connectivity(act)
 
-        jit_f = jit(partial(bp.measure.functional_connectivity, numpy=False))
+        jit_f = jit(partial(bp.measure.functional_connectivity))
         r2 = jit_f(act)
 
         self.assertTrue(bm.allclose(r1, r2))
@@ -95,6 +95,6 @@ class TestMatrixCorrelation(unittest.TestCase):
         B = bm.random.random((100, 100))
         r1 = (bp.measure.matrix_correlation(A, B))
 
-        jit_f = jit(partial(bp.measure.matrix_correlation, numpy=False))
+        jit_f = jit(bp.measure.matrix_correlation)
         r2 = jit_f(A, B)
         self.assertTrue(bm.allclose(r1, r2))

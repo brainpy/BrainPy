@@ -31,6 +31,19 @@ Installation
 
           pip install -U brainpy[tpu]
 
+    .. tab-item:: Ecosystem
+
+       .. code-block:: bash
+
+          pip install -U BrainX[cpu]
+
+          # or
+          pip install -U BrainX[cuda12]
+
+          # or
+          pip install -U BrainX[tpu]
+
+
 
 ----
 
@@ -93,7 +106,7 @@ Learn more
 
       .. card:: :material-regular:`settings;2em` Examples
          :class-card: sd-text-black sd-bg-light
-         :link: https://brainpy-examples.readthedocs.io/en/latest/index.html
+         :link: https://brainpy-examples.readthedocs.io/
 
    .. grid-item::
       :columns: 6 6 6 4
@@ -110,7 +123,7 @@ Learn more
 
 
 .. note::
-   BrainPy is rewritten based on `brainstate <https://github.com/chaobrain/brainstate>`_ since August 2025.
+   ``BrainPy>=3.0.0`` is rewritten based on `brainstate <https://github.com/chaobrain/brainstate>`_ since August 2025.
 
 
 
@@ -140,4 +153,5 @@ Learn more
    advanced_tutorials.rst
    FAQ.rst
    api.rst
-
+   apis/auto/brainpy-changelog.md
+   apis/auto/brainpylib-changelog.md
