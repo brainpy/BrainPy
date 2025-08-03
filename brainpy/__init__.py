@@ -104,7 +104,7 @@ from brainpy import (analysis as analysis)
 
 #  Part: Others    #
 # ---------------- #
-from brainpy._src.visualization import (visualize as visualize)
+import brainpy._src.visualization as visualize
 
 #  Part: Deprecations  #
 # -------------------- #
