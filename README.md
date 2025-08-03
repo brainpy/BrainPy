@@ -22,7 +22,7 @@ BrainPy is a flexible, efficient, and extensible framework for computational neu
 - **Ecosystem**: https://brainmodeling.readthedocs.io/
 
 
-BrainPy now is rewritten based on [brainstate](https://github.com/chaobrain/brainstate), please learn [brainstate documentation](https://brainstate.readthedocs.io/) for the latest updates. 
+BrainPy is rewritten based on [brainstate](https://github.com/chaobrain/brainstate) since August 2025, please learn [brainstate documentation](https://brainstate.readthedocs.io/) for the latest updates. 
 
 
 ## Installation
@@ -57,11 +57,10 @@ We provide a Binder environment for BrainPy. You can use the following button to
 
 - **[BrainPy](https://github.com/brainpy/BrainPy)**: The solution for the general-purpose brain dynamics programming. 
 - **[brainpy-examples](https://github.com/brainpy/examples)**: Comprehensive examples of BrainPy computation. 
-- **[brainpy-datasets](https://github.com/brainpy/datasets)**: Neuromorphic and Cognitive Datasets for Brain Dynamics Modeling.
+- **[brain modeling ecosystem](https://brainmodeling.readthedocs.io/)**: A collection of tools and libraries for brain modeling and simulation.
 - [《神经计算建模实战》 (Neural Modeling in Action)](https://github.com/c-xy17/NeuralModeling)
 - [第一届神经计算建模与编程培训班 (First Training Course on Neural Modeling and Programming)](https://github.com/brainpy/1st-neural-modeling-and-programming-course)
 - [第二届神经计算建模与编程培训班 (Second Training Course on Neural Modeling and Programming)](https://github.com/brainpy/2nd-neural-modeling-and-programming-course)
-- **[brain modeling ecosystem](https://brainmodeling.readthedocs.io/)**: A collection of tools and libraries for brain modeling and simulation.
 
 
 ## Citing 
@@ -69,5 +68,27 @@ We provide a Binder environment for BrainPy. You can use the following button to
 BrainPy is developed by a team in Neural Information Processing Lab at Peking University, China. 
 Our team is committed to the long-term maintenance and development of the project. 
 
-If you are using ``brainpy``, please consider citing [the corresponding papers](https://brainpy.readthedocs.io/en/latest/tutorial_FAQs/citing_and_publication.html). 
+If you are using ``brainpy``, please consider citing the corresponding paper:
+
+```bibtex
+@article {10.7554/eLife.86365,
+    article_type = {journal},
+    title = {BrainPy, a flexible, integrative, efficient, and extensible framework for general-purpose brain dynamics programming},
+    author = {Wang, Chaoming and Zhang, Tianqiu and Chen, Xiaoyu and He, Sichao and Li, Shangyang and Wu, Si},
+    editor = {Stimberg, Marcel},
+    volume = 12,
+    year = 2023,
+    month = {dec},
+    pub_date = {2023-12-22},
+    pages = {e86365},
+    citation = {eLife 2023;12:e86365},
+    doi = {10.7554/eLife.86365},
+    url = {https://doi.org/10.7554/eLife.86365},
+    abstract = {Elucidating the intricate neural mechanisms underlying brain functions requires integrative brain dynamics modeling. To facilitate this process, it is crucial to develop a general-purpose programming framework that allows users to freely define neural models across multiple scales, efficiently simulate, train, and analyze model dynamics, and conveniently incorporate new modeling approaches. In response to this need, we present BrainPy. BrainPy leverages the advanced just-in-time (JIT) compilation capabilities of JAX and XLA to provide a powerful infrastructure tailored for brain dynamics programming. It offers an integrated platform for building, simulating, training, and analyzing brain dynamics models. Models defined in BrainPy can be JIT compiled into binary instructions for various devices, including Central Processing Unit (CPU), Graphics Processing Unit (GPU), and Tensor Processing Unit (TPU), which ensures high running performance comparable to native C or CUDA. Additionally, BrainPy features an extensible architecture that allows for easy expansion of new infrastructure, utilities, and machine-learning approaches. This flexibility enables researchers to incorporate cutting-edge techniques and adapt the framework to their specific needs},
+    journal = {eLife},
+    issn = {2050-084X},
+    publisher = {eLife Sciences Publications, Ltd},
+}
+```
+
 
