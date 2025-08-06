@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 
 
-import numbers
-from typing import Dict, Optional, Union, Callable
-
 import jax
 import jax.numpy as jnp
+import numbers
 import numpy as np
+from typing import Dict, Optional, Union, Callable
 
-from brainevent._plasticity_dense import dense_on_pre, dense_on_post
-from brainevent._plasticity_csr import csr_on_pre, csr2csc_on_post
+from brainevent._csr_impl_plasticity import csr_on_pre, csr2csc_on_post
+from brainevent._dense_impl_plasticity import dense_on_pre, dense_on_post
 from brainpy import math as bm
 from brainpy._src import connect, initialize as init
 from brainpy._src.context import share
