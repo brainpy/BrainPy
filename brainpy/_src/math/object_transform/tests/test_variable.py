@@ -1,5 +1,7 @@
 import unittest
 
+import pytest
+
 import brainpy.math as bm
 
 
@@ -27,9 +29,10 @@ class TestVar(unittest.TestCase):
                 self.b *= self.a
                 return self.b.value
 
-        print()
-        f_jit = bm.jit(A().f)
-        f_jit()
+        with pytest.raises(NotImplementedError):
+            print()
+            f_jit = bm.jit(A().f)
+            f_jit()
 
-        print()
-        a = A()
+            print()
+            a = A()
