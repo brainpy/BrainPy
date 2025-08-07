@@ -20,16 +20,20 @@ class STDPNet(bp.DynSysGroup):
 
         # neuron groups
         self.noise = bp.dyn.PoissonGroup(num_poisson, freqs=15.)
-        self.group = bp.dyn.Lif(num_lif, V_reset=-60., V_rest=-74, V_th=-54, tau=10.,
-                                V_initializer=bp.init.Normal(-60., 1.))
+        self.group = bp.dyn.Lif(
+            num_lif, V_reset=-60., V_rest=-74, V_th=-54, tau=10.,
+            V_initializer=bp.init.Normal(-60., 1.)
+        )
 
         # synapses
         syn = bp.dyn.Expon.desc(num_lif, tau=5.)
         out = bp.dyn.COBA.desc(E=0.)
-        comm = bp.dnn.AllToAll(num_poisson, num_lif, bp.init.Uniform(0., g_max))
-        self.syn = bp.dyn.STDP_Song2000(self.noise, None, syn, comm, out, self.group,
-                                        tau_s=20, tau_t=20, W_max=g_max, W_min=0.,
-                                        A1=0.01 * g_max, A2=0.0105 * g_max)
+        comm = bp.dnn.AllToAll(num_poisson, num_lif, bp.init.Uniform(0., g_max), mode=bm.TrainingMode())
+        self.syn = bp.dyn.STDP_Song2000(
+            self.noise, None, syn, comm, out, self.group,
+            tau_s=20, tau_t=20, W_max=g_max, W_min=0.,
+            A1=0.01 * g_max, A2=0.0105 * g_max
+        )
 
     def update(self, *args, **kwargs):
         self.noise()

@@ -2,6 +2,6 @@ numpy
 brainstate>=0.1.6
 brainunit
 brainevent>=0.0.4
-braintools>=0.0.7
+braintools>=0.0.9
 jax
 tqdm

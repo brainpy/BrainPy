@@ -130,7 +130,7 @@ class TrajectModel(DynamicalSystem):
         self.runner = DSRunner(self, monitors=list(initial_vars.keys()), dt=dt, progress_bar=False)
 
     def update(self):
-        all_vars = list(self.implicit_vars.values())
+        all_vars = [v.value for v in self.implicit_vars.values()]
         for key, intg in self.integrals.items():
             self.implicit_vars[key].update(intg(*all_vars, *self.pars, dt=share['dt']))
 

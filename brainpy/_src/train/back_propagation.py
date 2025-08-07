@@ -230,6 +230,8 @@ class BPTrainer(DSTrainer):
              Please set batch size in your dataset.
 
         """
+
+        share.save(fit=True)
         if shared_args is None:
             shared_args = dict()
         shared_args['fit'] = shared_args.get('fit', True)

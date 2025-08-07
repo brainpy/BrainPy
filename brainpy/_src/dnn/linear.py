@@ -217,7 +217,7 @@ class Dense(Layer, SupportSTDP, SupportOnline, SupportOffline):
         if on_post is not None:
             spike = on_post['spike']
             trace = on_post['trace']
-            self.W.value = dense_on_post(self.W.value, spike, trace, w_min, w_max)
+            self.W.value = dense_on_post(self.W.value, trace, spike, w_min, w_max)
 
 
 Linear = Dense
@@ -303,10 +303,8 @@ class AllToAll(Layer, SupportSTDP):
         w_min: numbers.Number = None,
         w_max: numbers.Number = None
     ):
-        if isinstance(self.weight, float):
-            raise ValueError(f'Cannot update the weight of a constant node.')
         if not isinstance(self.weight, bm.Variable):
-            self.tracing_variable('weight', self.weight, self.weight.shape)
+            raise ValueError(f'When using STDP to update synaptic weights, the weight must be a variable.')
         if on_pre is not None:
             spike = on_pre['spike']
             trace = on_pre['trace']
@@ -314,7 +312,7 @@ class AllToAll(Layer, SupportSTDP):
         if on_post is not None:
             spike = on_post['spike']
             trace = on_post['trace']
-            self.weight.value = dense_on_post(self.weight.value, spike, trace, w_min, w_max)
+            self.weight.value = dense_on_post(self.weight.value, trace, spike, w_min, w_max)
 
 
 class OneToOne(Layer, SupportSTDP):
@@ -442,7 +440,7 @@ class MaskedLinear(Layer, SupportSTDP):
         if on_post is not None:
             spike = on_post['spike']
             trace = on_post['trace']
-            self.weight.value = dense_on_post(self.weight.value, spike, trace, w_min, w_max)
+            self.weight.value = dense_on_post(self.weight.value, trace, spike, w_min, w_max)
 
 
 class _CSRLayer(Layer, SupportSTDP):
@@ -503,7 +501,7 @@ class _CSRLayer(Layer, SupportSTDP):
             trace = on_post['trace']
             self.weight.value = csr2csc_on_post(
                 self.weight.value, self._pre_ids, self._post_indptr,
-                self.w_indices, spike, trace, w_min, w_max,
+                self.w_indices, trace, spike, w_min, w_max,
                 shape=(trace.shape[0], spike.shape[0]),
             )
 

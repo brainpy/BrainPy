@@ -12,6 +12,7 @@
 # %%
 import brainpy as bp
 import brainpy.math as bm
+
 bm.set_platform('cpu')
 
 # %%
@@ -21,146 +22,147 @@ import matplotlib.pyplot as plt
 
 # %%
 class EchoStateNet(bp.DynamicalSystem):
-  r"""The continuous-time Echo State Network.
+    r"""The continuous-time Echo State Network.
 
-  .. math::
+    .. math::
 
-    \frac{dh}{dt} = -h + W_{ir} * x + W_{rr} * r + W_{or} * z \\
-    r = \tanh(h) \\
-    o = W_{ro} * r
-  """
+      \frac{dh}{dt} = -h + W_{ir} * x + W_{rr} * r + W_{or} * z \\
+      r = \tanh(h) \\
+      o = W_{ro} * r
+    """
 
-  def __init__(self, num_input, num_hidden, num_output,
-               tau=1.0, dt=0.1, g=1.8, alpha=1.0, **kwargs):
-    super(EchoStateNet, self).__init__(**kwargs)
+    def __init__(self, num_input, num_hidden, num_output,
+                 tau=1.0, dt=0.1, g=1.8, alpha=1.0, **kwargs):
+        super(EchoStateNet, self).__init__(**kwargs)
 
-    # parameters
-    self.num_input = num_input
-    self.num_hidden = num_hidden
-    self.num_output = num_output
-    self.tau = tau
-    self.dt = dt
-    self.g = g
-    self.alpha = alpha
+        # parameters
+        self.num_input = num_input
+        self.num_hidden = num_hidden
+        self.num_output = num_output
+        self.tau = tau
+        self.dt = dt
+        self.g = g
+        self.alpha = alpha
 
-    # weights
-    self.w_ir = bm.random.normal(size=(num_input, num_hidden)) / bm.sqrt(num_input)
-    self.w_rr = g * bm.random.normal(size=(num_hidden, num_hidden)) / bm.sqrt(num_hidden)
-    self.w_or = bm.random.normal(size=(num_output, num_hidden))
-    w_ro = bm.random.normal(size=(num_hidden, num_output)) / bm.sqrt(num_hidden)
-    self.w_ro = bm.Variable(w_ro)  # dynamically change this weight
+        # weights
+        self.w_ir = bm.random.normal(size=(num_input, num_hidden)) / bm.sqrt(num_input)
+        self.w_rr = g * bm.random.normal(size=(num_hidden, num_hidden)) / bm.sqrt(num_hidden)
+        self.w_or = bm.random.normal(size=(num_output, num_hidden))
+        w_ro = bm.random.normal(size=(num_hidden, num_output)) / bm.sqrt(num_hidden)
+        self.w_ro = bm.Variable(w_ro)  # dynamically change this weight
 
-    # variables
-    self.h = bm.Variable(bm.random.normal(size=num_hidden) * 0.5)  # hidden
-    self.r = bm.Variable(bm.tanh(self.h))  # firing rate
-    self.o = bm.Variable(bm.dot(self.r, w_ro))  # output unit
-    self.P = bm.Variable(bm.eye(num_hidden) * self.alpha)  # inverse correlation matrix
+        # variables
+        self.h = bm.Variable(bm.random.normal(size=num_hidden) * 0.5)  # hidden
+        self.r = bm.Variable(bm.tanh(self.h))  # firing rate
+        self.o = bm.Variable(bm.dot(self.r, w_ro))  # output unit
+        self.P = bm.Variable(bm.eye(num_hidden) * self.alpha)  # inverse correlation matrix
 
-  def update(self, x):
-    # update the hidden and output state
-    dhdt = -self.h + bm.dot(x, self.w_ir)
-    dhdt += bm.dot(self.r, self.w_rr)
-    dhdt += bm.dot(self.o, self.w_or)
-    self.h += self.dt / self.tau * dhdt
-    self.r.value = bm.tanh(self.h)
-    self.o.value = bm.dot(self.r, self.w_ro)
-    return self.r.value, self.o.value
+    def update(self, x):
+        # update the hidden and output state
+        dhdt = -self.h + bm.dot(x, self.w_ir)
+        dhdt += bm.dot(self.r, self.w_rr)
+        dhdt += bm.dot(self.o, self.w_or)
+        self.h += self.dt / self.tau * dhdt
+        self.r.value = bm.tanh(self.h)
+        self.o.value = bm.dot(self.r, self.w_ro)
+        return self.r.value, self.o.value
 
-  def rls(self, target):
-    # update the inverse correlation matrix
-    k = bm.expand_dims(bm.dot(self.P, self.r), axis=1)  # (num_hidden, 1)
-    hPh = bm.dot(self.r.T, k)  # (1,)
-    c = 1.0 / (1.0 + hPh)  # (1,)
-    self.P -= bm.dot(k * c, k.T)  # (num_hidden, num_hidden)
-    # update the output weights
-    e = bm.atleast_2d(self.o - target)  # (1, num_output)
-    dw = bm.dot(-c * k, e)  # (num_hidden, num_output)
-    self.w_ro += dw
+    def rls(self, target):
+        # update the inverse correlation matrix
+        k = bm.expand_dims(bm.dot(self.P, self.r), axis=1)  # (num_hidden, 1)
+        hPh = bm.dot(self.r.T, k)  # (1,)
+        c = 1.0 / (1.0 + hPh)  # (1,)
+        self.P -= bm.dot(k * c, k.T)  # (num_hidden, num_hidden)
+        # update the output weights
+        e = bm.atleast_2d(self.o - target)  # (1, num_output)
+        dw = bm.dot(-c * k, e)  # (num_hidden, num_output)
+        self.w_ro += dw
 
-  def simulate(self, xs):
-    return bm.for_loop(self.update, operands=xs)
+    def simulate(self, xs):
+        return bm.for_loop(self.update, operands=xs)
 
-  def train(self, xs, targets):
-    def _f(x, target):
-      r, o = self.update(x)
-      self.rls(target)
-      return r, o
-    return bm.for_loop(_f, operands=[xs, targets])
+    def train(self, xs, targets):
+        def _f(x, target):
+            r, o = self.update(x)
+            self.rls(target)
+            return r, o
+
+        return bm.for_loop(_f, operands=[xs, targets])
 
 
 # %%
 def print_force(ts, rates, outs, targets, duration, ntoplot=10):
-  """Plot activations and outputs for the Echo state network."""
-  plt.figure(figsize=(16, 16))
+    """Plot activations and outputs for the Echo state network."""
+    plt.figure(figsize=(16, 16))
 
-  plt.subplot(321)
-  plt.plot(ts, targets + 2 * np.arange(0, targets.shape[1]), 'g')
-  plt.plot(ts, outs + 2 * np.arange(0, outs.shape[1]), 'r')
-  plt.xlim((0, duration))
-  plt.title('Target (green), Output (red)')
-  plt.xlabel('Time')
-  plt.ylabel('Dimension')
+    plt.subplot(321)
+    plt.plot(ts, targets + 2 * np.arange(0, targets.shape[1]), 'g')
+    plt.plot(ts, outs + 2 * np.arange(0, outs.shape[1]), 'r')
+    plt.xlim((0, duration))
+    plt.title('Target (green), Output (red)')
+    plt.xlabel('Time')
+    plt.ylabel('Dimension')
 
-  plt.subplot(122)
-  plt.imshow(rates.T, interpolation=None)
-  plt.title('Hidden activations of ESN')
-  plt.xlabel('Time')
-  plt.ylabel('Dimension')
+    plt.subplot(122)
+    plt.imshow(rates.T, interpolation=None)
+    plt.title('Hidden activations of ESN')
+    plt.xlabel('Time')
+    plt.ylabel('Dimension')
 
-  plt.subplot(323)
-  plt.plot(ts, rates[:, 0:ntoplot] + 2 * np.arange(0, ntoplot), 'b')
-  plt.xlim((0, duration))
-  plt.title('%d hidden activations of ESN' % (ntoplot))
-  plt.xlabel('Time')
-  plt.ylabel('Dimension')
+    plt.subplot(323)
+    plt.plot(ts, rates[:, 0:ntoplot] + 2 * np.arange(0, ntoplot), 'b')
+    plt.xlim((0, duration))
+    plt.title('%d hidden activations of ESN' % (ntoplot))
+    plt.xlabel('Time')
+    plt.ylabel('Dimension')
 
-  plt.subplot(325)
-  plt.plot(ts, np.sqrt(np.square(outs - targets)), 'c')
-  plt.xlim((0, duration))
-  plt.title('Error - mean absolute error')
-  plt.xlabel('Time')
-  plt.ylabel('Error')
+    plt.subplot(325)
+    plt.plot(ts, np.sqrt(np.square(outs - targets)), 'c')
+    plt.xlim((0, duration))
+    plt.title('Error - mean absolute error')
+    plt.xlabel('Time')
+    plt.ylabel('Error')
 
-  plt.tight_layout()
-  plt.show()
+    plt.tight_layout()
+    plt.show()
 
 
 # %%
 def plot_params(net):
-  """Plot some of the parameters associated with the ESN."""
-  assert isinstance(net, EchoStateNet)
+    """Plot some of the parameters associated with the ESN."""
+    assert isinstance(net, EchoStateNet)
 
-  plt.figure(figsize=(16, 10))
-  plt.subplot(221)
-  plt.imshow(bm.as_numpy(net.w_rr + net.w_ro @ net.w_or), interpolation=None)
-  plt.colorbar()
-  plt.title('Effective matrix - W_rr + W_ro * W_or')
+    plt.figure(figsize=(16, 10))
+    plt.subplot(221)
+    plt.imshow(bm.as_numpy(net.w_rr + net.w_ro @ net.w_or), interpolation=None)
+    plt.colorbar()
+    plt.title('Effective matrix - W_rr + W_ro * W_or')
 
-  plt.subplot(222)
-  plt.imshow(bm.as_numpy(net.w_ro), interpolation=None)
-  plt.colorbar()
-  plt.title('Readout weights - W_ro')
+    plt.subplot(222)
+    plt.imshow(bm.as_numpy(net.w_ro), interpolation=None)
+    plt.colorbar()
+    plt.title('Readout weights - W_ro')
 
-  x_circ = np.linspace(-1, 1, 1000)
-  y_circ = np.sqrt(1 - x_circ ** 2)
-  evals, _ = np.linalg.eig(bm.as_numpy(net.w_rr))
-  plt.subplot(223)
-  plt.plot(np.real(evals), np.imag(evals), 'o')
-  plt.plot(x_circ, y_circ, 'k')
-  plt.plot(x_circ, -y_circ, 'k')
-  plt.axis('equal')
-  plt.title('Eigenvalues of W_rr')
+    x_circ = np.linspace(-1, 1, 1000)
+    y_circ = np.sqrt(1 - x_circ ** 2)
+    evals, _ = np.linalg.eig(bm.as_numpy(net.w_rr))
+    plt.subplot(223)
+    plt.plot(np.real(evals), np.imag(evals), 'o')
+    plt.plot(x_circ, y_circ, 'k')
+    plt.plot(x_circ, -y_circ, 'k')
+    plt.axis('equal')
+    plt.title('Eigenvalues of W_rr')
 
-  evals, _ = np.linalg.eig(bm.as_numpy((net.w_rr + net.w_ro @ net.w_or)))
-  plt.subplot(224)
-  plt.plot(np.real(evals), np.imag(evals), 'o', color='orange')
-  plt.plot(x_circ, y_circ, 'k')
-  plt.plot(x_circ, -y_circ, 'k')
-  plt.axis('equal')
-  plt.title('Eigenvalues of W_rr + W_ro * W_or')
+    evals, _ = np.linalg.eig(bm.as_numpy((net.w_rr + net.w_ro @ net.w_or)))
+    plt.subplot(224)
+    plt.plot(np.real(evals), np.imag(evals), 'o', color='orange')
+    plt.plot(x_circ, y_circ, 'k')
+    plt.plot(x_circ, -y_circ, 'k')
+    plt.axis('equal')
+    plt.title('Eigenvalues of W_rr + W_ro * W_or')
 
-  plt.tight_layout()
-  plt.show()
+    plt.tight_layout()
+    plt.show()
 
 
 # %%
@@ -197,7 +199,6 @@ print_force(times, rates=rs, outs=ys, targets=targets, duration=T, ntoplot=10)
 esn3 = EchoStateNet(num_input=1, num_hidden=500, num_output=20, dt=dt, g=1.5, alpha=1.)
 rs, ys = esn3.train(xs=xs, targets=targets)  # train once
 print_force(times, rates=rs, outs=ys, targets=targets, duration=T, ntoplot=10)
-
 
 # %%
 plot_params(esn3)

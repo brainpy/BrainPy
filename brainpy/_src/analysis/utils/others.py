@@ -5,7 +5,6 @@ from typing import Union, Dict
 import jax
 import jax.numpy as jnp
 import numpy as np
-from jax.tree_util import tree_map
 
 import brainpy.math as bm
 from .function import f_without_jaxarray_return
@@ -116,7 +115,7 @@ def keep_unique(candidates: Union[np.ndarray, Dict[str, np.ndarray]],
         return candidates, keep_ids
     if num_fps <= 1:
         return candidates, keep_ids
-    candidates = tree_map(lambda a: np.asarray(a), candidates, is_leaf=lambda a: isinstance(a, bm.BaseArray))
+    candidates = jax.tree.map(lambda a: np.asarray(a), candidates, is_leaf=lambda a: isinstance(a, bm.BaseArray))
 
     # If point A and point B are within identical_tol of each other, and the
     # A is first in the list, we keep A.
@@ -129,7 +128,7 @@ def keep_unique(candidates: Union[np.ndarray, Dict[str, np.ndarray]],
         all_drop_idxs += list(drop_idxs)
     keep_ids = np.setdiff1d(example_idxs, np.unique(all_drop_idxs))
     if keep_ids.shape[0] > 0:
-        unique_fps = tree_map(lambda a: a[keep_ids], candidates)
+        unique_fps = jax.tree.map(lambda a: a[keep_ids], candidates)
     else:
         unique_fps = np.array([], dtype=dtype)
     return unique_fps, keep_ids

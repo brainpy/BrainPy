@@ -33,7 +33,7 @@ setup(
     packages=packages,
     python_requires='>=3.10',
     install_requires=[
-        'numpy>=1.15', 'jax', 'tqdm', 'brainstate>=0.1.6', 'brainunit', 'brainevent>=0.0.4', 'braintools>=0.0.7'
+        'numpy>=1.15', 'jax', 'tqdm', 'brainstate>=0.1.6', 'brainunit', 'brainevent>=0.0.4', 'braintools>=0.0.9'
     ],
     url='https://github.com/brainpy/BrainPy',
     project_urls={

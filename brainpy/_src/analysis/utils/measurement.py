@@ -6,7 +6,6 @@ from typing import Union
 import jax
 import jax.numpy as jnp
 import numpy as np
-from jax.tree_util import tree_flatten
 
 import brainpy._src.math as bm
 from brainpy.tools import numba_jit
@@ -112,7 +111,7 @@ def euclidean_distance_jax(points: Union[jnp.ndarray, bm.ndarray], num_point=Non
         num_point = points.shape[0]
     indices = jnp.triu_indices(num_point)
     dist_mat = bm.zeros((num_point, num_point))
-    leaves, _ = tree_flatten(points)
+    leaves, _ = jax.tree.flatten(points)
     dist_mat[indices] = _ed(*indices, leaves)
     dist_mat = jnp.maximum(dist_mat.value, dist_mat.value.T)
     return dist_mat
