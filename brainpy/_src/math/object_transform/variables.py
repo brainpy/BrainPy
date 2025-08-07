@@ -349,63 +349,63 @@ class Variable(brainstate.State, BaseArray):
         self._been_writen = True  # set the flag
         self._write_value(v)  # write the value
 
-    def tree_flatten(self):
-        """Flattens this variable.
+    # def tree_flatten(self):
+    #     """Flattens this variable.
+    #
+    #     Returns:
+    #       A pair where the first element is a list of leaf values
+    #       and the second element is a treedef representing the
+    #       structure of the flattened tree.
+    #     """
+    #     return (self._value,), None
+    #
+    # @classmethod
+    # def tree_unflatten(cls, aux_data, flat_contents):
+    #     """Reconstructs a variable from the aux_data and the leaves.
+    #
+    #     Args:
+    #       aux_data:
+    #       flat_contents:
+    #
+    #     Returns:
+    #       The variable.
+    #     """
+    #     return cls(*flat_contents)
 
-        Returns:
-          A pair where the first element is a list of leaf values
-          and the second element is a treedef representing the
-          structure of the flattened tree.
-        """
-        return (self._value,), None
+    # def clone(self) -> 'Variable':
+    #     """Clone the variable. """
+    #     r = type(self)(jnp.array(self.value, copy=True), batch_axis=self.batch_axis)
+    #     return r
 
-    @classmethod
-    def tree_unflatten(cls, aux_data, flat_contents):
-        """Reconstructs a variable from the aux_data and the leaves.
-
-        Args:
-          aux_data:
-          flat_contents:
-
-        Returns:
-          The variable.
-        """
-        return cls(*flat_contents)
-
-    def clone(self) -> 'Variable':
-        """Clone the variable. """
-        r = type(self)(jnp.array(self.value, copy=True), batch_axis=self.batch_axis)
-        return r
-
-    def __eq__(self, other):
-        """Override State's __eq__ to use BaseArray behavior for element-wise comparison."""
-        from brainpy._src.math.ndarray import _check_input_array, _return
-        return _return(self.value == _check_input_array(other))
-
-    def __ne__(self, other):
-        """Override State's __ne__ to use BaseArray behavior for element-wise comparison."""
-        from brainpy._src.math.ndarray import _check_input_array, _return
-        return _return(self.value != _check_input_array(other))
-
-    def __lt__(self, other):
-        """Override State's __lt__ to use BaseArray behavior for element-wise comparison."""
-        from brainpy._src.math.ndarray import _check_input_array, _return
-        return _return(self.value < _check_input_array(other))
-
-    def __le__(self, other):
-        """Override State's __le__ to use BaseArray behavior for element-wise comparison."""
-        from brainpy._src.math.ndarray import _check_input_array, _return
-        return _return(self.value <= _check_input_array(other))
-
-    def __gt__(self, other):
-        """Override State's __gt__ to use BaseArray behavior for element-wise comparison."""
-        from brainpy._src.math.ndarray import _check_input_array, _return
-        return _return(self.value > _check_input_array(other))
-
-    def __ge__(self, other):
-        """Override State's __ge__ to use BaseArray behavior for element-wise comparison."""
-        from brainpy._src.math.ndarray import _check_input_array, _return
-        return _return(self.value >= _check_input_array(other))
+    # def __eq__(self, other):
+    #     """Override State's __eq__ to use BaseArray behavior for element-wise comparison."""
+    #     from brainpy._src.math.ndarray import _check_input_array, _return
+    #     return _return(self.value == _check_input_array(other))
+    #
+    # def __ne__(self, other):
+    #     """Override State's __ne__ to use BaseArray behavior for element-wise comparison."""
+    #     from brainpy._src.math.ndarray import _check_input_array, _return
+    #     return _return(self.value != _check_input_array(other))
+    #
+    # def __lt__(self, other):
+    #     """Override State's __lt__ to use BaseArray behavior for element-wise comparison."""
+    #     from brainpy._src.math.ndarray import _check_input_array, _return
+    #     return _return(self.value < _check_input_array(other))
+    #
+    # def __le__(self, other):
+    #     """Override State's __le__ to use BaseArray behavior for element-wise comparison."""
+    #     from brainpy._src.math.ndarray import _check_input_array, _return
+    #     return _return(self.value <= _check_input_array(other))
+    #
+    # def __gt__(self, other):
+    #     """Override State's __gt__ to use BaseArray behavior for element-wise comparison."""
+    #     from brainpy._src.math.ndarray import _check_input_array, _return
+    #     return _return(self.value > _check_input_array(other))
+    #
+    # def __ge__(self, other):
+    #     """Override State's __ge__ to use BaseArray behavior for element-wise comparison."""
+    #     from brainpy._src.math.ndarray import _check_input_array, _return
+    #     return _return(self.value >= _check_input_array(other))
 
 
 def _get_dtype(v):

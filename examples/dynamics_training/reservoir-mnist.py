@@ -8,8 +8,8 @@ from tqdm import tqdm
 import brainpy as bp
 import brainpy.math as bm
 
-traindata = bd.vision.MNIST(root='D:/data', split='train')
-testdata = bd.vision.MNIST(root='D:/data', split='test')
+traindata = bd.vision.MNIST(root='./data', split='train', download=True)
+testdata = bd.vision.MNIST(root='./data', split='test', download=True)
 
 
 def offline_train(num_hidden=2000, num_in=28, num_out=10):
@@ -18,7 +18,7 @@ def offline_train(num_hidden=2000, num_in=28, num_out=10):
     x_train = x_train.reshape(-1, x_train.shape[-1])
     y_train = bm.one_hot(jnp.repeat(traindata.targets, x_train.shape[1]), 10, dtype=bm.float_)
 
-    reservoir = bp.layers.Reservoir(
+    reservoir = bp.dyn.Reservoir(
         num_in,
         num_hidden,
         Win_initializer=bp.init.Uniform(-0.6, 0.6),

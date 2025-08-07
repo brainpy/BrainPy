@@ -4,6 +4,7 @@ import brainpy as bp
 import brainpy.math as bm
 
 bm.set_environment(bm.batching_mode)
+bp.share.save(fit=True)
 
 
 class ESN(bp.DynamicalSystem):
