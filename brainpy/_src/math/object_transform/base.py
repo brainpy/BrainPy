@@ -180,6 +180,9 @@ class BrainPyObject(object):
           The instance of :py:class:`~.Variable`.
         """
         # the variable has been created
+        raise NotImplementedError(
+            'Since 3.0.0, brainpy is rewritten with brainstate. The feature tracing_variable is no longer supported. '
+        )
         if hasattr(self, name):
             var = getattr(self, name)
             if isinstance(var, Variable):

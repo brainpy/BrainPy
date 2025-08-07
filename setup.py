@@ -17,7 +17,9 @@ with io.open(os.path.join(here, 'README.md'), 'r', encoding='utf-8') as f:
     README = f.read()
 
 # installation packages
-packages = find_packages(exclude=['lib*', 'docs', 'tests'])
+packages = find_packages(
+    exclude=['lib*', 'docs', 'tests', 'docker*', 'examples', 'scripts', 'images', 'dist']
+)
 
 # setup
 setup(
@@ -30,7 +32,9 @@ setup(
     author_email='chao.brain@qq.com',
     packages=packages,
     python_requires='>=3.10',
-    install_requires=['numpy>=1.15', 'jax', 'tqdm', 'brainstate>=0.1.6', 'brainunit', 'brainevent', 'braintools'],
+    install_requires=[
+        'numpy>=1.15', 'jax', 'tqdm', 'brainstate>=0.1.6', 'brainunit', 'brainevent>=0.0.4', 'braintools>=0.0.7'
+    ],
     url='https://github.com/brainpy/BrainPy',
     project_urls={
         "Bug Tracker": "https://github.com/brainpy/BrainPy/issues",
@@ -38,17 +42,23 @@ setup(
         "Source Code": "https://github.com/brainpy/BrainPy",
     },
     extras_require={
-        'cpu': ['jax[cpu]', 'brainstate[cpu]', 'brainunit[cpu]', 'brainevent[cpu]', 'braintools[cpu]'],
+        'cpu': [
+            'jax[cpu]', 'brainstate[cpu]', 'brainunit[cpu]', 'brainevent[cpu]', 'braintools[cpu]'
+        ],
         'cuda12': [
             'jax[cuda12]', 'brainstate[cuda12]', 'brainunit[cuda12]', 'brainevent[cuda12]', 'braintools[cuda12]'
         ],
-        'tpu': ['jax[tpu]', 'brainstate[tpu]', 'brainunit[tpu]', 'brainevent[tpu]', 'braintools[tpu]'],
+        'tpu': [
+            'jax[tpu]', 'brainstate[tpu]', 'brainunit[tpu]', 'brainevent[tpu]', 'braintools[tpu]'
+        ],
     },
-    keywords=('computational neuroscience, '
-              'brain-inspired computation, '
-              'brain modeling, '
-              'brain dynamics modeling, '
-              'brain dynamics programming'),
+    keywords=(
+        'computational neuroscience, '
+        'brain-inspired computation, '
+        'brain modeling, '
+        'brain dynamics modeling, '
+        'brain dynamics programming'
+    ),
     classifiers=[
         'Natural Language :: English',
         'Operating System :: OS Independent',

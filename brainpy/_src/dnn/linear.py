@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 
 
-import numbers
-from typing import Dict, Optional, Union, Callable
-
 import jax
 import jax.numpy as jnp
+import numbers
 import numpy as np
+from typing import Dict, Optional, Union, Callable
 
+from brainevent._csr_impl_plasticity import csr_on_pre, csr2csc_on_post
+from brainevent._dense_impl_plasticity import dense_on_pre, dense_on_post
 from brainpy import math as bm
 from brainpy._src import connect, initialize as init
 from brainpy._src.context import share
@@ -207,10 +208,8 @@ class Dense(Layer, SupportSTDP, SupportOnline, SupportOffline):
         w_min: numbers.Number = None,
         w_max: numbers.Number = None
     ):
-        if isinstance(self.W, float):
-            raise ValueError(f'Cannot update the weight of a constant node.')
         if not isinstance(self.W, bm.Variable):
-            self.tracing_variable('W', self.W, self.W.shape)
+            raise ValueError(f'When using STDP to update synaptic weights, the weight must be a variable.')
         if on_pre is not None:
             spike = on_pre['spike']
             trace = on_pre['trace']
@@ -233,124 +232,6 @@ class Identity(Layer):
 
     def update(self, x):
         return x
-
-
-if False:
-
-    # @numba.njit(nogil=True, fastmath=True, parallel=False)
-    # def _cpu_dense_on_post(weight, spike, trace, w_min, w_max, out_w):
-    #   out_w[:] = weight
-    #   for i in numba.prange(spike.shape[0]):
-    #     if spike[i]:
-    #       out_w[:, i] = np.clip(out_w[:, i] + trace, w_min, w_max)
-
-    @ti.kernel
-    def _dense_on_post(
-        old_w: ti.types.ndarray(ndim=2),
-        post_spike: ti.types.ndarray(ndim=1),
-        pre_trace: ti.types.ndarray(ndim=1),
-        w_min: ti.types.ndarray(ndim=1),
-        w_max: ti.types.ndarray(ndim=1),
-        out_w: ti.types.ndarray(ndim=2)
-    ):
-        w_min0 = w_min[0]
-        w_max0 = w_max[0]
-        num_pre, num_post = out_w.shape
-
-        for i, j in ti.ndrange(num_pre, num_post):
-            if post_spike[j]:
-                new_value = out_w[i, j] + pre_trace[i]
-                if new_value < w_min0:
-                    out_w[i, j] = w_min0
-                elif new_value > w_max0:
-                    out_w[i, j] = w_max0
-                else:
-                    out_w[i, j] = new_value
-            else:
-                out_w[i, j] = old_w[i, j]
-
-
-    dense_on_post_prim = bti.XLACustomOp(cpu_kernel=_dense_on_post, gpu_kernel=_dense_on_post)
-
-
-    # @numba.njit(nogil=True, fastmath=True, parallel=False)
-    # def _cpu_dense_on_pre(weight, spike, trace, w_min, w_max, out_w):
-    #   out_w[:] = weight
-    #   for i in numba.prange(spike.shape[0]):
-    #     if spike[i]:
-    #       out_w[i] = np.clip(out_w[i] + trace, w_min, w_max)
-
-    @ti.kernel
-    def _dense_on_pre(
-        old_w: ti.types.ndarray(ndim=2),
-        pre_spike: ti.types.ndarray(ndim=1),
-        post_trace: ti.types.ndarray(ndim=1),
-        w_min: ti.types.ndarray(ndim=1),
-        w_max: ti.types.ndarray(ndim=1),
-        out_w: ti.types.ndarray(ndim=2)
-    ):
-        w_min0 = w_min[0]
-        w_max0 = w_max[0]
-        num_pre, num_post = out_w.shape
-
-        for i, j in ti.ndrange(num_pre, num_post):
-            if pre_spike[i]:
-                new_value = out_w[i, j] + post_trace[j]
-                if new_value < w_min0:
-                    out_w[i, j] = w_min0
-                elif new_value > w_max0:
-                    out_w[i, j] = w_max0
-                else:
-                    out_w[i, j] = new_value
-            else:
-                out_w[i, j] = old_w[i, j]
-
-
-    dense_on_pre_prim = bti.XLACustomOp(cpu_kernel=_dense_on_pre, gpu_kernel=_dense_on_pre)
-
-else:
-    dense_on_pre_prim = None
-    dense_on_post_prim = None
-
-
-def dense_on_pre(weight, spike, trace, w_min, w_max):
-    if dense_on_pre_prim is None:
-        raise_braintaichi_not_found()
-
-    if w_min is None:
-        w_min = -np.inf
-    if w_max is None:
-        w_max = np.inf
-    w_min = jnp.atleast_1d(w_min)
-    w_max = jnp.atleast_1d(w_max)
-
-    weight = bm.as_jax(weight)
-    spike = bm.as_jax(spike)
-    trace = bm.as_jax(trace)
-    w_min = bm.as_jax(w_min)
-    w_max = bm.as_jax(w_max)
-    return dense_on_pre_prim(weight, spike, trace, w_min, w_max,
-                             outs=[jax.ShapeDtypeStruct(weight.shape, weight.dtype)])[0]
-
-
-def dense_on_post(weight, spike, trace, w_min, w_max):
-    if dense_on_post_prim is None:
-        raise_braintaichi_not_found()
-
-    if w_min is None:
-        w_min = -np.inf
-    if w_max is None:
-        w_max = np.inf
-    w_min = jnp.atleast_1d(w_min)
-    w_max = jnp.atleast_1d(w_max)
-
-    weight = bm.as_jax(weight)
-    spike = bm.as_jax(spike)
-    trace = bm.as_jax(trace)
-    w_min = bm.as_jax(w_min)
-    w_max = bm.as_jax(w_max)
-    return dense_on_post_prim(weight, spike, trace, w_min, w_max,
-                              outs=[jax.ShapeDtypeStruct(weight.shape, weight.dtype)])[0]
 
 
 class AllToAll(Layer, SupportSTDP):
@@ -608,8 +489,10 @@ class _CSRLayer(Layer, SupportSTDP):
         if on_pre is not None:  # update on presynaptic spike
             spike = on_pre['spike']
             trace = on_pre['trace']
-            self.weight.value = csr_on_pre_update(self.weight.value, self.indices, self.indptr, spike, trace, w_min,
-                                                  w_max)
+            self.weight.value = csr_on_pre(
+                self.weight.value, self.indices, self.indptr, spike, trace, w_min, w_max,
+                shape=(spike.shape[0], trace.shape[0]),
+            )
         if on_post is not None:  # update on postsynaptic spike
             if not hasattr(self, '_pre_ids'):
                 with jax.ensure_compile_time_eval():
@@ -618,8 +501,11 @@ class _CSRLayer(Layer, SupportSTDP):
                     )
             spike = on_post['spike']
             trace = on_post['trace']
-            self.weight.value = csc_on_post_update(self.weight.value, self._pre_ids, self._post_indptr,
-                                                   self.w_indices, spike, trace, w_min, w_max)
+            self.weight.value = csr2csc_on_post(
+                self.weight.value, self._pre_ids, self._post_indptr,
+                self.w_indices, spike, trace, w_min, w_max,
+                shape=(trace.shape[0], spike.shape[0]),
+            )
 
 
 class CSRLinear(_CSRLayer):
@@ -720,196 +606,6 @@ class EventCSRLinear(_CSRLayer):
         return bm.event.csrmv(self.weight, self.indices, self.indptr, x,
                               shape=(self.conn.pre_num, self.conn.post_num),
                               transpose=self.transpose)
-
-
-if False:
-    @ti.kernel
-    def _csr_on_pre_update(
-        old_w: ti.types.ndarray(ndim=1),  # vector with shape of (num_syn)
-        indices: ti.types.ndarray(ndim=1),  # vector with shape of (num_syn)
-        indptr: ti.types.ndarray(ndim=1),  # vector with shape of (num_pre + 1)
-        spike: ti.types.ndarray(ndim=1),  # vector with shape of (num_pre,)
-        trace: ti.types.ndarray(ndim=1),  # vector with shape of (num_post,)
-        w_min: ti.types.ndarray(ndim=1),  # scalar
-        w_max: ti.types.ndarray(ndim=1),  # scalar
-        out_w: ti.types.ndarray(ndim=1)  # vector with shape of (num_syn)
-    ):
-        w_min0 = w_min[0]
-        w_max0 = w_max[0]
-        num_pre = spike.shape[0]
-        for i_pre in range(num_pre):
-            if spike[i_pre]:
-                for i_syn in range(indptr[i_pre], indptr[i_pre + 1]):
-                    out_w[i_syn] = min(max(old_w[i_syn] + trace[indices[i_syn]], w_min0), w_max0)
-            else:
-                for i_syn in range(indptr[i_pre], indptr[i_pre + 1]):
-                    out_w[i_syn] = old_w[i_syn]
-
-
-    csr_on_pre_update_prim = bti.XLACustomOp(cpu_kernel=_csr_on_pre_update, gpu_kernel=_csr_on_pre_update)
-
-
-    @ti.kernel
-    def _coo_on_pre_update(
-        old_w: ti.types.ndarray(ndim=1),  # vector with shape of (num_syn)
-        pre_ids: ti.types.ndarray(ndim=1),  # vector with shape of (num_syn)
-        post_ids: ti.types.ndarray(ndim=1),  # vector with shape of (num_syn)
-        pre_spike: ti.types.ndarray(ndim=1),  # vector with shape of (num_pre,)
-        post_trace: ti.types.ndarray(ndim=1),  # vector with shape of (num_post,)
-        w_min: ti.types.ndarray(ndim=1),  # scalar
-        w_max: ti.types.ndarray(ndim=1),  # scalar
-        out_w: ti.types.ndarray(ndim=1)  # vector with shape of (num_syn)
-    ):
-        w_min0 = w_min[0]
-        w_max0 = w_max[0]
-        num_syn = old_w.shape[0]
-        for i_syn in range(num_syn):
-            if pre_spike[pre_ids[i_syn]]:  # pre spike
-                out_w[i_syn] = min(max(old_w[i_syn] + post_trace[post_ids[i_syn]], w_min0), w_max0)
-            else:
-                out_w[i_syn] = old_w[i_syn]
-
-
-    coo_on_pre_update_prim = bti.XLACustomOp(cpu_kernel=_coo_on_pre_update, gpu_kernel=_coo_on_pre_update)
-
-
-    @ti.kernel
-    def _coo_on_post_update(
-        old_w: ti.types.ndarray(ndim=1),  # vector with shape of (num_syn)
-        pre_ids: ti.types.ndarray(ndim=1),  # vector with shape of (num_syn)
-        post_ids: ti.types.ndarray(ndim=1),  # vector with shape of (num_syn)
-        post_spike: ti.types.ndarray(ndim=1),  # vector with shape of (num_pre,)
-        pre_trace: ti.types.ndarray(ndim=1),  # vector with shape of (num_post,)
-        w_min: ti.types.ndarray(ndim=1),  # scalar
-        w_max: ti.types.ndarray(ndim=1),  # scalar
-        out_w: ti.types.ndarray(ndim=1)  # vector with shape of (num_syn)
-    ):
-        w_min0 = w_min[0]
-        w_max0 = w_max[0]
-        num_syn = old_w.shape[0]
-        for i_syn in range(num_syn):
-            if post_spike[post_ids[i_syn]]:  # pre spike
-                out_w[i_syn] = min(max(old_w[i_syn] + pre_trace[pre_ids[i_syn]], w_min0), w_max0)
-            else:
-                out_w[i_syn] = old_w[i_syn]
-
-
-    coo_on_post_update_prim = bti.XLACustomOp(cpu_kernel=_coo_on_post_update, gpu_kernel=_coo_on_post_update)
-
-
-    # @numba.njit(nogil=True, fastmath=True, parallel=False)
-    # def _cpu_csc_on_pre_update(w, post_ids, indptr, w_ids, spike, trace, w_min, w_max, out_w):
-    #   out_w[:] = w
-    #   w_min = w_min[()]
-    #   w_max = w_max[()]
-    #   for i in numba.prange(spike.shape[0]):  # post id
-    #     if spike[i]:
-    #       for k in range(indptr[i], indptr[i + 1]):
-    #         j = post_ids[k]  # pre id
-    #         l = w_ids[k]  # syn id
-    #         out_w[l] = np.minimum(np.maximum(out_w[l] + trace[j], w_min), w_max)
-
-    @ti.kernel
-    def _csc_on_post_update(
-        old_w: ti.types.ndarray(ndim=1),  # vector with shape of (num_syn)
-        indices: ti.types.ndarray(ndim=1),  # vector with shape of (num_syn)
-        indptr: ti.types.ndarray(ndim=1),  # vector with shape of (num_post + 1)
-        w_ids: ti.types.ndarray(ndim=1),  # vector with shape of (num_syn)
-        post_spike: ti.types.ndarray(ndim=1),  # vector with shape of (num_post,)
-        pre_trace: ti.types.ndarray(ndim=1),  # vector with shape of (num_pre,)
-        w_min: ti.types.ndarray(ndim=1),  # scalar
-        w_max: ti.types.ndarray(ndim=1),  # scalar
-        out_w: ti.types.ndarray(ndim=1),  # vector with shape of (num_syn)
-    ):
-        w_min0 = w_min[0]
-        w_max0 = w_max[0]
-        num_post = post_spike.shape[0]
-        for i_post in range(num_post):
-            if post_spike[i_post]:
-                for k in range(indptr[i_post], indptr[i_post + 1]):
-                    i_syn = w_ids[k]  # syn id
-                    out_w[i_syn] = min(max(old_w[i_syn] + pre_trace[indices[k]], w_min0), w_max0)
-            else:
-                for k in range(indptr[i_post], indptr[i_post + 1]):
-                    i_syn = w_ids[k]  # syn id
-                    out_w[i_syn] = old_w[i_syn]
-
-
-    csc_on_post_update_prim = bti.XLACustomOp(cpu_kernel=_csc_on_post_update, gpu_kernel=_csc_on_post_update)
-
-
-else:
-    csr_on_pre_update_prim = None
-    coo_on_pre_update_prim = None
-    csc_on_post_update_prim = None
-
-
-def csr_on_pre_update(w, indices, indptr, spike, trace, w_min=None, w_max=None):
-    if csr_on_pre_update_prim is None:
-        raise_braintaichi_not_found()
-
-    if w_min is None:
-        w_min = -np.inf
-    if w_max is None:
-        w_max = np.inf
-    w_min = jnp.atleast_1d(w_min)
-    w_max = jnp.atleast_1d(w_max)
-
-    w = bm.as_jax(w)
-    indices = bm.as_jax(indices)
-    indptr = bm.as_jax(indptr)
-    spike = bm.as_jax(spike)
-    trace = bm.as_jax(trace)
-    w_min = bm.as_jax(w_min)
-    w_max = bm.as_jax(w_max)
-    return csr_on_pre_update_prim(w, indices, indptr, spike, trace, w_min, w_max,
-                                  outs=[jax.ShapeDtypeStruct(w.shape, w.dtype)])[0]
-
-
-def coo_on_pre_update(w, pre_ids, post_ids, spike, trace, w_min=None, w_max=None):
-    if coo_on_pre_update_prim is None:
-        raise_braintaichi_not_found()
-
-    if w_min is None:
-        w_min = -np.inf
-    if w_max is None:
-        w_max = np.inf
-    w_min = jnp.atleast_1d(w_min)
-    w_max = jnp.atleast_1d(w_max)
-
-    w = bm.as_jax(w)
-    pre_ids = bm.as_jax(pre_ids)
-    post_ids = bm.as_jax(post_ids)
-    spike = bm.as_jax(spike)
-    trace = bm.as_jax(trace)
-    w_min = bm.as_jax(w_min)
-    w_max = bm.as_jax(w_max)
-
-    return coo_on_pre_update_prim(w, pre_ids, post_ids, spike, trace, w_min, w_max,
-                                  outs=[jax.ShapeDtypeStruct(w.shape, w.dtype)])[0]
-
-
-def csc_on_post_update(w, post_ids, indptr, w_ids, post_spike, pre_trace, w_min=None, w_max=None):
-    if csc_on_post_update_prim is None:
-        raise_braintaichi_not_found()
-
-    if w_min is None:
-        w_min = -np.inf
-    if w_max is None:
-        w_max = np.inf
-    w_min = jnp.atleast_1d(w_min)
-    w_max = jnp.atleast_1d(w_max)
-
-    w = bm.as_jax(w)
-    post_ids = bm.as_jax(post_ids)
-    indptr = bm.as_jax(indptr)
-    w_ids = bm.as_jax(w_ids)
-    post_spike = bm.as_jax(post_spike)
-    pre_trace = bm.as_jax(pre_trace)
-    w_min = bm.as_jax(w_min)
-    w_max = bm.as_jax(w_max)
-    return csc_on_post_update_prim(w, post_ids, indptr, w_ids, post_spike, pre_trace, w_min, w_max,
-                                   outs=[jax.ShapeDtypeStruct(w.shape, w.dtype)])[0]
 
 
 class CSCLinear(Layer):
