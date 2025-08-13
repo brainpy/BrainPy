@@ -169,8 +169,8 @@ class TestIfElse(unittest.TestCase):
                                        lambda: 4, lambda: 5])
 
         self.assertTrue(f(11) == 1)
-        print(var_a)
-        self.assertTrue(bm.all(var_a == 1))
+        print(var_a.value)
+        self.assertTrue(bm.all(var_a.value == 1))
         self.assertTrue(f(1) == 4)
         self.assertTrue(f(-1) == 5)
 

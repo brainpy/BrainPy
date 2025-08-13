@@ -10,7 +10,6 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 from jax.scipy.optimize import minimize
-from jax.tree_util import tree_flatten, tree_map
 
 import brainpy._src.math as bm
 from brainpy import optim, losses
@@ -265,7 +264,7 @@ class SlowPointFinder(base.DSAnalyzer):
     @property
     def fixed_points(self) -> Union[np.ndarray, Dict[str, np.ndarray]]:
         """The final fixed points found."""
-        return tree_map(lambda a: np.asarray(a), self._fixed_points)
+        return jax.tree.map(lambda a: np.asarray(a), self._fixed_points)
 
     @fixed_points.setter
     def fixed_points(self, val):
@@ -339,11 +338,11 @@ class SlowPointFinder(base.DSAnalyzer):
         num_candidate = self._check_candidates(candidates)
         if not (isinstance(candidates, (bm.ndarray, jnp.ndarray, np.ndarray)) or isinstance(candidates, dict)):
             raise ValueError('Candidates must be instance of ArrayType or dict of ArrayType.')
-        fixed_points = tree_map(lambda a: bm.TrainVar(a), candidates, is_leaf=lambda x: isinstance(x, bm.BaseArray))
+        fixed_points = jax.tree.map(lambda a: bm.TrainVar(a), candidates, is_leaf=lambda x: isinstance(x, bm.BaseArray))
         f_eval_loss = self._get_f_eval_loss()
 
         def f_loss():
-            return f_eval_loss(tree_map(lambda a: bm.as_jax(a),
+            return f_eval_loss(jax.tree.map(lambda a: bm.as_jax(a),
                                         fixed_points,
                                         is_leaf=lambda x: isinstance(x, bm.BaseArray))).mean()
 
@@ -387,10 +386,10 @@ class SlowPointFinder(base.DSAnalyzer):
                           f'is below tolerance {tolerance:0.10f}.')
 
         self._opt_losses = jnp.concatenate(opt_losses)
-        self._losses = f_eval_loss(tree_map(lambda a: bm.as_jax(a),
+        self._losses = f_eval_loss(jax.tree.map(lambda a: bm.as_jax(a),
                                             fixed_points,
                                             is_leaf=lambda x: isinstance(x, bm.BaseArray)))
-        self._fixed_points = tree_map(lambda a: bm.as_jax(a),
+        self._fixed_points = jax.tree.map(lambda a: bm.as_jax(a),
                                       fixed_points,
                                       is_leaf=lambda x: isinstance(x, bm.BaseArray))
         self._selected_ids = jnp.arange(num_candidate)
@@ -429,7 +428,7 @@ class SlowPointFinder(base.DSAnalyzer):
             print(f"Optimizing with {opt_solver} to find fixed points:")
 
         # optimizing
-        res = f_opt(tree_map(lambda a: bm.as_jax(a), candidates, is_leaf=lambda a: isinstance(a, bm.BaseArray)))
+        res = f_opt(jax.tree.map(lambda a: bm.as_jax(a), candidates, is_leaf=lambda a: isinstance(a, bm.BaseArray)))
 
         # results
         valid_ids = jnp.where(res.success)[0]
@@ -467,7 +466,7 @@ class SlowPointFinder(base.DSAnalyzer):
             num_fps = self._fixed_points.shape[0]
         ids = self._losses < tolerance
         keep_ids = bm.as_jax(bm.where(ids)[0])
-        self._fixed_points = tree_map(lambda a: a[keep_ids], self._fixed_points)
+        self._fixed_points = jax.tree.map(lambda a: a[keep_ids], self._fixed_points)
         self._losses = self._losses[keep_ids]
         self._selected_ids = self._selected_ids[keep_ids]
         if self.verbose:
@@ -490,7 +489,7 @@ class SlowPointFinder(base.DSAnalyzer):
         else:
             num_fps = self._fixed_points.shape[0]
         fps, keep_ids = utils.keep_unique(self.fixed_points, tolerance=tolerance)
-        self._fixed_points = tree_map(lambda a: jnp.asarray(a), fps)
+        self._fixed_points = jax.tree.map(lambda a: jnp.asarray(a), fps)
         self._losses = self._losses[keep_ids]
         self._selected_ids = self._selected_ids[keep_ids]
         if self.verbose:
@@ -525,7 +524,7 @@ class SlowPointFinder(base.DSAnalyzer):
 
         # Return data with outliers removed and indices of kept datapoints.
         keep_ids = np.where(closest_neighbor < tolerance)[0]
-        self._fixed_points = tree_map(lambda a: a[keep_ids], self._fixed_points)
+        self._fixed_points = jax.tree.map(lambda a: a[keep_ids], self._fixed_points)
         self._selected_ids = self._selected_ids[keep_ids]
         self._losses = self._losses[keep_ids]
 
@@ -562,11 +561,11 @@ class SlowPointFinder(base.DSAnalyzer):
         """
         # check data
         info = np.asarray([(l.ndim, l.shape[0])
-                           for l in tree_flatten(points, is_leaf=lambda a: isinstance(a, bm.BaseArray))[0]])
+                           for l in jax.tree.flatten(points, is_leaf=lambda a: isinstance(a, bm.BaseArray))[0]])
         ndim = np.unique(info[:, 0])
         if len(ndim) != 1: raise ValueError(f'Get multiple dimension of the evaluated points. {ndim}')
         if ndim[0] == 1:
-            points = tree_map(lambda a: bm.asarray([a]), points)
+            points = jax.tree.map(lambda a: bm.asarray([a]), points)
             num_point = 1
         elif ndim[0] == 2:
             nsize = np.unique(info[:, 1])

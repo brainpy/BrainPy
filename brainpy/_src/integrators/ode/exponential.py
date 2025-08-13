@@ -330,7 +330,10 @@ class ExponentialEuler(ODEIntegrator):
             for i, parse in enumerate(parses):
                 f_integral, vars_, pars_ = parse
                 vps = vars_ + pars_ + [C.DT]
-                r = f_integral(params_in[vps[0]], **{arg: params_in[arg] for arg in vps[1:] if arg in params_in})
+                r = f_integral(
+                    _as_value(params_in[vps[0]]),
+                    **{arg: _as_value(params_in[arg]) for arg in vps[1:] if arg in params_in}
+                )
                 results.append(r)
             return results if len(self.variables) > 1 else results[0]
 
@@ -370,3 +373,10 @@ register_ode_integrator('exponential_euler', ExponentialEuler)
 register_ode_integrator('exp_euler', ExponentialEuler)
 register_ode_integrator('exp_euler_auto', ExponentialEuler)
 register_ode_integrator('exp_auto', ExponentialEuler)
+
+
+def _as_value(x):
+    if isinstance(x, bm.Variable):
+        return x.value
+    else:
+        return x
