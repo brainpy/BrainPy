@@ -555,16 +555,6 @@ class RandomState(Variable):
                         seed_or_key = np.random.randint(0, 100000, 2, dtype=np.uint32)
                         self._value = seed_or_key
 
-    @property
-    def value(self):
-        self._ensure_value_exists()
-        record_state_value_read(self)
-        return self._read_value()
-
-    # def check_if_deleted(self):
-    #   if self.value.is_deleted():
-    #     self.seed()
-
     def split_key(self):
         """Create a new seed from the current seed.
         """

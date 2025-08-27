@@ -3,8 +3,8 @@
 import functools
 from typing import Union, Optional, Dict, Sequence
 
+import jax
 import jax.numpy as jnp
-from jax.tree_util import tree_flatten, tree_unflatten, tree_map
 
 from brainpy import tools, math as bm
 from brainpy._src.context import share
@@ -159,7 +159,7 @@ class LoopOverTime(DynamicalSystem):
         self.no_state = no_state
         self.out_vars = out_vars
         if out_vars is not None:
-            out_vars, _ = tree_flatten(out_vars, is_leaf=lambda s: isinstance(s, bm.Variable))
+            out_vars, _ = jax.tree.flatten(out_vars, is_leaf=lambda s: isinstance(s, bm.Variable))
             for v in out_vars:
                 if not isinstance(v, bm.Variable):
                     raise TypeError('out_vars must be a PyTree of Variable.')
@@ -198,7 +198,7 @@ class LoopOverTime(DynamicalSystem):
                            'Input should be a Array PyTree with the shape '
                            'of (B, T, ...) or (T, B, ...) with `data_first_axis="T"`, '
                            'where B the batch size and T the time length.')
-            xs, tree = tree_flatten(duration_or_xs, lambda a: isinstance(a, bm.BaseArray))
+            xs, tree = jax.tree.flatten(duration_or_xs, lambda a: isinstance(a, bm.BaseArray))
             if self.target.mode.is_child_of(bm.BatchingMode):
                 b_idx, t_idx = (1, 0) if self.data_first_axis == 'T' else (0, 1)
 
@@ -209,7 +209,7 @@ class LoopOverTime(DynamicalSystem):
                 if len(batch) != 1:
                     raise ValueError('\n'
                                      'Input should be a Array PyTree with the same batch dimension. '
-                                     f'but we got {tree_unflatten(tree, batch)}.')
+                                     f'but we got {jax.tree.unflatten(tree, batch)}.')
                 try:
                     length = tuple(set([x.shape[t_idx] for x in xs]))
                 except (AttributeError, IndexError) as e:
@@ -217,18 +217,18 @@ class LoopOverTime(DynamicalSystem):
                 if len(batch) != 1:
                     raise ValueError('\n'
                                      'Input should be a Array PyTree with the same batch size. '
-                                     f'but we got {tree_unflatten(tree, batch)}.')
+                                     f'but we got {jax.tree.unflatten(tree, batch)}.')
                 if len(length) != 1:
                     raise ValueError('\n'
                                      'Input should be a Array PyTree with the same time length. '
-                                     f'but we got {tree_unflatten(tree, length)}.')
+                                     f'but we got {jax.tree.unflatten(tree, length)}.')
 
                 if self.no_state:
                     xs = [bm.reshape(x, (length[0] * batch[0],) + x.shape[2:]) for x in xs]
                 else:
                     if self.data_first_axis == 'B':
                         xs = [jnp.moveaxis(x, 0, 1) for x in xs]
-                xs = tree_unflatten(tree, xs)
+                xs = jax.tree.unflatten(tree, xs)
                 origin_shape = (length[0], batch[0]) if self.data_first_axis == 'T' else (batch[0], length[0])
 
             else:
@@ -240,15 +240,15 @@ class LoopOverTime(DynamicalSystem):
                 if len(length) != 1:
                     raise ValueError('\n'
                                      'Input should be a Array PyTree with the same time length. '
-                                     f'but we got {tree_unflatten(tree, length)}.')
-                xs = tree_unflatten(tree, xs)
+                                     f'but we got {jax.tree.unflatten(tree, length)}.')
+                xs = jax.tree.unflatten(tree, xs)
                 origin_shape = (length[0],)
 
             # computation
             if self.no_state:
                 share.save(**self.shared_arg)
                 outputs = self._run(self.shared_arg, dict(), xs)
-                results = tree_map(lambda a: jnp.reshape(a, origin_shape + a.shape[1:]), outputs)
+                results = jax.tree.map(lambda a: jnp.reshape(a, origin_shape + a.shape[1:]), outputs)
                 if self.i0 is not None:
                     self.i0 += length[0]
                 if self.t0 is not None:
@@ -263,6 +263,7 @@ class LoopOverTime(DynamicalSystem):
                     shared['i'] = jnp.arange(0, length[0]) + self.i0.value
 
         assert not self.no_state
+        xs = jax.tree.map(lambda x: x.value if isinstance(x, bm.Variable) else x, xs, is_leaf=lambda x: isinstance(x, bm.Variable))
         results = bm.for_loop(functools.partial(self._run, self.shared_arg),
                               (shared, xs),
                               jit=self.jit,
@@ -283,6 +284,6 @@ class LoopOverTime(DynamicalSystem):
         share.save(**static_sh, **dyn_sh)
         outs = self.target(x)
         if self.out_vars is not None:
-            outs = (outs, tree_map(bm.as_jax, self.out_vars))
+            outs = (outs, jax.tree.map(bm.as_jax, self.out_vars, is_leaf=lambda x: isinstance(x, bm.Variable)))
         clear_input(self.target)
         return outs

@@ -72,7 +72,7 @@ def model2():
             self.I2I()
             self.E(inp)
             self.I(inp)
-            return self.E.spike
+            return self.E.spike.value
 
     model = EINet()
     indices = bm.arange(1000)
@@ -150,7 +150,7 @@ def model4():
             self.I2I()
             self.E(inp)
             self.I(inp)
-            return self.E.spike
+            return self.E.spike.value
 
     model = EINet()
     indices = bm.arange(1000)
@@ -199,7 +199,7 @@ def model5():
             self.I2I()
             self.E(inp)
             self.I(inp)
-            return self.E.spike
+            return self.E.spike.value
 
     model = EINet()
     indices = bm.arange(1000)
@@ -241,9 +241,9 @@ def vanalla_proj():
 
 
 if __name__ == '__main__':
-    model1()
-    # model2()
-    # model3()
-    # model4()
-    # model5()
-    # vanalla_proj()
+    # model1()
+    model2()
+    model3()
+    model4()
+    model5()
+    vanalla_proj()

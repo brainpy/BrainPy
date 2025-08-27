@@ -1,16 +1,16 @@
 from typing import Optional, Any, List, Callable, Sequence, Union, Dict, Tuple
 
-import brainstate
 import jax
 import numpy as np
-from brainstate._state import record_state_value_read, record_state_value_write
 from jax import numpy as jnp
 from jax.dtypes import canonicalize_dtype
 from jax.tree_util import register_pytree_node_class
 
+import brainstate
 from brainpy._src.math.ndarray import BaseArray
 from brainpy._src.math.sharding import BATCH_AXIS
 from brainpy.errors import MathError
+from brainstate._state import record_state_value_read, record_state_value_write
 
 __all__ = [
     'Variable',
@@ -313,8 +313,12 @@ class Variable(brainstate.State, BaseArray):
     def batch_size(self, val):
         raise ValueError(f'Cannot set "batch_size" manually.')
 
+    def _ensure_value_exists(self):
+        pass
+
     @property
     def value(self):
+        self._ensure_value_exists()
         record_state_value_read(self)
         return self._read_value()
 
