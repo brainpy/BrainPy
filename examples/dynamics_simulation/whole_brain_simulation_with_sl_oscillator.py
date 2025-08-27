@@ -37,9 +37,7 @@ class Network(bp.DynSysGroup):
 
         self.sl = bp.dyn.StuartLandauOscillator(80, x_ou_sigma=noise, y_ou_sigma=noise)
         self.coupling = bp.dyn.DiffusiveCoupling(
-            self.sl.x, self.sl.x,
-            var_to_output=self.sl.input,
-            conn_mat=conn_mat * gc
+            self.sl.x, self.sl.x, var_to_output=self.sl.input, conn_mat=conn_mat * gc
         )
 
 
