@@ -241,7 +241,7 @@ def vanalla_proj():
 
 
 if __name__ == '__main__':
-    # model1()
+    model1()
     model2()
     model3()
     model4()

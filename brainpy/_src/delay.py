@@ -306,7 +306,7 @@ class VarDelay(Delay):
 
         if delay_step is None or delay_step == 0.:
             if len(indices):
-                return self.target[indices]
+                return self.target.value[indices]
             else:
                 return self.target.value
         else:
@@ -356,7 +356,7 @@ class VarDelay(Delay):
         indices = (delay_idx,) + indices
 
         # the delay data
-        return self.data[indices]
+        return self.data.value[indices]
 
     def update(
         self,

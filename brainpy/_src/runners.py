@@ -450,7 +450,6 @@ class DSRunner(Runner):
                 duration = None
 
         num_step = self._get_input_time_step(duration, inputs)
-        description = f'Predict {num_step} steps: '
 
         # reset the states of the model and the runner
         if reset_state:
