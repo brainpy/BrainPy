@@ -144,7 +144,7 @@ class LeakySpikeReadout(Neuron):
     w_init : Callable, optional
         Weight initialization function, by default KaimingNormal(unit=mV)
     V_initializer : ArrayLike, optional
-        Initial membrane potential, by default ZeroInit(unit=mV)
+        Initial membrane potential, by default Constant(0. * u.mV)
     spk_fun : Callable, optional
         Surrogate gradient function for spike generation, by default ReluGrad()
     spk_reset : str, optional
@@ -168,7 +168,7 @@ class LeakySpikeReadout(Neuron):
         tau: ArrayLike = 5. * u.ms,
         V_th: ArrayLike = 1. * u.mV,
         w_init: Callable = braintools.init.KaimingNormal(unit=u.mV),
-        V_initializer: ArrayLike = braintools.init.ZeroInit(unit=u.mV),
+        V_initializer: ArrayLike = braintools.init.Constant(0. * u.mV),
         spk_fun: Callable = brainstate.surrogate.ReluGrad(),
         spk_reset: str = 'soft',
         name: str = None,

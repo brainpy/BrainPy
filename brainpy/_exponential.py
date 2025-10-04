@@ -50,7 +50,7 @@ class Expon(Synapse, brainstate.mixin.AlignPost):
         Name of the synapse instance.
     tau : ArrayLike, default=8.0*u.ms
         Time constant of decay in milliseconds.
-    g_initializer : ArrayLike or Callable, default=init.ZeroInit(unit=u.mS)
+    g_initializer : ArrayLike or Callable, default=init.Constant(0. * u.mS)
         Initial value or initializer for synaptic conductance.
 
     Attributes
@@ -125,7 +125,7 @@ class DualExpon(Synapse, brainstate.mixin.AlignPost):
     A : ArrayLike, optional
         Amplitude scaling factor. If None, a scaling factor is automatically
         calculated to normalize the peak amplitude.
-    g_initializer : ArrayLike or Callable, default=init.ZeroInit(unit=u.mS)
+    g_initializer : ArrayLike or Callable, default=init.Constant(0. * u.mS)
         Initial value or initializer for synaptic conductance.
 
     Attributes
@@ -163,7 +163,7 @@ class DualExpon(Synapse, brainstate.mixin.AlignPost):
         tau_decay: ArrayLike = 10.0 * u.ms,
         tau_rise: ArrayLike = 1.0 * u.ms,
         A: Optional[ArrayLike] = None,
-        g_initializer: ArrayLike | Callable = braintools.init.ZeroInit(unit=u.mS),
+        g_initializer: ArrayLike | Callable = braintools.init.Constant(0. * u.mS),
     ):
         super().__init__(name=name, in_size=in_size)
 

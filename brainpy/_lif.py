@@ -84,11 +84,11 @@ class IF(Neuron):
 
     Examples
     --------
-    >>> import brainstate as bs
+    >>> import brainstate
     >>> import brainunit as u
     >>>
     >>> # Create an IF neuron layer with 10 neurons
-    >>> if_neuron = bs.nn.IF(10, tau=8*u.ms, V_th=1.2*u.mV)
+    >>> if_neuron = brainstate.nn.IF(10, tau=8*u.ms, V_th=1.2*u.mV)
     >>>
     >>> # Initialize the state
     >>> if_neuron.init_state(batch_size=1)
@@ -97,9 +97,9 @@ class IF(Neuron):
     >>> spikes = if_neuron.update(x=2.0*u.mA)
     >>>
     >>> # Create a network with IF neurons
-    >>> network = bs.nn.Sequential([
-    ...     bs.nn.IF(100, tau=5.0*u.ms),
-    ...     bs.nn.Linear(100, 10)
+    >>> network = brainstate.nn.Sequential([
+    ...     brainstate.nn.IF(100, tau=5.0*u.ms),
+    ...     brainstate.nn.Linear(100, 10)
     ... ])
 
     Notes
@@ -374,11 +374,11 @@ class LIFRef(Neuron):
 
     Examples
     --------
-    >>> import brainstate as bs
+    >>> import brainstate
     >>> import brainunit as u
     >>>
     >>> # Create a LIFRef neuron layer with 10 neurons
-    >>> lifref = bs.nn.LIFRef(10,
+    >>> lifref = brainstate.nn.LIFRef(10,
     ...                       tau=10*u.ms,
     ...                       tau_ref=5*u.ms,
     ...                       V_th=0.8*u.mV)
@@ -390,9 +390,9 @@ class LIFRef(Neuron):
     >>> spikes = lifref.update(x=1.5*u.mA)
     >>>
     >>> # Create a network with refractory neurons
-    >>> network = bs.nn.Sequential([
-    ...     bs.nn.LIFRef(100, tau_ref=4*u.ms),
-    ...     bs.nn.Linear(100, 10)
+    >>> network = brainstate.nn.Sequential([
+    ...     brainstate.nn.LIFRef(100, tau_ref=4*u.ms),
+    ...     brainstate.nn.Linear(100, 10)
     ... ])
 
     Notes
@@ -551,11 +551,11 @@ class ALIF(Neuron):
 
     Examples
     --------
-    >>> import brainstate as bs
+    >>> import brainstate
     >>> import brainunit as u
     >>>
     >>> # Create an ALIF neuron layer with 10 neurons
-    >>> alif = bs.nn.ALIF(10,
+    >>> alif = brainstate.nn.ALIF(10,
     ...                   tau=10*u.ms,
     ...                   tau_a=200*u.ms,
     ...                   beta=0.2*u.mV)
@@ -567,9 +567,9 @@ class ALIF(Neuron):
     >>> spikes = alif.update(x=1.5*u.mA)
     >>>
     >>> # Create a network with adaptation for burst detection
-    >>> network = bs.nn.Sequential([
-    ...     bs.nn.ALIF(100, tau_a=150*u.ms, beta=0.3*u.mV),
-    ...     bs.nn.Linear(100, 10)
+    >>> network = brainstate.nn.Sequential([
+    ...     brainstate.nn.ALIF(100, tau_a=150*u.ms, beta=0.3*u.mV),
+    ...     brainstate.nn.Linear(100, 10)
     ... ])
 
     Notes

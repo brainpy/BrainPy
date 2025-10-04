@@ -52,7 +52,7 @@ class Alpha(Synapse):
         Name of the synapse instance.
     tau : ArrayLike, default=8.0*u.ms
         Time constant of the alpha function in milliseconds.
-    g_initializer : ArrayLike or Callable, default=init.ZeroInit(unit=u.mS)
+    g_initializer : ArrayLike or Callable, default=init.Constant(0. * u.mS)
         Initial value or initializer for synaptic conductance.
 
     Attributes
@@ -148,7 +148,7 @@ class AMPA(Synapse):
         Peak neurotransmitter concentration when released [mM].
     T_dur : ArrayLike, default=0.5*u.ms
         Duration of neurotransmitter presence in the synaptic cleft [ms].
-    g_initializer : ArrayLike or Callable, default=init.ZeroInit()
+    g_initializer : ArrayLike or Callable, default=init.Constant(0. * u.mS)
         Initial value or initializer for the synaptic conductance.
 
     Attributes
@@ -262,7 +262,7 @@ class GABAa(AMPA):
         Peak neurotransmitter concentration when released [mM]. Higher than AMPA.
     T_dur : ArrayLike, default=1.0*u.ms
         Duration of neurotransmitter presence in the synaptic cleft [ms]. Longer than AMPA.
-    g_initializer : ArrayLike or Callable, default=init.ZeroInit()
+    g_initializer : ArrayLike or Callable, default=init.Constant(0. * u.mS)
         Initial value or initializer for the synaptic conductance.
 
     Attributes
