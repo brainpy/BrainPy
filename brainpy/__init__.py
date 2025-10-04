@@ -12,3 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+
+__version__ = "3.0.0"
+__version_info__ = (3, 0, 0)
+
+from .errors import *
+from .errors import __all__ as errors_all
+
+__main__ = errors_all
+del errors_all

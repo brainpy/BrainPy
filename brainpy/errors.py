@@ -1,6 +1,30 @@
 # -*- coding: utf-8 -*-
 
 
+__all__ = [
+    'BrainPyError',
+    'APIChangedError',
+    'RunningError',
+    'IntegratorError',
+    'DiffEqError',
+    'CodeError',
+    'AnalyzerError',
+    'PackageMissingError',
+    'BackendNotInstalled',
+    'UniqueNameError',
+    'UnsupportedError',
+    'NoImplementationError',
+    'NoLongerSupportError',
+    'ConnectorError',
+    'MonitorError',
+    'MathError',
+    'JaxTracerError',
+    'ConcretizationTypeError',
+    'GPUOperatorNotFound',
+    'SharedArgError',
+]
+
+
 class BrainPyError(Exception):
     """General BrainPy error."""
     pass

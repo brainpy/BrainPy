@@ -30,18 +30,6 @@ BrainPy is rewritten based on [brainstate](https://github.com/chaobrain/brainsta
 BrainPy is based on Python (>=3.10) and can be installed on Linux (Ubuntu 16.04 or later), macOS (10.12 or later), and Windows platforms. 
 
 
-### Using BrainPy with docker
-
-We provide a docker image for BrainPy. You can use the following command to pull the image:
-```bash
-$ docker pull brainpy/brainpy:latest
-```
-
-Then, you can run the image with the following command:
-```bash
-$ docker run -it --platform linux/amd64 brainpy/brainpy:latest
-```
-
 
 ### Using BrainPy with Binder
 
