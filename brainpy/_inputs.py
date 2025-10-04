@@ -15,16 +15,13 @@
 
 from typing import Union, Optional, Sequence, Callable
 
+import braintools
 import brainunit as u
 import jax
 import numpy as np
 
-from brainstate import environ, random
-from brainstate._state import ShortTermState, State, maybe_state
-from brainstate.transform import while_loop
+import brainstate
 from brainstate.typing import ArrayLike, Size, DTypeLike
-from braintools import init as init
-from brainstate.nn import Dynamics, Prefetch, Module
 
 __all__ = [
     'SpikeTime',
@@ -35,7 +32,7 @@ __all__ = [
 ]
 
 
-class SpikeTime(Dynamics):
+class SpikeTime(brainstate.nn.Dynamics):
     """The input neuron group characterized by spikes emitting at given times.
 
     >>> # Get 2 neurons, firing spikes at 10 ms and 20 ms.
@@ -83,20 +80,20 @@ class SpikeTime(Dynamics):
 
         # data about times and indices
         self.times = u.math.asarray(times)
-        self.indices = u.math.asarray(indices, dtype=environ.ditype())
+        self.indices = u.math.asarray(indices, dtype=brainstate.environ.ditype())
         if need_sort:
             sort_idx = u.math.argsort(self.times)
             self.indices = self.indices[sort_idx]
             self.times = self.times[sort_idx]
 
     def init_state(self, *args, **kwargs):
-        self.i = ShortTermState(-1)
+        self.i = brainstate.ShortTermState(-1)
 
     def reset_state(self, batch_size=None, **kwargs):
         self.i.value = -1
 
     def update(self):
-        t = environ.get('t')
+        t = brainstate.environ.get('t')
 
         def _cond_fun(spikes):
             i = self.i.value
@@ -109,11 +106,11 @@ class SpikeTime(Dynamics):
             return spikes
 
         spike = u.math.zeros(self.varshape, dtype=self.spk_type)
-        spike = while_loop(_cond_fun, _body_fun, spike)
+        spike = brainstate.transform.while_loop(_cond_fun, _body_fun, spike)
         return spike
 
 
-class PoissonSpike(Dynamics):
+class PoissonSpike(brainstate.nn.Dynamics):
     """
     Poisson Neuron Group.
     """
@@ -130,15 +127,15 @@ class PoissonSpike(Dynamics):
         self.spk_type = spk_type
 
         # parameters
-        self.freqs = init.param(freqs, self.varshape, allow_none=False)
+        self.freqs = braintools.init.param(freqs, self.varshape, allow_none=False)
 
     def update(self):
-        spikes = random.rand(*self.varshape) <= (self.freqs * environ.get_dt())
+        spikes = brainstate.random.rand(*self.varshape) <= (self.freqs * brainstate.environ.get_dt())
         spikes = u.math.asarray(spikes, dtype=self.spk_type)
         return spikes
 
 
-class PoissonEncoder(Dynamics):
+class PoissonEncoder(brainstate.nn.Dynamics):
     r"""Poisson spike encoder for converting firing rates to spike trains.
 
     This class implements a Poisson process to generate spikes based on provided
@@ -163,7 +160,7 @@ class PoissonEncoder(Dynamics):
     spk_type : DTypeLike, default=bool
         Data type for the generated spikes. Typically boolean for binary spikes.
     name : str, optional
-        Name of the encoder module.
+        Name of the encoder brainstate.nn.Module.
 
     Examples
     --------
@@ -213,12 +210,12 @@ class PoissonEncoder(Dynamics):
         self.spk_type = spk_type
 
     def update(self, freqs: ArrayLike):
-        spikes = random.rand(*self.varshape) <= (freqs * environ.get_dt())
+        spikes = brainstate.random.rand(*self.varshape) <= (freqs * brainstate.environ.get_dt())
         spikes = u.math.asarray(spikes, dtype=self.spk_type)
         return spikes
 
 
-class PoissonInput(Module):
+class PoissonInput(brainstate.nn.Module):
     r"""Poisson Input to the given state variable.
 
     This class provides a way to add independent Poisson-distributed spiking input
@@ -254,9 +251,9 @@ class PoissonInput(Module):
 
     Parameters
     ----------
-    target : Prefetch
+    target : brainstate.nn.Prefetch
         The variable that is targeted by this input. Should be an instance of
-        :py:class:`brainstate.State` that's prefetched via the target mechanism.
+        :py:class:`brainstate.State` that's brainstate.nn.Prefetched via the target mechanism.
     indices : Union[np.ndarray, jax.Array]
         Indices of the target to receive input. If None, input is applied to the entire target.
     num_input : int
@@ -266,7 +263,7 @@ class PoissonInput(Module):
     weight :  ndarray, float, or brainunit.Quantity
         The synaptic weight of each input spike.
     name : Optional[str], optional
-        The name of this module.
+        The name of this brainstate.nn.Module.
 
     Examples
     --------
@@ -316,7 +313,7 @@ class PoissonInput(Module):
 
     def __init__(
         self,
-        target: Prefetch,
+        target: brainstate.nn.Prefetch,
         indices: Union[np.ndarray, jax.Array],
         num_input: int,
         freq: u.Quantity[u.Hz],
@@ -348,7 +345,7 @@ def poisson_input(
     freq: u.Quantity[u.Hz],
     num_input: int,
     weight: Union[jax.typing.ArrayLike, u.Quantity],
-    target: State,
+    target: brainstate.State,
     indices: Optional[Union[np.ndarray, jax.Array]] = None,
     refractory: Optional[Union[jax.Array]] = None,
 ):
@@ -452,11 +449,11 @@ def poisson_input(
     - The weight parameter is applied uniformly to all generated spikes.
     - When refractory is provided, the corresponding target elements are not updated.
     """
-    freq = maybe_state(freq)
-    weight = maybe_state(weight)
+    freq = brainstate.maybe_state(freq)
+    weight = brainstate.maybe_state(weight)
 
-    assert isinstance(target, State), 'The target must be a State.'
-    p = freq * environ.get_dt()
+    assert isinstance(target, brainstate.State), 'The target must be a State.'
+    p = freq * brainstate.environ.get_dt()
     p = p.to_decimal() if isinstance(p, u.Quantity) else p
     a = num_input * p
     b = num_input * (1 - p)
@@ -466,7 +463,7 @@ def poisson_input(
     if indices is None:
         # generate Poisson input
         branch1 = jax.tree.map(
-            lambda tar: random.normal(
+            lambda tar: brainstate.random.normal(
                 a,
                 b * p,
                 tar.shape,
@@ -476,7 +473,7 @@ def poisson_input(
             is_leaf=u.math.is_quantity
         )
         branch2 = jax.tree.map(
-            lambda tar: random.binomial(
+            lambda tar: brainstate.random.binomial(
                 num_input,
                 p,
                 tar.shape,
@@ -493,34 +490,6 @@ def poisson_input(
             branch2,
             is_leaf=u.math.is_quantity,
         )
-
-        # inp = jax.lax.cond(
-        #     cond,
-        #     lambda rand_key: jax.tree.map(
-        #         lambda tar: random.normal(
-        #             a,
-        #             b * p,
-        #             tar.shape,
-        #             key=rand_key,
-        #             dtype=tar.dtype
-        #         ),
-        #         tar_val,
-        #         is_leaf=u.math.is_quantity
-        #     ),
-        #     lambda rand_key: jax.tree.map(
-        #         lambda tar: random.binomial(
-        #             num_input,
-        #             p,
-        #             tar.shape,
-        #             key=rand_key,
-        #             check_valid=False,
-        #             dtype=tar.dtype
-        #         ),
-        #         tar_val,
-        #         is_leaf=u.math.is_quantity,
-        #     ),
-        #     random.split_key()
-        # )
 
         # update target variable
         data = jax.tree.map(
@@ -533,7 +502,7 @@ def poisson_input(
     else:
         # generate Poisson input
         branch1 = jax.tree.map(
-            lambda tar: random.normal(
+            lambda tar: brainstate.random.normal(
                 a,
                 b * p,
                 tar[indices].shape,
@@ -543,7 +512,7 @@ def poisson_input(
             is_leaf=u.math.is_quantity
         )
         branch2 = jax.tree.map(
-            lambda tar: random.binomial(
+            lambda tar: brainstate.random.binomial(
                 num_input,
                 p,
                 tar[indices].shape,
@@ -560,34 +529,6 @@ def poisson_input(
             branch2,
             is_leaf=u.math.is_quantity,
         )
-
-        # inp = jax.lax.cond(
-        #     cond,
-        #     lambda rand_key: jax.tree.map(
-        #         lambda tar: random.normal(
-        #             a,
-        #             b * p,
-        #             tar[indices].shape,
-        #             key=rand_key,
-        #             dtype=tar.dtype
-        #         ),
-        #         tar_val,
-        #         is_leaf=u.math.is_quantity
-        #     ),
-        #     lambda rand_key: jax.tree.map(
-        #         lambda tar: random.binomial(
-        #             num_input,
-        #             p,
-        #             tar[indices].shape,
-        #             key=rand_key,
-        #             check_valid=False,
-        #             dtype=tar.dtype
-        #         ),
-        #         tar_val,
-        #         is_leaf=u.math.is_quantity
-        #     ),
-        #     random.split_key()
-        # )
 
         # update target variable
         data = jax.tree.map(

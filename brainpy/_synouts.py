@@ -15,22 +15,16 @@
 
 # -*- coding: utf-8 -*-
 
+import brainstate
 import brainunit as u
 import jax.numpy as jnp
-
-from brainstate.mixin import BindCondData
-from brainstate.typing import ArrayLike
-from ._module import Module
-from ._projection import SynOut
-
 
 __all__ = [
     'COBA', 'CUBA', 'MgBlock',
 ]
 
 
-
-class COBA(SynOut):
+class COBA(brainstate.nn.SynOut):
     r"""
     Conductance-based synaptic output.
 
@@ -51,7 +45,7 @@ class COBA(SynOut):
     """
     __module__ = 'brainstate.nn'
 
-    def __init__(self, E: ArrayLike):
+    def __init__(self, E: brainstate.typing.ArrayLike):
         super().__init__()
 
         self.E = E
@@ -60,7 +54,7 @@ class COBA(SynOut):
         return conductance * (self.E - potential)
 
 
-class CUBA(SynOut):
+class CUBA(brainstate.nn.SynOut):
     r"""Current-based synaptic output.
 
     Given the conductance, this model outputs the post-synaptic current with a identity function:
@@ -80,7 +74,7 @@ class CUBA(SynOut):
     """
     __module__ = 'brainstate.nn'
 
-    def __init__(self, scale: ArrayLike = u.volt):
+    def __init__(self, scale: brainstate.typing.ArrayLike = u.volt):
         super().__init__()
         self.scale = scale
 
@@ -88,7 +82,7 @@ class CUBA(SynOut):
         return conductance * self.scale
 
 
-class MgBlock(SynOut):
+class MgBlock(brainstate.nn.SynOut):
     r"""Synaptic output based on Magnesium blocking.
 
     Given the synaptic conductance, the model output the post-synaptic current with
@@ -122,11 +116,11 @@ class MgBlock(SynOut):
 
     def __init__(
         self,
-        E: ArrayLike = 0.,
-        cc_Mg: ArrayLike = 1.2,
-        alpha: ArrayLike = 0.062,
-        beta: ArrayLike = 3.57,
-        V_offset: ArrayLike = 0.,
+        E: brainstate.typing.ArrayLike = 0.,
+        cc_Mg: brainstate.typing.ArrayLike = 1.2,
+        alpha: brainstate.typing.ArrayLike = 0.062,
+        beta: brainstate.typing.ArrayLike = 3.57,
+        V_offset: brainstate.typing.ArrayLike = 0.,
     ):
         super().__init__()
 

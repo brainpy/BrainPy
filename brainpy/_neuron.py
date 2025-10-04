@@ -17,22 +17,18 @@
 
 from typing import Callable, Optional
 
+import braintools
 import brainunit as u
 import jax
-
-from brainstate import surrogate, environ
-from brainstate._state import HiddenState, ShortTermState
+import brainstate
 from brainstate.typing import ArrayLike, Size
-from . import init as init
-from ._dynamics import Dynamics
-from ._exp_euler import exp_euler_step
 
 __all__ = [
     'Neuron', 'IF', 'LIF', 'LIFRef', 'ALIF',
 ]
 
 
-class Neuron(Dynamics):
+class Neuron(brainstate.nn.Dynamics):
     """
     Base class for all spiking neuron models.
 
@@ -66,8 +62,8 @@ class Neuron(Dynamics):
 
     def __init__(
         self,
-        in_size: Size,
-        spk_fun: Callable = surrogate.InvSquareGrad(),
+        in_size: brainstate.typing.Size,
+        spk_fun: Callable = brainstate.surrogate.InvSquareGrad(),
         spk_reset: str = 'soft',
         name: Optional[str] = None,
     ):
@@ -175,28 +171,28 @@ class IF(Neuron):
 
     def __init__(
         self,
-        in_size: Size,
-        R: ArrayLike = 1. * u.ohm,
-        tau: ArrayLike = 5. * u.ms,
-        V_th: ArrayLike = 1. * u.mV,  # should be positive
-        V_initializer: Callable = init.Constant(0. * u.mV),
-        spk_fun: Callable = surrogate.ReluGrad(),
+        in_size: brainstate.typing.Size,
+        R: brainstate.typing.ArrayLike = 1. * u.ohm,
+        tau: brainstate.typing.ArrayLike = 5. * u.ms,
+        V_th: brainstate.typing.ArrayLike = 1. * u.mV,  # should be positive
+        V_initializer: Callable = braintools.init.Constant(0. * u.mV),
+        spk_fun: Callable = brainstate.surrogate.ReluGrad(),
         spk_reset: str = 'soft',
         name: str = None,
     ):
         super().__init__(in_size, name=name, spk_fun=spk_fun, spk_reset=spk_reset)
 
         # parameters
-        self.R = init.param(R, self.varshape)
-        self.tau = init.param(tau, self.varshape)
-        self.V_th = init.param(V_th, self.varshape)
+        self.R = braintools.init.param(R, self.varshape)
+        self.tau = braintools.init.param(tau, self.varshape)
+        self.V_th = braintools.init.param(V_th, self.varshape)
         self.V_initializer = V_initializer
 
     def init_state(self, batch_size: int = None, **kwargs):
-        self.V = HiddenState(init.param(self.V_initializer, self.varshape, batch_size))
+        self.V = brainstate.HiddenState(braintools.init.param(self.V_initializer, self.varshape, batch_size))
 
     def reset_state(self, batch_size: int = None, **kwargs):
-        self.V.value = init.param(self.V_initializer, self.varshape, batch_size)
+        self.V.value = braintools.init.param(self.V_initializer, self.varshape, batch_size)
 
     def get_spike(self, V=None):
         V = self.V.value if V is None else V
@@ -211,7 +207,7 @@ class IF(Neuron):
         V = last_V - V_th * last_spike
         # membrane potential
         dv = lambda v: (-v + self.R * self.sum_current_inputs(x, v)) / self.tau
-        V = exp_euler_step(dv, V)
+        V = brainstate.nn.exp_euler_step(dv, V)
         V = self.sum_delta_inputs(V)
         self.V.value = V
         return self.get_spike(V)
@@ -315,26 +311,26 @@ class LIF(Neuron):
         V_th: ArrayLike = 1. * u.mV,
         V_reset: ArrayLike = 0. * u.mV,
         V_rest: ArrayLike = 0. * u.mV,
-        V_initializer: Callable = init.Constant(0. * u.mV),
-        spk_fun: Callable = surrogate.ReluGrad(),
+        V_initializer: Callable = braintools.init.Constant(0. * u.mV),
+        spk_fun: Callable = brainstate.surrogate.ReluGrad(),
         spk_reset: str = 'soft',
         name: str = None,
     ):
         super().__init__(in_size, name=name, spk_fun=spk_fun, spk_reset=spk_reset)
 
         # parameters
-        self.R = init.param(R, self.varshape)
-        self.tau = init.param(tau, self.varshape)
-        self.V_th = init.param(V_th, self.varshape)
-        self.V_rest = init.param(V_rest, self.varshape)
-        self.V_reset = init.param(V_reset, self.varshape)
+        self.R = braintools.init.param(R, self.varshape)
+        self.tau = braintools.init.param(tau, self.varshape)
+        self.V_th = braintools.init.param(V_th, self.varshape)
+        self.V_rest = braintools.init.param(V_rest, self.varshape)
+        self.V_reset = braintools.init.param(V_reset, self.varshape)
         self.V_initializer = V_initializer
 
     def init_state(self, batch_size: int = None, **kwargs):
-        self.V = HiddenState(init.param(self.V_initializer, self.varshape, batch_size))
+        self.V = brainstate.HiddenState(braintools.init.param(self.V_initializer, self.varshape, batch_size))
 
     def reset_state(self, batch_size: int = None, **kwargs):
-        self.V.value = init.param(self.V_initializer, self.varshape, batch_size)
+        self.V.value = braintools.init.param(self.V_initializer, self.varshape, batch_size)
 
     def get_spike(self, V: ArrayLike = None):
         V = self.V.value if V is None else V
@@ -348,7 +344,7 @@ class LIF(Neuron):
         V = last_v - (V_th - self.V_reset) * lst_spk
         # membrane potential
         dv = lambda v: (-v + self.V_rest + self.R * self.sum_current_inputs(x, v)) / self.tau
-        V = exp_euler_step(dv, V)
+        V = brainstate.nn.exp_euler_step(dv, V)
         V = self.sum_delta_inputs(V)
         self.V.value = V
         return self.get_spike(V)
@@ -477,29 +473,33 @@ class LIFRef(Neuron):
         V_th: ArrayLike = 1. * u.mV,
         V_reset: ArrayLike = 0. * u.mV,
         V_rest: ArrayLike = 0. * u.mV,
-        V_initializer: Callable = init.Constant(0. * u.mV),
-        spk_fun: Callable = surrogate.ReluGrad(),
+        V_initializer: Callable = braintools.init.Constant(0. * u.mV),
+        spk_fun: Callable = brainstate.surrogate.ReluGrad(),
         spk_reset: str = 'soft',
         name: str = None,
     ):
         super().__init__(in_size, name=name, spk_fun=spk_fun, spk_reset=spk_reset)
 
         # parameters
-        self.R = init.param(R, self.varshape)
-        self.tau = init.param(tau, self.varshape)
-        self.tau_ref = init.param(tau_ref, self.varshape)
-        self.V_th = init.param(V_th, self.varshape)
-        self.V_rest = init.param(V_rest, self.varshape)
-        self.V_reset = init.param(V_reset, self.varshape)
+        self.R = braintools.init.param(R, self.varshape)
+        self.tau = braintools.init.param(tau, self.varshape)
+        self.tau_ref = braintools.init.param(tau_ref, self.varshape)
+        self.V_th = braintools.init.param(V_th, self.varshape)
+        self.V_rest = braintools.init.param(V_rest, self.varshape)
+        self.V_reset = braintools.init.param(V_reset, self.varshape)
         self.V_initializer = V_initializer
 
     def init_state(self, batch_size: int = None, **kwargs):
-        self.V = HiddenState(init.param(self.V_initializer, self.varshape, batch_size))
-        self.last_spike_time = ShortTermState(init.param(init.Constant(-1e7 * u.ms), self.varshape, batch_size))
+        self.V = brainstate.HiddenState(braintools.init.param(self.V_initializer, self.varshape, batch_size))
+        self.last_spike_time = brainstate.ShortTermState(
+            braintools.init.param(braintools.init.Constant(-1e7 * u.ms), self.varshape, batch_size)
+        )
 
     def reset_state(self, batch_size: int = None, **kwargs):
-        self.V.value = init.param(self.V_initializer, self.varshape, batch_size)
-        self.last_spike_time.value = init.param(init.Constant(-1e7 * u.ms), self.varshape, batch_size)
+        self.V.value = braintools.init.param(self.V_initializer, self.varshape, batch_size)
+        self.last_spike_time.value = braintools.init.param(
+            braintools.init.Constant(-1e7 * u.ms), self.varshape, batch_size
+        )
 
     def get_spike(self, V: ArrayLike = None):
         V = self.V.value if V is None else V
@@ -507,18 +507,19 @@ class LIFRef(Neuron):
         return self.spk_fun(v_scaled)
 
     def update(self, x=0. * u.mA):
-        t = environ.get('t')
+        t = brainstate.environ.get('t')
         last_v = self.V.value
         lst_spk = self.get_spike(last_v)
         V_th = self.V_th if self.spk_reset == 'soft' else jax.lax.stop_gradient(last_v)
         last_v = last_v - (V_th - self.V_reset) * lst_spk
         # membrane potential
         dv = lambda v: (-v + self.V_rest + self.R * self.sum_current_inputs(x, v)) / self.tau
-        V = exp_euler_step(dv, last_v)
+        V = brainstate.nn.exp_euler_step(dv, last_v)
         V = self.sum_delta_inputs(V)
         self.V.value = u.math.where(t - self.last_spike_time.value < self.tau_ref, last_v, V)
         # spike time evaluation
-        lst_spk_time = u.math.where(self.V.value >= self.V_th, environ.get('t'), self.last_spike_time.value)
+        lst_spk_time = u.math.where(
+            self.V.value >= self.V_th, brainstate.environ.get('t'), self.last_spike_time.value)
         self.last_spike_time.value = jax.lax.stop_gradient(lst_spk_time)
         return self.get_spike()
 
@@ -654,34 +655,34 @@ class ALIF(Neuron):
         V_reset: ArrayLike = 0. * u.mV,
         V_rest: ArrayLike = 0. * u.mV,
         beta: ArrayLike = 0.1 * u.mV,
-        spk_fun: Callable = surrogate.ReluGrad(),
+        spk_fun: Callable = brainstate.surrogate.ReluGrad(),
         spk_reset: str = 'soft',
-        V_initializer: Callable = init.Constant(0. * u.mV),
-        a_initializer: Callable = init.Constant(0.),
+        V_initializer: Callable = braintools.init.Constant(0. * u.mV),
+        a_initializer: Callable = braintools.init.Constant(0.),
         name: str = None,
     ):
         super().__init__(in_size, name=name, spk_fun=spk_fun, spk_reset=spk_reset)
 
         # parameters
-        self.R = init.param(R, self.varshape)
-        self.tau = init.param(tau, self.varshape)
-        self.tau_a = init.param(tau_a, self.varshape)
-        self.V_th = init.param(V_th, self.varshape)
-        self.V_reset = init.param(V_reset, self.varshape)
-        self.V_rest = init.param(V_rest, self.varshape)
-        self.beta = init.param(beta, self.varshape)
+        self.R = braintools.init.param(R, self.varshape)
+        self.tau = braintools.init.param(tau, self.varshape)
+        self.tau_a = braintools.init.param(tau_a, self.varshape)
+        self.V_th = braintools.init.param(V_th, self.varshape)
+        self.V_reset = braintools.init.param(V_reset, self.varshape)
+        self.V_rest = braintools.init.param(V_rest, self.varshape)
+        self.beta = braintools.init.param(beta, self.varshape)
 
         # functions
         self.V_initializer = V_initializer
         self.a_initializer = a_initializer
 
     def init_state(self, batch_size: int = None, **kwargs):
-        self.V = HiddenState(init.param(self.V_initializer, self.varshape, batch_size))
-        self.a = HiddenState(init.param(self.a_initializer, self.varshape, batch_size))
+        self.V = brainstate.HiddenState(braintools.init.param(self.V_initializer, self.varshape, batch_size))
+        self.a = brainstate.HiddenState(braintools.init.param(self.a_initializer, self.varshape, batch_size))
 
     def reset_state(self, batch_size: int = None, **kwargs):
-        self.V.value = init.param(self.V_initializer, self.varshape, batch_size)
-        self.a.value = init.param(self.a_initializer, self.varshape, batch_size)
+        self.V.value = braintools.init.param(self.V_initializer, self.varshape, batch_size)
+        self.a.value = braintools.init.param(self.a_initializer, self.varshape, batch_size)
 
     def get_spike(self, V=None, a=None):
         V = self.V.value if V is None else V
@@ -699,8 +700,8 @@ class ALIF(Neuron):
         # membrane potential
         dv = lambda v: (-v + self.V_rest + self.R * self.sum_current_inputs(x, v)) / self.tau
         da = lambda a: -a / self.tau_a
-        V = exp_euler_step(dv, V)
-        a = exp_euler_step(da, a)
+        V = brainstate.nn.exp_euler_step(dv, V)
+        a = brainstate.nn.exp_euler_step(da, a)
         self.V.value = self.sum_delta_inputs(V)
         self.a.value = a
         return self.get_spike(self.V.value, self.a.value)

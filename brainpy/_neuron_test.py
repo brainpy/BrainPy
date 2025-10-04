@@ -23,7 +23,7 @@ import jax
 import jax.numpy as jnp
 
 import brainstate
-from brainstate.nn import IF, LIF, ALIF
+from brainpy import IF, LIF, ALIF
 
 
 class TestNeuron(unittest.TestCase):

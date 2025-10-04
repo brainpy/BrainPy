@@ -21,10 +21,8 @@ import brainunit as u
 
 from brainstate._state import HiddenState
 from brainstate.typing import ArrayLike, Size
-from . import init as init
-from ._exp_euler import exp_euler_step
-from ._synapse import Synapse
-from ._projection import ShortTermPlasticity
+from braintools import init as init
+from brainstate.nn import exp_euler_step
 
 __all__ = [
     'STP', 'STD',

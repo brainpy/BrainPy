@@ -16,8 +16,20 @@
 __version__ = "3.0.0"
 __version_info__ = (3, 0, 0)
 
+from ._inputs import *
+from ._inputs import __all__ as inputs_all
+from ._neuron import *
+from ._neuron import __all__ as neuron_all
+from ._readout import *
+from ._readout import __all__ as readout_all
+from ._stp import *
+from ._stp import __all__ as stp_all
+from ._synapse import *
+from ._synapse import __all__ as synapse_all
+from ._synouts import *
+from ._synouts import __all__ as synout_all
 from .errors import *
 from .errors import __all__ as errors_all
 
-__main__ = errors_all
-del errors_all
+__main__ = errors_all + inputs_all + neuron_all + readout_all + stp_all + synapse_all + synout_all
+del errors_all, inputs_all, neuron_all, readout_all, stp_all, synapse_all, synout_all

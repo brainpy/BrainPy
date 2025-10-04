@@ -18,22 +18,17 @@
 
 from typing import Optional, Callable
 
+from brainstate.typing import Size, ArrayLike
+import brainstate
+import braintools
 import brainunit as u
-
-from brainstate import environ
-from brainstate._state import ShortTermState, HiddenState
-from brainstate.mixin import AlignPost
-from brainstate.typing import ArrayLike, Size
-from . import init as init
-from ._dynamics import Dynamics
-from ._exp_euler import exp_euler_step
 
 __all__ = [
     'Synapse', 'Expon', 'DualExpon', 'Alpha', 'AMPA', 'GABAa',
 ]
 
 
-class Synapse(Dynamics):
+class Synapse(brainstate.nn.Dynamics):
     """
     Base class for synapse dynamics.
 
@@ -59,7 +54,7 @@ class Synapse(Dynamics):
     __module__ = 'brainstate.nn'
 
 
-class Expon(Synapse, AlignPost):
+class Expon(Synapse, brainstate.mixin.AlignPost):
     r"""
     Exponential decay synapse model.
 
@@ -106,28 +101,28 @@ class Expon(Synapse, AlignPost):
         in_size: Size,
         name: Optional[str] = None,
         tau: ArrayLike = 8.0 * u.ms,
-        g_initializer: ArrayLike | Callable = init.ZeroInit(unit=u.mS),
+        g_initializer: ArrayLike | Callable = braintools.init.Constant(0. * u.mS),
     ):
         super().__init__(name=name, in_size=in_size)
 
         # parameters
-        self.tau = init.param(tau, self.varshape)
+        self.tau = braintools.init.param(tau, self.varshape)
         self.g_initializer = g_initializer
 
     def init_state(self, batch_size: int = None, **kwargs):
-        self.g = HiddenState(init.param(self.g_initializer, self.varshape, batch_size))
+        self.g = brainstate.HiddenState(braintools.init.param(self.g_initializer, self.varshape, batch_size))
 
     def reset_state(self, batch_size: int = None, **kwargs):
-        self.g.value = init.param(self.g_initializer, self.varshape, batch_size)
+        self.g.value = braintools.init.param(self.g_initializer, self.varshape, batch_size)
 
     def update(self, x=None):
-        g = exp_euler_step(lambda g: self.sum_current_inputs(-g) / self.tau, self.g.value)
+        g = brainstate.nn.exp_euler_step(lambda g: self.sum_current_inputs(-g) / self.tau, self.g.value)
         self.g.value = self.sum_delta_inputs(g)
         if x is not None: self.g.value += x
         return self.g.value
 
 
-class DualExpon(Synapse, AlignPost):
+class DualExpon(Synapse, brainstate.mixin.AlignPost):
     r"""
     Dual exponential synapse model.
 
@@ -193,19 +188,19 @@ class DualExpon(Synapse, AlignPost):
         tau_decay: ArrayLike = 10.0 * u.ms,
         tau_rise: ArrayLike = 1.0 * u.ms,
         A: Optional[ArrayLike] = None,
-        g_initializer: ArrayLike | Callable = init.ZeroInit(unit=u.mS),
+        g_initializer: ArrayLike | Callable = braintools.init.ZeroInit(unit=u.mS),
     ):
         super().__init__(name=name, in_size=in_size)
 
         # parameters
-        self.tau_decay = init.param(tau_decay, self.varshape)
-        self.tau_rise = init.param(tau_rise, self.varshape)
+        self.tau_decay = braintools.init.param(tau_decay, self.varshape)
+        self.tau_rise = braintools.init.param(tau_rise, self.varshape)
         A = self._format_dual_exp_A(A)
         self.a = (self.tau_decay - self.tau_rise) / self.tau_rise / self.tau_decay * A
         self.g_initializer = g_initializer
 
     def _format_dual_exp_A(self, A):
-        A = init.param(A, sizes=self.varshape, allow_none=True)
+        A = braintools.init.param(A, sizes=self.varshape, allow_none=True)
         if A is None:
             A = (
                 self.tau_decay / (self.tau_decay - self.tau_rise) *
@@ -215,16 +210,16 @@ class DualExpon(Synapse, AlignPost):
         return A
 
     def init_state(self, batch_size: int = None, **kwargs):
-        self.g_rise = HiddenState(init.param(self.g_initializer, self.varshape, batch_size))
-        self.g_decay = HiddenState(init.param(self.g_initializer, self.varshape, batch_size))
+        self.g_rise = brainstate.HiddenState(braintools.init.param(self.g_initializer, self.varshape, batch_size))
+        self.g_decay = brainstate.HiddenState(braintools.init.param(self.g_initializer, self.varshape, batch_size))
 
     def reset_state(self, batch_size: int = None, **kwargs):
-        self.g_rise.value = init.param(self.g_initializer, self.varshape, batch_size)
-        self.g_decay.value = init.param(self.g_initializer, self.varshape, batch_size)
+        self.g_rise.value = braintools.init.param(self.g_initializer, self.varshape, batch_size)
+        self.g_decay.value = braintools.init.param(self.g_initializer, self.varshape, batch_size)
 
     def update(self, x=None):
-        g_rise = exp_euler_step(lambda h: -h / self.tau_rise, self.g_rise.value)
-        g_decay = exp_euler_step(lambda g: -g / self.tau_decay, self.g_decay.value)
+        g_rise = brainstate.nn.exp_euler_step(lambda h: -h / self.tau_rise, self.g_rise.value)
+        g_decay = brainstate.nn.exp_euler_step(lambda g: -g / self.tau_decay, self.g_decay.value)
         self.g_rise.value = self.sum_delta_inputs(g_rise)
         self.g_decay.value = self.sum_delta_inputs(g_decay)
         if x is not None:
@@ -280,25 +275,26 @@ class Alpha(Synapse):
         in_size: Size,
         name: Optional[str] = None,
         tau: ArrayLike = 8.0 * u.ms,
-        g_initializer: ArrayLike | Callable = init.ZeroInit(unit=u.mS),
+        g_initializer: ArrayLike | Callable = braintools.init.Constant(0. * u.mS),
     ):
         super().__init__(name=name, in_size=in_size)
 
         # parameters
-        self.tau = init.param(tau, self.varshape)
+        self.tau = braintools.init.param(tau, self.varshape)
         self.g_initializer = g_initializer
 
     def init_state(self, batch_size: int = None, **kwargs):
-        self.g = HiddenState(init.param(self.g_initializer, self.varshape, batch_size))
-        self.h = HiddenState(init.param(self.g_initializer, self.varshape, batch_size))
+        self.g = brainstate.HiddenState(braintools.init.param(self.g_initializer, self.varshape, batch_size))
+        self.h = brainstate.HiddenState(braintools.init.param(self.g_initializer, self.varshape, batch_size))
 
     def reset_state(self, batch_size: int = None, **kwargs):
-        self.g.value = init.param(self.g_initializer, self.varshape, batch_size)
-        self.h.value = init.param(self.g_initializer, self.varshape, batch_size)
+        self.g.value = braintools.init.param(self.g_initializer, self.varshape, batch_size)
+        self.h.value = braintools.init.param(self.g_initializer, self.varshape, batch_size)
 
     def update(self, x=None):
-        h = exp_euler_step(lambda h: -h / self.tau, self.h.value)
-        self.g.value = exp_euler_step(lambda g, h: -g / self.tau + h / self.tau, self.g.value, self.h.value)
+        h = brainstate.nn.exp_euler_step(lambda h: -h / self.tau, self.h.value)
+        self.g.value = brainstate.nn.exp_euler_step(
+            lambda g, h: -g / self.tau + h / self.tau, self.g.value, self.h.value)
         self.h.value = self.sum_delta_inputs(h)
         if x is not None:
             self.h.value += x
@@ -386,31 +382,35 @@ class AMPA(Synapse):
         beta: ArrayLike = 0.18 / u.ms,
         T: ArrayLike = 0.5 * u.mM,
         T_dur: ArrayLike = 0.5 * u.ms,
-        g_initializer: ArrayLike | Callable = init.ZeroInit(unit=u.mS),
+        g_initializer: ArrayLike | Callable = braintools.init.Constant(0. * u.mS),
     ):
         super().__init__(name=name, in_size=in_size)
 
         # parameters
-        self.alpha = init.param(alpha, self.varshape)
-        self.beta = init.param(beta, self.varshape)
-        self.T = init.param(T, self.varshape)
-        self.T_duration = init.param(T_dur, self.varshape)
+        self.alpha = braintools.init.param(alpha, self.varshape)
+        self.beta = braintools.init.param(beta, self.varshape)
+        self.T = braintools.init.param(T, self.varshape)
+        self.T_duration = braintools.init.param(T_dur, self.varshape)
         self.g_initializer = g_initializer
 
     def init_state(self, batch_size=None):
-        self.g = HiddenState(init.param(self.g_initializer, self.varshape, batch_size))
-        self.spike_arrival_time = ShortTermState(init.param(init.Constant(-1e7 * u.ms), self.varshape, batch_size))
+        self.g = brainstate.HiddenState(braintools.init.param(self.g_initializer, self.varshape, batch_size))
+        self.spike_arrival_time = brainstate.ShortTermState(
+            braintools.init.param(braintools.init.Constant(-1e7 * u.ms), self.varshape, batch_size)
+        )
 
     def reset_state(self, batch_or_mode=None, **kwargs):
-        self.g.value = init.param(self.g_initializer, self.varshape, batch_or_mode)
-        self.spike_arrival_time.value = init.param(init.Constant(-1e7 * u.ms), self.varshape, batch_or_mode)
+        self.g.value = braintools.init.param(self.g_initializer, self.varshape, batch_or_mode)
+        self.spike_arrival_time.value = braintools.init.param(
+            braintools.init.Constant(-1e7 * u.ms), self.varshape, batch_or_mode
+        )
 
     def update(self, pre_spike):
-        t = environ.get('t')
+        t = brainstate.environ.get('t')
         self.spike_arrival_time.value = u.math.where(pre_spike, t, self.spike_arrival_time.value)
         TT = ((t - self.spike_arrival_time.value) < self.T_duration) * self.T
         dg = lambda g: self.alpha * TT * (1 * u.get_unit(g) - g) - self.beta * g
-        self.g.value = exp_euler_step(dg, self.g.value)
+        self.g.value = brainstate.nn.exp_euler_step(dg, self.g.value)
         return self.g.value
 
 
@@ -493,7 +493,7 @@ class GABAa(AMPA):
         beta: ArrayLike = 0.18 / u.ms,
         T: ArrayLike = 1.0 * u.mM,
         T_dur: ArrayLike = 1.0 * u.ms,
-        g_initializer: ArrayLike | Callable = init.ZeroInit(unit=u.mS),
+        g_initializer: ArrayLike | Callable = braintools.init.Constant(0. * u.mS),
     ):
         super().__init__(
             alpha=alpha,

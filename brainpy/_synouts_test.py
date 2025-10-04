@@ -21,6 +21,7 @@ import jax.numpy as jnp
 import numpy as np
 
 import brainstate
+import brainpy
 
 
 class TestSynOutModels(unittest.TestCase):
@@ -34,20 +35,21 @@ class TestSynOutModels(unittest.TestCase):
         self.V_offset = jnp.array([0.0])
 
     def test_COBA(self):
-        model = brainstate.nn.COBA(E=self.E)
+        model = brainpy.COBA(E=self.E)
         output = model.update(self.conductance, self.potential)
         expected_output = self.conductance * (self.E - self.potential)
         np.testing.assert_array_almost_equal(output, expected_output)
 
     def test_CUBA(self):
-        model = brainstate.nn.CUBA()
+        model = brainpy.CUBA()
         output = model.update(self.conductance)
         expected_output = self.conductance * model.scale
         self.assertTrue(u.math.allclose(output, expected_output))
 
     def test_MgBlock(self):
-        model = brainstate.nn.MgBlock(E=self.E, cc_Mg=self.cc_Mg, alpha=self.alpha, beta=self.beta,
-                                      V_offset=self.V_offset)
+        model = brainpy.MgBlock(
+            E=self.E, cc_Mg=self.cc_Mg, alpha=self.alpha, beta=self.beta, V_offset=self.V_offset
+        )
         output = model.update(self.conductance, self.potential)
         norm = (1 + self.cc_Mg / self.beta * jnp.exp(self.alpha * (self.V_offset - self.potential)))
         expected_output = self.conductance * (self.E - self.potential) / norm

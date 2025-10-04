@@ -22,12 +22,9 @@ from typing import Callable
 import brainunit as u
 import jax
 
-from brainstate import environ, surrogate
-from brainstate._state import HiddenState, ParamState
+import brainstate
+import braintools
 from brainstate.typing import Size, ArrayLike
-from . import init as init
-from ._exp_euler import exp_euler_step
-from ._module import Module
 from ._neuron import Neuron
 
 __all__ = [
@@ -36,7 +33,7 @@ __all__ = [
 ]
 
 
-class LeakyRateReadout(Module):
+class LeakyRateReadout(brainstate.nn.Module):
     r"""
     Leaky dynamics for the read-out module.
 
@@ -84,7 +81,7 @@ class LeakyRateReadout(Module):
         in_size: Size,
         out_size: Size,
         tau: ArrayLike = 5. * u.ms,
-        w_init: Callable = init.KaimingNormal(),
+        w_init: Callable = braintools.init.KaimingNormal(),
         name: str = None,
     ):
         super().__init__(name=name)
@@ -92,17 +89,21 @@ class LeakyRateReadout(Module):
         # parameters
         self.in_size = (in_size,) if isinstance(in_size, numbers.Integral) else tuple(in_size)
         self.out_size = (out_size,) if isinstance(out_size, numbers.Integral) else tuple(out_size)
-        self.tau = init.param(tau, self.in_size)
-        self.decay = u.math.exp(-environ.get_dt() / self.tau)
+        self.tau = braintools.init.param(tau, self.in_size)
+        self.decay = u.math.exp(-brainstate.environ.get_dt() / self.tau)
 
         # weights
-        self.weight = ParamState(init.param(w_init, (self.in_size[0], self.out_size[0])))
+        self.weight = brainstate.ParamState(brainstate.init.param(w_init, (self.in_size[0], self.out_size[0])))
 
     def init_state(self, batch_size=None, **kwargs):
-        self.r = HiddenState(init.param(init.Constant(0.), self.out_size, batch_size))
+        self.r = brainstate.HiddenState(
+            brainstate.init.param(brainstate.init.Constant(0.), self.out_size, batch_size)
+        )
 
     def reset_state(self, batch_size=None, **kwargs):
-        self.r.value = init.param(init.Constant(0.), self.out_size, batch_size)
+        self.r.value = brainstate.init.param(
+            brainstate.init.Constant(0.), self.out_size, batch_size
+        )
 
     def update(self, x):
         self.r.value = self.decay * self.r.value + x @ self.weight.value
@@ -166,27 +167,27 @@ class LeakySpikeReadout(Neuron):
         in_size: Size,
         tau: ArrayLike = 5. * u.ms,
         V_th: ArrayLike = 1. * u.mV,
-        w_init: Callable = init.KaimingNormal(unit=u.mV),
-        V_initializer: ArrayLike = init.ZeroInit(unit=u.mV),
-        spk_fun: Callable = surrogate.ReluGrad(),
+        w_init: Callable = braintools.init.KaimingNormal(unit=u.mV),
+        V_initializer: ArrayLike = braintools.init.ZeroInit(unit=u.mV),
+        spk_fun: Callable = brainstate.surrogate.ReluGrad(),
         spk_reset: str = 'soft',
         name: str = None,
     ):
         super().__init__(in_size, name=name, spk_fun=spk_fun, spk_reset=spk_reset)
 
         # parameters
-        self.tau = init.param(tau, self.varshape)
-        self.V_th = init.param(V_th, self.varshape)
+        self.tau = braintools.init.param(tau, self.varshape)
+        self.V_th = braintools.init.param(V_th, self.varshape)
         self.V_initializer = V_initializer
 
         # weights
-        self.weight = ParamState(init.param(w_init, (self.in_size[-1], self.out_size[-1])))
+        self.weight = brainstate.ParamState(braintools.init.param(w_init, (self.in_size[-1], self.out_size[-1])))
 
     def init_state(self, batch_size, **kwargs):
-        self.V = HiddenState(init.param(self.V_initializer, self.varshape, batch_size))
+        self.V = brainstate.HiddenState(braintools.init.param(self.V_initializer, self.varshape, batch_size))
 
     def reset_state(self, batch_size, **kwargs):
-        self.V.value = init.param(self.V_initializer, self.varshape, batch_size)
+        self.V.value = braintools.init.param(self.V_initializer, self.varshape, batch_size)
 
     @property
     def spike(self):
@@ -205,6 +206,6 @@ class LeakySpikeReadout(Neuron):
         # membrane potential
         x = spk @ self.weight.value
         dv = lambda v: (-v + self.sum_current_inputs(x, v)) / self.tau
-        V = exp_euler_step(dv, V)
+        V = brainstate.nn.exp_euler_step(dv, V)
         self.V.value = self.sum_delta_inputs(V)
         return self.get_spike(V)
