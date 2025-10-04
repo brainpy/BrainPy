@@ -6,10 +6,10 @@ from typing import TypeVar, Tuple, Union, Callable, Sequence
 import jax
 import numpy as np
 
-from brainpy._src import connect as conn
-from brainpy._src import initialize as init
-from brainpy._src.math.ndarray import Array
-from brainpy._src.math.object_transform import Variable, TrainVar
+from brainpy.version2 import connect as conn
+from brainpy.version2 import initialize as init
+from brainpy.version2.math.ndarray import Array
+from brainpy.version2.math.object_transform import Variable, TrainVar
 
 __all__ = [
     'ArrayType', 'Parameter', 'PyTree',

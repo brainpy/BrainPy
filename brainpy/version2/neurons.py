@@ -4,20 +4,20 @@
 This module has been deprecated since brainpy>=2.4.0. Use ``brainpy.dyn`` module instead.
 """
 
-from brainpy._src.dynold.neurons.biological_models import (
+from brainpy.version2.dynold.neurons.biological_models import (
     HH as HH,
     MorrisLecar as MorrisLecar,
     PinskyRinzelModel as PinskyRinzelModel,
     WangBuzsakiModel as WangBuzsakiModel,
 )
 
-from brainpy._src.dynold.neurons.fractional_models import (
+from brainpy.version2.dynold.neurons.fractional_models import (
     FractionalNeuron as FractionalNeuron,
     FractionalFHR as FractionalFHR,
     FractionalIzhikevich as FractionalIzhikevich,
 )
 
-from brainpy._src.dynold.neurons.reduced_models import (
+from brainpy.version2.dynold.neurons.reduced_models import (
     LeakyIntegrator as LeakyIntegrator,
     LIF as LIF,
     ExpIF as ExpIF,
@@ -31,7 +31,7 @@ from brainpy._src.dynold.neurons.reduced_models import (
     FHN as FHN,
     LIF_SFA_Bellec2020,
 )
-from .dyn.others import (
+from brainpy.version2.dyn.others import (
     InputGroup as InputGroup,
     OutputGroup as OutputGroup,
     SpikeTimeGroup as SpikeTimeGroup,

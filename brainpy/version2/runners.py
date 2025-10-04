@@ -11,14 +11,14 @@ import jax.numpy as jnp
 import numpy as np
 from jax.tree_util import tree_map, tree_flatten
 
-from brainpy import math as bm, tools
-from brainpy._src.context import share
-from brainpy._src.deprecations import _input_deprecate_msg
-from brainpy._src.dynsys import DynamicalSystem
-from brainpy._src.helpers import clear_input
-from brainpy._src.running.runner import Runner
+from brainpy.version2 import math as bm, tools
+from brainpy.version2.context import share
+from brainpy.version2.deprecations import _input_deprecate_msg
+from brainpy.version2.dynsys import DynamicalSystem
+from brainpy.version2.helpers import clear_input
+from brainpy.version2.running.runner import Runner
 from brainpy.errors import RunningError
-from brainpy.types import Output, Monitor
+from brainpy.version2.types import Output, Monitor
 
 __all__ = [
     'DSRunner',

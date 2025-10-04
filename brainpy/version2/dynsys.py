@@ -8,13 +8,13 @@ from typing import Union, Dict, Callable, Sequence, Optional, Any
 
 import numpy as np
 
-from brainpy import tools, math as bm
-from brainpy._src.context import share
-from brainpy._src.deprecations import _update_deprecate_msg
-from brainpy._src.initialize import parameter, variable_
-from brainpy._src.mixin import SupportAutoDelay, Container, SupportInputProj, DelayRegister, _get_delay_tool
+from brainpy.version2 import tools, math as bm
+from brainpy.version2.context import share
+from brainpy.version2.deprecations import _update_deprecate_msg
+from brainpy.version2.initialize import parameter, variable_
+from brainpy.version2.mixin import SupportAutoDelay, Container, SupportInputProj, DelayRegister, _get_delay_tool
 from brainpy.errors import NoImplementationError, UnsupportedError
-from brainpy.types import ArrayType, Shape
+from brainpy.version2.types import ArrayType, Shape
 
 __all__ = [
     # general
@@ -174,7 +174,7 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
         """
         global reset_state
         if reset_state is None:
-            from brainpy._src.helpers import reset_state
+            from brainpy.version2.helpers import reset_state
         reset_state(self, *args, **kwargs)
 
     @not_implemented
@@ -208,7 +208,7 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
         """
         global clear_input
         if clear_input is None:
-            from brainpy._src.helpers import clear_input
+            from brainpy.version2.helpers import clear_input
         share.save(i=i, t=i * bm.dt)
         out = self.update(*args, **kwargs)
         clear_input(self)

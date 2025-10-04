@@ -8,3 +8,6 @@ This module has been deprecated since brainpy>=2.4.0. Use ``brainpy.dyn`` module
 from .dyn.rates import *
 
 
+if __name__ == '__main__':
+    FHN
+

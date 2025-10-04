@@ -5,9 +5,9 @@ This module is deprecated since version 2.3.1.
 Please use ``brainpy.math.*`` instead.
 """
 
-from brainpy import check
-from brainpy._src.deprecations import deprecation_getattr2
-from brainpy._src.math import modes
+from brainpy.version2 import check
+from brainpy.version2.deprecations import deprecation_getattr2
+from brainpy.version2.math import modes
 
 __deprecations = {
     'Mode': ('brainpy.modes.Mode', 'brainpy.math.Mode', modes.Mode),

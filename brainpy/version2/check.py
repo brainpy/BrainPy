@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-from brainpy._src.deprecations import deprecation_getattr2
+from brainpy.version2.deprecations import deprecation_getattr2
 
 from functools import wraps, partial
 from typing import Union, Sequence, Dict, Callable, Tuple, Type, Optional, Any

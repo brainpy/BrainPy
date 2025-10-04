@@ -6,12 +6,12 @@ from typing import Union, Optional, Dict, Sequence
 import jax
 import jax.numpy as jnp
 
-from brainpy import tools, math as bm
-from brainpy._src.context import share
-from brainpy._src.dynsys import DynamicalSystem
-from brainpy._src.helpers import clear_input
-from brainpy.check import is_float, is_integer
-from brainpy.types import PyTree
+from brainpy.version2 import tools, math as bm
+from brainpy.version2.context import share
+from brainpy.version2.dynsys import DynamicalSystem
+from brainpy.version2.helpers import clear_input
+from brainpy.version2.check import is_float, is_integer
+from brainpy.version2.types import PyTree
 
 __all__ = [
     'LoopOverTime',

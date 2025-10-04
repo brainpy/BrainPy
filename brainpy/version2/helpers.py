@@ -1,9 +1,9 @@
 from typing import Dict, Callable
 
-from brainpy._src import dynsys
-from brainpy._src.dyn.base import IonChaDyn
-from brainpy._src.dynsys import DynamicalSystem, DynView
-from brainpy._src.math.object_transform.base import StateLoadResult
+from brainpy.version2 import dynsys
+from brainpy.version2.dyn.base import IonChaDyn
+from brainpy.version2.dynsys import DynamicalSystem, DynView
+from brainpy.version2.math.object_transform.base import StateLoadResult
 
 __all__ = [
     'reset_level',

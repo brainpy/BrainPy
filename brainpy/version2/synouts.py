@@ -5,10 +5,14 @@
 This module has been deprecated since brainpy>=2.4.0. Use ``brainpy.dyn`` module instead.
 """
 
-from brainpy._src.dynold.synouts.conductances import (
+from brainpy.version2.dynold.synouts.conductances import (
     COBA as COBA,
     CUBA as CUBA,
 )
-from brainpy._src.dynold.synouts.ions import (
+from brainpy.version2.dynold.synouts.ions import (
     MgBlock as MgBlock,
 )
+
+
+if __name__ == '__main__':
+    COBA, CUBA, MgBlock

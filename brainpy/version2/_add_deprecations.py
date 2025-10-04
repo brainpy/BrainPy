@@ -1,21 +1,20 @@
 
-from ._src import checking, train, integrators
-from . import tools, math, integrators, dyn, dnn, neurons, synapses, layers, connect
+from . import check, train, integrators, tools, math, integrators, dyn, dnn, neurons, synapses, layers, connect
 from .integrators import ode, fde, sde
-from brainpy._src.integrators.base import Integrator
-from brainpy._src.integrators.runner import IntegratorRunner
-from brainpy._src.integrators.joint_eq import JointEq
-from brainpy._src.integrators.ode.generic import odeint
-from brainpy._src.integrators.sde.generic import sdeint
-from brainpy._src.integrators.fde.generic import fdeint
-from brainpy._src.dynsys import (DynamicalSystem, DynSysGroup, Sequential, Network)
-from brainpy._src.dyn.base import NeuDyn, IonChaDyn
-from brainpy._src.runners import DSRunner
-from brainpy._src.deprecations import deprecation_getattr2
+from brainpy.version2.integrators.base import Integrator
+from brainpy.version2.integrators.runner import IntegratorRunner
+from brainpy.version2.integrators.joint_eq import JointEq
+from brainpy.version2.integrators.ode.generic import odeint
+from brainpy.version2.integrators.sde.generic import sdeint
+from brainpy.version2.integrators.fde.generic import fdeint
+from brainpy.version2.dynsys import (DynamicalSystem, DynSysGroup, Sequential, Network)
+from brainpy.version2.dyn.base import NeuDyn, IonChaDyn
+from brainpy.version2.runners import DSRunner
+from brainpy.version2.deprecations import deprecation_getattr2
 
 tools.__deprecations = {
   'clear_name_cache': ('brainpy.tools.clear_name_cache', 'brainpy.math.clear_name_cache', math.clear_name_cache),
-  'checking': ('brainpy.tools.checking', 'brainpy.checking', checking),
+  'checking': ('brainpy.tools.checking', 'brainpy.checking', check),
 }
 tools.__getattr__ = deprecation_getattr2('brainpy.tools', tools.__deprecations)
 

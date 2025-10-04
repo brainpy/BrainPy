@@ -8,7 +8,7 @@ from typing import Any, Union
 
 import brainstate
 
-from brainpy._src.tools.dicts import DotDict
+from brainpy.version2.tools.dicts import DotDict
 
 __all__ = [
     'share',

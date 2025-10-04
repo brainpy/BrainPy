@@ -10,9 +10,9 @@ from typing import (_type_check, _remove_dups_flatten)
 import brainstate.mixin
 import jax
 
-from brainpy import math as bm, tools
-from brainpy._src.math.object_transform.naming import get_unique_name
-from brainpy.types import ArrayType
+from brainpy.version2 import math as bm, tools
+from brainpy.version2.math.object_transform.naming import get_unique_name
+from brainpy.version2.types import ArrayType
 
 if sys.version_info.minor > 8:
     from typing import (_UnionGenericAlias)
@@ -42,14 +42,14 @@ __all__ = [
 
 def _get_delay_tool():
     global delay_identifier, init_delay_by_return
-    if init_delay_by_return is None: from brainpy._src.delay import init_delay_by_return
-    if delay_identifier is None: from brainpy._src.delay import delay_identifier
+    if init_delay_by_return is None: from brainpy.version2.delay import init_delay_by_return
+    if delay_identifier is None: from brainpy.version2.delay import delay_identifier
     return delay_identifier, init_delay_by_return
 
 
 def _get_dynsys():
     global DynamicalSystem
-    if DynamicalSystem is None: from brainpy._src.dynsys import DynamicalSystem
+    if DynamicalSystem is None: from brainpy.version2.dynsys import DynamicalSystem
     return DynamicalSystem
 
 
@@ -172,7 +172,7 @@ class TreeNode(MixIn):
     def check_hierarchies(self, root, *leaves, **named_leaves):
         global DynamicalSystem
         if DynamicalSystem is None:
-            from brainpy._src.dynsys import DynamicalSystem
+            from brainpy.version2.dynsys import DynamicalSystem
 
         for leaf in leaves:
             if isinstance(leaf, DynamicalSystem):
