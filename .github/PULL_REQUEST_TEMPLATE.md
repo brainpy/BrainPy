@@ -1,37 +1,123 @@
-<!--- Provide a general summary of your changes in the Title above -->
-<!--- Please do remember to follow the contributing guidelines -->
+<!--
+Thank you for contributing to BrainPy!
+Please fill out this template to help us review your pull request.
+See CONTRIBUTING.md for guidelines.
+-->
+
+## Summary
+
+<!-- Provide a clear, concise summary of your changes -->
+
+**Fixes #(issue number)** <!-- If this PR closes an issue, link it here -->
+
+## Type of Change
+
+<!-- Mark the appropriate option with an "x" -->
+
+- [ ] Bug fix (non-breaking change which fixes an issue)
+- [ ] New feature (non-breaking change which adds functionality)
+- [ ] Breaking change (fix or feature that would cause existing functionality to change)
+- [ ] Documentation update
+- [ ] Code refactoring (no functional changes)
+- [ ] Performance improvement
+- [ ] Test coverage improvement
+- [ ] Other (please describe):
 
 ## Description
-<!--- Why is this change required? What problem does it solve? -->
-<!--- Describe your changes in detail here to communicate to the maintainers why this pull request should be accepted -->
-<!--- Describe your technology stack here if not a documentation update -->
-<!--- Tasklist format is recommended for all pull requests and is required for all draft pull requests. You can couple your description with the tasklist -->
-<!--- If it fixes an open issue, please link to the issue here in the last line. -->
 
-## How Has This Been Tested
-<!--- Please describe in detail how you tested your changes locally -->
-<!--- Include details of your testing environment, and the tests you ran to -->
-<!--- For example, markdown files should pass markdownlint locally according to the rules -->
-<!--- See how your change affects other areas of the code, etc. -->
+**What does this PR do?**
+<!-- Describe your changes in detail -->
 
-## Types of changes
-<!--- What types of changes does your code introduce? -->
-<!--- Only left the line that best describes this pull request -->
-- Bug fix (non-breaking change which fixes an issue)
-- New feature (non-breaking change which adds functionality)
-- Documentation (non-breaking change which updates documentation)
-- Breaking change (fix or feature that would cause existing functionality to change)
-- Code style (formatting, renaming)
-- Refactoring (no functional changes, no api changes)
-- Other (please describe here):
+**Why is this change needed?**
+<!-- Explain the motivation for this change -->
+
+**How does it work?**
+<!-- Provide technical details about your implementation -->
+
+## Changes Made
+
+<!-- List the main changes in this PR -->
+
+-
+-
+-
+
+## Testing
+
+**How has this been tested?**
+<!-- Describe the tests you ran to verify your changes -->
+
+```python
+# Example test code or commands used
+```
+
+**Test environment:**
+- Python version:
+- BrainPy version:
+- JAX version:
+- OS:
+
+**Test coverage:**
+- [ ] Added new tests for this change
+- [ ] All existing tests pass
+- [ ] Manual testing performed
+
+## Performance Impact
+
+<!-- If applicable, describe any performance implications -->
+
+- [ ] No performance impact
+- [ ] Performance improved (provide benchmarks)
+- [ ] Performance may be affected (explain why and how much)
+
+## Documentation
+
+- [ ] Docstrings added/updated
+- [ ] Documentation updated (if needed)
+- [ ] Examples added/updated (if applicable)
+- [ ] CHANGELOG entry added (for notable changes)
+
+## Screenshots (if applicable)
+
+<!-- Add screenshots to help explain your changes -->
+
+## Breaking Changes
+
+<!-- If this is a breaking change, describe the impact and migration path -->
+
+**Breaking change details:**
+<!-- What breaks? How should users update their code? -->
+
+**Migration guide:**
+```python
+# Before (old way)
+
+# After (new way)
+```
 
 ## Checklist
-<!--- Go over all the following points, and put an `x` in all the boxes that apply. -->
-<!--- If you're unsure about any of these, don't hesitate to ask. We're here to help! -->
-- [ ] Code follows the code style of this project.
-- [ ] Changes follow the **CONTRIBUTING** guidelines.
-- [ ] Update necessary documentation accordingly.
-- [ ] Lint and tests pass locally with the changes.
-- [ ] Check issues and pull requests first. You don't want to duplicate effort.
 
-## Other information
+<!-- Ensure all items are complete before submitting -->
+
+- [ ] My code follows the project's style guidelines
+- [ ] I have performed a self-review of my code
+- [ ] I have commented my code, particularly in hard-to-understand areas
+- [ ] I have made corresponding changes to the documentation
+- [ ] My changes generate no new warnings
+- [ ] I have added tests that prove my fix is effective or that my feature works
+- [ ] New and existing unit tests pass locally with my changes
+- [ ] Any dependent changes have been merged and published
+- [ ] I have checked for duplicate PRs/issues
+- [ ] I have read and followed the [CONTRIBUTING](../CONTRIBUTING.md) guidelines
+
+## Additional Notes
+
+<!-- Any additional information that reviewers should know -->
+
+## Related Issues/PRs
+
+<!-- Link to related issues or pull requests -->
+
+- Related to #
+- Depends on #
+- Blocks #

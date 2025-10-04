@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 📚 Documentation
+    url: https://brainpy.readthedocs.io/
+    about: Check the documentation for guides, tutorials, and API reference
+  - name: 💬 GitHub Discussions
+    url: https://github.com/brainpy/BrainPy/discussions
+    about: Ask questions and discuss ideas with the community
+  - name: 🔒 Security Vulnerability
+    url: https://github.com/brainpy/BrainPy/security/advisories/new
+    about: Report security vulnerabilities privately (do not create public issues)

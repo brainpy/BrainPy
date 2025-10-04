@@ -1,0 +1,37 @@
+# Automatically label pull requests based on file paths
+# Learn more: https://github.com/actions/labeler
+
+# Documentation
+documentation:
+  - changed-files:
+    - any-glob-to-any-file: ['docs/**/*', '**/*.md', '**/*.rst']
+
+# CI/CD
+ci-cd:
+  - changed-files:
+    - any-glob-to-any-file: ['.github/**/*']
+
+# Dependencies
+dependencies:
+  - changed-files:
+    - any-glob-to-any-file: ['pyproject.toml', 'requirements*.txt']
+
+# Tests
+tests:
+  - changed-files:
+    - any-glob-to-any-file: ['tests/**/*', '**/*test*.py']
+
+# Examples
+examples:
+  - changed-files:
+    - any-glob-to-any-file: ['examples/**/*']
+
+# Core library
+core:
+  - changed-files:
+    - any-glob-to-any-file: ['brainpy/_src/**/*']
+
+# Build/Package
+build:
+  - changed-files:
+    - any-glob-to-any-file: ['pyproject.toml', 'setup.py', 'MANIFEST.in']

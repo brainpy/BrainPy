@@ -1,0 +1,31 @@
+# Code Owners for BrainPy
+# These owners will be requested for review when someone opens a pull request
+# that modifies code in specific paths or files.
+#
+# Learn more about CODEOWNERS:
+# https://docs.github.com/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owners for everything in the repo
+* @brainpy/core-team
+
+# Documentation
+/docs/ @brainpy/docs-team
+*.md @brainpy/docs-team
+*.rst @brainpy/docs-team
+
+# CI/CD and GitHub workflows
+/.github/ @brainpy/maintainers
+/.github/workflows/ @brainpy/maintainers
+
+# Core library
+/brainpy/_src/ @brainpy/core-team
+
+# Build and packaging
+/pyproject.toml @brainpy/maintainers
+/requirements*.txt @brainpy/maintainers
+
+# Tests
+/tests/ @brainpy/core-team
+
+# Examples
+/examples/ @brainpy/docs-team
