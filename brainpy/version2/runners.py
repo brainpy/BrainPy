@@ -17,7 +17,7 @@ from brainpy.version2.deprecations import _input_deprecate_msg
 from brainpy.version2.dynsys import DynamicalSystem
 from brainpy.version2.helpers import clear_input
 from brainpy.version2.running.runner import Runner
-from brainpy.errors import RunningError
+from brainpy._errors import RunningError
 from brainpy.version2.types import Output, Monitor
 
 __all__ = [

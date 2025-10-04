@@ -16,7 +16,7 @@ from typing import (Any, Callable, Generator, Iterable, List,
 
 from tqdm.auto import tqdm
 
-from brainpy.errors import PackageMissingError
+from brainpy._errors import PackageMissingError
 
 try:
     from pathos.helpers import cpu_count  # noqa

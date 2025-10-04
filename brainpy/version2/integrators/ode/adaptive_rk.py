@@ -55,7 +55,7 @@ More details please check [1]_ [2]_ [3]_.
 
 import jax.numpy as jnp
 
-from brainpy import errors
+from brainpy import _errors
 from brainpy._src.integrators import constants as C, utils
 from brainpy._src.integrators.ode import common
 from brainpy._src.integrators.ode.base import ODEIntegrator

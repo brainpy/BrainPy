@@ -8,7 +8,7 @@ import brainpy.math as bm
 from brainpy._src.integrators.base import Integrator
 from brainpy._src.integrators.utils import get_args
 from brainpy.check import is_integer
-from brainpy.errors import UnsupportedError
+from brainpy._errors import UnsupportedError
 
 __all__ = [
     'FDEIntegrator'

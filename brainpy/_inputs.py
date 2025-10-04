@@ -22,6 +22,8 @@ import numpy as np
 
 import brainstate
 from brainstate.typing import ArrayLike, Size, DTypeLike
+from brainpy._misc import set_module_as
+
 
 __all__ = [
     'SpikeTime',
@@ -59,6 +61,7 @@ class SpikeTime(brainstate.nn.Dynamics):
     name : str, optional
         The name of the dynamic system.
     """
+    __module__ = 'brainpy'
 
     def __init__(
         self,
@@ -114,6 +117,7 @@ class PoissonSpike(brainstate.nn.Dynamics):
     """
     Poisson Neuron Group.
     """
+    __module__ = 'brainpy'
 
     def __init__(
         self,
@@ -199,6 +203,7 @@ class PoissonEncoder(brainstate.nn.Dynamics):
     - The independence of spike generation between time steps results in renewal process
       statistics without memory of previous spiking history.
     """
+    __module__ = 'brainpy'
 
     def __init__(
         self,
@@ -310,6 +315,7 @@ class PoissonInput(brainstate.nn.Module):
     - The update method internally calls the poisson_input function which handles the
       spike generation and target state updates.
     """
+    __module__ = 'brainpy'
 
     def __init__(
         self,
@@ -341,6 +347,7 @@ class PoissonInput(brainstate.nn.Module):
         )
 
 
+@set_module_as('brainpy')
 def poisson_input(
     freq: u.Quantity[u.Hz],
     num_input: int,

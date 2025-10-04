@@ -9,7 +9,7 @@ from jax.lax import cond
 import brainpy.math as bm
 from brainpy import check
 from brainpy._src.math.object_transform.base import BrainPyObject, ArrayCollector
-from brainpy.errors import MathError
+from brainpy._errors import MathError
 from .scheduler import make_schedule, Scheduler
 
 __all__ = [

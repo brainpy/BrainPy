@@ -19,17 +19,17 @@ from typing import Optional
 
 import brainunit as u
 
-from brainstate._state import HiddenState
+import brainstate
+import braintools
 from brainstate.typing import ArrayLike, Size
-from braintools import init as init
-from brainstate.nn import exp_euler_step
+from ._base import Synapse
 
 __all__ = [
     'STP', 'STD',
 ]
 
 
-class STP(ShortTermPlasticity):
+class STP(Synapse):
     r"""
     Synapse with short-term plasticity.
 
@@ -96,7 +96,7 @@ class STP(ShortTermPlasticity):
     .. [2] Tsodyks, M., Pawelzik, K., & Markram, H. (1998). Neural networks with dynamic
            synapses. Neural computation, 10(4), 821-835.
     """
-    __module__ = 'brainstate.nn'
+    __module__ = 'brainpy'
 
     def __init__(
         self,
@@ -109,21 +109,25 @@ class STP(ShortTermPlasticity):
         super().__init__(name=name, in_size=in_size)
 
         # parameters
-        self.tau_f = init.param(tau_f, self.varshape)
-        self.tau_d = init.param(tau_d, self.varshape)
-        self.U = init.param(U, self.varshape)
+        self.tau_f = braintools.init.param(tau_f, self.varshape)
+        self.tau_d = braintools.init.param(tau_d, self.varshape)
+        self.U = braintools.init.param(U, self.varshape)
 
     def init_state(self, batch_size: int = None, **kwargs):
-        self.x = HiddenState(init.param(init.Constant(1.), self.varshape, batch_size))
-        self.u = HiddenState(init.param(init.Constant(self.U), self.varshape, batch_size))
+        self.x = brainstate.HiddenState(
+            braintools.init.param(braintools.init.Constant(1.), self.varshape, batch_size)
+        )
+        self.u = brainstate.HiddenState(
+            braintools.init.param(braintools.init.Constant(self.U), self.varshape, batch_size)
+        )
 
     def reset_state(self, batch_size: int = None, **kwargs):
-        self.x.value = init.param(init.Constant(1.), self.varshape, batch_size)
-        self.u.value = init.param(init.Constant(self.U), self.varshape, batch_size)
+        self.x.value = braintools.init.param(braintools.init.Constant(1.), self.varshape, batch_size)
+        self.u.value = braintools.init.param(braintools.init.Constant(self.U), self.varshape, batch_size)
 
     def update(self, pre_spike):
-        u = exp_euler_step(lambda u: - u / self.tau_f, self.u.value)
-        x = exp_euler_step(lambda x: (1 - x) / self.tau_d, self.x.value)
+        u = brainstate.nn.exp_euler_step(lambda u: - u / self.tau_f, self.u.value)
+        x = brainstate.nn.exp_euler_step(lambda x: (1 - x) / self.tau_d, self.x.value)
 
         # --- original code:
         #   if pre_spike.dtype == jax.numpy.bool_:
@@ -142,7 +146,7 @@ class STP(ShortTermPlasticity):
         return u * x * pre_spike
 
 
-class STD(ShortTermPlasticity):
+class STD(Synapse):
     r"""
     Synapse with short-term depression.
 
@@ -197,7 +201,7 @@ class STD(ShortTermPlasticity):
            pyramidal neurons depends on neurotransmitter release probability.
            Proceedings of the National Academy of Sciences, 94(2), 719-723.
     """
-    __module__ = 'brainstate.nn'
+    __module__ = 'brainpy'
 
     def __init__(
         self,
@@ -210,17 +214,17 @@ class STD(ShortTermPlasticity):
         super().__init__(name=name, in_size=in_size)
 
         # parameters
-        self.tau = init.param(tau, self.varshape)
-        self.U = init.param(U, self.varshape)
+        self.tau = braintools.init.param(tau, self.varshape)
+        self.U = braintools.init.param(U, self.varshape)
 
     def init_state(self, batch_size: int = None, **kwargs):
-        self.x = HiddenState(init.param(init.Constant(1.), self.varshape, batch_size))
+        self.x = brainstate.HiddenState(braintools.init.param(braintools.init.Constant(1.), self.varshape, batch_size))
 
     def reset_state(self, batch_size: int = None, **kwargs):
-        self.x.value = init.param(init.Constant(1.), self.varshape, batch_size)
+        self.x.value = braintools.init.param(braintools.init.Constant(1.), self.varshape, batch_size)
 
     def update(self, pre_spike):
-        x = exp_euler_step(lambda x: (1 - x) / self.tau, self.x.value)
+        x = brainstate.nn.exp_euler_step(lambda x: (1 - x) / self.tau, self.x.value)
 
         # --- original code:
         # self.x.value = bm.where(pre_spike, x - self.U * self.x, x)

@@ -22,57 +22,11 @@ import brainunit as u
 import jax
 import brainstate
 from brainstate.typing import ArrayLike, Size
+from ._base import Neuron
 
 __all__ = [
-    'Neuron', 'IF', 'LIF', 'LIFRef', 'ALIF',
+     'IF', 'LIF', 'LIFRef', 'ALIF',
 ]
-
-
-class Neuron(brainstate.nn.Dynamics):
-    """
-    Base class for all spiking neuron models.
-
-    This abstract class serves as the foundation for implementing various spiking neuron
-    models. It extends the Dynamics class and provides common functionality for spike
-    generation and membrane potential dynamics.
-
-    All neuron models should inherit from this class and implement the required methods,
-    particularly the `get_spike()` method which defines the spike generation mechanism.
-
-    Parameters
-    ----------
-    in_size : Size
-        Size of the input to the neuron.
-    spk_fun : Callable, default=surrogate.InvSquareGrad()
-        Surrogate gradient function for the non-differentiable spike generation.
-    spk_reset : str, default='soft'
-        Reset mechanism after spike generation:
-        - 'soft': subtract threshold from membrane potential
-        - 'hard': use stop_gradient for reset
-    name : str, optional
-        Name of the neuron layer.
-
-    Methods
-    -------
-    get_spike(*args, **kwargs)
-        Abstract method that generates spikes based on neuron state variables.
-        Must be implemented by subclasses.
-    """
-    __module__ = 'brainstate.nn'
-
-    def __init__(
-        self,
-        in_size: brainstate.typing.Size,
-        spk_fun: Callable = brainstate.surrogate.InvSquareGrad(),
-        spk_reset: str = 'soft',
-        name: Optional[str] = None,
-    ):
-        super().__init__(in_size, name=name)
-        self.spk_reset = spk_reset
-        self.spk_fun = spk_fun
-
-    def get_spike(self, *args, **kwargs):
-        raise NotImplementedError
 
 
 class IF(Neuron):
@@ -167,7 +121,7 @@ class IF(Neuron):
            I. Homogeneous synaptic input. Biological cybernetics, 95(1), 1-19.
     """
 
-    __module__ = 'brainstate.nn'
+    __module__ = 'brainpy'
 
     def __init__(
         self,
@@ -301,7 +255,7 @@ class LIF(Neuron):
     .. [2] Burkitt, A. N. (2006). A review of the integrate-and-fire neuron model:
            I. Homogeneous synaptic input. Biological cybernetics, 95(1), 1-19.
     """
-    __module__ = 'brainstate.nn'
+    __module__ = 'brainpy'
 
     def __init__(
         self,
@@ -462,7 +416,7 @@ class LIFRef(Neuron):
     .. [3] Izhikevich, E. M. (2003). Simple model of spiking neurons. IEEE Transactions on
            neural networks, 14(6), 1569-1572.
     """
-    __module__ = 'brainstate.nn'
+    __module__ = 'brainpy'
 
     def __init__(
         self,
@@ -643,7 +597,7 @@ class ALIF(Neuron):
            the adaptive exponential integrate-and-fire model. Biological cybernetics,
            99(4), 335-347.
     """
-    __module__ = 'brainstate.nn'
+    __module__ = 'brainpy'
 
     def __init__(
         self,

@@ -25,7 +25,7 @@ import jax
 import brainstate
 import braintools
 from brainstate.typing import Size, ArrayLike
-from ._neuron import Neuron
+from ._lif import Neuron
 
 __all__ = [
     'LeakyRateReadout',
@@ -74,7 +74,7 @@ class LeakyRateReadout(brainstate.nn.Module):
     r : HiddenState
         Hidden state representing the output values
     """
-    __module__ = 'brainstate.nn'
+    __module__ = 'brainpy'
 
     def __init__(
         self,
@@ -160,7 +160,7 @@ class LeakySpikeReadout(Neuron):
         Synaptic weight matrix
     """
 
-    __module__ = 'brainstate.nn'
+    __module__ = 'brainpy'
 
     def __init__(
         self,

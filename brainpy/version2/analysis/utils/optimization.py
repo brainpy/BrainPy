@@ -8,7 +8,7 @@ from jax import grad, jit, vmap
 from jax.flatten_util import ravel_pytree
 
 import brainpy._src.math as bm
-from brainpy import errors
+from brainpy import _errors
 from . import f_without_jaxarray_return
 
 try:

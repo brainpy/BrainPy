@@ -11,7 +11,7 @@ from brainpy._src.dyn.projections.conn import SynConn
 from brainpy._src.dynsys import DynamicalSystem
 from brainpy._src.initialize import parameter
 from brainpy._src.mixin import (ParamDesc, JointType, SupportAutoDelay, BindCondData, ReturnInfo)
-from brainpy.errors import UnsupportedError
+from brainpy._errors import UnsupportedError
 from brainpy.types import ArrayType
 
 __all__ = [

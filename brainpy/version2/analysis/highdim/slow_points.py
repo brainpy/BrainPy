@@ -19,7 +19,7 @@ from brainpy._src.deprecations import _input_deprecate_msg
 from brainpy._src.dynsys import DynamicalSystem
 from brainpy._src.helpers import clear_input
 from brainpy._src.runners import check_and_format_inputs, _f_ops
-from brainpy.errors import AnalyzerError, UnsupportedError
+from brainpy._errors import AnalyzerError, UnsupportedError
 from brainpy.types import ArrayType
 
 __all__ = [

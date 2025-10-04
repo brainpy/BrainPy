@@ -10,7 +10,7 @@ from jax import vmap
 from jax.scipy.optimize import minimize
 
 import brainpy._src.math as bm
-from brainpy import errors, tools
+from brainpy import _errors, tools
 from brainpy._src.analysis import constants as C, utils
 from brainpy._src.analysis.base import DSAnalyzer
 from brainpy._src.math.object_transform.base import Collector

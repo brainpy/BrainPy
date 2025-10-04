@@ -3,7 +3,7 @@
 import inspect
 
 import brainpy.math as bm
-from brainpy import errors
+from brainpy import _errors
 
 __all__ = [
     'f_without_jaxarray_return',

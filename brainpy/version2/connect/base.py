@@ -8,7 +8,7 @@ import jax.numpy as jnp
 import numpy as onp
 
 from brainpy import tools, math as bm
-from brainpy.errors import ConnectorError
+from brainpy._errors import ConnectorError
 
 __all__ = [
     # the connection types

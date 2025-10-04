@@ -2,7 +2,7 @@
 
 import warnings
 
-from brainpy import errors
+from brainpy import _errors
 
 __all__ = [
     'clear_name_cache',

@@ -109,7 +109,7 @@ from functools import wraps
 
 import jax.numpy as jnp
 
-from brainpy import errors
+from brainpy import _errors
 from brainpy._src import math as bm
 from brainpy._src.integrators import constants as C, utils, joint_eq
 from brainpy._src.integrators.ode.base import ODEIntegrator

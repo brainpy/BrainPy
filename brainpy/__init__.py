@@ -16,10 +16,14 @@
 __version__ = "3.0.0"
 __version_info__ = (3, 0, 0)
 
+from ._base import *
+from ._base import __all__ as base_all
+from ._exponential import *
+from ._exponential import __all__ as exp_all
 from ._inputs import *
 from ._inputs import __all__ as inputs_all
-from ._neuron import *
-from ._neuron import __all__ as neuron_all
+from ._lif import *
+from ._lif import __all__ as neuron_all
 from ._readout import *
 from ._readout import __all__ as readout_all
 from ._stp import *
@@ -28,8 +32,10 @@ from ._synapse import *
 from ._synapse import __all__ as synapse_all
 from ._synouts import *
 from ._synouts import __all__ as synout_all
-from .errors import *
-from .errors import __all__ as errors_all
+from ._errors import *
+from ._errors import __all__ as errors_all
 
-__main__ = errors_all + inputs_all + neuron_all + readout_all + stp_all + synapse_all + synout_all
-del errors_all, inputs_all, neuron_all, readout_all, stp_all, synapse_all, synout_all
+__main__ = errors_all + inputs_all + neuron_all + readout_all + stp_all + synapse_all + synout_all + base_all
+__main__ = __main__ + exp_all
+del errors_all, inputs_all, neuron_all, readout_all, stp_all, synapse_all, synout_all, base_all
+del exp_all

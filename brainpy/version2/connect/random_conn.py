@@ -8,7 +8,7 @@ from jax import vmap, jit, numpy as jnp
 
 import brainpy.math as bm
 from brainpy._src.tools.package import SUPPORT_NUMBA
-from brainpy.errors import ConnectorError
+from brainpy._errors import ConnectorError
 from brainpy.tools import numba_seed, numba_jit, numba_range, format_seed
 from .base import *
 

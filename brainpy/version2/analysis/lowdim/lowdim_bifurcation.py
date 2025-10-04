@@ -9,7 +9,7 @@ import numpy as np
 from jax import vmap
 
 import brainpy._src.math as bm
-from brainpy import errors
+from brainpy import _errors
 from brainpy._src.analysis import stability, plotstyle, utils, constants as C
 from brainpy._src.analysis.lowdim.lowdim_analyzer import *
 

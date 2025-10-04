@@ -5,7 +5,7 @@ import numpy as np
 
 from brainpy import math as bm
 from brainpy import tools
-from brainpy.errors import ConnectorError
+from brainpy._errors import ConnectorError
 from .base import *
 
 __all__ = [

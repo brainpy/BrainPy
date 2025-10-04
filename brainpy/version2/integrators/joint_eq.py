@@ -2,7 +2,7 @@
 
 import inspect
 
-from brainpy import errors
+from brainpy import _errors
 from brainpy._src.math.object_transform.base import Collector
 
 __all__ = [

@@ -4,7 +4,7 @@ import unittest
 
 import brainpy.math as bm
 from brainpy._src.integrators.joint_eq import _get_args, JointEq
-from brainpy.errors import DiffEqError
+from brainpy._errors import DiffEqError
 
 
 class TestGetArgs(unittest.TestCase):

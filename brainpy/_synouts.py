@@ -43,7 +43,7 @@ class COBA(brainstate.nn.SynOut):
     --------
     CUBA
     """
-    __module__ = 'brainstate.nn'
+    __module__ = 'brainpy'
 
     def __init__(self, E: brainstate.typing.ArrayLike):
         super().__init__()
@@ -72,7 +72,7 @@ class CUBA(brainstate.nn.SynOut):
     --------
     COBA
     """
-    __module__ = 'brainstate.nn'
+    __module__ = 'brainpy'
 
     def __init__(self, scale: brainstate.typing.ArrayLike = u.volt):
         super().__init__()
@@ -112,7 +112,7 @@ class MgBlock(brainstate.nn.SynOut):
     V_offset: ArrayLike
       The offset potential. Default 0. [mV]
     """
-    __module__ = 'brainstate.nn'
+    __module__ = 'brainpy'
 
     def __init__(
         self,

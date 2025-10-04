@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-from brainpy import errors
+from brainpy import _errors as errors
 # fundamental supporting modules
 from brainpy.version2 import check, tools
 #  Part: Math Foundation  #

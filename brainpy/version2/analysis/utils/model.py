@@ -11,7 +11,7 @@ from brainpy._src.math.environment import get_float
 from brainpy._src.math.interoperability import as_jax
 from brainpy._src.math.object_transform import Variable
 from brainpy._src.runners import DSRunner
-from brainpy.errors import AnalyzerError, UnsupportedError
+from brainpy._errors import AnalyzerError, UnsupportedError
 
 __all__ = [
     'model_transform',

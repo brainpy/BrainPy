@@ -4,7 +4,7 @@ from typing import Dict, Callable
 
 import jax.numpy as jnp
 
-from brainpy import errors
+from brainpy import _errors
 from brainpy._src import math as bm
 from brainpy._src.integrators import constants, utils
 from brainpy._src.integrators.base import Integrator

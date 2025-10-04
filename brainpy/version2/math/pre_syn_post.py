@@ -6,7 +6,7 @@ from jax import vmap, jit, ops as jops
 
 from brainpy._src.math import event
 from brainpy._src.math.interoperability import as_jax
-from brainpy.errors import MathError
+from brainpy._errors import MathError
 
 __all__ = [
     # pre-to-post

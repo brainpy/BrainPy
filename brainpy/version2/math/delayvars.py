@@ -10,7 +10,7 @@ from jax.lax import stop_gradient
 
 from brainpy import check
 from brainpy.check import is_float, is_integer, jit_error
-from brainpy.errors import UnsupportedError
+from brainpy._errors import UnsupportedError
 from .compat_numpy import broadcast_to, expand_dims, concatenate
 from .environment import get_dt, get_float
 from .interoperability import as_jax

@@ -14,7 +14,7 @@ from jax.tree_util import tree_flatten
 from brainpy import math as bm
 from brainpy._src.math.object_transform.base import Collector
 from brainpy._src.running.runner import Runner
-from brainpy.errors import RunningError
+from brainpy._errors import RunningError
 from .base import Integrator
 
 __all__ = [

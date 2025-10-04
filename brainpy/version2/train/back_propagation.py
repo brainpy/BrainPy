@@ -17,7 +17,7 @@ from brainpy._src.context import share
 from brainpy._src.dynsys import DynamicalSystem
 from brainpy._src.helpers import clear_input
 from brainpy._src.running import constants as c
-from brainpy.errors import UnsupportedError, NoLongerSupportError
+from brainpy._errors import UnsupportedError, NoLongerSupportError
 from brainpy.types import ArrayType, Output
 from ._utils import msg
 from .base import DSTrainer

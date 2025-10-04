@@ -1,3 +1,17 @@
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
+
 # -*- coding: utf-8 -*-
 
 
@@ -27,41 +41,43 @@ __all__ = [
 
 class BrainPyError(Exception):
     """General BrainPy error."""
-    pass
+    __module__ = 'brainpy'
 
 
 class APIChangedError(BrainPyError):
-    pass
+    __module__ = 'brainpy'
 
 
 class RunningError(BrainPyError):
     """The error occurred in the running function."""
-    pass
+    __module__ = 'brainpy'
 
 
 class IntegratorError(BrainPyError):
-    pass
+    __module__ = 'brainpy'
 
 
 class DiffEqError(BrainPyError):
     """The differential equation definition error."""
-    pass
+    __module__ = 'brainpy'
 
 
 class CodeError(BrainPyError):
     """Code definition error.
     """
-    pass
+    __module__ = 'brainpy'
 
 
 class AnalyzerError(BrainPyError):
     """Error occurred in differential equation analyzer and dynamics analysis.
     """
+    __module__ = 'brainpy'
 
 
 class PackageMissingError(BrainPyError):
     """The package missing error.
     """
+    __module__ = 'brainpy'
 
     @classmethod
     def by_purpose(cls, name, purpose):
@@ -71,6 +87,8 @@ class PackageMissingError(BrainPyError):
 
 
 class BackendNotInstalled(BrainPyError):
+    __module__ = 'brainpy'
+
     def __init__(self, backend):
         super(BackendNotInstalled, self).__init__(
             '"{bk}" must be installed when the user wants to use {bk} backend. \n'
@@ -79,33 +97,35 @@ class BackendNotInstalled(BrainPyError):
 
 
 class UniqueNameError(BrainPyError):
+    __module__ = 'brainpy'
+
     def __init__(self, *args):
         super(UniqueNameError, self).__init__(*args)
 
 
 class UnsupportedError(BrainPyError):
-    pass
+    __module__ = 'brainpy'
 
 
 class NoImplementationError(BrainPyError):
-    pass
+    __module__ = 'brainpy'
 
 
 class NoLongerSupportError(BrainPyError):
-    pass
+    __module__ = 'brainpy'
 
 
 class ConnectorError(BrainPyError):
-    pass
+    __module__ = 'brainpy'
 
 
 class MonitorError(BrainPyError):
-    pass
+    __module__ = 'brainpy'
 
 
 class MathError(BrainPyError):
     """Errors occurred in ``brainpy.math`` module."""
-    pass
+    __module__ = 'brainpy'
 
 
 class MPACheckpointingRequiredError(BrainPyError):
@@ -118,6 +138,7 @@ class MPACheckpointingRequiredError(BrainPyError):
       gda_manager = gdas.GlobalAsyncCheckpointManager()
       brainpy.checkpoints.save(..., gda_manager=gda_manager)
     """
+    __module__ = 'brainpy'
 
     def __init__(self, path, step):
         super().__init__(
@@ -135,6 +156,7 @@ class MPARestoreTargetRequiredError(BrainPyError):
     at the corresponding tree structure location. If you cannot provide a full
     valid ``target``, consider ``allow_partial_mpa_restoration=True``.
     """
+    __module__ = 'brainpy'
 
     def __init__(self, path, step, key=None):
         error_msg = (
@@ -152,6 +174,7 @@ class MPARestoreDataCorruptedError(BrainPyError):
 
     Failure of finding it could indicate a corruption of your saved GDA data.
     """
+    __module__ = 'brainpy'
 
     def __init__(self, step, path):
         super().__init__(
@@ -168,6 +191,7 @@ class MPARestoreTypeNotMatchError(BrainPyError):
     `GlobalDeviceArray`. Otherwise, avoid using jax.experimental.array
     to restore your checkpoint.
     """
+    __module__ = 'brainpy'
 
     def __init__(self, step, gda_path):
         super().__init__(
@@ -182,6 +206,7 @@ class AlreadyExistsError(BrainPyError):
     You can pass ``overwrite=True`` to disable this behavior and overwrite
     existing files in.
     """
+    __module__ = 'brainpy'
 
     def __init__(self, path):
         super().__init__(f'Trying overwrite an existing file: "{path}".')
@@ -195,6 +220,7 @@ class InvalidCheckpointError(BrainPyError):
     You can pass ``overwrite=True`` to disable this behavior and
     overwrite existing checkpoints in the target directory.
     """
+    __module__ = 'brainpy'
 
     def __init__(self, path, step):
         super().__init__(
@@ -210,12 +236,15 @@ class InvalidCheckpointPath(BrainPyError):
     You can pass ``overwrite=True`` to disable this behavior and
     overwrite existing checkpoints in the target directory.
     """
+    __module__ = 'brainpy'
 
     def __init__(self, path):
         super().__init__(f'Invalid checkpoint at "{path}".')
 
 
 class JaxTracerError(MathError):
+    __module__ = 'brainpy'
+
     def __init__(self, variables=None):
         msg = 'There is an unexpected tracer. \n\n' \
               'In BrainPy, all the dynamically changed variables must be declared as ' \
@@ -243,6 +272,8 @@ class JaxTracerError(MathError):
 
 
 class ConcretizationTypeError(Exception):
+    __module__ = 'brainpy'
+
     def __init__(self):
         super(ConcretizationTypeError, self).__init__(
             'This problem may be caused by several ways:\n'
@@ -257,6 +288,8 @@ class ConcretizationTypeError(Exception):
 
 
 class GPUOperatorNotFound(Exception):
+    __module__ = 'brainpy'
+
     def __init__(self, name):
         super(GPUOperatorNotFound, self).__init__(f'''
 GPU operator for "{name}" does not found. 
@@ -266,4 +299,4 @@ Please install brainpylib GPU operators with linux + CUDA environment.
 
 
 class SharedArgError(BrainPyError):
-    pass
+    __module__ = 'brainpy'
