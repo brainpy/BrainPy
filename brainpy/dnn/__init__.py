@@ -1,8 +1,10 @@
+# -*- coding: utf-8 -*-
 
 from .activations import *
+from .base import *
 from .conv import *
-from .interoperation import *
-from .linear import *
+from .dropout import *
+from .function import *
+from .interoperation_flax import *
 from .normalization import *
-from .others import *
 from .pooling import *
