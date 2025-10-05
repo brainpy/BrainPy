@@ -49,7 +49,7 @@ jobs:
           pip install -e .
       - name: Test with pytest
         run: |
-          pytest brainpy/_src/
+          pytest brainpy/
 
 
   test_macos:
@@ -80,7 +80,7 @@ jobs:
 #          pip install jaxlib==0.4.30
       - name: Test with pytest
         run: |
-          pytest brainpy/_src/
+          pytest brainpy/
 
 
   test_windows:
@@ -109,4 +109,4 @@ jobs:
           pip install -e .
       - name: Test with pytest
         run: |
-          pytest brainpy/_src/
+          pytest brainpy/
