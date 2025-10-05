@@ -8,7 +8,7 @@ from typing import Union, Dict, Callable, Sequence, Optional, Any
 
 import numpy as np
 
-from brainpy.version2._errors import NoImplementationError, UnsupportedError
+from brainpy._errors import NoImplementationError, UnsupportedError
 from brainpy.version2 import tools, math as bm
 from brainpy.version2.context import share
 from brainpy.version2.deprecations import _update_deprecate_msg

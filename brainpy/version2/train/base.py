@@ -6,7 +6,7 @@ import brainpy.version2.math as bm
 from brainpy.version2.dynsys import DynamicalSystem
 from brainpy.version2.runners import DSRunner
 from brainpy.version2.running import constants as c
-from brainpy.version2._errors import NoLongerSupportError
+from brainpy._errors import NoLongerSupportError
 from brainpy.version2.types import Output
 
 __all__ = [

@@ -8,7 +8,7 @@ import numpy as np
 
 from brainpy import math as bm, check
 from brainpy.version2.math.object_transform.base import BrainPyObject
-from brainpy.version2._errors import MonitorError, RunningError
+from brainpy._errors import MonitorError, RunningError
 from brainpy.version2.tools import DotDict
 from . import constants as C
 

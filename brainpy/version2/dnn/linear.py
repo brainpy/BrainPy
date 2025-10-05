@@ -16,7 +16,7 @@ from brainpy.version2.dnn.base import Layer
 from brainpy.version2.mixin import SupportOnline, SupportOffline, SupportSTDP
 from brainpy.version2.check import is_initializer
 from brainpy.version2.connect import csr2csc
-from brainpy.version2._errors import MathError
+from brainpy._errors import MathError
 from brainpy.version2.initialize import XavierNormal, ZeroInit, Initializer, parameter
 from brainpy.version2.types import ArrayType, Sharding
 

@@ -9,7 +9,7 @@ from jax import numpy as jnp
 from jax.dtypes import canonicalize_dtype
 from jax.tree_util import register_pytree_node_class
 
-from brainpy.version2._errors import MathError
+from brainpy._errors import MathError
 from .defaults import defaults
 
 bm = None

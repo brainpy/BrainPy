@@ -4,7 +4,7 @@ import jax.numpy as jnp
 import numpy as np
 
 from brainpy.version2 import math as bm, tools
-from brainpy.version2._errors import ConnectorError
+from brainpy._errors import ConnectorError
 from .base import *
 
 __all__ = [

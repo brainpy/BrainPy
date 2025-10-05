@@ -9,7 +9,7 @@ import jax.numpy as jnp
 import brainpy.version2.math as bm
 from brainpy import check
 from brainpy.version2.math.object_transform.base import BrainPyObject
-from brainpy.version2._errors import MathError
+from brainpy._errors import MathError
 
 
 # learning rate schedules #

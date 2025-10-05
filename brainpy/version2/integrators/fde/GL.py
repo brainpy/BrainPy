@@ -11,7 +11,7 @@ import jax
 import brainpy.version2.math as bm
 from brainpy.version2.integrators.constants import DT
 from brainpy.version2.integrators.utils import check_inits, format_args
-from brainpy.version2._errors import UnsupportedError
+from brainpy._errors import UnsupportedError
 from .base import FDEIntegrator
 from .generic import register_fde_integrator
 

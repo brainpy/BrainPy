@@ -9,7 +9,7 @@ import jax
 from brainpy.version2.math import TimeDelay, LengthDelay
 from brainpy.version2.math.object_transform.base import BrainPyObject
 from brainpy.version2.check import is_float, is_dict_data
-from brainpy.version2._errors import DiffEqError
+from brainpy._errors import DiffEqError
 from ._jaxpr_to_source_code import jaxpr_to_python_code
 from .constants import DT
 

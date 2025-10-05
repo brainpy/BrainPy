@@ -8,7 +8,7 @@ from brainpy.version2.integrators import constants, utils
 from brainpy.version2.integrators.base import Integrator
 from brainpy.version2.integrators.constants import DT
 from brainpy.version2.check import is_dict_data
-from brainpy.version2._errors import DiffEqError, CodeError
+from brainpy._errors import DiffEqError, CodeError
 
 __all__ = [
     'ODEIntegrator',

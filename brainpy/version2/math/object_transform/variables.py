@@ -9,7 +9,7 @@ from jax.tree_util import register_pytree_node_class
 import brainstate
 from brainpy.version2.math.ndarray import BaseArray
 from brainpy.version2.math.sharding import BATCH_AXIS
-from brainpy.version2._errors import MathError
+from brainpy._errors import MathError
 from brainstate._state import record_state_value_read, record_state_value_write
 
 __all__ = [

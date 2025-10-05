@@ -9,7 +9,7 @@ import jax
 
 from brainpy import check
 from brainpy.version2.math.ndarray import BaseArray as Array
-from brainpy.version2._errors import UnsupportedError
+from brainpy._errors import UnsupportedError
 
 __all__ = [
     'get_default',

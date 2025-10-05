@@ -8,7 +8,7 @@ import jax.numpy as jnp
 
 import brainpy.version2.math as bm
 from brainpy import _errors
-from brainpy.version2._errors import UnsupportedError
+from brainpy._errors import UnsupportedError
 
 __all__ = [
     'get_args',
