@@ -93,6 +93,26 @@ class Array(u.CustomArray):
             value = jnp.asarray(value, dtype=dtype)
         self._value = value
 
+    def __repr__(self) -> str:
+        print_code = repr(self.value)
+        if ', dtype' in print_code:
+            print_code = print_code.split(', dtype')[0] + ')'
+        prefix = f'{self.__class__.__name__}'
+        prefix2 = f'{self.__class__.__name__}(value='
+        if '\n' in print_code:
+            lines = print_code.split("\n")
+            blank1 = " " * len(prefix2)
+            lines[0] = prefix2 + lines[0]
+            for i in range(1, len(lines)):
+                lines[i] = blank1 + lines[i]
+            lines[-1] += ","
+            blank2 = " " * (len(prefix) + 1)
+            lines.append(f'{blank2}dtype={self.dtype})')
+            print_code = "\n".join(lines)
+        else:
+            print_code = prefix2 + print_code + f', dtype={self.dtype})'
+        return print_code
+
     def tree_flatten(self):
         return (self.value,), None
 

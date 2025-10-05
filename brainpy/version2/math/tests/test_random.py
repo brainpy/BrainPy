@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 
 import brainpy.version2.math as bm
-import brainpy.version2.math.random as br
+from brainpy.version2.math import random as br
 
 
 class TestRandom(unittest.TestCase):

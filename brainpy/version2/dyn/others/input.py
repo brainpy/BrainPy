@@ -200,16 +200,12 @@ class PoissonGroup(NeuDyn):
         spk_type: Optional[type] = None,
         name: Optional[str] = None,
         mode: Optional[bm.Mode] = None,
-        seed=None,
     ):
         super().__init__(size=size,
                          sharding=sharding,
                          name=name,
                          keep_size=keep_size,
                          mode=mode)
-
-        if seed is not None:
-            warnings.warn('')
 
         # parameters
         self.freqs = parameter(freqs, self.num, allow_none=False)
@@ -221,6 +217,8 @@ class PoissonGroup(NeuDyn):
     def update(self):
         spikes = bm.random.rand_like(self.spike) <= (self.freqs * share['dt'] / 1000.)
         spikes = bm.asarray(spikes, dtype=self.spk_type)
+        # import jax
+        # jax.debug.print('PoissonGroup: freqs = {f}, spikes = {s}', f=self.freqs, s=spikes)
         self.spike.value = spikes
         return spikes
 

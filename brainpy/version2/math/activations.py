@@ -20,7 +20,7 @@ import jax.scipy
 import numpy as np
 
 from .ndarray import Array
-from .random import uniform
+from brainstate.random import uniform
 
 __all__ = [
     'celu',

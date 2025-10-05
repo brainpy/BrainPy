@@ -1,5 +1,4 @@
-from brainpy.version2.dyn.base import NeuDyn
-from brainpy.version2.dyn.projections.plasticity import STDP_Song2000
+from .projections.plasticity import STDP_Song2000
 from .base import *
 from .channels import *
 from .ions import *

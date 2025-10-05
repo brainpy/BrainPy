@@ -94,6 +94,6 @@ def net_analysis():
 
 
 if __name__ == '__main__':
-    # bifurcation_analysis()
+    bifurcation_analysis()
     net_simulation()
-    # net_analysis()
+    net_analysis()

@@ -28,6 +28,9 @@ Details in the following.
 #    the index update is the same way with the numpy
 #
 
+import brainstate
+
+random = brainstate.random
 import jax.numpy as jnp
 from jax import config
 
@@ -35,7 +38,6 @@ from . import activations
 # high-level numpy operations
 from . import fft
 from . import linalg
-from . import random
 # others
 from . import sharding
 from . import surrogate, event, sparse, jitconn
@@ -63,7 +65,6 @@ from .scales import *
 del jnp, config
 from brainpy.version2.deprecations import deprecation_getattr
 
-
 from .defaults import defaults
 
 __getattr__ = deprecation_getattr(
@@ -75,4 +76,4 @@ __getattr__ = deprecation_getattr(
     ],
     redirect_module=defaults
 )
-del deprecation_getattr, defaults
+del deprecation_getattr, defaults, brainstate

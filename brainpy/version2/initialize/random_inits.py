@@ -112,7 +112,7 @@ class Normal(_InterLayerInitializer):
         super(Normal, self).__init__()
         self.scale = scale
         self.mean = mean
-        self.rng = bm.random.default_rng(seed, clone=False)
+        self.rng = bm.random.default_rng(seed)
 
     def __call__(self, shape, dtype=None):
         shape = _format_shape(shape)
@@ -150,7 +150,7 @@ class TruncatedNormal(_InterLayerInitializer):
         self.loc = loc
         self.lower = lower
         self.upper = upper
-        self.rng = bm.random.default_rng(seed, clone=False)
+        self.rng = bm.random.default_rng(seed)
 
     def __call__(self, shape, dtype=None):
         shape = _format_shape(shape)
@@ -182,7 +182,7 @@ class Gamma(_InterLayerInitializer):
     def __init__(self, shape, scale=None, seed=None):
         self.shape = shape
         self.scale = scale
-        self.rng = bm.random.default_rng(seed, clone=False)
+        self.rng = bm.random.default_rng(seed)
 
     def __call__(self, shape, dtype=None):
         weights = self.rng.gamma(self.shape, scale=self.scale, size=shape)
@@ -204,7 +204,7 @@ class Exponential(_InterLayerInitializer):
 
     def __init__(self, scale=None, seed=None):
         self.scale = scale
-        self.rng = bm.random.default_rng(seed, clone=False)
+        self.rng = bm.random.default_rng(seed)
 
     def __call__(self, shape, dtype=None):
         weights = self.rng.exponential(scale=self.scale, size=shape)
@@ -229,7 +229,7 @@ class Uniform(_InterLayerInitializer):
         super(Uniform, self).__init__()
         self.min_val = min_val
         self.max_val = max_val
-        self.rng = bm.random.default_rng(seed, clone=False)
+        self.rng = bm.random.default_rng(seed)
 
     def __call__(self, shape, dtype=None):
         shape = _format_shape(shape)
@@ -258,7 +258,7 @@ class VarianceScaling(_InterLayerInitializer):
         self.in_axis = in_axis
         self.out_axis = out_axis
         self.distribution = distribution
-        self.rng = bm.random.default_rng(seed, clone=False)
+        self.rng = bm.random.default_rng(seed)
 
     def __call__(self, shape, dtype=None):
         shape = _format_shape(shape)
@@ -415,7 +415,7 @@ class Orthogonal(_InterLayerInitializer):
         super().__init__()
         self.scale = scale
         self.axis = axis
-        self.rng = bm.random.default_rng(seed, clone=False)
+        self.rng = bm.random.default_rng(seed)
 
     def __call__(self, shape, dtype=None):
         shape = _format_shape(shape)

@@ -3,8 +3,8 @@ from functools import partial
 import brainpy_datasets as bd
 from flax import linen as nn
 
-import brainpy as bp
-import brainpy.math as bm
+import brainpy.version2 as bp
+import brainpy.version2.math as bm
 
 bm.set_environment(mode=bm.training_mode)
 
