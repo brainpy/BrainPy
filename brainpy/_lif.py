@@ -15,13 +15,14 @@
 
 # -*- coding: utf-8 -*-
 
-from typing import Callable, Optional
+from typing import Callable
 
-import braintools
+import brainstate
 import brainunit as u
 import jax
-import brainstate
 from brainstate.typing import ArrayLike, Size
+
+import braintools
 from ._base import Neuron
 
 __all__ = [
@@ -71,24 +72,14 @@ class IF(Neuron):
     V : HiddenState
         Membrane potential.
 
-    Methods
-    -------
-    init_state(batch_size=None, **kwargs)
-        Initialize the neuron state variables.
-    reset_state(batch_size=None, **kwargs)
-        Reset the neuron state variables.
-    get_spike(V=None)
-        Generate spikes based on the membrane potential.
-    update(x=0. * u.mA)
-        Update the neuron state for one time step and return spikes.
-
     Examples
     --------
+    >>> import brainpy
     >>> import brainstate
     >>> import brainunit as u
     >>>
     >>> # Create an IF neuron layer with 10 neurons
-    >>> if_neuron = brainstate.nn.IF(10, tau=8*u.ms, V_th=1.2*u.mV)
+    >>> if_neuron = brainpy.IF(10, tau=8*u.ms, V_th=1.2*u.mV)
     >>>
     >>> # Initialize the state
     >>> if_neuron.init_state(batch_size=1)
@@ -98,7 +89,7 @@ class IF(Neuron):
     >>>
     >>> # Create a network with IF neurons
     >>> network = brainstate.nn.Sequential([
-    ...     brainstate.nn.IF(100, tau=5.0*u.ms),
+    ...     brainpy.IF(100, tau=5.0*u.ms),
     ...     brainstate.nn.Linear(100, 10)
     ... ])
 
@@ -214,24 +205,14 @@ class LIF(Neuron):
     V : HiddenState
         Membrane potential.
 
-    Methods
-    -------
-    init_state(batch_size=None, **kwargs)
-        Initialize the neuron state variables.
-    reset_state(batch_size=None, **kwargs)
-        Reset the neuron state variables.
-    get_spike(V=None)
-        Generate spikes based on the membrane potential.
-    update(x=0. * u.mA)
-        Update the neuron state for one time step and return spikes.
-
     Examples
     --------
+    >>> import brainpy
     >>> import brainstate
     >>> import brainunit as u
     >>>
     >>> # Create a LIF neuron layer with 10 neurons
-    >>> lif = brainstate.nn.LIF(10, tau=10*u.ms, V_th=0.8*u.mV)
+    >>> lif = brainpy.LIF(10, tau=10*u.ms, V_th=0.8*u.mV)
     >>>
     >>> # Initialize the state
     >>> lif.init_state(batch_size=1)
@@ -361,27 +342,17 @@ class LIFRef(Neuron):
     last_spike_time : ShortTermState
         Time of the last spike, used to implement refractory period.
 
-    Methods
-    -------
-    init_state(batch_size=None, **kwargs)
-        Initialize the neuron state variables.
-    reset_state(batch_size=None, **kwargs)
-        Reset the neuron state variables.
-    get_spike(V=None)
-        Generate spikes based on the membrane potential.
-    update(x=0. * u.mA)
-        Update the neuron state for one time step and return spikes.
-
     Examples
     --------
+    >>> import brainpy
     >>> import brainstate
     >>> import brainunit as u
     >>>
     >>> # Create a LIFRef neuron layer with 10 neurons
-    >>> lifref = brainstate.nn.LIFRef(10,
-    ...                       tau=10*u.ms,
-    ...                       tau_ref=5*u.ms,
-    ...                       V_th=0.8*u.mV)
+    >>> lifref = brainpy.LIFRef(10,
+    ...                         tau=10*u.ms,
+    ...                         tau_ref=5*u.ms,
+    ...                         V_th=0.8*u.mV)
     >>>
     >>> # Initialize the state
     >>> lifref.init_state(batch_size=1)
@@ -391,7 +362,7 @@ class LIFRef(Neuron):
     >>>
     >>> # Create a network with refractory neurons
     >>> network = brainstate.nn.Sequential([
-    ...     brainstate.nn.LIFRef(100, tau_ref=4*u.ms),
+    ...     brainpy.LIFRef(100, tau_ref=4*u.ms),
     ...     brainstate.nn.Linear(100, 10)
     ... ])
 
@@ -522,6 +493,7 @@ class ALIF(Neuron):
         Surrogate gradient function for the non-differentiable spike generation.
     spk_reset : str, default='soft'
         Reset mechanism after spike generation:
+
         - 'soft': subtract threshold V = V - V_th
         - 'hard': strict reset using stop_gradient
     V_initializer : Callable
@@ -538,27 +510,17 @@ class ALIF(Neuron):
     a : HiddenState
         Adaptation variable that increases after each spike and decays exponentially.
 
-    Methods
-    -------
-    init_state(batch_size=None, **kwargs)
-        Initialize the neuron state variables.
-    reset_state(batch_size=None, **kwargs)
-        Reset the neuron state variables.
-    get_spike(V=None, a=None)
-        Generate spikes based on the membrane potential and adaptation variable.
-    update(x=0. * u.mA)
-        Update the neuron state for one time step and return spikes.
-
     Examples
     --------
+    >>> import brainpy
     >>> import brainstate
     >>> import brainunit as u
     >>>
     >>> # Create an ALIF neuron layer with 10 neurons
-    >>> alif = brainstate.nn.ALIF(10,
-    ...                   tau=10*u.ms,
-    ...                   tau_a=200*u.ms,
-    ...                   beta=0.2*u.mV)
+    >>> alif = brainpy.ALIF(10,
+    ...                     tau=10*u.ms,
+    ...                     tau_a=200*u.ms,
+    ...                     beta=0.2*u.mV)
     >>>
     >>> # Initialize the state
     >>> alif.init_state(batch_size=1)
@@ -568,7 +530,7 @@ class ALIF(Neuron):
     >>>
     >>> # Create a network with adaptation for burst detection
     >>> network = brainstate.nn.Sequential([
-    ...     brainstate.nn.ALIF(100, tau_a=150*u.ms, beta=0.3*u.mV),
+    ...     brainpy.ALIF(100, tau_a=150*u.ms, beta=0.3*u.mV),
     ...     brainstate.nn.Linear(100, 10)
     ... ])
 

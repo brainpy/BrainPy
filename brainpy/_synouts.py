@@ -20,11 +20,37 @@ import brainunit as u
 import jax.numpy as jnp
 
 __all__ = [
-    'COBA', 'CUBA', 'MgBlock',
+    'SynOut', 'COBA', 'CUBA', 'MgBlock',
 ]
 
 
-class COBA(brainstate.nn.SynOut):
+class SynOut(brainstate.nn.Module, brainstate.mixin.BindCondData):
+    """
+    Base class for synaptic outputs.
+
+    :py:class:`~.SynOut` is also subclass of :py:class:`~.ParamDesc` and :py:class:`~.BindCondData`.
+    """
+
+    __module__ = 'brainstate.nn'
+
+    def __init__(self, ):
+        super().__init__()
+        self._conductance = None
+
+    def __call__(self, *args, **kwargs):
+        if self._conductance is None:
+            raise ValueError(
+                f'Please first pack conductance data at the current step using '
+                f'".{brainstate.mixin.BindCondData.bind_cond.__name__}(data)". {self}'
+            )
+        ret = self.update(self._conductance, *args, **kwargs)
+        return ret
+
+    def update(self, conductance, potential):
+        raise NotImplementedError
+
+
+class COBA(SynOut):
     r"""
     Conductance-based synaptic output.
 
@@ -54,7 +80,7 @@ class COBA(brainstate.nn.SynOut):
         return conductance * (self.E - potential)
 
 
-class CUBA(brainstate.nn.SynOut):
+class CUBA(SynOut):
     r"""Current-based synaptic output.
 
     Given the conductance, this model outputs the post-synaptic current with a identity function:
@@ -82,7 +108,7 @@ class CUBA(brainstate.nn.SynOut):
         return conductance * self.scale
 
 
-class MgBlock(brainstate.nn.SynOut):
+class MgBlock(SynOut):
     r"""Synaptic output based on Magnesium blocking.
 
     Given the synaptic conductance, the model output the post-synaptic current with

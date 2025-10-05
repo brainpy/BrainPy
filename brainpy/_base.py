@@ -15,11 +15,7 @@
 
 from typing import Callable, Optional
 
-import braintools
-import brainunit as u
-import jax
 import brainstate
-from brainstate.typing import ArrayLike, Size
 
 __all__ = [
     'Neuron', 'Synapse',
@@ -108,8 +104,9 @@ class Neuron(brainstate.nn.Dynamics):
         >>> import brainstate
         >>> import brainunit as u
         >>> import braintools
+        >>> import brainpy
         >>>
-        >>> class SimpleNeuron(brainstate.nn.Neuron):
+        >>> class SimpleNeuron(brainpy.Neuron):
         ...     def __init__(self, in_size, V_th=1.0*u.mV, **kwargs):
         ...         super().__init__(in_size, **kwargs)
         ...         self.V_th = V_th
@@ -142,11 +139,12 @@ class Neuron(brainstate.nn.Dynamics):
 
     .. code-block:: python
 
+        >>> import brainpy
         >>> import brainstate
         >>> import brainunit as u
         >>>
         >>> # Create a LIF neuron layer
-        >>> neuron = brainstate.nn.LIF(
+        >>> neuron = brainpy.LIF(
         ...     in_size=100,
         ...     tau=10*u.ms,
         ...     V_th=1.0*u.mV,
@@ -167,6 +165,7 @@ class Neuron(brainstate.nn.Dynamics):
 
     .. code-block:: python
 
+        >>> import brainpy
         >>> import brainstate
         >>> import brainunit as u
         >>>
@@ -174,11 +173,11 @@ class Neuron(brainstate.nn.Dynamics):
         >>> class SpikingNet(brainstate.nn.Module):
         ...     def __init__(self):
         ...         super().__init__()
-        ...         self.layer1 = brainstate.nn.LIF(784, tau=5*u.ms)
+        ...         self.layer1 = brainpy.LIF(784, tau=5*u.ms)
         ...         self.fc1 = brainstate.nn.Linear(784, 256)
-        ...         self.layer2 = brainstate.nn.ALIF(256, tau=10*u.ms, tau_a=200*u.ms)
+        ...         self.layer2 = brainpy.ALIF(256, tau=10*u.ms, tau_a=200*u.ms)
         ...         self.fc2 = brainstate.nn.Linear(256, 10)
-        ...         self.layer3 = brainstate.nn.LIF(10, tau=8*u.ms)
+        ...         self.layer3 = brainpy.LIF(10, tau=8*u.ms)
         ...
         ...     def __call__(self, x):
         ...         spikes1 = self.layer1.update(x)
@@ -221,9 +220,9 @@ class Neuron(brainstate.nn.Dynamics):
 
         Parameters
         ----------
-        *args : tuple
+        *args
             Positional arguments (typically state variables like membrane potential)
-        **kwargs : dict
+        **kwargs
             Keyword arguments
 
         Returns
@@ -267,24 +266,10 @@ class Synapse(brainstate.nn.Dynamics):
     varshape : tuple
         Shape of the synaptic state variables, derived from ``in_size``.
 
-    Methods
+    Returns
     -------
-    init_state(batch_size=None, **kwargs)
-        Initialize the synapse state variables. Must be implemented by subclasses.
-    reset_state(batch_size=None, **kwargs)
-        Reset the synapse state variables. Must be implemented by subclasses.
-    update(x=None)
-        Update the synapse state for one time step. Must be implemented by subclasses.
-
-        Parameters
-        ----------
-        x : ArrayLike, optional
-            Input to the synapse (e.g., presynaptic spikes or currents)
-
-        Returns
-        -------
-        ArrayLike
-            Synaptic output (e.g., conductance, current, or gating variable)
+    ArrayLike
+        Synaptic output (e.g., conductance, current, or gating variable)
 
     See Also
     --------
@@ -328,31 +313,22 @@ class Synapse(brainstate.nn.Dynamics):
 
     .. code-block:: python
 
+        >>> import brainpy
         >>> import brainstate
         >>> import brainunit as u
         >>> import braintools
         >>>
-        >>> class SimpleSynapse(brainstate.nn.Synapse):
+        >>> class SimpleSynapse(brainpy.Synapse):
         ...     def __init__(self, in_size, tau=5.0*u.ms, **kwargs):
         ...         super().__init__(in_size, **kwargs)
         ...         self.tau = braintools.init.param(tau, self.varshape)
         ...         self.g_init = braintools.init.Constant(0.*u.mS)
         ...
         ...     def init_state(self, batch_size=None, **kwargs):
-        ...         self.g = brainstate.HiddenState(
-        ...             braintools.init.param(
-        ...                 self.g_init,
-        ...                 self.varshape,
-        ...                 batch_size
-        ...             )
-        ...         )
+        ...         self.g = brainstate.HiddenState(braintools.init.param(self.g_init, self.varshape, batch_size))
         ...
         ...     def reset_state(self, batch_size=None, **kwargs):
-        ...         self.g.value = braintools.init.param(
-        ...             self.g_init,
-        ...             self.varshape,
-        ...             batch_size
-        ...         )
+        ...         self.g.value = braintools.init.param(self.g_init, self.varshape, batch_size)
         ...
         ...     def update(self, x=None):
         ...         # Simple exponential decay: dg/dt = -g/tau + x
@@ -366,12 +342,13 @@ class Synapse(brainstate.nn.Dynamics):
 
     .. code-block:: python
 
+        >>> import brainpy
         >>> import brainstate
         >>> import brainunit as u
         >>> import jax
         >>>
         >>> # Create an exponential synapse
-        >>> synapse = brainstate.nn.Expon(in_size=100, tau=8.0*u.ms)
+        >>> synapse = brainpy.Expon(in_size=100, tau=8.0*u.ms)
         >>>
         >>> # Initialize state
         >>> synapse.init_state(batch_size=32)
@@ -390,6 +367,7 @@ class Synapse(brainstate.nn.Dynamics):
 
     .. code-block:: python
 
+        >>> import brainpy
         >>> import brainstate
         >>> import brainunit as u
         >>>
@@ -397,18 +375,18 @@ class Synapse(brainstate.nn.Dynamics):
         ...     def __init__(self):
         ...         super().__init__()
         ...         # Input layer
-        ...         self.input_neurons = brainstate.nn.LIF(784, tau=5*u.ms)
+        ...         self.input_neurons = brainpy.LIF(784, tau=5*u.ms)
         ...         # First hidden layer with synaptic filtering
         ...         self.fc1 = brainstate.nn.Linear(784, 256)
-        ...         self.syn1 = brainstate.nn.Expon(256, tau=8*u.ms)
-        ...         self.hidden1 = brainstate.nn.LIF(256, tau=10*u.ms)
+        ...         self.syn1 = brainpy.Expon(256, tau=8*u.ms)
+        ...         self.hidden1 = brainpy.LIF(256, tau=10*u.ms)
         ...         # Second hidden layer with AMPA synapse
         ...         self.fc2 = brainstate.nn.Linear(256, 128)
-        ...         self.syn2 = brainstate.nn.AMPA(128)
-        ...         self.hidden2 = brainstate.nn.LIF(128, tau=10*u.ms)
+        ...         self.syn2 = brainpy.AMPA(128)
+        ...         self.hidden2 = brainpy.LIF(128, tau=10*u.ms)
         ...         # Output layer
         ...         self.fc3 = brainstate.nn.Linear(128, 10)
-        ...         self.output_neurons = brainstate.nn.LIF(10, tau=8*u.ms)
+        ...         self.output_neurons = brainpy.LIF(10, tau=8*u.ms)
         ...
         ...     def __call__(self, x):
         ...         # Input layer
@@ -430,19 +408,19 @@ class Synapse(brainstate.nn.Dynamics):
 
     .. code-block:: python
 
+        >>> import brainpy
         >>> import brainstate
         >>> import brainunit as u
         >>>
         >>> class EINetwork(brainstate.nn.Module):
-        ...     '''Excitatory-Inhibitory recurrent network'''
         ...     def __init__(self, n_exc=800, n_inh=200):
         ...         super().__init__()
         ...         # Excitatory population
-        ...         self.exc_neurons = brainstate.nn.LIF(n_exc, tau=10*u.ms)
-        ...         self.exc_syn = brainstate.nn.AMPA(n_exc)
+        ...         self.exc_neurons = brainpy.LIF(n_exc, tau=10*u.ms)
+        ...         self.exc_syn = brainpy.AMPA(n_exc)
         ...         # Inhibitory population
-        ...         self.inh_neurons = brainstate.nn.LIF(n_inh, tau=8*u.ms)
-        ...         self.inh_syn = brainstate.nn.GABAa(n_inh)
+        ...         self.inh_neurons = brainpy.LIF(n_inh, tau=8*u.ms)
+        ...         self.inh_syn = brainpy.GABAa(n_inh)
         ...         # Connectivity
         ...         self.exc_to_exc = brainstate.nn.Linear(n_exc, n_exc)
         ...         self.exc_to_inh = brainstate.nn.Linear(n_exc, n_inh)

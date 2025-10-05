@@ -32,10 +32,14 @@ from ._synapse import *
 from ._synapse import __all__ as synapse_all
 from ._synouts import *
 from ._synouts import __all__ as synout_all
+from ._synaptic_projection import *
+from ._synaptic_projection import __all__ as synproj_all
+from ._projection import *
+from ._projection import __all__ as proj_all
 from ._errors import *
 from ._errors import __all__ as errors_all
 
 __main__ = errors_all + inputs_all + neuron_all + readout_all + stp_all + synapse_all + synout_all + base_all
-__main__ = __main__ + exp_all
+__main__ = __main__ + exp_all + proj_all + synproj_all
 del errors_all, inputs_all, neuron_all, readout_all, stp_all, synapse_all, synout_all, base_all
-del exp_all
+del exp_all, proj_all, synproj_all

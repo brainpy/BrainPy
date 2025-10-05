@@ -53,6 +53,7 @@ class STP(Synapse):
     $$
 
     where:
+
     - $u$ represents the utilization of synaptic efficacy (facilitation variable)
     - $x$ represents the available synaptic resources (depression variable)
     - $\tau_f$ is the facilitation time constant
@@ -165,6 +166,7 @@ class STD(Synapse):
     $$
 
     where:
+
     - $x$ represents the available synaptic resources (depression variable)
     - $\tau$ is the depression recovery time constant
     - $U$ is the utilization parameter (fraction of resources depleted per spike)
