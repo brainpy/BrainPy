@@ -12,9 +12,9 @@ import tqdm.auto
 from jax.tree_util import tree_flatten
 
 from brainpy import math as bm
-from brainpy._src.math.object_transform.base import Collector
-from brainpy._src.running.runner import Runner
-from brainpy._errors import RunningError
+from brainpy.version2.math.object_transform.base import Collector
+from brainpy.version2.running.runner import Runner
+from brainpy.version2._errors import RunningError
 from .base import Integrator
 
 __all__ = [
@@ -29,8 +29,8 @@ class IntegratorRunner(Runner):
 
     Example to run an ODE integrator,
 
-    >>> import brainpy as bp
-    >>> import brainpy.math as bm
+    >>> import brainpy.version2 as bp
+    >>> import brainpy.version2.math as bm
     >>> a=0.7; b=0.8; tau=12.5
     >>> dV = lambda V, t, w, I: V - V * V * V / 3 - w + I
     >>> dw = lambda w, t, V, a, b: (V + a - b * w) / tau
@@ -50,8 +50,8 @@ class IntegratorRunner(Runner):
 
     Example to run an SDE intragetor,
 
-    >>> import brainpy as bp
-    >>> import brainpy.math as bm
+    >>> import brainpy.version2 as bp
+    >>> import brainpy.version2.math as bm
     >>> # stochastic Lorenz system
     >>> sigma=10; beta=8 / 3; rho=28
     >>> g = lambda x, y, z, t, p: (p * x, p * y, p * z)
@@ -112,7 +112,7 @@ class IntegratorRunner(Runner):
           The initial value of variables. With this parameter,
           you can easily control the number of variables to simulate.
           For example, if one of the variable has the shape of 10,
-          then all variables will be an instance of :py:class:`brainpy.math.Variable`
+          then all variables will be an instance of :py:class:`brainpy.version2.math.Variable`
           with the shape of :math:`(10,)`.
         args: dict
           The equation arguments to update.

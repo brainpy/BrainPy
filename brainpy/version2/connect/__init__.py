@@ -3,7 +3,7 @@
 
 """
 This module provides methods to construct connectivity between neuron groups.
-You can access them through ``brainpy.connect.XXX``.
+You can access them through ``brainpy.version2.connect.XXX``.
 """
 
 from .base import *

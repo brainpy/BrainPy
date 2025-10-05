@@ -4,8 +4,8 @@ import jax.numpy as jnp
 import jax.ops
 from jax import lax
 
-from brainpy._src.math.interoperability import as_jax
-from brainpy._src.math.ndarray import Array
+from brainpy.version2.math.interoperability import as_jax
+from brainpy.version2.math.ndarray import Array
 from .compat_numpy import (
     prod, min, sum, all, any, mean, std, var, concatenate, clip,
     asarray,

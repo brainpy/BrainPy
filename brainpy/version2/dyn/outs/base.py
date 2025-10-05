@@ -1,8 +1,8 @@
 from typing import Optional
 
-import brainpy.math as bm
-from brainpy._src.dynsys import DynamicalSystem
-from brainpy._src.mixin import ParamDesc, BindCondData
+import brainpy.version2.math as bm
+from brainpy.version2.dynsys import DynamicalSystem
+from brainpy.version2.mixin import ParamDesc, BindCondData
 
 __all__ = [
     'SynOut'

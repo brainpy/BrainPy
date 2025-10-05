@@ -2,7 +2,7 @@
 
 from pprint import pprint
 
-import brainpy as bp
+import brainpy.version2 as bp
 
 
 class HH(bp.dyn.NeuDyn):

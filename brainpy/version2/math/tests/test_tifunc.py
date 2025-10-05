@@ -5,7 +5,7 @@ import jax.numpy as jnp
 import pytest
 
 pytestmark = pytest.mark.skip(reason="Skipped due to MacOS limitation, manual execution required for testing.")
-import brainpy.math as bm
+import brainpy.version2.math as bm
 import matplotlib.pyplot as plt
 import os
 

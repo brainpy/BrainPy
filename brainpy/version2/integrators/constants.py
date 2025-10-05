@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-# import brainpy.math as bm
-from brainpy._src.math.object_transform import naming
+# import brainpy.version2.math as bm
+from brainpy.version2.math.object_transform import naming
 
 __all__ = [
     'DT',

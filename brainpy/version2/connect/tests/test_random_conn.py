@@ -4,7 +4,7 @@ import unittest
 
 import pytest
 
-import brainpy as bp
+import brainpy.version2 as bp
 
 
 class TestFixedProb(unittest.TestCase):

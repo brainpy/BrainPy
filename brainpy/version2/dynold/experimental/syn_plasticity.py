@@ -4,12 +4,12 @@ from typing import Union
 
 import jax.numpy as jnp
 
-from brainpy import math as bm, tools
-from brainpy._src.context import share
-from brainpy._src.dynold.experimental.base import SynSTPNS
-from brainpy._src.initialize import variable_, OneInit, parameter
-from brainpy._src.integrators import odeint, JointEq
-from brainpy.types import ArrayType, Shape
+from brainpy.version2 import math as bm, tools
+from brainpy.version2.context import share
+from brainpy.version2.dynold.experimental.base import SynSTPNS
+from brainpy.version2.initialize import variable_, OneInit, parameter
+from brainpy.version2.integrators import odeint, JointEq
+from brainpy.version2.types import ArrayType, Shape
 
 __all__ = [
     'STD',

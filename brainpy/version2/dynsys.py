@@ -8,12 +8,12 @@ from typing import Union, Dict, Callable, Sequence, Optional, Any
 
 import numpy as np
 
+from brainpy.version2._errors import NoImplementationError, UnsupportedError
 from brainpy.version2 import tools, math as bm
 from brainpy.version2.context import share
 from brainpy.version2.deprecations import _update_deprecate_msg
 from brainpy.version2.initialize import parameter, variable_
 from brainpy.version2.mixin import SupportAutoDelay, Container, SupportInputProj, DelayRegister, _get_delay_tool
-from brainpy._errors import NoImplementationError, UnsupportedError
 from brainpy.version2.types import ArrayType, Shape
 
 __all__ = [
@@ -170,7 +170,7 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
 
         ``reset()`` function is a collective behavior which resets all states in this model.
 
-        See https://brainpy.readthedocs.io/en/latest/tutorial_toolbox/state_resetting.html for details.
+        See https://brainpy.version2.readthedocs.io/en/latest/tutorial_toolbox/state_resetting.html for details.
         """
         global reset_state
         if reset_state is None:
@@ -184,7 +184,7 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
         Simply speaking, this function should implement the logic of resetting of
         local variables in this node.
 
-        See https://brainpy.readthedocs.io/en/latest/tutorial_toolbox/state_resetting.html for details.
+        See https://brainpy.version2.readthedocs.io/en/latest/tutorial_toolbox/state_resetting.html for details.
         """
         pass
 
@@ -377,7 +377,7 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
                 self.reset(*args, **kwargs)
                 warnings.warn(
                     '''
-                From version >= 2.4.6, the policy of ``.reset_state()`` has been changed. See https://brainpy.readthedocs.io/en/latest/tutorial_toolbox/state_saving_and_loading.html for details.
+                From version >= 2.4.6, the policy of ``.reset_state()`` has been changed. See https://brainpy.version2.readthedocs.io/en/latest/tutorial_toolbox/state_saving_and_loading.html for details.
           
                 1. If you are resetting all states in a network by calling "net.reset_state(*args, **kwargs)", please use
                    "bp.reset_state(net, *args, **kwargs)" function, or "net.reset(*args, **kwargs)". 
@@ -433,7 +433,7 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
 
         Examples::
 
-        >>> import brainpy as bp
+        >>> import brainpy.version2 as bp
         >>> x = bp.math.random.rand((10, 10))
         >>> l = bp.layers.Activation(bm.tanh)
         >>> y = x >> l
@@ -516,8 +516,8 @@ class Sequential(DynamicalSystem, SupportAutoDelay, Container):
 
     Examples::
 
-    >>> import brainpy as bp
-    >>> import brainpy.math as bm
+    >>> import brainpy.version2 as bp
+    >>> import brainpy.version2.math as bm
     >>>
     >>> # composing ANN models
     >>> l = bp.Sequential(bp.layers.Dense(100, 10),
@@ -691,7 +691,7 @@ class Dynamic(DynamicalSystem):
         If ``sharding`` is provided and ``param`` is array, this function will
         partition the parameter across the default device mesh.
 
-        See :py:func:`~.brainpy.math.sharding.device_mesh` for the mesh setting.
+        See :py:func:`~.brainpy.version2.math.sharding.device_mesh` for the mesh setting.
         """
         shape = self.varshape if shape is None else shape
         sharding = self.sharding if sharding is None else sharding
@@ -706,7 +706,7 @@ class Dynamic(DynamicalSystem):
         If ``sharding`` is provided and ``var_data`` is array, this function will
         partition the variable across the default device mesh.
 
-        See :py:func:`~.brainpy.math.sharding.device_mesh` for the mesh setting.
+        See :py:func:`~.brainpy.version2.math.sharding.device_mesh` for the mesh setting.
         """
         shape = self.varshape if shape is None else shape
         sharding = self.sharding if sharding is None else sharding
@@ -733,7 +733,7 @@ class DynView(Dynamic):
     It can get a subset view of variables in a dynamical system instance.
     For instance,
 
-    >>> import brainpy as bp
+    >>> import brainpy.version2 as bp
     >>> hh = bp.neurons.HH(10)
     >>> DynView(hh, slice(5, 10, None))
     >>> # or, simply

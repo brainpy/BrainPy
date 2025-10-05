@@ -2,7 +2,7 @@
 
 """
 This module aims to provide commonly used analysis methods for simulated neuronal data.
-You can access them through ``brainpy.measure.XXX``.
+You can access them through ``brainpy.version2.measure.XXX``.
 """
 
 from . import correlation, firings, lfp

@@ -13,7 +13,7 @@ from jax.interpreters import mlir, ad
 from jax.tree_util import tree_flatten, tree_unflatten
 from jaxlib import gpu_sparse
 
-from brainpy._src.math.interoperability import as_jax
+from brainpy.version2.math.interoperability import as_jax
 
 if jax.__version__ >= '0.5.0':
     from jax.extend.core import Primitive

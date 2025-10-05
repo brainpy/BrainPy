@@ -1,9 +1,9 @@
 from typing import Optional, Union
 
-from brainpy import math as bm, check
-from brainpy._src.delay import (Delay, DelayAccess, init_delay_by_return, register_delay_by_return)
-from brainpy._src.dynsys import DynamicalSystem, Projection
-from brainpy._src.mixin import (JointType, ParamDescriber, SupportAutoDelay, BindCondData)
+from brainpy.version2 import math as bm, check
+from brainpy.version2.delay import (Delay, DelayAccess, init_delay_by_return, register_delay_by_return)
+from brainpy.version2.dynsys import DynamicalSystem, Projection
+from brainpy.version2.mixin import (JointType, ParamDescriber, SupportAutoDelay, BindCondData)
 from .utils import _get_return
 
 __all__ = [

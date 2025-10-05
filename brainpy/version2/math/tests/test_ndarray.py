@@ -8,8 +8,8 @@ import jax.numpy as jnp
 import numpy as np
 from jax.tree_util import tree_flatten, tree_unflatten
 
-import brainpy.math as bm
-from brainpy.math import Variable
+import brainpy.version2.math as bm
+from brainpy.version2.math import Variable
 
 
 class TestJaxArray(unittest.TestCase):

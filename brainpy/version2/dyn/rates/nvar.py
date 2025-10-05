@@ -6,9 +6,9 @@ from typing import Union, Sequence, List, Optional
 import jax.numpy as jnp
 import numpy as np
 
-import brainpy.math as bm
-from brainpy import check
-from brainpy._src.dnn.base import Layer
+import brainpy.version2.math as bm
+from brainpy.version2 import check
+from brainpy.version2.dnn.base import Layer
 
 __all__ = [
     'NVAR'

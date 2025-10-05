@@ -133,7 +133,7 @@ class DotDict(dict):
 
         ``subset()`` can be used to get a subset of some class:
 
-        >>> import brainpy as bp
+        >>> import brainpy.version2 as bp
         >>>
         >>> some_collector = DotDict()
         >>>

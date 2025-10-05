@@ -1,6 +1,6 @@
 import unittest
 
-import brainpy as bp
+import brainpy.version2 as bp
 
 
 class TestResetLevel(unittest.TestCase):

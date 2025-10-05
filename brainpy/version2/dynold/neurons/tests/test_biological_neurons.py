@@ -3,9 +3,9 @@
 
 from absl.testing import parameterized
 
-import brainpy as bp
-import brainpy.math as bm
-from brainpy._src.dynold.neurons import biological_models
+import brainpy.version2 as bp
+import brainpy.version2.math as bm
+from brainpy.version2.dynold.neurons import biological_models
 
 
 class Test_Biological(parameterized.TestCase):

@@ -2,12 +2,12 @@ import numbers
 from typing import Any
 from typing import Union, Optional
 
-from brainpy import check, math as bm
-from brainpy._src.context import share
-from brainpy._src.dynsys import Dynamic
-from brainpy._src.dynsys import Projection
-from brainpy._src.mixin import SupportAutoDelay
-from brainpy.types import Shape
+from brainpy.version2 import check, math as bm
+from brainpy.version2.context import share
+from brainpy.version2.dynsys import Dynamic
+from brainpy.version2.dynsys import Projection
+from brainpy.version2.mixin import SupportAutoDelay
+from brainpy.version2.types import Shape
 
 __all__ = [
     'InputVar',
@@ -20,7 +20,7 @@ class InputVar(Dynamic, SupportAutoDelay):
 
     Example::
 
-        import brainpy as bp
+        import brainpy.version2 as bp
 
 
         class Exponential(bp.Projection):

@@ -2,8 +2,8 @@
 
 import inspect
 
-import brainpy.math as bm
-from brainpy import _errors
+import brainpy.version2.math as bm
+from brainpy import _errors as errors
 
 __all__ = [
     'f_without_jaxarray_return',

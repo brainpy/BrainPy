@@ -4,10 +4,10 @@ from typing import Union, Callable, Optional
 
 import jax.numpy as jnp
 
-import brainpy.math as bm
-from brainpy._src.dynold.synapses.base import _SynOut
-from brainpy._src.initialize import parameter, Initializer
-from brainpy.types import ArrayType
+import brainpy.version2.math as bm
+from brainpy.version2.dynold.synapses.base import _SynOut
+from brainpy.version2.initialize import parameter, Initializer
+from brainpy.version2.types import ArrayType
 
 __all__ = [
     'MgBlock',

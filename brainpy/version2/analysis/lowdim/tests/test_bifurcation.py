@@ -6,8 +6,8 @@ import pytest
 pytest.skip('Test cannot pass in github action.', allow_module_level=True)
 import unittest
 
-import brainpy as bp
-import brainpy.math as bm
+import brainpy.version2 as bp
+import brainpy.version2.math as bm
 import matplotlib.pyplot as plt
 
 block = False

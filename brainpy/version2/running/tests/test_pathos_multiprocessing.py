@@ -4,8 +4,8 @@ import jax
 import pytest
 from absl.testing import parameterized
 
-import brainpy as bp
-import brainpy.math as bm
+import brainpy.version2 as bp
+import brainpy.version2.math as bm
 
 if sys.platform == 'win32' and sys.version_info.minor >= 11:
     pytest.skip('python 3.11 does not support.', allow_module_level=True)

@@ -1,14 +1,14 @@
 from typing import Union, Callable, Optional, Sequence
 
-import brainpy.math as bm
-from brainpy._src import initialize as init
-from brainpy._src import tools
-from brainpy._src.context import share
-from brainpy._src.dyn._docs import pneu_doc
-from brainpy._src.dyn.base import NeuDyn
-from brainpy._src.integrators import odeint
-from brainpy.check import is_initializer
-from brainpy.types import ArrayType
+import brainpy.version2.math as bm
+from brainpy.version2 import initialize as init
+from brainpy.version2 import tools
+from brainpy.version2.context import share
+from brainpy.version2.dyn._docs import pneu_doc
+from brainpy.version2.dyn.base import NeuDyn
+from brainpy.version2.integrators import odeint
+from brainpy.version2.check import is_initializer
+from brainpy.version2.types import ArrayType
 
 __all__ = [
     'Leaky',

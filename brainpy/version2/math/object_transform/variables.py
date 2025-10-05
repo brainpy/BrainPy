@@ -7,9 +7,9 @@ from jax.dtypes import canonicalize_dtype
 from jax.tree_util import register_pytree_node_class
 
 import brainstate
-from brainpy._src.math.ndarray import BaseArray
-from brainpy._src.math.sharding import BATCH_AXIS
-from brainpy._errors import MathError
+from brainpy.version2.math.ndarray import BaseArray
+from brainpy.version2.math.sharding import BATCH_AXIS
+from brainpy.version2._errors import MathError
 from brainstate._state import record_state_value_read, record_state_value_write
 
 __all__ = [
@@ -81,7 +81,7 @@ class VariableStack(dict):
     def call_on_subset(self, cond: Callable, call: Callable) -> dict:
         """Call a function on the subset of this :py:class:`~VariableStack`.
 
-        >>> import brainpy.math as bm
+        >>> import brainpy.version2.math as bm
         >>> stack = VariableStack(a=bm.Variable(1), b=bm.random.RandomState(1))
         >>> stack.call_on_subset(lambda a: isinstance(a, bm.random.RandomState),
         >>>                      lambda a: a.split_key())
@@ -104,7 +104,7 @@ class VariableStack(dict):
         """Separate all variables into two groups: (variables that are instances of the given ``cls``,
         variables that are not instances of the given ``cls``).
 
-        >>> import brainpy.math as bm
+        >>> import brainpy.version2.math as bm
         >>> stack = VariableStack(a=bm.Variable(1), b=bm.random.RandomState(1))
         >>> stack.separate_by_instance(bm.random.RandomState)
         ({'b': RandomState(key=([0, 1], dtype=uint32))},
@@ -227,7 +227,7 @@ class Variable(brainstate.State, BaseArray):
 
     Initializing an instance of ``Variable`` by two ways:
 
-    >>> import brainpy.math as bm
+    >>> import brainpy.version2.math as bm
     >>> # 1. init a Variable by the concreate data
     >>> v1 = bm.Variable(bm.zeros(10))
     >>> # 2. init a Variable by the data shape
@@ -383,32 +383,32 @@ class Variable(brainstate.State, BaseArray):
 
     # def __eq__(self, other):
     #     """Override State's __eq__ to use BaseArray behavior for element-wise comparison."""
-    #     from brainpy._src.math.ndarray import _check_input_array, _return
+    #     from brainpy.version2.math.ndarray import _check_input_array, _return
     #     return _return(self.value == _check_input_array(other))
     #
     # def __ne__(self, other):
     #     """Override State's __ne__ to use BaseArray behavior for element-wise comparison."""
-    #     from brainpy._src.math.ndarray import _check_input_array, _return
+    #     from brainpy.version2.math.ndarray import _check_input_array, _return
     #     return _return(self.value != _check_input_array(other))
     #
     # def __lt__(self, other):
     #     """Override State's __lt__ to use BaseArray behavior for element-wise comparison."""
-    #     from brainpy._src.math.ndarray import _check_input_array, _return
+    #     from brainpy.version2.math.ndarray import _check_input_array, _return
     #     return _return(self.value < _check_input_array(other))
     #
     # def __le__(self, other):
     #     """Override State's __le__ to use BaseArray behavior for element-wise comparison."""
-    #     from brainpy._src.math.ndarray import _check_input_array, _return
+    #     from brainpy.version2.math.ndarray import _check_input_array, _return
     #     return _return(self.value <= _check_input_array(other))
     #
     # def __gt__(self, other):
     #     """Override State's __gt__ to use BaseArray behavior for element-wise comparison."""
-    #     from brainpy._src.math.ndarray import _check_input_array, _return
+    #     from brainpy.version2.math.ndarray import _check_input_array, _return
     #     return _return(self.value > _check_input_array(other))
     #
     # def __ge__(self, other):
     #     """Override State's __ge__ to use BaseArray behavior for element-wise comparison."""
-    #     from brainpy._src.math.ndarray import _check_input_array, _return
+    #     from brainpy.version2.math.ndarray import _check_input_array, _return
     #     return _return(self.value >= _check_input_array(other))
 
 
@@ -469,9 +469,9 @@ class Parameter(Variable):
 class VariableView(Variable):
     """A view of a Variable instance.
 
-    This class is used to create a subset view of ``brainpy.math.Variable``.
+    This class is used to create a subset view of ``brainpy.version2.math.Variable``.
 
-    >>> import brainpy.math as bm
+    >>> import brainpy.version2.math as bm
     >>> bm.random.seed(123)
     >>> origin = bm.Variable(bm.random.random(5))
     >>> view = bm.VariableView(origin, slice(None, 2, None))  # origin[:2]
@@ -578,7 +578,7 @@ class VarList(list):
         This function ensures that the Variable appended in the :py:class:`~.VarList` will not be overridden,
         and only the value can be changed for each element.
 
-        >>> import brainpy.math as bm
+        >>> import brainpy.version2.math as bm
         >>> l = bm.var_list([bm.Variable(1), bm.Variable(2)])
         >>> print(id(l[0]), id(l[1]))
         2077748389472 2077748389552
@@ -641,7 +641,7 @@ class VarDict(dict):
 
         This function ensures that the Variable appended in the :py:class:`~.VarList` will not be overridden.
 
-        >>> import brainpy.math as bm
+        >>> import brainpy.version2.math as bm
         >>> d = bm.var_dict({'a': bm.Variable(1), 'b': bm.Variable(2)})
         >>> print(id(d['a']), id(d['b']))
         2077667833504 2077748488176

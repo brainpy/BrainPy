@@ -1,12 +1,12 @@
 from typing import Union, Sequence, Callable, Optional
 
-from brainpy import math as bm
-from brainpy._src.context import share
-from brainpy._src.dyn._docs import pneu_doc
-from brainpy._src.dyn.base import SynDyn
-from brainpy._src.integrators.joint_eq import JointEq
-from brainpy._src.integrators.ode.generic import odeint
-from brainpy.types import ArrayType
+from brainpy.version2 import math as bm
+from brainpy.version2.context import share
+from brainpy.version2.dyn._docs import pneu_doc
+from brainpy.version2.dyn.base import SynDyn
+from brainpy.version2.integrators.joint_eq import JointEq
+from brainpy.version2.integrators.ode.generic import odeint
+from brainpy.version2.types import ArrayType
 
 __all__ = [
     'AMPA',
@@ -55,13 +55,13 @@ class AMPA(SynDyn):
 
     where :math:`g_{max}` is the maximum conductance, and `E` is the reverse potential.
 
-    This module can be used with interface ``brainpy.dyn.ProjAlignPreMg2``, as shown in the following example:
+    This module can be used with interface ``brainpy.version2.dyn.ProjAlignPreMg2``, as shown in the following example:
 
     .. code-block:: python
 
           import numpy as np
-          import brainpy as bp
-          import brainpy.math as bm
+          import brainpy.version2 as bp
+          import brainpy.version2.math as bm
 
           import matplotlib.pyplot as plt
 
@@ -204,13 +204,13 @@ class GABAa(AMPA):
     - Transmitter concentration :math:`[T]=1\,\mu ho(\mu S)` when synapse is
       triggered by a pre-synaptic spike, with the duration of 1. ms.
 
-    This module can be used with interface ``brainpy.dyn.ProjAlignPreMg2``, as shown in the following example:
+    This module can be used with interface ``brainpy.version2.dyn.ProjAlignPreMg2``, as shown in the following example:
 
     .. code-block:: python
 
           import numpy as np
-          import brainpy as bp
-          import brainpy.math as bm
+          import brainpy.version2 as bp
+          import brainpy.version2.math as bm
 
           import matplotlib.pyplot as plt
 
@@ -359,13 +359,13 @@ class BioNMDA(SynDyn):
     The NMDA receptor has been thought to be very important for controlling
     synaptic plasticity and mediating learning and memory functions [3]_.
 
-    This module can be used with interface ``brainpy.dyn.ProjAlignPreMg2``, as shown in the following example:
+    This module can be used with interface ``brainpy.version2.dyn.ProjAlignPreMg2``, as shown in the following example:
 
     .. code-block:: python
 
           import numpy as np
-          import brainpy as bp
-          import brainpy.math as bm
+          import brainpy.version2 as bp
+          import brainpy.version2.math as bm
 
           import matplotlib.pyplot as plt
 

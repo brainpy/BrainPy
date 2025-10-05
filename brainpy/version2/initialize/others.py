@@ -1,6 +1,6 @@
 from typing import Callable
 
-import brainpy.math as bm
+import brainpy.version2.math as bm
 from .base import Initializer
 
 

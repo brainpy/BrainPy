@@ -4,10 +4,10 @@ from typing import Dict, Tuple
 import jax
 from jax.tree_util import tree_flatten, tree_map, tree_unflatten
 
-from brainpy import math as bm
-from brainpy._src.context import share
-from brainpy._src.dnn.base import Layer
-from brainpy._src.dynsys import DynamicalSystem
+from brainpy.version2 import math as bm
+from brainpy.version2.context import share
+from brainpy.version2.dnn.base import Layer
+from brainpy.version2.dynsys import DynamicalSystem
 
 try:
     import flax  # noqa

@@ -8,13 +8,13 @@ import tqdm.auto
 from jax.tree_util import tree_map
 
 from brainpy import math as bm, tools
-from brainpy._src.context import share
-from brainpy._src.dynsys import DynamicalSystem
-from brainpy._src.helpers import clear_input
-from brainpy._src.mixin import SupportOnline
-from brainpy._src.runners import _call_fun_with_share
-from brainpy.algorithms.online import get, OnlineAlgorithm, RLS
-from brainpy.types import ArrayType, Output
+from brainpy.version2.context import share
+from brainpy.version2.dynsys import DynamicalSystem
+from brainpy.version2.helpers import clear_input
+from brainpy.version2.mixin import SupportOnline
+from brainpy.version2.runners import _call_fun_with_share
+from brainpy.version2.algorithms.online import get, OnlineAlgorithm, RLS
+from brainpy.version2.types import ArrayType, Output
 from ._utils import format_ys
 from .base import DSTrainer
 
@@ -44,7 +44,7 @@ class OnlineTrainer(DSTrainer):
       - It can be a dict, whose "name" item specifies the name of the training algorithm,
         and the others parameters specify the initialization parameters of the algorithm.
         For example, ``fit_method={'name': 'rls', 'alpha': 0.1}``.
-      - It can be an instance of :py:class:`brainpy.algorithms.OnlineAlgorithm`.
+      - It can be an instance of :py:class:`brainpy.version2.algorithms.OnlineAlgorithm`.
         For example, ``fit_meth=bp.algorithms.RLS(alpha=1e-5)``.
       - It can also be a callable function.
 

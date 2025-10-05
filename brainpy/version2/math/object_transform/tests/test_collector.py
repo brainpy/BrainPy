@@ -5,7 +5,7 @@ from pprint import pprint
 
 import jax.numpy as jnp
 
-import brainpy as bp
+import brainpy.version2 as bp
 
 
 class GABAa_without_Variable(bp.synapses.TwoEndConn):

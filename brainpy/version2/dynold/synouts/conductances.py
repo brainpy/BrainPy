@@ -2,10 +2,10 @@
 
 from typing import Union, Callable, Optional
 
-from brainpy._src.dynold.synapses.base import _SynOut
-from brainpy._src.initialize import parameter, Initializer
-from brainpy.math import Variable
-from brainpy.types import ArrayType
+from brainpy.version2.dynold.synapses.base import _SynOut
+from brainpy.version2.initialize import parameter, Initializer
+from brainpy.version2.math import Variable
+from brainpy.version2.types import ArrayType
 
 __all__ = [
     'COBA',

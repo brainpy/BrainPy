@@ -3,7 +3,7 @@
 import jax.numpy as jnp
 from jax.tree_util import tree_flatten, tree_map
 
-import brainpy.math as bm
+import brainpy.version2.math as bm
 from .utils import _is_leaf, _multi_return
 
 __all__ = [

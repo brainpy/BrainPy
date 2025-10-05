@@ -7,12 +7,12 @@ This module implements voltage-dependent sodium channels.
 
 from typing import Union, Callable, Sequence
 
-import brainpy.math as bm
-from brainpy._src.context import share
-from brainpy._src.dyn.neurons.hh import HHTypedNeuron
-from brainpy._src.initialize import Initializer, parameter, variable
-from brainpy._src.integrators import odeint, JointEq
-from brainpy.types import ArrayType
+import brainpy.version2.math as bm
+from brainpy.version2.context import share
+from brainpy.version2.dyn.neurons.hh import HHTypedNeuron
+from brainpy.version2.initialize import Initializer, parameter, variable
+from brainpy.version2.integrators import odeint, JointEq
+from brainpy.version2.types import ArrayType
 from .base import IonChannel
 
 __all__ = [

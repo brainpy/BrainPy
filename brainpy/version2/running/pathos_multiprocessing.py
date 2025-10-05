@@ -16,7 +16,7 @@ from typing import (Any, Callable, Generator, Iterable, List,
 
 from tqdm.auto import tqdm
 
-from brainpy._errors import PackageMissingError
+from brainpy.version2._errors import PackageMissingError
 
 try:
     from pathos.helpers import cpu_count  # noqa
@@ -130,8 +130,8 @@ def cpu_ordered_parallel(
 
     Examples::
 
-    >>> import brainpy as bp
-    >>> import brainpy.math as bm
+    >>> import brainpy.version2 as bp
+    >>> import brainpy.version2.math as bm
     >>> import numpy as np
     >>>
     >>> def simulate(inp):
@@ -188,8 +188,8 @@ def cpu_unordered_parallel(
 
     Examples::
 
-    >>> import brainpy as bp
-    >>> import brainpy.math as bm
+    >>> import brainpy.version2 as bp
+    >>> import brainpy.version2.math as bm
     >>> import numpy as np
     >>>
     >>> def simulate(inp):

@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from scipy.sparse import csr_matrix
 
-import brainpy as bp
+import brainpy.version2 as bp
 
 
 class TestIJConn(TestCase):

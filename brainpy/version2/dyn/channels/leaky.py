@@ -7,10 +7,10 @@ This module implements leakage channels.
 
 from typing import Union, Callable, Sequence
 
-import brainpy.math as bm
-from brainpy._src.dyn.neurons.hh import HHTypedNeuron
-from brainpy._src.initialize import Initializer, parameter
-from brainpy.types import ArrayType
+import brainpy.version2.math as bm
+from brainpy.version2.dyn.neurons.hh import HHTypedNeuron
+from brainpy.version2.initialize import Initializer, parameter
+from brainpy.version2.types import ArrayType
 from .base import IonChannel
 
 __all__ = [

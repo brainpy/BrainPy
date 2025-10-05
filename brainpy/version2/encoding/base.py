@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy._src.math.object_transform.base import BrainPyObject
+from brainpy.version2.math.object_transform.base import BrainPyObject
 
 __all__ = [
     'Encoder'

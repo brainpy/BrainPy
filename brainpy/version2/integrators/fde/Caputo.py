@@ -10,12 +10,12 @@ from typing import Union, Dict, Sequence, Callable
 import jax
 from scipy.special import gamma, rgamma
 
-import brainpy.math as bm
+import brainpy.version2.math as bm
 from brainpy import check
-from brainpy._src.integrators.constants import DT
-from brainpy._src.integrators.utils import check_inits, format_args
-from brainpy._errors import UnsupportedError
-from brainpy.types import ArrayType
+from brainpy.version2.integrators.constants import DT
+from brainpy.version2.integrators.utils import check_inits, format_args
+from brainpy.version2._errors import UnsupportedError
+from brainpy.version2.types import ArrayType
 from .base import FDEIntegrator
 from .generic import register_fde_integrator
 
@@ -66,7 +66,7 @@ class CaputoEuler(FDEIntegrator):
 
     Examples::
 
-    >>> import brainpy as bp
+    >>> import brainpy.version2 as bp
     >>>
     >>> a, b, c = 10, 28, 8 / 3
     >>> def lorenz(x, y, z, t):
@@ -259,7 +259,7 @@ class CaputoL1Schema(FDEIntegrator):
 
     Examples::
 
-    >>> import brainpy as bp
+    >>> import brainpy.version2 as bp
     >>>
     >>> a, b, c = 10, 28, 8 / 3
     >>> def lorenz(x, y, z, t):

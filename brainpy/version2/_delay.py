@@ -82,7 +82,7 @@ class Delay(DynamicalSystem):
 
         # target
         if not isinstance(latest, bm.Variable):
-            raise ValueError(f'Must be an instance of brainpy.math.Variable. But we got {type(latest)}')
+            raise ValueError(f'Must be an instance of brainpy.version2.math.Variable. But we got {type(latest)}')
         self.latest = latest
 
         # delay length
@@ -149,7 +149,7 @@ class Delay(DynamicalSystem):
             delay_type = 'heter'
         else:
             raise ValueError(f'Unknown "delay_steps" type {type(delay_step)}, only support '
-                             f'integer, array of integers, callable function, brainpy.init.Initializer.')
+                             f'integer, array of integers, callable function, brainpy.version2.init.Initializer.')
         if delay_type == 'heter':
             if delay_step.dtype not in [jnp.int32, jnp.int64]:
                 raise ValueError('Only support delay steps of int32, int64. If your '

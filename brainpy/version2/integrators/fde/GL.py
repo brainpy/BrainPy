@@ -8,10 +8,10 @@ from typing import Dict, Union, Callable, Any
 
 import jax
 
-import brainpy.math as bm
-from brainpy._src.integrators.constants import DT
-from brainpy._src.integrators.utils import check_inits, format_args
-from brainpy._errors import UnsupportedError
+import brainpy.version2.math as bm
+from brainpy.version2.integrators.constants import DT
+from brainpy.version2.integrators.utils import check_inits, format_args
+from brainpy.version2._errors import UnsupportedError
 from .base import FDEIntegrator
 from .generic import register_fde_integrator
 
@@ -69,7 +69,7 @@ class GLShortMemory(FDEIntegrator):
 
     Examples::
 
-    >>> import brainpy as bp
+    >>> import brainpy.version2 as bp
     >>>
     >>> a, b, c = 10, 28, 8 / 3
     >>> def lorenz(x, y, z, t):

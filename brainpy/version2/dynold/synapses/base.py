@@ -4,15 +4,15 @@ from typing import Union, Dict, Callable, Optional, Tuple
 import jax
 
 from brainpy import math as bm
-from brainpy._src.connect import TwoEndConnector, One2One, All2All
-from brainpy._src.dnn import linear
-from brainpy._src.dyn.base import NeuDyn
-from brainpy._src.dyn.projections.conn import SynConn
-from brainpy._src.dynsys import DynamicalSystem
-from brainpy._src.initialize import parameter
-from brainpy._src.mixin import (ParamDesc, JointType, SupportAutoDelay, BindCondData, ReturnInfo)
-from brainpy._errors import UnsupportedError
-from brainpy.types import ArrayType
+from brainpy.version2.connect import TwoEndConnector, One2One, All2All
+from brainpy.version2.dnn import linear
+from brainpy.version2.dyn.base import NeuDyn
+from brainpy.version2.dyn.projections.conn import SynConn
+from brainpy.version2.dynsys import DynamicalSystem
+from brainpy.version2.initialize import parameter
+from brainpy.version2.mixin import (ParamDesc, JointType, SupportAutoDelay, BindCondData, ReturnInfo)
+from brainpy.version2._errors import UnsupportedError
+from brainpy.version2.types import ArrayType
 
 __all__ = [
     '_SynSTP',

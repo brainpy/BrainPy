@@ -3,10 +3,10 @@ from typing import Union, Dict, Optional
 import jax
 import numpy as np
 
-from brainpy import math as bm
-from brainpy._src.connect import TwoEndConnector, MatConn, IJConn
-from brainpy._src.dynsys import Projection, DynamicalSystem
-from brainpy.types import ArrayType
+from brainpy.version2 import math as bm
+from brainpy.version2.connect import TwoEndConnector, MatConn, IJConn
+from brainpy.version2.dynsys import Projection, DynamicalSystem
+from brainpy.version2.types import ArrayType
 
 __all__ = [
     'SynConn',

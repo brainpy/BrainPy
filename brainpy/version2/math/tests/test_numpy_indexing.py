@@ -36,7 +36,7 @@ from jax._src import test_util as jtu
 from jax._src import util
 from jax._src.lax import lax as lax_internal
 from jax.config import config
-import brainpy.math as bm
+import brainpy.version2.math as bm
 
 config.parse_flags_with_absl()
 

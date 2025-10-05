@@ -2,7 +2,7 @@
 
 
 """
-This module has been deprecated since brainpy>=2.4.0. Use ``brainpy.dyn`` module instead.
+This module has been deprecated since brainpy>=2.4.0. Use ``brainpy.version2.dyn`` module instead.
 """
 
 

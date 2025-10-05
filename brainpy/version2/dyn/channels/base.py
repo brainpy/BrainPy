@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from brainpy._src.dyn.base import IonChaDyn
-from brainpy._src.dyn.neurons.hh import HHTypedNeuron
-from brainpy._src.mixin import TreeNode
+from brainpy.version2.dyn.base import IonChaDyn
+from brainpy.version2.dyn.neurons.hh import HHTypedNeuron
+from brainpy.version2.mixin import TreeNode
 
 __all__ = [
     'IonChannel',

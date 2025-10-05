@@ -238,7 +238,7 @@ def is_initializer(
     """Check the initializer.
     """
     global Array
-    if Array is None: from brainpy._src.math.ndarray import BaseArray as Array
+    if Array is None: from brainpy.version2.math.ndarray import BaseArray as Array
 
     global init
     if init is None:
@@ -258,7 +258,7 @@ def is_initializer(
     elif callable(initializer):
         return initializer
     else:
-        raise ValueError(f'{name} should be an instance of brainpy.init.Initializer, '
+        raise ValueError(f'{name} should be an instance of brainpy.version2.init.Initializer, '
                          f'tensor or callable function. While we got {type(initializer)}')
 
 
@@ -271,7 +271,7 @@ def is_connector(
     """
     global Array
     if Array is None:
-        from brainpy._src.math.ndarray import BaseArray as Array
+        from brainpy.version2.math.ndarray import BaseArray as Array
     global conn
     if conn is None: from brainpy import connect as conn
 
@@ -288,7 +288,7 @@ def is_connector(
     elif callable(connector):
         return connector
     else:
-        raise ValueError(f'{name} should be an instance of brainpy.conn.Connector, '
+        raise ValueError(f'{name} should be an instance of brainpy.version2.conn.Connector, '
                          f'tensor or callable function. While we got {type(connector)}')
 
 
@@ -557,7 +557,7 @@ def is_elem_or_seq_or_dict(targets: Any,
 def is_all_vars(dyn_vars: Any, out_as: str = 'tuple'):
     global var_obs
     if var_obs is None:
-        from brainpy.math import Variable, VarList, VarDict
+        from brainpy.version2.math import Variable, VarList, VarDict
         var_obs = (VarList, VarDict, Variable)
 
     return is_elem_or_seq_or_dict(dyn_vars, var_obs, out_as)
@@ -566,7 +566,7 @@ def is_all_vars(dyn_vars: Any, out_as: str = 'tuple'):
 def is_all_objs(targets: Any, out_as: str = 'tuple'):
     global BrainPyObject
     if BrainPyObject is None:
-        from brainpy._src.math.object_transform.base import BrainPyObject
+        from brainpy.version2.math.object_transform.base import BrainPyObject
     return is_elem_or_seq_or_dict(targets, BrainPyObject, out_as)
 
 
@@ -584,7 +584,7 @@ def _err_jit_false_branch(x):
 
 
 def _cond(err_fun, pred, err_arg):
-    from brainpy._src.math.remove_vmap import remove_vmap
+    from brainpy.version2.math.remove_vmap import remove_vmap
 
     @wraps(err_fun)
     def true_err_fun(arg, transforms):
@@ -608,7 +608,7 @@ def jit_error(pred, err_fun, err_arg=None):
     err_arg: any
       The arguments which passed into `err_f`.
     """
-    from brainpy._src.math.interoperability import as_jax
+    from brainpy.version2.math.interoperability import as_jax
     partial(_cond, err_fun)(as_jax(pred), err_arg)
 
 
@@ -625,8 +625,8 @@ def jit_error_checking_no_args(pred: bool, err: Exception):
     err: Exception
       The error.
     """
-    from brainpy._src.math.remove_vmap import remove_vmap
-    from brainpy._src.math.interoperability import as_jax
+    from brainpy.version2.math.remove_vmap import remove_vmap
+    from brainpy.version2.math.interoperability import as_jax
 
     assert isinstance(err, Exception), 'Must be instance of Exception.'
 
@@ -638,48 +638,48 @@ def jit_error_checking_no_args(pred: bool, err: Exception):
          lambda: None)
 
 __deprecations = {
-    'check_shape_consistency': ('brainpy.checking.check_shape_consistency',
-                                'brainpy.check.is_shape_consistency',
+    'check_shape_consistency': ('brainpy.version2.checking.check_shape_consistency',
+                                'brainpy.version2.check.is_shape_consistency',
                                 check.is_shape_consistency),
-    'check_shape_broadcastable': ('brainpy.checking.check_shape_broadcastable',
-                                  'brainpy.check.is_shape_broadcastable',
+    'check_shape_broadcastable': ('brainpy.version2.checking.check_shape_broadcastable',
+                                  'brainpy.version2.check.is_shape_broadcastable',
                                   check.is_shape_broadcastable),
-    'check_shape_except_batch': ('brainpy.checking.check_shape_except_batch',
-                                 'brainpy.check.check_shape_except_batch',
+    'check_shape_except_batch': ('brainpy.version2.checking.check_shape_except_batch',
+                                 'brainpy.version2.check.check_shape_except_batch',
                                  check.check_shape_except_batch),
-    'check_shape': ('brainpy.checking.check_shape',
-                    'brainpy.check.check_shape',
+    'check_shape': ('brainpy.version2.checking.check_shape',
+                    'brainpy.version2.check.check_shape',
                     check.check_shape),
-    'check_dict_data': ('brainpy.checking.check_dict_data',
-                        'brainpy.check.is_dict_data',
+    'check_dict_data': ('brainpy.version2.checking.check_dict_data',
+                        'brainpy.version2.check.is_dict_data',
                         check.is_dict_data),
-    'check_callable': ('brainpy.checking.check_callable',
-                       'brainpy.check.is_callable',
+    'check_callable': ('brainpy.version2.checking.check_callable',
+                       'brainpy.version2.check.is_callable',
                        check.is_callable),
-    'check_initializer': ('brainpy.checking.check_initializer',
-                          'brainpy.check.is_initializer',
+    'check_initializer': ('brainpy.version2.checking.check_initializer',
+                          'brainpy.version2.check.is_initializer',
                           check.is_initializer),
-    'check_connector': ('brainpy.checking.check_connector',
-                        'brainpy.check.is_connector',
+    'check_connector': ('brainpy.version2.checking.check_connector',
+                        'brainpy.version2.check.is_connector',
                         check.is_connector),
-    'check_float': ('brainpy.checking.check_float',
-                    'brainpy.check.is_float',
+    'check_float': ('brainpy.version2.checking.check_float',
+                    'brainpy.version2.check.is_float',
                     check.is_float),
-    'check_integer': ('brainpy.checking.check_integer',
-                      'brainpy.check.is_integer',
+    'check_integer': ('brainpy.version2.checking.check_integer',
+                      'brainpy.version2.check.is_integer',
                       check.is_integer),
-    'check_string': ('brainpy.checking.check_string',
-                     'brainpy.check.is_string',
+    'check_string': ('brainpy.version2.checking.check_string',
+                     'brainpy.version2.check.is_string',
                      check.is_string),
-    'check_sequence': ('brainpy.checking.check_sequence',
-                       'brainpy.check.is_sequence',
+    'check_sequence': ('brainpy.version2.checking.check_sequence',
+                       'brainpy.version2.check.is_sequence',
                        check.is_sequence),
-    'check_mode': ('brainpy.checking.check_mode',
-                   'brainpy.check.is_subclass',
+    'check_mode': ('brainpy.version2.checking.check_mode',
+                   'brainpy.version2.check.is_subclass',
                    check.is_subclass),
-    'serialize_kwargs': ('brainpy.checking.serialize_kwargs',
-                         'brainpy.check.serialize_kwargs',
+    'serialize_kwargs': ('brainpy.version2.checking.serialize_kwargs',
+                         'brainpy.version2.check.serialize_kwargs',
                          check.serialize_kwargs),
 }
-__getattr__ = deprecation_getattr2('brainpy.checking', __deprecations)
+__getattr__ = deprecation_getattr2('brainpy.version2.checking', __deprecations)
 del deprecation_getattr2

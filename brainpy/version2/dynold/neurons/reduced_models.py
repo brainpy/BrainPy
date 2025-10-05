@@ -4,19 +4,19 @@ from typing import Union, Callable
 
 from jax.lax import stop_gradient
 
-import brainpy.math as bm
-from brainpy._src.context import share
-from brainpy._src.dyn.base import NeuDyn
-from brainpy._src.dyn.neurons import lif
-from brainpy._src.initialize import (ZeroInit,
+import brainpy.version2.math as bm
+from brainpy.version2.context import share
+from brainpy.version2.dyn.base import NeuDyn
+from brainpy.version2.dyn.neurons import lif
+from brainpy.version2.initialize import (ZeroInit,
                                      OneInit,
                                      Initializer,
                                      parameter,
                                      variable_,
                                      noise as init_noise)
-from brainpy._src.integrators import sdeint, odeint, JointEq
-from brainpy.check import is_initializer, is_callable, is_subclass
-from brainpy.types import Shape, ArrayType
+from brainpy.version2.integrators import sdeint, odeint, JointEq
+from brainpy.version2.check import is_initializer, is_callable, is_subclass
+from brainpy.version2.types import Shape, ArrayType
 
 __all__ = [
     'LeakyIntegrator',
@@ -270,7 +270,7 @@ class ExpIF(lif.ExpIFRef):
 
     **Model Examples**
 
-    >>> import brainpy as bp
+    >>> import brainpy.version2 as bp
     >>> group = bp.neurons.ExpIF(1)
     >>> runner = bp.DSRunner(group, monitors=['V'], inputs=('input', 10.))
     >>> runner.run(300., )
@@ -485,7 +485,7 @@ class QuaIF(lif.QuaIFRef):
 
     **Model Examples**
 
-    >>> import brainpy as bp
+    >>> import brainpy.version2 as bp
     >>>
     >>> group = bp.neurons.QuaIF(1,)
     >>>
@@ -583,7 +583,7 @@ class AdQuaIF(lif.AdQuaIFRef):
 
     **Model Examples**
 
-    >>> import brainpy as bp
+    >>> import brainpy.version2 as bp
     >>> group = bp.neurons.AdQuaIF(1, )
     >>> runner = bp.DSRunner(group, monitors=['V', 'w'], inputs=('input', 30.))
     >>> runner.run(300)
@@ -906,8 +906,8 @@ class HindmarshRose(NeuDyn):
 
     **Model Examples**
 
-    >>> import brainpy.math as bm
-    >>> import brainpy as bp
+    >>> import brainpy.version2.math as bm
+    >>> import brainpy.version2 as bp
     >>> import matplotlib.pyplot as plt
     >>>
     >>> bp.math.set_dt(dt=0.01)
@@ -1122,7 +1122,7 @@ class FHN(NeuDyn):
 
     **Model Examples**
 
-    >>> import brainpy as bp
+    >>> import brainpy.version2 as bp
     >>> fhn = bp.neurons.FHN(1)
     >>> runner = bp.DSRunner(fhn, inputs=('input', 1.), monitors=['V', 'w'])
     >>> runner.run(100.)

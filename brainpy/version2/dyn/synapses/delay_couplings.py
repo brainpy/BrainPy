@@ -6,11 +6,11 @@ from typing import Optional, Union, Sequence, Tuple, Callable
 import jax.numpy as jnp
 from jax import vmap
 
-import brainpy.math as bm
-from brainpy._src.dynsys import Projection
-from brainpy._src.initialize import Initializer
-from brainpy.check import is_sequence
-from brainpy.types import ArrayType
+import brainpy.version2.math as bm
+from brainpy.version2.dynsys import Projection
+from brainpy.version2.initialize import Initializer
+from brainpy.version2.check import is_sequence
+from brainpy.version2.types import ArrayType
 
 __all__ = [
     'DelayCoupling',
@@ -53,7 +53,7 @@ class DelayCoupling(Projection):
 
         # delay variable
         if not isinstance(delay_var, bm.Variable):
-            raise ValueError(f'"delay_var" must be an instance of brainpy.math.Variable. '
+            raise ValueError(f'"delay_var" must be an instance of brainpy.version2.math.Variable. '
                              f'But we got {type(delay_var)}')
         self.delay_var = delay_var
 
@@ -123,7 +123,7 @@ class DiffusiveCoupling(DelayCoupling):
 
     Examples::
 
-    >>> import brainpy as bp
+    >>> import brainpy.version2 as bp
     >>> from brainpy import rates
     >>> areas = bp.rates.FHN(80, x_ou_sigma=0.01, y_ou_sigma=0.01, name='fhn')
     >>> conn = bp.synapses.DiffusiveCoupling(areas.x, areas.x, areas.input,
@@ -161,10 +161,10 @@ class DiffusiveCoupling(DelayCoupling):
         mode: bm.Mode = None,
     ):
         if not isinstance(coupling_var1, bm.Variable):
-            raise ValueError(f'"coupling_var1" must be an instance of brainpy.math.Variable. '
+            raise ValueError(f'"coupling_var1" must be an instance of brainpy.version2.math.Variable. '
                              f'But we got {type(coupling_var1)}')
         if not isinstance(coupling_var2, bm.Variable):
-            raise ValueError(f'"coupling_var2" must be an instance of brainpy.math.Variable. '
+            raise ValueError(f'"coupling_var2" must be an instance of brainpy.version2.math.Variable. '
                              f'But we got {type(coupling_var2)}')
         if jnp.ndim(coupling_var1) != 1:
             raise ValueError(f'Only support 1d vector of coupling variable. '
@@ -253,7 +253,7 @@ class AdditiveCoupling(DelayCoupling):
         mode: bm.Mode = None,
     ):
         if not isinstance(coupling_var, bm.Variable):
-            raise ValueError(f'"coupling_var" must be an instance of brainpy.math.Variable. '
+            raise ValueError(f'"coupling_var" must be an instance of brainpy.version2.math.Variable. '
                              f'But we got {type(coupling_var)}')
         if jnp.ndim(coupling_var) != 1:
             raise ValueError(f'Only support 1d vector of coupling variable. '

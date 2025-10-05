@@ -2,13 +2,13 @@
 
 from typing import Union, Dict, Callable, Optional
 
-import brainpy.math as bm
-from brainpy._src.connect import TwoEndConnector
-from brainpy._src.dyn import synapses
-from brainpy._src.dyn.base import NeuDyn
-from brainpy._src.dynold.synapses import _SynSTP, _SynOut, _TwoEndConnAlignPre
-from brainpy._src.dynold.synouts import COBA, MgBlock
-from brainpy.types import ArrayType
+import brainpy.version2.math as bm
+from brainpy.version2.connect import TwoEndConnector
+from brainpy.version2.dyn import synapses
+from brainpy.version2.dyn.base import NeuDyn
+from brainpy.version2.dynold.synapses import _SynSTP, _SynOut, _TwoEndConnAlignPre
+from brainpy.version2.dynold.synouts import COBA, MgBlock
+from brainpy.version2.types import ArrayType
 
 __all__ = [
     'AMPA',
@@ -229,7 +229,7 @@ class BioNMDA(_TwoEndConnAlignPre):
     The NMDA receptor has been thought to be very important for controlling
     synaptic plasticity and mediating learning and memory functions [3]_.
 
-    >>> import brainpy as bp
+    >>> import brainpy.version2 as bp
     >>> from brainpy import neurons, synapses
     >>> import matplotlib.pyplot as plt
     >>>

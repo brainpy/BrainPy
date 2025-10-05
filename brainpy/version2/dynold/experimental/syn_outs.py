@@ -2,9 +2,9 @@
 
 from typing import Union
 
-from brainpy._src.dynold.experimental.base import SynOutNS
-from brainpy.math import exp
-from brainpy.types import ArrayType
+from brainpy.version2.dynold.experimental.base import SynOutNS
+from brainpy.version2.math import exp
+from brainpy.version2.types import ArrayType
 
 __all__ = [
     'COBA',

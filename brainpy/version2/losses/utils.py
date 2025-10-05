@@ -2,8 +2,8 @@
 import jax
 from jax.tree_util import tree_flatten
 
-import brainpy.math as bm
-from brainpy._errors import UnsupportedError
+import brainpy.version2.math as bm
+from brainpy.version2._errors import UnsupportedError
 
 _reduction_error = 'Only support reduction of "mean", "sum" and "none", but we got "%s".'
 

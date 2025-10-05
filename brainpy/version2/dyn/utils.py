@@ -1,6 +1,6 @@
 from typing import Optional
 
-import brainpy.math as bm
+import brainpy.version2.math as bm
 
 __all__ = [
     'get_spk_type',

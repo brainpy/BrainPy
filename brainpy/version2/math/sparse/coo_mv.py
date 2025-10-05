@@ -6,7 +6,7 @@ from typing import Union, Tuple
 import brainevent
 from jax import numpy as jnp
 
-from brainpy._src.math.ndarray import BaseArray as Array
+from brainpy.version2.math.ndarray import BaseArray as Array
 
 __all__ = [
     'coomv',

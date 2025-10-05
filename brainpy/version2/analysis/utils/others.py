@@ -6,7 +6,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
-import brainpy.math as bm
+import brainpy.version2.math as bm
 from .function import f_without_jaxarray_return
 from .measurement import euclidean_distance_jax
 

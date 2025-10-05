@@ -6,8 +6,8 @@ import jax
 from absl.testing import parameterized
 from jax import vmap
 
-import brainpy as bp
-import brainpy.math as bm
+import brainpy.version2 as bp
+import brainpy.version2.math as bm
 
 
 class TestLoop(parameterized.TestCase):

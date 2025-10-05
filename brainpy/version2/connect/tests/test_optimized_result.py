@@ -4,7 +4,7 @@ from time import time
 
 import pytest
 
-import brainpy as bp
+import brainpy.version2 as bp
 
 try:
     import pandas as pd

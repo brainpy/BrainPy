@@ -2,7 +2,7 @@ import unittest
 
 import jax.numpy as jnp
 
-import brainpy as bp
+import brainpy.version2 as bp
 
 
 class TestVarDelay(unittest.TestCase):

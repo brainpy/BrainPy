@@ -1,9 +1,9 @@
 from typing import Union, Optional
 
-import brainpy.math as bm
-from brainpy._src.context import share
-from brainpy._src.dynsys import DynamicalSystem
-from brainpy.check import is_float, is_integer
+import brainpy.version2.math as bm
+from brainpy.version2.context import share
+from brainpy.version2.dynsys import DynamicalSystem
+from brainpy.version2.check import is_float, is_integer
 
 
 class PoissonInput(DynamicalSystem):

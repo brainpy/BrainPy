@@ -4,9 +4,9 @@ from typing import Sequence, Tuple, Any, Callable
 
 import jax
 
-from brainpy._src.math.object_transform.naming import (cache_stack,
+from brainpy.version2.math.object_transform.naming import (cache_stack,
                                                        get_stack_cache)
-from brainpy._src.math.object_transform.variables import VariableStack
+from brainpy.version2.math.object_transform.variables import VariableStack
 
 fun_in_eval_shape = []
 

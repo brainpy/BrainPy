@@ -13,133 +13,133 @@ from brainpy.version2.runners import DSRunner
 from brainpy.version2.deprecations import deprecation_getattr2
 
 tools.__deprecations = {
-  'clear_name_cache': ('brainpy.tools.clear_name_cache', 'brainpy.math.clear_name_cache', math.clear_name_cache),
-  'checking': ('brainpy.tools.checking', 'brainpy.checking', check),
+  'clear_name_cache': ('brainpy.version2.tools.clear_name_cache', 'brainpy.version2.math.clear_name_cache', math.clear_name_cache),
+  'checking': ('brainpy.version2.tools.checking', 'brainpy.version2.checking', check),
 }
-tools.__getattr__ = deprecation_getattr2('brainpy.tools', tools.__deprecations)
+tools.__getattr__ = deprecation_getattr2('brainpy.version2.tools', tools.__deprecations)
 
 integrators.__deprecations = {
-  'Integrator': ('brainpy.integrators.Integrator', 'brainpy.Integrator', Integrator),
-  'odeint': ('brainpy.integrators.odeint', 'brainpy.odeint', odeint),
-  'sdeint': ('brainpy.integrators.sdeint', 'brainpy.sdeint', sdeint),
-  'fdeint': ('brainpy.integrators.fdeint', 'brainpy.fdeint', fdeint),
-  'IntegratorRunner': ('brainpy.integrators.IntegratorRunner', 'brainpy.IntegratorRunner', IntegratorRunner),
-  'JointEq': ('brainpy.integrators.JointEq', 'brainpy.JointEq', JointEq),
+  'Integrator': ('brainpy.version2.integrators.Integrator', 'brainpy.version2.Integrator', Integrator),
+  'odeint': ('brainpy.version2.integrators.odeint', 'brainpy.version2.odeint', odeint),
+  'sdeint': ('brainpy.version2.integrators.sdeint', 'brainpy.version2.sdeint', sdeint),
+  'fdeint': ('brainpy.version2.integrators.fdeint', 'brainpy.version2.fdeint', fdeint),
+  'IntegratorRunner': ('brainpy.version2.integrators.IntegratorRunner', 'brainpy.version2.IntegratorRunner', IntegratorRunner),
+  'JointEq': ('brainpy.version2.integrators.JointEq', 'brainpy.version2.JointEq', JointEq),
 }
-integrators.__getattr__ = deprecation_getattr2('brainpy.integrators', integrators.__deprecations)
+integrators.__getattr__ = deprecation_getattr2('brainpy.version2.integrators', integrators.__deprecations)
 
 train.__deprecations = {
-  'DSTrainer': ('brainpy.train.DSTrainer', 'brainpy.DSTrainer', train.base.DSTrainer),
-  'BPTT': ('brainpy.train.BPTT', 'brainpy.BPTT', train.back_propagation.BPTT),
-  'BPFF': ('brainpy.train.BPFF', 'brainpy.BPFF', train.back_propagation.BPFF),
-  'OnlineTrainer': ('brainpy.train.OnlineTrainer', 'brainpy.OnlineTrainer', train.online.OnlineTrainer),
-  'ForceTrainer': ('brainpy.train.ForceTrainer', 'brainpy.ForceTrainer', train.online.ForceTrainer),
-  'OfflineTrainer': ('brainpy.train.OfflineTrainer', 'brainpy.OfflineTrainer', train.offline.OfflineTrainer),
-  'RidgeTrainer': ('brainpy.train.RidgeTrainer', 'brainpy.RidgeTrainer', train.offline.RidgeTrainer),
+  'DSTrainer': ('brainpy.version2.train.DSTrainer', 'brainpy.version2.DSTrainer', train.base.DSTrainer),
+  'BPTT': ('brainpy.version2.train.BPTT', 'brainpy.version2.BPTT', train.back_propagation.BPTT),
+  'BPFF': ('brainpy.version2.train.BPFF', 'brainpy.version2.BPFF', train.back_propagation.BPFF),
+  'OnlineTrainer': ('brainpy.version2.train.OnlineTrainer', 'brainpy.version2.OnlineTrainer', train.online.OnlineTrainer),
+  'ForceTrainer': ('brainpy.version2.train.ForceTrainer', 'brainpy.version2.ForceTrainer', train.online.ForceTrainer),
+  'OfflineTrainer': ('brainpy.version2.train.OfflineTrainer', 'brainpy.version2.OfflineTrainer', train.offline.OfflineTrainer),
+  'RidgeTrainer': ('brainpy.version2.train.RidgeTrainer', 'brainpy.version2.RidgeTrainer', train.offline.RidgeTrainer),
 }
-train.__getattr__ = deprecation_getattr2('brainpy.train', train.__deprecations)
+train.__getattr__ = deprecation_getattr2('brainpy.version2.train', train.__deprecations)
 
 
 neurons.__deprecations = {
-  'OUProcess': ('brainpy.neurons.OUProcess', 'brainpy.dyn.OUProcess', dyn.OUProcess),
-  'Leaky': ('brainpy.neurons.Leaky', 'brainpy.dyn.Leaky', dyn.Leaky),
-  'Integrator': ('brainpy.neurons.Integrator', 'brainpy.dyn.Integrator', dyn.Integrator),
-  'InputGroup': ('brainpy.neurons.InputGroup', 'brainpy.dyn.InputGroup', dyn.InputGroup),
-  'OutputGroup': ('brainpy.neurons.OutputGroup', 'brainpy.dyn.OutputGroup', dyn.OutputGroup),
-  'SpikeTimeGroup': ('brainpy.neurons.SpikeTimeGroup', 'brainpy.dyn.SpikeTimeGroup', dyn.SpikeTimeGroup),
-  'PoissonGroup': ('brainpy.neurons.PoissonGroup', 'brainpy.dyn.PoissonGroup', dyn.PoissonGroup),
+  'OUProcess': ('brainpy.version2.neurons.OUProcess', 'brainpy.version2.dyn.OUProcess', dyn.OUProcess),
+  'Leaky': ('brainpy.version2.neurons.Leaky', 'brainpy.version2.dyn.Leaky', dyn.Leaky),
+  'Integrator': ('brainpy.version2.neurons.Integrator', 'brainpy.version2.dyn.Integrator', dyn.Integrator),
+  'InputGroup': ('brainpy.version2.neurons.InputGroup', 'brainpy.version2.dyn.InputGroup', dyn.InputGroup),
+  'OutputGroup': ('brainpy.version2.neurons.OutputGroup', 'brainpy.version2.dyn.OutputGroup', dyn.OutputGroup),
+  'SpikeTimeGroup': ('brainpy.version2.neurons.SpikeTimeGroup', 'brainpy.version2.dyn.SpikeTimeGroup', dyn.SpikeTimeGroup),
+  'PoissonGroup': ('brainpy.version2.neurons.PoissonGroup', 'brainpy.version2.dyn.PoissonGroup', dyn.PoissonGroup),
 }
-neurons.__getattr__ = deprecation_getattr2('brainpy.neurons', neurons.__deprecations)
+neurons.__getattr__ = deprecation_getattr2('brainpy.version2.neurons', neurons.__deprecations)
 
 
 synapses.__deprecations = {
-  'PoissonInput': ('brainpy.synapses.PoissonInput', 'brainpy.dyn.PoissonInput', dyn.PoissonInput),
-  'DiffusiveCoupling': ('brainpy.synapses.DiffusiveCoupling', 'brainpy.dyn.DiffusiveCoupling', dyn.DiffusiveCoupling),
-  'AdditiveCoupling': ('brainpy.synapses.AdditiveCoupling', 'brainpy.dyn.AdditiveCoupling', dyn.AdditiveCoupling),
+  'PoissonInput': ('brainpy.version2.synapses.PoissonInput', 'brainpy.version2.dyn.PoissonInput', dyn.PoissonInput),
+  'DiffusiveCoupling': ('brainpy.version2.synapses.DiffusiveCoupling', 'brainpy.version2.dyn.DiffusiveCoupling', dyn.DiffusiveCoupling),
+  'AdditiveCoupling': ('brainpy.version2.synapses.AdditiveCoupling', 'brainpy.version2.dyn.AdditiveCoupling', dyn.AdditiveCoupling),
 }
-synapses.__getattr__ = deprecation_getattr2('brainpy.synapses', synapses.__deprecations)
+synapses.__getattr__ = deprecation_getattr2('brainpy.version2.synapses', synapses.__deprecations)
 
 
 ode.__deprecations = {
-  'odeint': ('brainpy.ode.odeint', 'brainpy.odeint', odeint)
+  'odeint': ('brainpy.version2.ode.odeint', 'brainpy.version2.odeint', odeint)
 }
-ode.__getattr__ = deprecation_getattr2('brainpy.ode', ode.__deprecations)
+ode.__getattr__ = deprecation_getattr2('brainpy.version2.ode', ode.__deprecations)
 
 sde.__deprecations = {
-  'sdeint': ('brainpy.sde.sdeint', 'brainpy.sdeint', sdeint)
+  'sdeint': ('brainpy.version2.sde.sdeint', 'brainpy.version2.sdeint', sdeint)
 }
-sde.__getattr__ = deprecation_getattr2('brainpy.sde', sde.__deprecations)
+sde.__getattr__ = deprecation_getattr2('brainpy.version2.sde', sde.__deprecations)
 
 fde.__deprecations = {
-  'fdeint': ('brainpy.fde.fdeint', 'brainpy.fdeint', fdeint)
+  'fdeint': ('brainpy.version2.fde.fdeint', 'brainpy.version2.fdeint', fdeint)
 }
-fde.__getattr__ = deprecation_getattr2('brainpy.fde', sde.__deprecations)
+fde.__getattr__ = deprecation_getattr2('brainpy.version2.fde', sde.__deprecations)
 
 dyn.__deprecations = {
   # models
-  'DynamicalSystem': ('brainpy.dyn.DynamicalSystem', 'brainpy.DynamicalSystem', DynamicalSystem),
-  'Container': ('brainpy.dyn.Container', 'brainpy.DynSysGroup', DynSysGroup),
-  'Sequential': ('brainpy.dyn.Sequential', 'brainpy.Sequential', Sequential),
-  'Network': ('brainpy.dyn.Network', 'brainpy.Network', Network),
-  'Channel': ('brainpy.dyn.Channel', 'brainpy.IonChaDyn', IonChaDyn),
-  'DSRunner': ('brainpy.dyn.DSRunner', 'brainpy.DSRunner', DSRunner),
+  'DynamicalSystem': ('brainpy.version2.dyn.DynamicalSystem', 'brainpy.version2.DynamicalSystem', DynamicalSystem),
+  'Container': ('brainpy.version2.dyn.Container', 'brainpy.version2.DynSysGroup', DynSysGroup),
+  'Sequential': ('brainpy.version2.dyn.Sequential', 'brainpy.version2.Sequential', Sequential),
+  'Network': ('brainpy.version2.dyn.Network', 'brainpy.version2.Network', Network),
+  'Channel': ('brainpy.version2.dyn.Channel', 'brainpy.version2.IonChaDyn', IonChaDyn),
+  'DSRunner': ('brainpy.version2.dyn.DSRunner', 'brainpy.version2.DSRunner', DSRunner),
 
   # neurons
-  'NeuGroup': ('brainpy.dyn.NeuGroup', 'brainpy.dyn.NeuDyn', NeuDyn),
+  'NeuGroup': ('brainpy.version2.dyn.NeuGroup', 'brainpy.version2.dyn.NeuDyn', NeuDyn),
 
   # projections
-  'ProjAlignPostMg1': ('brainpy.dyn.ProjAlignPostMg1', 'brainpy.dyn.HalfProjAlignPostMg', dyn.HalfProjAlignPostMg),
-  'ProjAlignPostMg2': ('brainpy.dyn.ProjAlignPostMg2', 'brainpy.dyn.FullProjAlignPostMg', dyn.FullProjAlignPostMg),
-  'ProjAlignPost1': ('brainpy.dyn.ProjAlignPost1', 'brainpy.dyn.HalfProjAlignPost', dyn.HalfProjAlignPost),
-  'ProjAlignPost2': ('brainpy.dyn.ProjAlignPost2', 'brainpy.dyn.FullProjAlignPost', dyn.FullProjAlignPost),
-  'ProjAlignPreMg1': ('brainpy.dyn.ProjAlignPreMg1', 'brainpy.dyn.FullProjAlignPreSDMg', dyn.FullProjAlignPreSDMg),
-  'ProjAlignPreMg2': ('brainpy.dyn.ProjAlignPreMg2', 'brainpy.dyn.FullProjAlignPreDSMg', dyn.FullProjAlignPreDSMg),
-  'ProjAlignPre1': ('brainpy.dyn.ProjAlignPre1', 'brainpy.dyn.FullProjAlignPreSD', dyn.FullProjAlignPreSD),
-  'ProjAlignPre2': ('brainpy.dyn.ProjAlignPre2', 'brainpy.dyn.FullProjAlignPreDS', dyn.FullProjAlignPreDS),
+  'ProjAlignPostMg1': ('brainpy.version2.dyn.ProjAlignPostMg1', 'brainpy.version2.dyn.HalfProjAlignPostMg', dyn.HalfProjAlignPostMg),
+  'ProjAlignPostMg2': ('brainpy.version2.dyn.ProjAlignPostMg2', 'brainpy.version2.dyn.FullProjAlignPostMg', dyn.FullProjAlignPostMg),
+  'ProjAlignPost1': ('brainpy.version2.dyn.ProjAlignPost1', 'brainpy.version2.dyn.HalfProjAlignPost', dyn.HalfProjAlignPost),
+  'ProjAlignPost2': ('brainpy.version2.dyn.ProjAlignPost2', 'brainpy.version2.dyn.FullProjAlignPost', dyn.FullProjAlignPost),
+  'ProjAlignPreMg1': ('brainpy.version2.dyn.ProjAlignPreMg1', 'brainpy.version2.dyn.FullProjAlignPreSDMg', dyn.FullProjAlignPreSDMg),
+  'ProjAlignPreMg2': ('brainpy.version2.dyn.ProjAlignPreMg2', 'brainpy.version2.dyn.FullProjAlignPreDSMg', dyn.FullProjAlignPreDSMg),
+  'ProjAlignPre1': ('brainpy.version2.dyn.ProjAlignPre1', 'brainpy.version2.dyn.FullProjAlignPreSD', dyn.FullProjAlignPreSD),
+  'ProjAlignPre2': ('brainpy.version2.dyn.ProjAlignPre2', 'brainpy.version2.dyn.FullProjAlignPreDS', dyn.FullProjAlignPreDS),
 
   # synapses
-  'TwoEndConn': ('brainpy.dyn.TwoEndConn', 'brainpy.synapses.TwoEndConn', synapses.TwoEndConn),
-  'SynSTP': ('brainpy.dyn.SynSTP', 'brainpy.synapses.SynSTP', synapses.SynSTP),
-  'DeltaSynapse': ('brainpy.dyn.DeltaSynapse', 'brainpy.synapses.Delta', synapses.DeltaSynapse),
-  'ExpCUBA': ('brainpy.dyn.ExpCUBA', 'brainpy.synapses.Exponential', synapses.ExpCUBA),
-  'ExpCOBA': ('brainpy.dyn.ExpCOBA', 'brainpy.synapses.Exponential', synapses.ExpCOBA),
-  'DualExpCUBA': ('brainpy.dyn.DualExpCUBA', 'brainpy.synapses.DualExponential', synapses.DualExpCUBA),
-  'DualExpCOBA': ('brainpy.dyn.DualExpCOBA', 'brainpy.synapses.DualExponential', synapses.DualExpCOBA),
-  'AlphaCUBA': ('brainpy.dyn.AlphaCUBA', 'brainpy.synapses.Alpha', synapses.AlphaCUBA),
-  'AlphaCOBA': ('brainpy.dyn.AlphaCOBA', 'brainpy.synapses.Alpha', synapses.AlphaCOBA),
+  'TwoEndConn': ('brainpy.version2.dyn.TwoEndConn', 'brainpy.version2.synapses.TwoEndConn', synapses.TwoEndConn),
+  'SynSTP': ('brainpy.version2.dyn.SynSTP', 'brainpy.version2.synapses.SynSTP', synapses.SynSTP),
+  'DeltaSynapse': ('brainpy.version2.dyn.DeltaSynapse', 'brainpy.version2.synapses.Delta', synapses.DeltaSynapse),
+  'ExpCUBA': ('brainpy.version2.dyn.ExpCUBA', 'brainpy.version2.synapses.Exponential', synapses.ExpCUBA),
+  'ExpCOBA': ('brainpy.version2.dyn.ExpCOBA', 'brainpy.version2.synapses.Exponential', synapses.ExpCOBA),
+  'DualExpCUBA': ('brainpy.version2.dyn.DualExpCUBA', 'brainpy.version2.synapses.DualExponential', synapses.DualExpCUBA),
+  'DualExpCOBA': ('brainpy.version2.dyn.DualExpCOBA', 'brainpy.version2.synapses.DualExponential', synapses.DualExpCOBA),
+  'AlphaCUBA': ('brainpy.version2.dyn.AlphaCUBA', 'brainpy.version2.synapses.Alpha', synapses.AlphaCUBA),
+  'AlphaCOBA': ('brainpy.version2.dyn.AlphaCOBA', 'brainpy.version2.synapses.Alpha', synapses.AlphaCOBA),
 }
-dyn.__getattr__ = deprecation_getattr2('brainpy.dyn', dyn.__deprecations)
+dyn.__getattr__ = deprecation_getattr2('brainpy.version2.dyn', dyn.__deprecations)
 
 dnn.__deprecations = {
-  'NVAR': ('brainpy.dnn.NVAR', 'brainpy.dyn.NVAR', dyn.NVAR),
-  'Reservoir': ('brainpy.dnn.Reservoir', 'brainpy.dyn.Reservoir', dyn.Reservoir),
-  'RNNCell': ('brainpy.dnn.RNNCell', 'brainpy.dyn.RNNCell', dyn.RNNCell),
-  'GRUCell': ('brainpy.dnn.GRUCell', 'brainpy.dyn.GRUCell', dyn.GRUCell),
-  'LSTMCell': ('brainpy.dnn.LSTMCell', 'brainpy.dyn.LSTMCell', dyn.LSTMCell),
-  'Conv1dLSTMCell': ('brainpy.dnn.Conv1dLSTMCell', 'brainpy.dyn.Conv1dLSTMCell', dyn.Conv1dLSTMCell),
-  'Conv2dLSTMCell': ('brainpy.dnn.Conv2dLSTMCell', 'brainpy.dyn.Conv2dLSTMCell', dyn.Conv2dLSTMCell),
-  'Conv3dLSTMCell': ('brainpy.dnn.Conv3dLSTMCell', 'brainpy.dyn.Conv3dLSTMCell', dyn.Conv3dLSTMCell),
+  'NVAR': ('brainpy.version2.dnn.NVAR', 'brainpy.version2.dyn.NVAR', dyn.NVAR),
+  'Reservoir': ('brainpy.version2.dnn.Reservoir', 'brainpy.version2.dyn.Reservoir', dyn.Reservoir),
+  'RNNCell': ('brainpy.version2.dnn.RNNCell', 'brainpy.version2.dyn.RNNCell', dyn.RNNCell),
+  'GRUCell': ('brainpy.version2.dnn.GRUCell', 'brainpy.version2.dyn.GRUCell', dyn.GRUCell),
+  'LSTMCell': ('brainpy.version2.dnn.LSTMCell', 'brainpy.version2.dyn.LSTMCell', dyn.LSTMCell),
+  'Conv1dLSTMCell': ('brainpy.version2.dnn.Conv1dLSTMCell', 'brainpy.version2.dyn.Conv1dLSTMCell', dyn.Conv1dLSTMCell),
+  'Conv2dLSTMCell': ('brainpy.version2.dnn.Conv2dLSTMCell', 'brainpy.version2.dyn.Conv2dLSTMCell', dyn.Conv2dLSTMCell),
+  'Conv3dLSTMCell': ('brainpy.version2.dnn.Conv3dLSTMCell', 'brainpy.version2.dyn.Conv3dLSTMCell', dyn.Conv3dLSTMCell),
 }
-dnn.__getattr__ = deprecation_getattr2('brainpy.dnn', dnn.__deprecations)
+dnn.__getattr__ = deprecation_getattr2('brainpy.version2.dnn', dnn.__deprecations)
 
 layers.__deprecations = {
-  'NVAR': ('brainpy.layers.NVAR', 'brainpy.dyn.NVAR', dyn.NVAR),
-  'Reservoir': ('brainpy.layers.Reservoir', 'brainpy.dyn.Reservoir', dyn.Reservoir),
-  'RNNCell': ('brainpy.layers.RNNCell', 'brainpy.dyn.RNNCell', dyn.RNNCell),
-  'GRUCell': ('brainpy.layers.GRUCell', 'brainpy.dyn.GRUCell', dyn.GRUCell),
-  'LSTMCell': ('brainpy.layers.LSTMCell', 'brainpy.dyn.LSTMCell', dyn.LSTMCell),
-  'Conv1dLSTMCell': ('brainpy.layers.Conv1dLSTMCell', 'brainpy.dyn.Conv1dLSTMCell', dyn.Conv1dLSTMCell),
-  'Conv2dLSTMCell': ('brainpy.layers.Conv2dLSTMCell', 'brainpy.dyn.Conv2dLSTMCell', dyn.Conv2dLSTMCell),
-  'Conv3dLSTMCell': ('brainpy.layers.Conv3dLSTMCell', 'brainpy.dyn.Conv3dLSTMCell', dyn.Conv3dLSTMCell),
+  'NVAR': ('brainpy.version2.layers.NVAR', 'brainpy.version2.dyn.NVAR', dyn.NVAR),
+  'Reservoir': ('brainpy.version2.layers.Reservoir', 'brainpy.version2.dyn.Reservoir', dyn.Reservoir),
+  'RNNCell': ('brainpy.version2.layers.RNNCell', 'brainpy.version2.dyn.RNNCell', dyn.RNNCell),
+  'GRUCell': ('brainpy.version2.layers.GRUCell', 'brainpy.version2.dyn.GRUCell', dyn.GRUCell),
+  'LSTMCell': ('brainpy.version2.layers.LSTMCell', 'brainpy.version2.dyn.LSTMCell', dyn.LSTMCell),
+  'Conv1dLSTMCell': ('brainpy.version2.layers.Conv1dLSTMCell', 'brainpy.version2.dyn.Conv1dLSTMCell', dyn.Conv1dLSTMCell),
+  'Conv2dLSTMCell': ('brainpy.version2.layers.Conv2dLSTMCell', 'brainpy.version2.dyn.Conv2dLSTMCell', dyn.Conv2dLSTMCell),
+  'Conv3dLSTMCell': ('brainpy.version2.layers.Conv3dLSTMCell', 'brainpy.version2.dyn.Conv3dLSTMCell', dyn.Conv3dLSTMCell),
 }
-layers.__getattr__ = deprecation_getattr2('brainpy.layers', layers.__deprecations)
+layers.__getattr__ = deprecation_getattr2('brainpy.version2.layers', layers.__deprecations)
 
 
 connect.__deprecations = {
-    'one2one': ('brainpy.connect.one2one', 'brainpy.connect.One2One', connect.One2One),
-    'all2all': ('brainpy.connect.all2all', 'brainpy.connect.All2All', connect.All2All),
-    'grid_four': ('brainpy.connect.grid_four', 'brainpy.connect.GridFour', connect.GridFour),
-    'grid_eight': ('brainpy.connect.grid_eight', 'brainpy.connect.GridEight', connect.GridEight),
+    'one2one': ('brainpy.version2.connect.one2one', 'brainpy.version2.connect.One2One', connect.One2One),
+    'all2all': ('brainpy.version2.connect.all2all', 'brainpy.version2.connect.All2All', connect.All2All),
+    'grid_four': ('brainpy.version2.connect.grid_four', 'brainpy.version2.connect.GridFour', connect.GridFour),
+    'grid_eight': ('brainpy.version2.connect.grid_eight', 'brainpy.version2.connect.GridEight', connect.GridEight),
 }
-connect.__getattr__ = deprecation_getattr2('brainpy.connect', connect.__deprecations)
+connect.__getattr__ = deprecation_getattr2('brainpy.version2.connect', connect.__deprecations)
 

@@ -6,10 +6,10 @@ import brainstate
 import jax
 import jax.numpy as jnp
 
-import brainpy.math as bm
+import brainpy.version2.math as bm
 from brainpy import check
-from brainpy._src.math.object_transform.base import BrainPyObject
-from brainpy._errors import MathError
+from brainpy.version2.math.object_transform.base import BrainPyObject
+from brainpy.version2._errors import MathError
 
 
 # learning rate schedules #

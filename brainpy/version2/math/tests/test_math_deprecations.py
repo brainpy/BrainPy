@@ -1,6 +1,6 @@
 from absl.testing import parameterized
 
-import brainpy.math as bm
+import brainpy.version2.math as bm
 
 deprecated_names = list(bm.__deprecations.keys())
 

@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
 
 
-from brainpy._src.context import share
-from brainpy._src.dynsys import DynamicalSystem
-from brainpy._src.integrators.base import Integrator
-from brainpy._src.integrators.joint_eq import JointEq
-from brainpy._src.integrators.ode.base import ODEIntegrator
-from brainpy._src.integrators.ode.generic import odeint
-from brainpy._src.math.environment import get_float
-from brainpy._src.math.interoperability import as_jax
-from brainpy._src.math.object_transform import Variable
-from brainpy._src.runners import DSRunner
-from brainpy._errors import AnalyzerError, UnsupportedError
+from brainpy.version2.context import share
+from brainpy.version2.dynsys import DynamicalSystem
+from brainpy.version2.integrators.base import Integrator
+from brainpy.version2.integrators.joint_eq import JointEq
+from brainpy.version2.integrators.ode.base import ODEIntegrator
+from brainpy.version2.integrators.ode.generic import odeint
+from brainpy.version2.math.environment import get_float
+from brainpy.version2.math.interoperability import as_jax
+from brainpy.version2.math.object_transform import Variable
+from brainpy.version2.runners import DSRunner
+from brainpy.version2._errors import AnalyzerError, UnsupportedError
 
 __all__ = [
     'model_transform',

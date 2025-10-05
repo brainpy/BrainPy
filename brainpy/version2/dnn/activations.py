@@ -1,8 +1,8 @@
 from typing import Optional
 
-from brainpy import math as bm
-from brainpy._src.dnn.base import Layer
-from brainpy.types import ArrayType
+from brainpy.version2 import math as bm
+from brainpy.version2.dnn.base import Layer
+from brainpy.version2.types import ArrayType
 
 __all__ = [
     'Threshold', 'ReLU', 'RReLU', 'Hardtanh', 'ReLU6', 'Sigmoid', 'Hardsigmoid', 'Tanh',
@@ -14,7 +14,7 @@ __all__ = [
 
 def _inplace(inp, val, inplace):
     if inplace:
-        assert isinstance(inp, bm.BaseArray), 'input must be instance of brainpy.math.Array if inplace=True'
+        assert isinstance(inp, bm.BaseArray), 'input must be instance of brainpy.version2.math.Array if inplace=True'
         inp.value = val
         return inp
     else:
@@ -44,8 +44,8 @@ class Threshold(Layer):
 
     Examples::
 
-        >>> import brainpy as bp
-        >>> import brainpy.math as bm
+        >>> import brainpy.version2 as bp
+        >>> import brainpy.version2.math as bm
         >>> m = bp.dnn.Threshold(0.1, 20)
         >>> input = bm.random.randn(2)
         >>> output = m(input)
@@ -87,8 +87,8 @@ class ReLU(Layer):
 
     Examples::
 
-        >>> import brainpy as bp
-        >>> import brainpy.math as bm
+        >>> import brainpy.version2 as bp
+        >>> import brainpy.version2.math as bm
         >>> m = bp.dnn.ReLU()
         >>> input = bm.random.randn(2)
         >>> output = m(input)
@@ -96,8 +96,8 @@ class ReLU(Layer):
 
       An implementation of CReLU - https://arxiv.org/abs/1603.05201
 
-        >>> import brainpy as bp
-        >>> import brainpy.math as bm
+        >>> import brainpy.version2 as bp
+        >>> import brainpy.version2.math as bm
         >>> m = bp.dnn.ReLU()
         >>> input = bm.random.randn(2).unsqueeze(0)
         >>> output = bm.cat((m(input), m(-input)))
@@ -149,8 +149,8 @@ class RReLU(Layer):
 
     Examples::
 
-        >>> import brainpy as bp
-        >>> import brainpy.math as bm
+        >>> import brainpy.version2 as bp
+        >>> import brainpy.version2.math as bm
         >>> m = bp.dnn.RReLU(0.1, 0.3)
         >>> input = bm.random.randn(2)
         >>> output = m(input)
@@ -210,8 +210,8 @@ class Hardtanh(Layer):
 
     Examples::
 
-        >>> import brainpy as bp
-        >>> import brainpy.math as bm
+        >>> import brainpy.version2 as bp
+        >>> import brainpy.version2.math as bm
         >>> m = bp.dnn.Hardtanh(-2, 2)
         >>> input = bm.random.randn(2)
         >>> output = m(input)
@@ -260,8 +260,8 @@ class ReLU6(Hardtanh):
 
     Examples::
 
-        >>> import brainpy as bp
-        >>> import brainpy.math as bm
+        >>> import brainpy.version2 as bp
+        >>> import brainpy.version2.math as bm
         >>> m = bp.dnn.test_ReLU6()
         >>> input = bm.random.randn(2)
         >>> output = m(input)
@@ -288,8 +288,8 @@ class Sigmoid(Layer):
 
     Examples::
 
-        >>> import brainpy as bp
-        >>> import brainpy.math as bm
+        >>> import brainpy.version2 as bp
+        >>> import brainpy.version2.math as bm
         >>> m = bp.dnn.Sigmoid()
         >>> input = bm.random.randn(2)
         >>> output = m(input)
@@ -320,8 +320,8 @@ class Hardsigmoid(Layer):
 
     Examples::
 
-        >>> import brainpy as bp
-        >>> import brainpy.math as bm
+        >>> import brainpy.version2 as bp
+        >>> import brainpy.version2.math as bm
         >>> m = bp.dnn.Hardsigmoid()
         >>> input = bm.random.randn(2)
         >>> output = m(input)
@@ -353,8 +353,8 @@ class Tanh(Layer):
 
     Examples::
 
-        >>> import brainpy as bp
-        >>> import brainpy.math as bm
+        >>> import brainpy.version2 as bp
+        >>> import brainpy.version2.math as bm
         >>> m = bp.dnn.Tanh()
         >>> input = bm.random.randn(2)
         >>> output = m(input)
@@ -387,8 +387,8 @@ class SiLU(Layer):
 
     Examples::
 
-        >>> import brainpy as bp
-        >>> import brainpy.math as bm
+        >>> import brainpy.version2 as bp
+        >>> import brainpy.version2.math as bm
         >>> m = bp.dnn.SiLU()
         >>> input = bm.random.randn(2)
         >>> output = m(input)
@@ -427,8 +427,8 @@ class Mish(Layer):
 
     Examples::
 
-        >>> import brainpy as bp
-        >>> import brainpy.math as bm
+        >>> import brainpy.version2 as bp
+        >>> import brainpy.version2.math as bm
         >>> m = bp.dnn.Mish()
         >>> input = bm.random.randn(2)
         >>> output = m(input)
@@ -470,8 +470,8 @@ class Hardswish(Layer):
 
     Examples::
 
-        >>> import brainpy as bp
-        >>> import brainpy.math as bm
+        >>> import brainpy.version2 as bp
+        >>> import brainpy.version2.math as bm
         >>> m = bp.dnn.Hardswish()
         >>> input = bm.random.randn(2)
         >>> output = m(input)
@@ -511,8 +511,8 @@ class ELU(Layer):
 
     Examples::
 
-        >>> import brainpy as bp
-        >>> import brainpy.math as bm
+        >>> import brainpy.version2 as bp
+        >>> import brainpy.version2.math as bm
         >>> m = bp.dnn.ELU()
         >>> input = bm.random.randn(2)
         >>> output = m(input)
@@ -552,8 +552,8 @@ class CELU(Layer):
 
     Examples::
 
-        >>> import brainpy as bp
-        >>> import brainpy.math as bm
+        >>> import brainpy.version2 as bp
+        >>> import brainpy.version2.math as bm
         >>> m = bp.dnn.CELU()
         >>> input = bm.random.randn(2)
         >>> output = m(input)
@@ -598,8 +598,8 @@ class SELU(Layer):
 
     Examples::
 
-        >>> import brainpy as bp
-        >>> import brainpy.math as bm
+        >>> import brainpy.version2 as bp
+        >>> import brainpy.version2.math as bm
         >>> m = bp.dnn.SELU()
         >>> input = bm.random.randn(2)
         >>> output = m(input)
@@ -636,8 +636,8 @@ class GLU(Layer):
 
     Examples::
 
-        >>> import brainpy as bp
-        >>> import brainpy.math as bm
+        >>> import brainpy.version2 as bp
+        >>> import brainpy.version2.math as bm
         >>> m = bp.dnn.GLU()
         >>> input = bm.random.randn(4, 2)
         >>> output = m(input)
@@ -677,8 +677,8 @@ class GELU(Layer):
 
     Examples::
 
-        >>> import brainpy as bp
-        >>> import brainpy.math as bm
+        >>> import brainpy.version2 as bp
+        >>> import brainpy.version2.math as bm
         >>> m = bp.dnn.GELU()
         >>> input = bm.random.randn(2)
         >>> output = m(input)
@@ -719,8 +719,8 @@ class Hardshrink(Layer):
 
     Examples::
 
-        >>> import brainpy as bp
-        >>> import brainpy.math as bm
+        >>> import brainpy.version2 as bp
+        >>> import brainpy.version2.math as bm
         >>> m = bp.dnn.Hardshrink()
         >>> input = bm.random.randn(2)
         >>> output = m(input)
@@ -767,8 +767,8 @@ class LeakyReLU(Layer):
 
     Examples::
 
-        >>> import brainpy as bp
-        >>> import brainpy.math as bm
+        >>> import brainpy.version2 as bp
+        >>> import brainpy.version2.math as bm
         >>> m = bp.dnn.LeakyReLU(0.1)
         >>> input = bm.random.randn(2)
         >>> output = m(input)
@@ -802,8 +802,8 @@ class LogSigmoid(Layer):
 
     Examples::
 
-        >>> import brainpy as bp
-        >>> import brainpy.math as bm
+        >>> import brainpy.version2 as bp
+        >>> import brainpy.version2.math as bm
         >>> m = bp.dnn.LogSigmoid()
         >>> input = bm.random.randn(2)
         >>> output = m(input)
@@ -833,8 +833,8 @@ class Softplus(Layer):
 
     Examples::
 
-        >>> import brainpy as bp
-        >>> import brainpy.math as bm
+        >>> import brainpy.version2 as bp
+        >>> import brainpy.version2.math as bm
         >>> m = bp.dnn.Softplus()
         >>> input = bm.random.randn(2)
         >>> output = m(input)
@@ -875,8 +875,8 @@ class Softshrink(Layer):
 
     Examples::
 
-        >>> import brainpy as bp
-        >>> import brainpy.math as bm
+        >>> import brainpy.version2 as bp
+        >>> import brainpy.version2.math as bm
         >>> m = bp.dnn.Softshrink()
         >>> input = bm.random.randn(2)
         >>> output = m(input)
@@ -938,8 +938,8 @@ class PReLU(Layer):
 
     Examples::
 
-        >>> import brainpy as bp
-        >>> import brainpy.math as bm
+        >>> import brainpy.version2 as bp
+        >>> import brainpy.version2.math as bm
         >>> m = bp.dnn.PReLU()
         >>> input = bm.random.randn(2)
         >>> output = m(input)
@@ -971,8 +971,8 @@ class Softsign(Layer):
 
     Examples::
 
-        >>> import brainpy as bp
-        >>> import brainpy.math as bm
+        >>> import brainpy.version2 as bp
+        >>> import brainpy.version2.math as bm
         >>> m = bp.dnn.Softsign()
         >>> input = bm.random.randn(2)
         >>> output = m(input)
@@ -994,8 +994,8 @@ class Tanhshrink(Layer):
 
     Examples::
 
-        >>> import brainpy as bp
-        >>> import brainpy.math as bm
+        >>> import brainpy.version2 as bp
+        >>> import brainpy.version2.math as bm
         >>> m = bp.dnn.Tanhshrink()
         >>> input = bm.random.randn(2)
         >>> output = m(input)
@@ -1030,8 +1030,8 @@ class Softmin(Layer):
 
     Examples::
 
-        >>> import brainpy as bp
-        >>> import brainpy.math as bm
+        >>> import brainpy.version2 as bp
+        >>> import brainpy.version2.math as bm
         >>> m = bp.dnn.Softmin(dim=1)
         >>> input = bm.random.randn(2, 3)
         >>> output = m(input)
@@ -1083,8 +1083,8 @@ class Softmax(Layer):
 
     Examples::
 
-        >>> import brainpy as bp
-        >>> import brainpy.math as bm
+        >>> import brainpy.version2 as bp
+        >>> import brainpy.version2.math as bm
         >>> m = bp.dnn.Softmax(dim=1)
         >>> input = bm.random.randn(2, 3)
         >>> output = m(input)
@@ -1120,8 +1120,8 @@ class Softmax2d(Layer):
 
     Examples::
 
-        >>> import brainpy as bp
-        >>> import brainpy.math as bm
+        >>> import brainpy.version2 as bp
+        >>> import brainpy.version2.math as bm
         >>> m = bp.dnn.Softmax2d()
         >>> # you softmax over the 2nd dimension
         >>> input = bm.random.randn(2, 3, 12, 13)
@@ -1154,8 +1154,8 @@ class LogSoftmax(Layer):
 
     Examples::
 
-        >>> import brainpy as bp
-        >>> import brainpy.math as bm
+        >>> import brainpy.version2 as bp
+        >>> import brainpy.version2.math as bm
         >>> m = bp.dnn.LogSoftmax(dim=1)
         >>> input = bm.random.randn(2, 3)
         >>> output = m(input)

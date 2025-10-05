@@ -12,8 +12,8 @@ else:
     from jax.core import Primitive
 from jax.interpreters import batching, ad, mlir
 
-from brainpy._src.math.interoperability import as_jax
-from brainpy._src.math.ndarray import BaseArray as Array
+from brainpy.version2.math.interoperability import as_jax
+from brainpy.version2.math.ndarray import BaseArray as Array
 
 __all__ = [
     'Surrogate',
@@ -102,8 +102,8 @@ class Surrogate(object):
 
     Examples::
 
-    >>> import brainpy as bp
-    >>> import brainpy.math as bm
+    >>> import brainpy.version2 as bp
+    >>> import brainpy.version2.math as bm
     >>> import jax.numpy as jnp
 
     >>> class MySurrogate(bm.Surrogate):
@@ -191,8 +191,8 @@ def sigmoid(
     .. plot::
        :include-source: True
 
-       >>> import brainpy as bp
-       >>> import brainpy.math as bm
+       >>> import brainpy.version2 as bp
+       >>> import brainpy.version2.math as bm
        >>> import matplotlib.pyplot as plt
        >>> bp.visualize.get_figure(1, 1, 4, 6)
        >>> xs = bm.linspace(-2, 2, 1000)
@@ -288,8 +288,8 @@ def piecewise_quadratic(
     .. plot::
        :include-source: True
 
-       >>> import brainpy as bp
-       >>> import brainpy.math as bm
+       >>> import brainpy.version2 as bp
+       >>> import brainpy.version2.math as bm
        >>> import matplotlib.pyplot as plt
        >>> bp.visualize.get_figure(1, 1, 4, 6)
        >>> xs = bm.linspace(-3, 3, 1000)
@@ -382,8 +382,8 @@ def piecewise_exp(
     .. plot::
        :include-source: True
 
-       >>> import brainpy as bp
-       >>> import brainpy.math as bm
+       >>> import brainpy.version2 as bp
+       >>> import brainpy.version2.math as bm
        >>> import matplotlib.pyplot as plt
        >>> bp.visualize.get_figure(1, 1, 4, 6)
        >>> xs = bm.linspace(-3, 3, 1000)
@@ -470,8 +470,8 @@ def soft_sign(
     .. plot::
        :include-source: True
 
-       >>> import brainpy as bp
-       >>> import brainpy.math as bm
+       >>> import brainpy.version2 as bp
+       >>> import brainpy.version2.math as bm
        >>> import matplotlib.pyplot as plt
        >>> bp.visualize.get_figure(1, 1, 4, 6)
        >>> xs = bm.linspace(-3, 3, 1000)
@@ -554,8 +554,8 @@ def arctan(
     .. plot::
        :include-source: True
 
-       >>> import brainpy as bp
-       >>> import brainpy.math as bm
+       >>> import brainpy.version2 as bp
+       >>> import brainpy.version2.math as bm
        >>> import matplotlib.pyplot as plt
        >>> bp.visualize.get_figure(1, 1, 4, 6)
        >>> xs = bm.linspace(-3, 3, 1000)
@@ -651,8 +651,8 @@ def nonzero_sign_log(
     .. plot::
        :include-source: True
 
-       >>> import brainpy as bp
-       >>> import brainpy.math as bm
+       >>> import brainpy.version2 as bp
+       >>> import brainpy.version2.math as bm
        >>> import matplotlib.pyplot as plt
        >>> bp.visualize.get_figure(1, 1, 4, 6)
        >>> xs = bm.linspace(-3, 3, 1000)
@@ -739,8 +739,8 @@ def erf(
     .. plot::
        :include-source: True
 
-       >>> import brainpy as bp
-       >>> import brainpy.math as bm
+       >>> import brainpy.version2 as bp
+       >>> import brainpy.version2.math as bm
        >>> import matplotlib.pyplot as plt
        >>> bp.visualize.get_figure(1, 1, 4, 6)
        >>> xs = bm.linspace(-3, 3, 1000)
@@ -845,8 +845,8 @@ def piecewise_leaky_relu(
     .. plot::
        :include-source: True
 
-       >>> import brainpy as bp
-       >>> import brainpy.math as bm
+       >>> import brainpy.version2 as bp
+       >>> import brainpy.version2.math as bm
        >>> import matplotlib.pyplot as plt
        >>> bp.visualize.get_figure(1, 1, 4, 6)
        >>> xs = bm.linspace(-3, 3, 1000)
@@ -955,8 +955,8 @@ def squarewave_fourier_series(
     .. plot::
        :include-source: True
 
-       >>> import brainpy as bp
-       >>> import brainpy.math as bm
+       >>> import brainpy.version2 as bp
+       >>> import brainpy.version2.math as bm
        >>> import matplotlib.pyplot as plt
        >>> bp.visualize.get_figure(1, 1, 4, 6)
        >>> xs = bm.linspace(-3, 3, 1000)
@@ -1055,8 +1055,8 @@ def s2nn(
     .. plot::
        :include-source: True
 
-       >>> import brainpy as bp
-       >>> import brainpy.math as bm
+       >>> import brainpy.version2 as bp
+       >>> import brainpy.version2.math as bm
        >>> import matplotlib.pyplot as plt
        >>> bp.visualize.get_figure(1, 1, 4, 6)
        >>> xs = bm.linspace(-3, 3, 1000)
@@ -1155,8 +1155,8 @@ def q_pseudo_spike(
     .. plot::
        :include-source: True
 
-       >>> import brainpy as bp
-       >>> import brainpy.math as bm
+       >>> import brainpy.version2 as bp
+       >>> import brainpy.version2.math as bm
        >>> import matplotlib.pyplot as plt
        >>> xs = bm.linspace(-3, 3, 1000)
        >>> bp.visualize.get_figure(1, 1, 4, 6)
@@ -1252,8 +1252,8 @@ def leaky_relu(
     .. plot::
        :include-source: True
 
-       >>> import brainpy as bp
-       >>> import brainpy.math as bm
+       >>> import brainpy.version2 as bp
+       >>> import brainpy.version2.math as bm
        >>> import matplotlib.pyplot as plt
        >>> xs = bm.linspace(-3, 3, 1000)
        >>> bp.visualize.get_figure(1, 1, 4, 6)
@@ -1355,8 +1355,8 @@ def log_tailed_relu(
     .. plot::
        :include-source: True
 
-       >>> import brainpy as bp
-       >>> import brainpy.math as bm
+       >>> import brainpy.version2 as bp
+       >>> import brainpy.version2.math as bm
        >>> import matplotlib.pyplot as plt
        >>> xs = bm.linspace(-3, 3, 1000)
        >>> bp.visualize.get_figure(1, 1, 4, 6)
@@ -1432,8 +1432,8 @@ def relu_grad(
     .. plot::
        :include-source: True
 
-       >>> import brainpy as bp
-       >>> import brainpy.math as bm
+       >>> import brainpy.version2 as bp
+       >>> import brainpy.version2.math as bm
        >>> import matplotlib.pyplot as plt
        >>> xs = bm.linspace(-3, 3, 1000)
        >>> bp.visualize.get_figure(1, 1, 4, 6)
@@ -1512,8 +1512,8 @@ def gaussian_grad(
     .. plot::
        :include-source: True
 
-       >>> import brainpy as bp
-       >>> import brainpy.math as bm
+       >>> import brainpy.version2 as bp
+       >>> import brainpy.version2.math as bm
        >>> import matplotlib.pyplot as plt
        >>> xs = bm.linspace(-3, 3, 1000)
        >>> bp.visualize.get_figure(1, 1, 4, 6)
@@ -1605,8 +1605,8 @@ def multi_gaussian_grad(
     .. plot::
        :include-source: True
 
-       >>> import brainpy as bp
-       >>> import brainpy.math as bm
+       >>> import brainpy.version2 as bp
+       >>> import brainpy.version2.math as bm
        >>> import matplotlib.pyplot as plt
        >>> xs = bm.linspace(-3, 3, 1000)
        >>> bp.visualize.get_figure(1, 1, 4, 6)
@@ -1684,8 +1684,8 @@ def inv_square_grad(
     .. plot::
        :include-source: True
 
-       >>> import brainpy as bp
-       >>> import brainpy.math as bm
+       >>> import brainpy.version2 as bp
+       >>> import brainpy.version2.math as bm
        >>> import matplotlib.pyplot as plt
        >>> xs = bm.linspace(-1, 1, 1000)
        >>> for alpha in [1., 10., 100.]:
@@ -1754,8 +1754,8 @@ def slayer_grad(
     .. plot::
        :include-source: True
 
-       >>> import brainpy as bp
-       >>> import brainpy.math as bm
+       >>> import brainpy.version2 as bp
+       >>> import brainpy.version2.math as bm
        >>> import matplotlib.pyplot as plt
        >>> bp.visualize.get_figure(1, 1, 4, 6)
        >>> xs = bm.linspace(-3, 3, 1000)

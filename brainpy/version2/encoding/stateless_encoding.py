@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-import brainpy.math as bm
+import brainpy.version2.math as bm
 from brainpy import check
 from .base import Encoder
 
@@ -25,8 +25,8 @@ class PoissonEncoder(Encoder):
 
     Examples::
 
-       import brainpy as bp
-       import brainpy.math as bm
+       import brainpy.version2 as bp
+       import brainpy.version2.math as bm
 
        img = bm.random.random((10, 2))  # image to encode (normalized to [0., 1.])
        encoder = bp.encoding.PoissonEncoder()  # the encoder
@@ -86,7 +86,7 @@ class PoissonEncoder(Encoder):
         Args:
           x: Array. The rate input.
           n_time: float. Encode rate values as spike trains in the given time length.
-            ``n_time`` is converted into the ``n_step`` according to `n_step = int(n_time / brainpy.math.dt)`.
+            ``n_time`` is converted into the ``n_step`` according to `n_step = int(n_time / brainpy.version2.math.dt)`.
             - If ``n_time=None``, encode the rate values at the current time step.
               Users should repeatedly call it to encode `x` as a spike train.
             - Else, given the ``x`` with shape ``(S, ...)``, the encoded

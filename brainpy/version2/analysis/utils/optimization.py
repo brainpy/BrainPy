@@ -7,14 +7,11 @@ import numpy as np
 from jax import grad, jit, vmap
 from jax.flatten_util import ravel_pytree
 
-import brainpy._src.math as bm
-from brainpy import _errors
+import brainpy.version2.math as bm
+from brainpy import _errors as errors
 from . import f_without_jaxarray_return
 
-try:
-    import scipy.optimize as soptimize
-except (ModuleNotFoundError, ImportError):
-    soptimize = None
+import scipy.optimize as soptimize
 
 __all__ = [
     'ECONVERGED', 'ECONVERR',
@@ -55,7 +52,7 @@ def _where(p, a, b):
 def jax_brentq(fun):
     f = f_without_jaxarray_return(fun)
     assert jax.config.read('jax_enable_x64'), ('Brentq optimization need x64 support. '
-                                               'Please enable x64 with "brainpy.math.enable_x64()"')
+                                               'Please enable x64 with "brainpy.version2.math.enable_x64()"')
     rtol = 4 * jnp.finfo(jnp.float64).eps
 
     # if jax.config.read('jax_enable_x64'):

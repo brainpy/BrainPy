@@ -219,7 +219,7 @@ class VarDelay(Delay):
 
         # check
         if not isinstance(target, bm.Variable):
-            raise ValueError(f'Must be an instance of brainpy.math.Variable. But we got {type(target)}')
+            raise ValueError(f'Must be an instance of brainpy.version2.math.Variable. But we got {type(target)}')
 
         if self.mode.is_child_of(bm.BatchingMode):
             assert target.batch_axis is not None

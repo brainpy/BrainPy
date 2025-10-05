@@ -1,5 +1,5 @@
-from brainpy import math as bm
-from brainpy._src.mixin import ReturnInfo
+from brainpy.version2 import math as bm
+from brainpy.version2.mixin import ReturnInfo
 
 
 def _get_return(return_info):

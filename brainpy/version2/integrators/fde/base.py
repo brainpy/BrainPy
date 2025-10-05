@@ -4,11 +4,11 @@ from typing import Union, Callable, Dict
 
 import jax.numpy as jnp
 
-import brainpy.math as bm
-from brainpy._src.integrators.base import Integrator
-from brainpy._src.integrators.utils import get_args
-from brainpy.check import is_integer
-from brainpy._errors import UnsupportedError
+import brainpy.version2.math as bm
+from brainpy.version2.integrators.base import Integrator
+from brainpy.version2.integrators.utils import get_args
+from brainpy.version2.check import is_integer
+from brainpy.version2._errors import UnsupportedError
 
 __all__ = [
     'FDEIntegrator'

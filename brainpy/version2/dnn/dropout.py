@@ -2,9 +2,9 @@
 
 from typing import Optional
 
-from brainpy import math as bm, check
-from brainpy._src.context import share
-from brainpy._src.dnn.base import Layer
+from brainpy.version2 import math as bm, check
+from brainpy.version2.context import share
+from brainpy.version2.dnn.base import Layer
 
 __all__ = [
     'Dropout'
@@ -17,7 +17,7 @@ class Dropout(Layer):
     In training, to compensate for the fraction of input values dropped (`rate`),
     all surviving values are multiplied by `1 / (1 - rate)`.
 
-    This layer is active only during training (``mode=brainpy.math.training_mode``). In other
+    This layer is active only during training (``mode=brainpy.version2.math.training_mode``). In other
     circumstances it is a no-op.
 
     .. [1] Srivastava, Nitish, et al. "Dropout: a simple way to prevent

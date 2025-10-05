@@ -6,8 +6,8 @@ import jax.random as jr
 import numpy as np
 import pytest
 
-import brainpy.math as bm
-import brainpy.math.random as br
+import brainpy.version2.math as bm
+import brainpy.version2.math.random as br
 
 
 class TestRandom(unittest.TestCase):

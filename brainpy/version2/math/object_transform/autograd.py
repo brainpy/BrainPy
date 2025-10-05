@@ -54,8 +54,8 @@ def grad(
     And, what should be labeled in ``argnums``?
     Take the following codes as example:
 
-    >>> import brainpy as bp
-    >>> import brainpy.math as bm
+    >>> import brainpy.version2 as bp
+    >>> import brainpy.version2.math as bm
     >>>
     >>> class Example(bp.BrainPyObject):
     >>>   def __init__(self):
@@ -80,7 +80,7 @@ def grad(
     labeled as ``grad_vars``, while all gradient variables provided in the function arguments
     should be declared in ``argnums``.
     In above codes, we try to take gradients of ``self.x`` and arguments ``z`` and ``v``, we should
-    call ``brainpy.math.grad`` as:
+    call ``brainpy.version2.math.grad`` as:
 
     >>> f = Example()
     >>> f_grad = bm.grad(f, grad_vars=f.x, argnums=(0, 1))
@@ -90,7 +90,7 @@ def grad(
     
     Grad for a pure function:
 
-    >>> import brainpy as bp
+    >>> import brainpy.version2 as bp
     >>> grad_tanh = grad(bp.math.tanh)
     >>> print(grad_tanh(0.2))
     0.961043
@@ -167,8 +167,8 @@ def jacrev(
     computation on functions and class functions. Moreover, it supports returning
     value ("return_value") and returning auxiliary data ("has_aux").
 
-    Same as `brainpy.math.grad <./brainpy.math.autograd.grad.html>`_, the returns are
-    different for different argument settings in ``brainpy.math.jacrev``.
+    Same as `brainpy.version2.math.grad <./brainpy.version2.math.autograd.grad.html>`_, the returns are
+    different for different argument settings in ``brainpy.version2.math.jacrev``.
 
     1. When "grad_vars" is None
       - "has_aux=False" + "return_value=False" => ``arg_grads``.
@@ -244,8 +244,8 @@ def jacfwd(
     computation on functions and class functions. Moreover, it supports returning
     value ("return_value") and returning auxiliary data ("has_aux").
 
-    Same as `brainpy.math.grad <./brainpy.math.autograd.grad.html>`_, the returns are
-    different for different argument settings in ``brainpy.math.jacfwd``.
+    Same as `brainpy.version2.math.grad <./brainpy.version2.math.autograd.grad.html>`_, the returns are
+    different for different argument settings in ``brainpy.version2.math.jacfwd``.
 
     1. When "grad_vars" is None
       - "has_aux=False" + "return_value=False" => ``arg_grads``.
@@ -347,9 +347,9 @@ def vector_grad(
 ) -> Callable:
     """Take vector-valued gradients for function ``func``.
 
-    Same as `brainpy.math.grad <./brainpy.math.autograd.grad.html>`_,
-    `brainpy.math.jacrev <./brainpy.math.autograd.jacrev.html>`_ and
-    `brainpy.math.jacfwd <./brainpy.math.autograd.jacfwd.html>`_,
+    Same as `brainpy.version2.math.grad <./brainpy.version2.math.autograd.grad.html>`_,
+    `brainpy.version2.math.jacrev <./brainpy.version2.math.autograd.jacrev.html>`_ and
+    `brainpy.version2.math.jacfwd <./brainpy.version2.math.autograd.jacfwd.html>`_,
     the returns in this function are different for different argument settings.
 
     1. When "grad_vars" is None

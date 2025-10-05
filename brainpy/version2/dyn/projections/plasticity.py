@@ -1,12 +1,12 @@
 from typing import Optional, Callable, Union
 
-from brainpy import math as bm, check
-from brainpy._src.delay import register_delay_by_return
-from brainpy._src.dyn.synapses.abstract_models import Expon
-from brainpy._src.dynsys import DynamicalSystem, Projection
-from brainpy._src.mixin import (JointType, ParamDescriber, SupportAutoDelay,
+from brainpy.version2 import math as bm, check
+from brainpy.version2.delay import register_delay_by_return
+from brainpy.version2.dyn.synapses.abstract_models import Expon
+from brainpy.version2.dynsys import DynamicalSystem, Projection
+from brainpy.version2.mixin import (JointType, ParamDescriber, SupportAutoDelay,
                                 BindCondData, AlignPost, SupportSTDP)
-from brainpy.types import ArrayType
+from brainpy.version2.types import ArrayType
 from .align_post import (align_post_add_bef_update, )
 from .align_pre import (align_pre2_add_bef_update, )
 from .utils import (_get_return, )
@@ -59,8 +59,8 @@ class STDP_Song2000(Projection):
 
     Here is an example of the usage of this class::
 
-      import brainpy as bp
-      import brainpy.math as bm
+      import brainpy.version2 as bp
+      import brainpy.version2.math as bm
 
       class STDPNet(bp.DynamicalSystem):
          def __init__(self, num_pre, num_post):
@@ -261,8 +261,8 @@ class STDP_Song2000(Projection):
 #
 #   Here is an example of the usage of this class::
 #
-#     import brainpy as bp
-#     import brainpy.math as bm
+#     import brainpy.version2 as bp
+#     import brainpy.version2.math as bm
 #
 #     class STDPNet(bp.DynamicalSystem):
 #        def __init__(self, num_pre, num_post):

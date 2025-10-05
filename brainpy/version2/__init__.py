@@ -131,17 +131,17 @@ from brainpy.version2.math.object_transform.collectors import (
 from brainpy.version2._add_deprecations import deprecation_getattr2
 
 __deprecations = {
-    'Module': ('brainpy.Module', 'brainpy.DynamicalSystem', DynamicalSystem),
-    'Channel': ('brainpy.Channel', 'brainpy.dyn.IonChannel', dyn.IonChannel),
-    'SynConn': ('brainpy.SynConn', 'brainpy.dyn.SynConn', dyn.SynConn),
-    'Container': ('brainpy.Container', 'brainpy.DynSysGroup', DynSysGroup),
+    'Module': ('brainpy.version2.Module', 'brainpy.version2.DynamicalSystem', DynamicalSystem),
+    'Channel': ('brainpy.version2.Channel', 'brainpy.version2.dyn.IonChannel', dyn.IonChannel),
+    'SynConn': ('brainpy.version2.SynConn', 'brainpy.version2.dyn.SynConn', dyn.SynConn),
+    'Container': ('brainpy.version2.Container', 'brainpy.version2.DynSysGroup', DynSysGroup),
 
-    'optimizers': ('brainpy.optimizers', 'brainpy.optim', optim),
-    'TensorCollector': ('brainpy.TensorCollector', 'brainpy.ArrayCollector', ArrayCollector),
-    'SynSTP': ('brainpy.SynSTP', 'brainpy.synapses.SynSTP', synapses.SynSTP),
-    'SynOut': ('brainpy.SynOut', 'brainpy.synapses.SynOut', synapses.SynOut),
-    'TwoEndConn': ('brainpy.TwoEndConn', 'brainpy.synapses.TwoEndConn', synapses.TwoEndConn),
-    'CondNeuGroup': ('brainpy.CondNeuGroup', 'brainpy.dyn.CondNeuGroup', dyn.CondNeuGroup),
+    'optimizers': ('brainpy.version2.optimizers', 'brainpy.version2.optim', optim),
+    'TensorCollector': ('brainpy.version2.TensorCollector', 'brainpy.version2.ArrayCollector', ArrayCollector),
+    'SynSTP': ('brainpy.version2.SynSTP', 'brainpy.version2.synapses.SynSTP', synapses.SynSTP),
+    'SynOut': ('brainpy.version2.SynOut', 'brainpy.version2.synapses.SynOut', synapses.SynOut),
+    'TwoEndConn': ('brainpy.version2.TwoEndConn', 'brainpy.version2.synapses.TwoEndConn', synapses.TwoEndConn),
+    'CondNeuGroup': ('brainpy.version2.CondNeuGroup', 'brainpy.version2.dyn.CondNeuGroup', dyn.CondNeuGroup),
 }
 __getattr__ = deprecation_getattr2('brainpy', __deprecations)
 

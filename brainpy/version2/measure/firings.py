@@ -3,7 +3,7 @@
 import jax.numpy as jnp
 import numpy as onp
 
-from brainpy._src import math as bm
+from brainpy.version2 import math as bm
 
 __all__ = [
     'raster_plot',

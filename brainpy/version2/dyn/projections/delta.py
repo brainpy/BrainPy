@@ -1,9 +1,9 @@
 from typing import Optional, Union
 
-from brainpy import math as bm, check
-from brainpy._src.delay import (delay_identifier, register_delay_by_return)
-from brainpy._src.dynsys import DynamicalSystem, Projection
-from brainpy._src.mixin import (JointType, SupportAutoDelay)
+from brainpy.version2 import math as bm, check
+from brainpy.version2.delay import (delay_identifier, register_delay_by_return)
+from brainpy.version2.dynsys import DynamicalSystem, Projection
+from brainpy.version2.mixin import (JointType, SupportAutoDelay)
 
 __all__ = [
     'HalfProjDelta', 'FullProjDelta',
@@ -49,8 +49,8 @@ class HalfProjDelta(Projection):
 
     .. code-block::
 
-        import brainpy as bp
-        import brainpy.math as bm
+        import brainpy.version2 as bp
+        import brainpy.version2.math as bm
 
         class Net(bp.DynamicalSystem):
           def __init__(self):
@@ -135,8 +135,8 @@ class FullProjDelta(Projection):
 
     .. code-block::
 
-        import brainpy as bp
-        import brainpy.math as bm
+        import brainpy.version2 as bp
+        import brainpy.version2.math as bm
 
 
         class Net(bp.DynamicalSystem):

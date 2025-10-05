@@ -7,13 +7,13 @@ This module implements voltage-dependent potassium channels.
 
 from typing import Union, Callable, Optional, Sequence
 
-import brainpy.math as bm
-from brainpy._src.context import share
-from brainpy._src.dyn.channels.base import IonChannel
-from brainpy._src.dyn.neurons.hh import HHTypedNeuron
-from brainpy._src.initialize import Initializer, parameter, variable
-from brainpy._src.integrators import odeint, JointEq
-from brainpy.types import ArrayType
+import brainpy.version2.math as bm
+from brainpy.version2.context import share
+from brainpy.version2.dyn.channels.base import IonChannel
+from brainpy.version2.dyn.neurons.hh import HHTypedNeuron
+from brainpy.version2.initialize import Initializer, parameter, variable
+from brainpy.version2.integrators import odeint, JointEq
+from brainpy.version2.types import ArrayType
 
 __all__ = [
     'IKDR_Ba2002',

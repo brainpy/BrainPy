@@ -1,14 +1,14 @@
 from typing import Union, Sequence, Callable, Optional
 
-from brainpy import math as bm
-from brainpy._src.context import share
-from brainpy._src.dyn import _docs
-from brainpy._src.dyn.base import SynDyn
-from brainpy._src.initialize import parameter
-from brainpy._src.integrators.joint_eq import JointEq
-from brainpy._src.integrators.ode.generic import odeint
-from brainpy._src.mixin import AlignPost, ReturnInfo
-from brainpy.types import ArrayType
+from brainpy.version2 import math as bm
+from brainpy.version2.context import share
+from brainpy.version2.dyn import _docs
+from brainpy.version2.dyn.base import SynDyn
+from brainpy.version2.initialize import parameter
+from brainpy.version2.integrators.joint_eq import JointEq
+from brainpy.version2.integrators.ode.generic import odeint
+from brainpy.version2.mixin import AlignPost, ReturnInfo
+from brainpy.version2.types import ArrayType
 
 __all__ = [
     'Expon',
@@ -26,13 +26,13 @@ class Expon(SynDyn, AlignPost):
 
     %s
 
-    This module can be used with interface ``brainpy.dyn.ProjAlignPreMg2``, as shown in the following example:
+    This module can be used with interface ``brainpy.version2.dyn.ProjAlignPreMg2``, as shown in the following example:
 
     .. code-block:: python
 
           import numpy as np
-          import brainpy as bp
-          import brainpy.math as bm
+          import brainpy.version2 as bp
+          import brainpy.version2.math as bm
 
           import matplotlib.pyplot as plt
 
@@ -153,13 +153,13 @@ class DualExpon(SynDyn):
 
     %s
 
-    This module can be used with interface ``brainpy.dyn.ProjAlignPreMg2``, as shown in the following example:
+    This module can be used with interface ``brainpy.version2.dyn.ProjAlignPreMg2``, as shown in the following example:
 
     .. code-block:: python
 
           import numpy as np
-          import brainpy as bp
-          import brainpy.math as bm
+          import brainpy.version2 as bp
+          import brainpy.version2.math as bm
 
           import matplotlib.pyplot as plt
 
@@ -288,13 +288,13 @@ class DualExponV2(SynDyn, AlignPost):
 
        Different from ``DualExpon``, this model can be used in both modes of ``AlignPre`` and ``AlignPost`` projections.
 
-    This module can be used with interface ``brainpy.dyn.ProjAlignPreMg2``, as shown in the following example:
+    This module can be used with interface ``brainpy.version2.dyn.ProjAlignPreMg2``, as shown in the following example:
 
     .. code-block:: python
 
           import numpy as np
-          import brainpy as bp
-          import brainpy.math as bm
+          import brainpy.version2 as bp
+          import brainpy.version2.math as bm
 
           import matplotlib.pyplot as plt
 
@@ -429,13 +429,13 @@ class Alpha(SynDyn):
 
     %s
 
-    This module can be used with interface ``brainpy.dyn.ProjAlignPreMg2``, as shown in the following example:
+    This module can be used with interface ``brainpy.version2.dyn.ProjAlignPreMg2``, as shown in the following example:
 
     .. code-block:: python
 
           import numpy as np
-          import brainpy as bp
-          import brainpy.math as bm
+          import brainpy.version2 as bp
+          import brainpy.version2.math as bm
 
           import matplotlib.pyplot as plt
 
@@ -598,13 +598,13 @@ class NMDA(SynDyn):
     The NMDA receptor has been thought to be very important for controlling
     synaptic plasticity and mediating learning and memory functions [3]_.
 
-    This module can be used with interface ``brainpy.dyn.ProjAlignPreMg2``, as shown in the following example:
+    This module can be used with interface ``brainpy.version2.dyn.ProjAlignPreMg2``, as shown in the following example:
 
     .. code-block:: python
 
           import numpy as np
-          import brainpy as bp
-          import brainpy.math as bm
+          import brainpy.version2 as bp
+          import brainpy.version2.math as bm
 
           import matplotlib.pyplot as plt
 

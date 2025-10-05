@@ -97,6 +97,6 @@ def function(
     func: FunAsObject
       The instance of ``BrainPyObject``.
     """
-    warnings.warn('Using `brainpy.math.to_object()` instead. Will be removed after version 2.4.0.',
+    warnings.warn('Using `brainpy.version2.math.to_object()` instead. Will be removed after version 2.4.0.',
                   UserWarning)
     return to_object(f, nodes, dyn_vars, name)

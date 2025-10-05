@@ -3,14 +3,14 @@ from typing import Union, Callable, Optional, Any, Sequence
 
 from jax.lax import stop_gradient
 
-import brainpy.math as bm
-from brainpy._src.context import share
-from brainpy._src.dyn._docs import ref_doc, lif_doc, pneu_doc, dpneu_doc, ltc_doc, if_doc
-from brainpy._src.dyn.neurons.base import GradNeuDyn
-from brainpy._src.initialize import ZeroInit, OneInit, noise as init_noise
-from brainpy._src.integrators import odeint, sdeint, JointEq
-from brainpy.check import is_initializer
-from brainpy.types import Shape, ArrayType, Sharding
+import brainpy.version2.math as bm
+from brainpy.version2.context import share
+from brainpy.version2.dyn._docs import ref_doc, lif_doc, pneu_doc, dpneu_doc, ltc_doc, if_doc
+from brainpy.version2.dyn.neurons.base import GradNeuDyn
+from brainpy.version2.initialize import ZeroInit, OneInit, noise as init_noise
+from brainpy.version2.integrators import odeint, sdeint, JointEq
+from brainpy.version2.check import is_initializer
+from brainpy.version2.types import Shape, ArrayType, Sharding
 
 __all__ = [
     'IF',
@@ -179,7 +179,7 @@ class LifLTC(GradNeuDyn):
 
     .. code-block:: python
 
-        import brainpy as bp
+        import brainpy.version2 as bp
 
         lif = bp.dyn.LifLTC(1)
 
@@ -323,7 +323,7 @@ class Lif(LifLTC):
 
     .. code-block:: python
 
-        import brainpy as bp
+        import brainpy.version2 as bp
 
         lif = bp.dyn.Lif(1)
 
@@ -380,7 +380,7 @@ class LifRefLTC(LifLTC):
 
     .. code-block:: python
 
-        import brainpy as bp
+        import brainpy.version2 as bp
 
         neu = bp.dyn.LifRefLTC(1, )
 
@@ -540,7 +540,7 @@ class LifRef(LifRefLTC):
 
     .. code-block:: python
 
-        import brainpy as bp
+        import brainpy.version2 as bp
 
         neu = bp.dyn.LifRef(1, )
 
@@ -636,7 +636,7 @@ class ExpIFLTC(GradNeuDyn):
 
       There is a simple usage example::
 
-          import brainpy as bp
+          import brainpy.version2 as bp
 
           neu = bp.dyn.ExpIFLTC(1, )
 
@@ -847,7 +847,7 @@ class ExpIF(ExpIFLTC):
 
     There is a simple usage example::
 
-        import brainpy as bp
+        import brainpy.version2 as bp
 
         neu = bp.dyn.ExpIF(1, )
 
@@ -968,7 +968,7 @@ class ExpIFRefLTC(ExpIFLTC):
 
     There is a simple usage example::
 
-        import brainpy as bp
+        import brainpy.version2 as bp
 
         neu = bp.dyn.ExpIFRefLTC(1, )
 
@@ -1201,7 +1201,7 @@ class ExpIFRef(ExpIFRefLTC):
 
     There is a simple usage example::
 
-        import brainpy as bp
+        import brainpy.version2 as bp
 
         neu = bp.dyn.ExpIFRef(1, )
 
@@ -1311,7 +1311,7 @@ class AdExIFLTC(GradNeuDyn):
 
     .. code-block:: python
 
-        import brainpy as bp
+        import brainpy.version2 as bp
 
         neu = bp.dyn.AdExIFLTC(2)
 
@@ -1533,7 +1533,7 @@ class AdExIF(AdExIFLTC):
 
     .. code-block:: python
 
-        import brainpy as bp
+        import brainpy.version2 as bp
 
         neu = bp.dyn.AdExIF(2)
 
@@ -1644,7 +1644,7 @@ class AdExIFRefLTC(AdExIFLTC):
 
     .. code-block:: python
 
-        import brainpy as bp
+        import brainpy.version2 as bp
 
         neu = bp.dyn.AdExIFRefLTC(2)
 
@@ -1884,7 +1884,7 @@ class AdExIFRef(AdExIFRefLTC):
 
     .. code-block:: python
 
-        import brainpy as bp
+        import brainpy.version2 as bp
 
         neu = bp.dyn.AdExIFRef(2)
 
@@ -1986,7 +1986,7 @@ class QuaIFLTC(GradNeuDyn):
 
     .. code-block:: python
 
-      import brainpy as bp
+      import brainpy.version2 as bp
 
       neu = bp.dyn.QuaIFLTC(2)
 
@@ -2162,7 +2162,7 @@ class QuaIF(QuaIFLTC):
 
     .. code-block:: python
 
-      import brainpy as bp
+      import brainpy.version2 as bp
 
       neu = bp.dyn.QuaIF(2)
 
@@ -2252,7 +2252,7 @@ class QuaIFRefLTC(QuaIFLTC):
 
     .. code-block:: python
 
-      import brainpy as bp
+      import brainpy.version2 as bp
 
       neu = bp.dyn.QuaIFRefLTC(2)
 
@@ -2455,7 +2455,7 @@ class QuaIFRef(QuaIFRefLTC):
 
     .. code-block:: python
 
-      import brainpy as bp
+      import brainpy.version2 as bp
 
       neu = bp.dyn.QuaIFRef(2)
 
@@ -2553,7 +2553,7 @@ class AdQuaIFLTC(GradNeuDyn):
 
     .. code-block:: python
 
-        import brainpy as bp
+        import brainpy.version2 as bp
 
         neu = bp.dyn.AdQuaIFLTC(2)
 
@@ -2760,7 +2760,7 @@ class AdQuaIF(AdQuaIFLTC):
 
     .. code-block:: python
 
-        import brainpy as bp
+        import brainpy.version2 as bp
 
         neu = bp.dyn.AdQuaIF(2)
 
@@ -2860,7 +2860,7 @@ class AdQuaIFRefLTC(AdQuaIFLTC):
 
     .. code-block:: python
 
-        import brainpy as bp
+        import brainpy.version2 as bp
 
         neu = bp.dyn.AdQuaIFRefLTC(2)
 
@@ -3085,7 +3085,7 @@ class AdQuaIFRef(AdQuaIFRefLTC):
 
     .. code-block:: python
 
-        import brainpy as bp
+        import brainpy.version2 as bp
 
         neu = bp.dyn.AdQuaIFRef(2)
 
@@ -3199,7 +3199,7 @@ class GifLTC(GradNeuDyn):
 
     .. code-block:: python
 
-        import brainpy as bp
+        import brainpy.version2 as bp
         import matplotlib.pyplot as plt
 
         # Tonic Spiking
@@ -3457,7 +3457,7 @@ class Gif(GifLTC):
 
     .. code-block:: python
 
-        import brainpy as bp
+        import brainpy.version2 as bp
         import matplotlib.pyplot as plt
 
         # Phasic Spiking
@@ -3581,7 +3581,7 @@ class GifRefLTC(GifLTC):
 
     .. code-block:: python
 
-        import brainpy as bp
+        import brainpy.version2 as bp
         import matplotlib.pyplot as plt
 
         # Hyperpolarization-induced Spiking
@@ -3856,7 +3856,7 @@ class GifRef(GifRefLTC):
 
     .. code-block:: python
 
-        import brainpy as bp
+        import brainpy.version2 as bp
         import matplotlib.pyplot as plt
 
         # Tonic Bursting
@@ -3975,7 +3975,7 @@ class IzhikevichLTC(GradNeuDyn):
 
       There is a simple usage example::
 
-        import brainpy as bp
+        import brainpy.version2 as bp
 
         neu = bp.dyn.IzhikevichLTC(2)
 
@@ -4190,7 +4190,7 @@ class Izhikevich(IzhikevichLTC):
 
     There is a simple usage example::
 
-      import brainpy as bp
+      import brainpy.version2 as bp
 
       neu = bp.dyn.Izhikevich(2)
 
@@ -4292,7 +4292,7 @@ class IzhikevichRefLTC(IzhikevichLTC):
 
     There is a simple usage example::
 
-      import brainpy as bp
+      import brainpy.version2 as bp
 
       neu = bp.dyn.IzhikevichRefLTC(2)
 
@@ -4521,7 +4521,7 @@ class IzhikevichRef(IzhikevichRefLTC):
 
     There is a simple usage example::
 
-      import brainpy as bp
+      import brainpy.version2 as bp
 
       neu = bp.dyn.IzhikevichRef(2)
 

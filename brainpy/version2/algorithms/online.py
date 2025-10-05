@@ -3,8 +3,8 @@ import jax
 import jax.numpy as jnp
 from jax import vmap
 
-import brainpy.math as bm
-from brainpy._src.math.object_transform.base import BrainPyObject
+import brainpy.version2.math as bm
+from brainpy.version2.math.object_transform.base import BrainPyObject
 
 __all__ = [
     # brainpy_object class

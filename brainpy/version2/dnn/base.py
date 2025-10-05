@@ -1,4 +1,4 @@
-from brainpy._src.dynsys import DynamicalSystem
+from brainpy.version2.dynsys import DynamicalSystem
 
 __all__ = [
     'Layer'

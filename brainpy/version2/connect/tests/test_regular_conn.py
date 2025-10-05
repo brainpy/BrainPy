@@ -3,8 +3,8 @@ import unittest
 
 import numpy as np
 
-import brainpy as bp
-from brainpy import connect
+import brainpy.version2 as bp
+from brainpy.version2 import connect
 
 
 class TestOne2One(unittest.TestCase):

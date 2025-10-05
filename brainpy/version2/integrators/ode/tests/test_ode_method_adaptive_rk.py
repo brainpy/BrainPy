@@ -5,8 +5,8 @@ import unittest
 import matplotlib.pyplot as plt
 import numpy as np
 
-import brainpy.math as bm
-from brainpy._src.integrators.ode import adaptive_rk
+import brainpy.version2.math as bm
+from brainpy.version2.integrators.ode import adaptive_rk
 
 sigma = 10
 beta = 8 / 3

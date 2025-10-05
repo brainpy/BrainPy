@@ -2,7 +2,7 @@ from unittest import TestCase
 
 from scipy.special import exprel
 
-import brainpy.math as bm
+import brainpy.version2.math as bm
 
 
 class Test_exprel(TestCase):

@@ -6,9 +6,9 @@ import jax.numpy as jnp
 import numpy as np
 from jax.lax import while_loop
 
-import brainpy.math as bm
-from brainpy._src.math.object_transform.base import BrainPyObject
-from brainpy.types import ArrayType
+import brainpy.version2.math as bm
+from brainpy.version2.math.object_transform.base import BrainPyObject
+from brainpy.version2.types import ArrayType
 from .utils import (Sigmoid,
                     Regularization,
                     L1Regularization,

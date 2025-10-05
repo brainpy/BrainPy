@@ -3,7 +3,7 @@
 import inspect
 
 from brainpy import _errors
-from brainpy._src.math.object_transform.base import Collector
+from brainpy.version2.math.object_transform.base import Collector
 
 __all__ = [
     'JointEq',
@@ -80,7 +80,7 @@ class JointEq(object):
 
     If we make numerical solver for each derivative function, they will be solved independently.
 
-    >>> import brainpy as bp
+    >>> import brainpy.version2 as bp
     >>> bp.odeint(dV, method='rk2', show_code=True)
     def brainpy_itg_of_ode0(V, t, u, Iext, dt=0.1):
       dV_k1 = f(V, t, u, Iext)
@@ -92,7 +92,7 @@ class JointEq(object):
 
     As you see in the output code, "dV_k2" is evaluated by :math:`f(V_{k2}, u)`.
     If you want to solve the above coupled equation jointly, i.e., evalute "dV_k2"
-    with :math:`f(V_{k2}, u_{k2})`, you can use :py:class:`brainpy.JointEq`
+    with :math:`f(V_{k2}, u_{k2})`, you can use :py:class:`brainpy.version2.JointEq`
     to emerge the above two derivative equations into a joint equation, so that
     they will be numerically solved together. Let's see the difference:
 
@@ -108,7 +108,7 @@ class JointEq(object):
       u_new = u + du_k1 * dt * 0.25 + du_k2 * dt * 0.75
       return V_new, u_new
 
-    :py:class:`brainpy.JointEq` supports make nested ``JointEq``, which means
+    :py:class:`brainpy.version2.JointEq` supports make nested ``JointEq``, which means
     the instance of ``JointEq`` can be an element to compose a new ``JointEq``.
 
     >>> dw = lambda w, t, V: a * (b * V - w)

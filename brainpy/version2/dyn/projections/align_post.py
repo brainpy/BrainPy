@@ -1,10 +1,10 @@
 from typing import Optional, Callable, Union
 
-from brainpy import math as bm, check
-from brainpy._src.delay import (delay_identifier,
+from brainpy.version2 import math as bm, check
+from brainpy.version2.delay import (delay_identifier,
                                 register_delay_by_return)
-from brainpy._src.dynsys import DynamicalSystem, Projection
-from brainpy._src.mixin import (JointType, ParamDescriber, SupportAutoDelay, BindCondData, AlignPost)
+from brainpy.version2.dynsys import DynamicalSystem, Projection
+from brainpy.version2.mixin import (JointType, ParamDescriber, SupportAutoDelay, BindCondData, AlignPost)
 
 __all__ = [
     'HalfProjAlignPostMg', 'FullProjAlignPostMg',
@@ -68,8 +68,8 @@ class HalfProjAlignPostMg(Projection):
 
     .. code-block:: python
 
-      import brainpy as bp
-      import brainpy.math as bm
+      import brainpy.version2 as bp
+      import brainpy.version2.math as bm
 
       class EINet(bp.DynSysGroup):
         def __init__(self):
@@ -170,8 +170,8 @@ class FullProjAlignPostMg(Projection):
 
     .. code-block:: python
 
-        import brainpy as bp
-        import brainpy.math as bm
+        import brainpy.version2 as bp
+        import brainpy.version2.math as bm
 
         class EINet(bp.DynSysGroup):
           def __init__(self):

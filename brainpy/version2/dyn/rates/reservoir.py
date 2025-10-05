@@ -4,12 +4,12 @@ from typing import Optional, Union, Callable, Tuple
 
 import jax.numpy as jnp
 
-import brainpy.math as bm
-from brainpy import check
-from brainpy._src.dnn.base import Layer
-from brainpy._src.initialize import Normal, ZeroInit, Initializer, parameter, variable
-from brainpy.tools import to_size
-from brainpy.types import ArrayType
+import brainpy.version2.math as bm
+from brainpy.version2 import check
+from brainpy.version2.dnn.base import Layer
+from brainpy.version2.initialize import Normal, ZeroInit, Initializer, parameter, variable
+from brainpy.version2.tools import to_size
+from brainpy.version2.types import ArrayType
 
 __all__ = [
     'Reservoir',
@@ -36,7 +36,7 @@ class Reservoir(Layer):
     activation : str, callable, optional
       Reservoir activation function.
 
-      - If a str, should be a :py:mod:`brainpy.math.activations` function name.
+      - If a str, should be a :py:mod:`brainpy.version2.math.activations` function name.
       - If a callable, should be an element-wise operator.
     activation_type : str
       - If "internal" (default), then leaky integration happens on states transformed
@@ -78,7 +78,7 @@ class Reservoir(Layer):
       Gain of noise applied to feedforward signals, by default 0.0
     noise_type : optional, str, callable
       Distribution of noise. Must be a random variable generator
-      distribution (see :py:class:`brainpy.math.random.RandomState`),
+      distribution (see :py:class:`brainpy.version2.math.random.RandomState`),
       by default "normal".
 
     References::

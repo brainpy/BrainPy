@@ -69,7 +69,7 @@ def _device_put(x: Union[Array, jax.Array, np.ndarray],
                 device: Union[None, jax.Device, Sharding] = None):
     """Transfers ``x`` to ``device``.
 
-    Note that this function can only transfer ``brainpy.math.Array``, ``jax.Array``,
+    Note that this function can only transfer ``brainpy.version2.math.Array``, ``jax.Array``,
     and ``numpy.ndarray``. Other value will be directly returned.
 
     Args:
@@ -84,7 +84,7 @@ def _device_put(x: Union[Array, jax.Array, np.ndarray],
         return x
     else:
         if isinstance(x, (jax.Array, np.ndarray)):
-            # wrap the data as brainpy.math.Array is important (experimental)
+            # wrap the data as brainpy.version2.math.Array is important (experimental)
             return ShardedArray(jax.device_put(x, device=device), keep_sharding=True)
         else:
             return x

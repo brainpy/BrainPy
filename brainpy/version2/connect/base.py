@@ -7,8 +7,8 @@ from typing import Union, List, Tuple
 import jax.numpy as jnp
 import numpy as onp
 
-from brainpy import tools, math as bm
-from brainpy._errors import ConnectorError
+from brainpy.version2 import tools, math as bm
+from brainpy.version2._errors import ConnectorError
 
 __all__ = [
     # the connection types
@@ -71,7 +71,7 @@ def set_default_dtype(mat_dtype=None, idx_dtype=None):
     For examples:
 
     >>> import numpy as np
-    >>> import brainpy as bp
+    >>> import brainpy.version2 as bp
     >>>
     >>> conn = bp.conn.GridFour()(4, 4)
     >>> conn.require('conn_mat')
@@ -119,7 +119,7 @@ class TwoEndConnector(Connector):
 
        .. code-block:: python
 
-          import brainpy as bp
+          import brainpy.version2 as bp
           class MyConnector(bp.conn.TwoEndConnector):
             def build_conn(self):
               return dict(csr=, mat=, coo=)
@@ -129,7 +129,7 @@ class TwoEndConnector(Connector):
 
        .. code-block:: python
 
-          import brainpy as bp
+          import brainpy.version2 as bp
           class MyConnector(bp.conn.TwoEndConnector):
             def build_mat(self, ):
               return conn_matrix
@@ -383,7 +383,7 @@ class TwoEndConnector(Connector):
 
         Examples::
 
-        >>> import brainpy as bp
+        >>> import brainpy.version2 as bp
         >>> conn = bp.connect.FixedProb(0.1)
         >>> mat = conn.require(10, 20, 'conn_mat')
         >>> mat.shape

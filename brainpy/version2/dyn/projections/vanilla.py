@@ -1,8 +1,8 @@
 from typing import Optional
 
-from brainpy import math as bm, check
-from brainpy._src.dynsys import DynamicalSystem, Projection
-from brainpy._src.mixin import (JointType, BindCondData)
+from brainpy.version2 import math as bm, check
+from brainpy.version2.dynsys import DynamicalSystem, Projection
+from brainpy.version2.mixin import (JointType, BindCondData)
 
 __all__ = [
     'VanillaProj',

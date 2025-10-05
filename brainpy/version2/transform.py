@@ -37,8 +37,8 @@ class LoopOverTime(DynamicalSystem):
 
     This model can be used for network training:
 
-    >>> import brainpy as bp
-    >>> import brainpy.math as bm
+    >>> import brainpy.version2 as bp
+    >>> import brainpy.version2.math as bm
     >>>
     >>> n_time, n_batch, n_in = 30, 128, 100
     >>> model = bp.Sequential(l1=bp.layers.RNNCell(n_in, 20),
@@ -65,8 +65,8 @@ class LoopOverTime(DynamicalSystem):
     .. plot::
        :include-source: True
 
-       >>> import brainpy as bp
-       >>> import brainpy.math as bm
+       >>> import brainpy.version2 as bp
+       >>> import brainpy.version2.math as bm
        >>> import matplotlib.pyplot as plt
        >>>
        >>> hh = bp.neurons.HH(1)

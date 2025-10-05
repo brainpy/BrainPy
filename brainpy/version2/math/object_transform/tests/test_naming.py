@@ -16,8 +16,8 @@
 
 import unittest
 
-import brainpy as bp
-import brainpy.math as bm
+import brainpy.version2 as bp
+import brainpy.version2.math as bm
 
 
 class TestNaming(unittest.TestCase):

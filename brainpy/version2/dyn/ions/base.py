@@ -4,11 +4,11 @@ from typing import Union, Optional, Dict, Sequence, Callable
 
 from brainstate.mixin import _JointGenericAlias
 
-import brainpy.math as bm
-from brainpy._src.dyn.base import IonChaDyn
-from brainpy._src.dyn.neurons.hh import HHTypedNeuron
-from brainpy._src.mixin import Container, TreeNode
-from brainpy.types import Shape
+import brainpy.version2.math as bm
+from brainpy.version2.dyn.base import IonChaDyn
+from brainpy.version2.dyn.neurons.hh import HHTypedNeuron
+from brainpy.version2.mixin import Container, TreeNode
+from brainpy.version2.types import Shape
 
 __all__ = [
     'MixIons',
@@ -77,7 +77,7 @@ class MixIons(IonChaDyn, Container, TreeNode):
             node.reset_state(V, *infos, batch_size)
 
     def check_hierarchy(self, roots, leaf):
-        # 'master_type' should be a brainpy.mixin.JointType
+        # 'master_type' should be a brainpy.version2.mixin.JointType
         self._check_master_type(leaf)
         for cls in leaf.master_type.__args__:
             if not any([issubclass(root, cls) for root in roots]):
@@ -117,7 +117,7 @@ class MixIons(IonChaDyn, Container, TreeNode):
     def _check_master_type(self, leaf):
         if not isinstance(leaf.master_type, _JointGenericAlias):
             raise TypeError(f'{self.__class__.__name__} requires leaf nodes that have the master_type of '
-                            f'"brainpy.mixin.JointType". However, we got {leaf.master_type}')
+                            f'"brainpy.version2.mixin.JointType". However, we got {leaf.master_type}')
 
 
 def mix_ions(*ions) -> MixIons:

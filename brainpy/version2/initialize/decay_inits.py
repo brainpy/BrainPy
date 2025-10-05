@@ -5,7 +5,7 @@ import numpy as np
 from jax import vmap, jit, numpy as jnp
 
 from brainpy import math as bm
-from brainpy.tools import to_size, size2num
+from brainpy.version2.tools import to_size, size2num
 from .base import _IntraLayerInitializer
 
 __all__ = [

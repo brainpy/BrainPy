@@ -2,12 +2,12 @@
 
 from typing import Union, Callable, Optional
 
-import brainpy.math as bm
-from brainpy._src.context import share
-from brainpy._src.dyn.base import IonChaDyn
-from brainpy._src.initialize import OneInit, Initializer, parameter, variable
-from brainpy._src.integrators.ode.generic import odeint
-from brainpy.types import Shape, ArrayType
+import brainpy.version2.math as bm
+from brainpy.version2.context import share
+from brainpy.version2.dyn.base import IonChaDyn
+from brainpy.version2.initialize import OneInit, Initializer, parameter, variable
+from brainpy.version2.integrators.ode.generic import odeint
+from brainpy.version2.types import Shape, ArrayType
 from .base import Ion
 
 __all__ = [

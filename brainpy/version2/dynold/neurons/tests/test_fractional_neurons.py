@@ -3,8 +3,8 @@
 
 from absl.testing import parameterized
 
-import brainpy as bp
-from brainpy._src.dynold.neurons import fractional_models
+import brainpy.version2 as bp
+from brainpy.version2.dynold.neurons import fractional_models
 
 
 class Test_Fractional(parameterized.TestCase):

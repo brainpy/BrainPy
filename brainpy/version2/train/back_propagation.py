@@ -9,16 +9,16 @@ import numpy as np
 from jax.tree_util import tree_map
 from tqdm import tqdm
 
-import brainpy.losses as losses
-import brainpy.math as bm
+import brainpy.version2.losses as losses
+import brainpy.version2.math as bm
 from brainpy import optim
 from brainpy import tools
-from brainpy._src.context import share
-from brainpy._src.dynsys import DynamicalSystem
-from brainpy._src.helpers import clear_input
-from brainpy._src.running import constants as c
-from brainpy._errors import UnsupportedError, NoLongerSupportError
-from brainpy.types import ArrayType, Output
+from brainpy.version2.context import share
+from brainpy.version2.dynsys import DynamicalSystem
+from brainpy.version2.helpers import clear_input
+from brainpy.version2.running import constants as c
+from brainpy.version2._errors import UnsupportedError, NoLongerSupportError
+from brainpy.version2.types import ArrayType, Output
 from ._utils import msg
 from .base import DSTrainer
 
@@ -43,7 +43,7 @@ class BPTrainer(DSTrainer):
       The target model to train.
     loss_fun: str, callable
       The loss function. If it is a string, it should be the
-      function chosen from ``brainpy.losses`` module. Otherwise,
+      function chosen from ``brainpy.version2.losses`` module. Otherwise,
       a callable function which receives argument of `(predicts, targets)`
       should be provided.
     loss_has_aux: bool
@@ -474,7 +474,7 @@ class BPTT(BPTrainer):
     loss_fun: str, callable
       The loss function.
 
-      - If it is a string, it should be the function chosen from ``brainpy.losses`` module.
+      - If it is a string, it should be the function chosen from ``brainpy.version2.losses`` module.
       - Otherwise, a callable function which receives argument of ``(predicts, targets)``
         should be provided.
 

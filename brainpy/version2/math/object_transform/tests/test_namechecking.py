@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import brainpy as bp
+import brainpy.version2 as bp
 
 
 class LIF(bp.dyn.NeuDyn):

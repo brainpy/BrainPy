@@ -6,7 +6,7 @@ from typing import Union, Sequence, Any, Dict, Callable, Optional
 import brainstate
 import jax.numpy as jnp
 
-from brainpy._src.math.ndarray import Array
+from brainpy.version2.math.ndarray import Array
 
 __all__ = [
     'cond',
@@ -25,7 +25,7 @@ def cond(
 ):
     """Simple conditional statement (if-else) with instance of :py:class:`~.Variable`.
 
-    >>> import brainpy.math as bm
+    >>> import brainpy.version2.math as bm
     >>> a = bm.Variable(bm.zeros(2))
     >>> b = bm.Variable(bm.ones(2))
     >>> def true_f():  a.value += 1
@@ -85,7 +85,7 @@ def ifelse(
 
     Examples::
     
-    >>> import brainpy.math as bm
+    >>> import brainpy.version2.math as bm
     >>> def f(a):
     >>>    return bm.ifelse(conditions=[a > 10, a > 5, a > 2, a > 0],
     >>>                     branches=[lambda: 1,
@@ -203,7 +203,7 @@ def for_loop(
     All returns in body function will be gathered
     as the return of the whole loop.
 
-    >>> import brainpy.math as bm
+    >>> import brainpy.version2.math as bm
     >>> a = bm.Variable(bm.zeros(1))
     >>> b = bm.Variable(bm.ones(1))
     >>> # first example
@@ -377,7 +377,7 @@ def while_loop(
        values at the next moment, meaning that the body function of ``while_loop`` defines the
        updating rule of how the operands are updated.
 
-    >>> import brainpy.math as bm
+    >>> import brainpy.version2.math as bm
     >>>
     >>> a = bm.Variable(bm.zeros(1))
     >>> b = bm.Variable(bm.ones(1))

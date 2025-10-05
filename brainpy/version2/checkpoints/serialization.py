@@ -1,16 +1,17 @@
 from typing import Dict, Any, Optional
 
-import braintools
 import jax
-from braintools.file.msg_checkpoint import register_serialization_state, AsyncManager
 
-from brainpy._src.math.ndarray import BaseArray
-from brainpy.types import PyTree
+import braintools
+from brainpy.version2.math.ndarray import BaseArray
+from brainpy.version2.types import PyTree
+from braintools.file import msgpack_register_serialization, AsyncManager
 
 __all__ = [
     'save_pytree', 'load_pytree', 'AsyncManager',
 ]
 
+AsyncManager = braintools.file.AsyncManager
 
 def _array_dict_state(x: BaseArray) -> Dict[str, jax.Array]:
     return x.value
@@ -21,7 +22,7 @@ def _restore_array(x, state_dict: jax.Array) -> BaseArray:
     return x
 
 
-register_serialization_state(BaseArray, _array_dict_state, _restore_array)
+msgpack_register_serialization(BaseArray, _array_dict_state, _restore_array)
 
 
 def save_pytree(

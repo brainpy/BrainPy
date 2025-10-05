@@ -53,7 +53,7 @@ from jax._src.numpy.lax_numpy import _promote_dtypes, _promote_dtypes_inexact
 from jax._src.numpy.util import _parse_numpydoc, ParsedDoc, _wraps
 from jax._src.util import prod, safe_zip
 
-import brainpy.math as bm
+import brainpy.version2.math as bm
 
 from jax.config import config
 

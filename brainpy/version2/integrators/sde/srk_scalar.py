@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from brainpy._src.integrators import constants, utils
-from brainpy._src.integrators.sde.base import SDEIntegrator
+from brainpy.version2.integrators import constants, utils
+from brainpy.version2.integrators.sde.base import SDEIntegrator
 from .generic import register_sde_integrator
 
 __all__ = [

@@ -3,9 +3,9 @@
 import jax.numpy as jnp
 from absl.testing import parameterized
 
-import brainpy as bp
-import brainpy.math as bm
-from brainpy.integrators.ode import get_supported_methods
+import brainpy.version2 as bp
+import brainpy.version2.math as bm
+from brainpy.version2.integrators.ode import get_supported_methods
 
 block = True
 
@@ -13,7 +13,7 @@ block = True
 def delay_odeint(duration, eq, args=None, inits=None,
                  state_delays=None, neutral_delays=None,
                  monitors=('x',), method='euler', dt=0.1):
-    # define integrators of ODEs based on `brainpy.odeint`
+    # define integrators of ODEs based on `brainpy.version2.odeint`
     dde = bp.odeint(eq,
                     state_delays=state_delays,
                     neutral_delays=neutral_delays,

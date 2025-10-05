@@ -5,8 +5,8 @@ import unittest
 import jax
 import numpy as np
 
-import brainpy.math as bm
-from brainpy._src.integrators.ode import explicit_rk
+import brainpy.version2.math as bm
+from brainpy.version2.integrators.ode import explicit_rk
 
 plt = None
 

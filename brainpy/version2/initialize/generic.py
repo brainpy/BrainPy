@@ -6,9 +6,9 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
-import brainpy.math as bm
-from brainpy.tools import to_size
-from brainpy.types import Shape, ArrayType, Sharding
+import brainpy.version2.math as bm
+from brainpy.version2.tools import to_size
+from brainpy.version2.types import Shape, ArrayType, Sharding
 from .base import Initializer
 
 __all__ = [
@@ -49,7 +49,7 @@ def parameter(
       The initialization of the parameter.
       - If it is None, the created parameter will be None.
       - If it is a callable function :math:`f`, the ``f(size)`` will be returned.
-      - If it is an instance of :py:class:`brainpy.init.Initializer``, the ``f(size)`` will be returned.
+      - If it is an instance of :py:class:`brainpy.version2.init.Initializer``, the ``f(size)`` will be returned.
       - If it is a tensor, then this function check whether ``tensor.shape`` is equal to the given ``size``.
     sizes: int, sequence of int
       The shape of the parameter.
@@ -291,7 +291,7 @@ def delay(
         delay_type = 'heter'
     else:
         raise ValueError(f'Unknown "delay_steps" type {type(delay_step)}, only support '
-                         f'integer, array of integers, callable function, brainpy.init.Initializer.')
+                         f'integer, array of integers, callable function, brainpy.version2.init.Initializer.')
     if delay_type == 'heter':
         if delay_step.dtype not in [bm.int32, bm.int64]:
             raise ValueError('Only support delay steps of int32, int64. If your '

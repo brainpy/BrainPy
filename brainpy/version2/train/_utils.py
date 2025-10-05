@@ -2,9 +2,9 @@
 
 import jax.numpy as jnp
 
-import brainpy.math as bm
-from brainpy._src.dynsys import DynamicalSystem
-from brainpy.check import is_dict_data
+import brainpy.version2.math as bm
+from brainpy.version2.dynsys import DynamicalSystem
+from brainpy.version2.check import is_dict_data
 
 __all__ = [
     'format_ys'

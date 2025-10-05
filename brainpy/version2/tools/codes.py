@@ -35,7 +35,7 @@ def repr_dict(dict_obj: dict):
 def repr_object(x):
     global BrainPyObject
     if BrainPyObject is None:
-        from brainpy.math import BrainPyObject
+        from brainpy.version2.math import BrainPyObject
     if isinstance(x, BrainPyObject):
         return repr(x)
     elif callable(x):

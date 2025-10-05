@@ -5,12 +5,12 @@ from typing import Union, Callable, Dict, Sequence
 import jax.numpy as jnp
 
 from brainpy import _errors
-from brainpy._src import math as bm
-from brainpy._src.integrators import constants, utils, joint_eq
-from brainpy._src.integrators.constants import DT
-from brainpy._src.integrators.sde.base import SDEIntegrator
-from brainpy._src.integrators.sde.generic import register_sde_integrator
-from brainpy._src.integrators.utils import format_args
+from brainpy.version2 import math as bm
+from brainpy.version2.integrators import constants, utils, joint_eq
+from brainpy.version2.integrators.constants import DT
+from brainpy.version2.integrators.sde.base import SDEIntegrator
+from brainpy.version2.integrators.sde.generic import register_sde_integrator
+from brainpy.version2.integrators.utils import format_args
 
 __all__ = [
     'Euler',

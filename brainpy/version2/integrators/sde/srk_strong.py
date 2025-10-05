@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from brainpy import math
-from brainpy._src.integrators import constants, utils
+from brainpy.version2.integrators import constants, utils
 
 __all__ = [
     'srk1_strong',

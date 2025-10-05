@@ -18,7 +18,7 @@ def _as_jax_array_(obj):
 
 
 def is_bp_array(x):
-    """Check if the input is a ``brainpy.math.Array``.
+    """Check if the input is a ``brainpy.version2.math.Array``.
     """
     return isinstance(x, BaseArray)
 
@@ -82,7 +82,7 @@ as_numpy = as_ndarray
 
 
 def as_variable(tensor, dtype=None):
-    """Convert the input to a ``brainpy.math.Variable``.
+    """Convert the input to a ``brainpy.version2.math.Variable``.
 
     Parameters::
 

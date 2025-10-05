@@ -5,13 +5,13 @@ import unittest
 
 import jax.numpy as jnp
 
-import brainpy.math as bm
+import brainpy.version2.math as bm
 
 
 # class TestRegisterOP(unittest.TestCase):
 #   def test_register_op(self):
 #     from jax import jit
-#     import brainpy as bp
+#     import brainpy.version2 as bp
 #     bp.math.set_platform('cpu')
 #
 #     def abs_eval(*ins):

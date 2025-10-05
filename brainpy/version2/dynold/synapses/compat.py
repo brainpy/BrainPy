@@ -3,11 +3,11 @@
 import warnings
 from typing import Union, Dict, Callable
 
-from brainpy._src.connect import TwoEndConnector
-from brainpy._src.dyn.base import NeuDyn
-from brainpy._src.dynold.synouts import COBA, CUBA
-from brainpy._src.initialize import Initializer
-from brainpy.types import ArrayType
+from brainpy.version2.connect import TwoEndConnector
+from brainpy.version2.dyn.base import NeuDyn
+from brainpy.version2.dynold.synouts import COBA, CUBA
+from brainpy.version2.initialize import Initializer
+from brainpy.version2.types import ArrayType
 from .abstract_models import Delta, Exponential, DualExponential
 
 __all__ = [
@@ -25,7 +25,7 @@ class DeltaSynapse(Delta):
     """Delta synapse.
 
     .. deprecated:: 2.1.13
-       Please use "brainpy.synapses.Delta" instead.
+       Please use "brainpy.version2.synapses.Delta" instead.
 
     """
 
@@ -41,7 +41,7 @@ class DeltaSynapse(Delta):
         post_has_ref: bool = False,
         name: str = None,
     ):
-        warnings.warn('Please use "brainpy.synapses.Delta" instead.', DeprecationWarning)
+        warnings.warn('Please use "brainpy.version2.synapses.Delta" instead.', DeprecationWarning)
         super().__init__(pre=pre,
                          post=post,
                          conn=conn,
@@ -57,7 +57,7 @@ class ExpCUBA(Exponential):
     r"""Current-based exponential decay synapse model.
 
     .. deprecated:: 2.1.13
-       Please use "brainpy.synapses.Exponential" instead.
+       Please use "brainpy.version2.synapses.Exponential" instead.
 
     """
 
@@ -89,7 +89,7 @@ class ExpCOBA(Exponential):
     """Conductance-based exponential decay synapse model.
 
     .. deprecated:: 2.1.13
-       Please use "brainpy.synapses.Exponential" instead.
+       Please use "brainpy.version2.synapses.Exponential" instead.
     """
 
     def __init__(
@@ -126,7 +126,7 @@ class DualExpCUBA(DualExponential):
     r"""Current-based dual exponential synapse model.
 
     .. deprecated:: 2.1.13
-       Please use "brainpy.synapses.DualExponential" instead.
+       Please use "brainpy.version2.synapses.DualExponential" instead.
 
     """
 
@@ -161,7 +161,7 @@ class DualExpCOBA(DualExponential):
 
 
     .. deprecated:: 2.1.13
-       Please use "brainpy.synapses.DualExponential" instead.
+       Please use "brainpy.version2.synapses.DualExponential" instead.
 
     """
 
@@ -196,7 +196,7 @@ class AlphaCUBA(DualExpCUBA):
     r"""Current-based alpha synapse model.
 
     .. deprecated:: 2.1.13
-       Please use "brainpy.synapses.Alpha" instead.
+       Please use "brainpy.version2.synapses.Alpha" instead.
 
     """
 
@@ -228,7 +228,7 @@ class AlphaCOBA(DualExpCOBA):
     """Conductance-based alpha synapse model.
 
     .. deprecated:: 2.1.13
-       Please use "brainpy.synapses.Alpha" instead.
+       Please use "brainpy.version2.synapses.Alpha" instead.
 
     """
 

@@ -110,9 +110,9 @@ from functools import wraps
 import jax.numpy as jnp
 
 from brainpy import _errors
-from brainpy._src import math as bm
-from brainpy._src.integrators import constants as C, utils, joint_eq
-from brainpy._src.integrators.ode.base import ODEIntegrator
+from brainpy.version2 import math as bm
+from brainpy.version2.integrators import constants as C, utils, joint_eq
+from brainpy.version2.integrators.ode.base import ODEIntegrator
 from .generic import register_ode_integrator
 
 __all__ = [
@@ -123,7 +123,7 @@ __all__ = [
 class ExponentialEuler(ODEIntegrator):
     """Exponential Euler method using automatic differentiation.
 
-    This method uses `brainpy.math.vector_grad <../../math/generated/brainpy.math.autograd.vector_grad.html>`_
+    This method uses `brainpy.version2.math.vector_grad <../../math/generated/brainpy.version2.math.autograd.vector_grad.html>`_
     to automatically infer the linear part of the given function. Therefore, it has minimal constraints
     on your derivative function. Arbitrary complex functions can be numerically integrated with this method.
 
@@ -134,8 +134,8 @@ class ExponentialEuler(ODEIntegrator):
     .. plot::
       :include-source: True
 
-      >>> import brainpy as bp
-      >>> import brainpy.math as bm
+      >>> import brainpy.version2 as bp
+      >>> import brainpy.version2.math as bm
       >>>
       >>> class HH(bp.dyn.NeuDyn):
       >>>   def __init__(self, size, ENa=55., EK=-90., EL=-65, C=1.0, gNa=35., gK=9.,
@@ -202,13 +202,13 @@ class ExponentialEuler(ODEIntegrator):
       >>> run(100)
       >>> bp.visualize.line_plot(run.mon.ts, run.mon.V, legend='V', show=True)
 
-    The above example can also be defined with ``brainpy.JointEq``.
+    The above example can also be defined with ``brainpy.version2.JointEq``.
 
     .. plot::
       :include-source: True
 
-      >>> import brainpy as bp
-      >>> import brainpy.math as bm
+      >>> import brainpy.version2 as bp
+      >>> import brainpy.version2.math as bm
       >>>
       >>> class HH(bp.dyn.NeuDyn):
       >>>   def __init__(self, size, ENa=55., EK=-90., EL=-65, C=1.0, gNa=35., gK=9.,

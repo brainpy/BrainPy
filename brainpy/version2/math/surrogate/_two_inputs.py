@@ -6,8 +6,8 @@ from typing import Union
 import jax
 import jax.numpy as jnp
 
-from brainpy._src.math.interoperability import as_jax
-from brainpy._src.math.ndarray import Array
+from brainpy.version2.math.interoperability import as_jax
+from brainpy.version2.math.ndarray import Array
 from ._utils import vjp_custom
 
 __all__ = [

@@ -3,8 +3,8 @@
 
 from absl.testing import parameterized
 
-import brainpy as bp
-from brainpy._src.dyn.others import input
+import brainpy.version2 as bp
+from brainpy.version2.dyn.others import input
 
 
 class Test_input_Group(parameterized.TestCase):

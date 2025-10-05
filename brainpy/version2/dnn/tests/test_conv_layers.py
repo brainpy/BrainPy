@@ -6,8 +6,8 @@ import pytest
 from absl.testing import absltest
 from absl.testing import parameterized
 
-import brainpy as bp
-import brainpy.math as bm
+import brainpy.version2 as bp
+import brainpy.version2.math as bm
 
 if platform.system() == 'Darwin':
     pytest.skip('skip Mac OS', allow_module_level=True)

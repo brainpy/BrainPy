@@ -2,7 +2,7 @@
 
 import jax.numpy as jnp
 
-import brainpy as bp
+import brainpy.version2 as bp
 
 bp.ode.set_default_odeint('rk4')
 

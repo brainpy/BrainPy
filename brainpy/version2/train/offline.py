@@ -6,14 +6,14 @@ import jax
 import numpy as np
 import tqdm.auto
 
-import brainpy.math as bm
+import brainpy.version2.math as bm
 from brainpy import tools
-from brainpy._src.context import share
-from brainpy._src.dynsys import DynamicalSystem
-from brainpy._src.mixin import SupportOffline
-from brainpy._src.runners import _call_fun_with_share
-from brainpy.algorithms.offline import get, RidgeRegression, OfflineAlgorithm
-from brainpy.types import ArrayType, Output
+from brainpy.version2.context import share
+from brainpy.version2.dynsys import DynamicalSystem
+from brainpy.version2.mixin import SupportOffline
+from brainpy.version2.runners import _call_fun_with_share
+from brainpy.version2.algorithms.offline import get, RidgeRegression, OfflineAlgorithm
+from brainpy.version2.types import ArrayType, Output
 from ._utils import format_ys
 from .base import DSTrainer
 
@@ -41,7 +41,7 @@ class OfflineTrainer(DSTrainer):
       - It can be a dict, whose "name" item specifies the name of the training algorithm,
         and the others parameters specify the initialization parameters of the algorithm.
         For example, ``fit_method={'name': 'ridge', 'alpha': 0.1}``.
-      - It can be an instance of :py:class:`brainpy.algorithms.OfflineAlgorithm`.
+      - It can be an instance of :py:class:`brainpy.version2.algorithms.OfflineAlgorithm`.
         For example, ``fit_meth=bp.algorithms.RidgeRegression(alpha=0.1)``.
       - It can also be a callable function, which receives three arguments "targets", "x" and "y".
         For example, ``fit_method=lambda targets, x, y: numpy.linalg.lstsq(x, targets)[0]``.

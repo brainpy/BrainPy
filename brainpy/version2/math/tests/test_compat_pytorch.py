@@ -3,9 +3,9 @@
 
 import unittest
 
-import brainpy._src.math.compat_pytorch as torch
-import brainpy.math as bm
-from brainpy._src.math import compat_pytorch
+import brainpy.version2.math.compat_pytorch as torch
+import brainpy.version2.math as bm
+from brainpy.version2.math import compat_pytorch
 
 
 class TestFlatten(unittest.TestCase):

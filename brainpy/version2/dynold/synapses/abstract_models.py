@@ -4,15 +4,15 @@ from typing import Union, Dict, Callable, Optional
 
 import jax
 
-import brainpy.math as bm
-from brainpy._src.connect import TwoEndConnector, All2All, One2One
-from brainpy._src.dnn import linear
-from brainpy._src.dyn import _docs
-from brainpy._src.dyn import synapses
-from brainpy._src.dyn.base import NeuDyn
-from brainpy._src.dynold.synouts import MgBlock, CUBA
-from brainpy._src.initialize import Initializer
-from brainpy.types import ArrayType
+import brainpy.version2.math as bm
+from brainpy.version2.connect import TwoEndConnector, All2All, One2One
+from brainpy.version2.dnn import linear
+from brainpy.version2.dyn import _docs
+from brainpy.version2.dyn import synapses
+from brainpy.version2.dyn.base import NeuDyn
+from brainpy.version2.dynold.synouts import MgBlock, CUBA
+from brainpy.version2.initialize import Initializer
+from brainpy.version2.types import ArrayType
 from .base import TwoEndConn, _SynSTP, _SynOut, _TwoEndConnAlignPre
 
 __all__ = [
@@ -43,7 +43,7 @@ class Delta(TwoEndConn):
 
     **Model Examples**
 
-    >>> import brainpy as bp
+    >>> import brainpy.version2 as bp
     >>> from brainpy import synapses, neurons
     >>> import matplotlib.pyplot as plt
     >>>
@@ -181,7 +181,7 @@ class Exponential(TwoEndConn):
     - `(Tian, et al., 2020) E/I Net for fast response <https://brainpy-examples.readthedocs.io/en/latest/ei_nets/Tian_2020_EI_net_for_fast_response.html>`_
 
 
-    >>> import brainpy as bp
+    >>> import brainpy.version2 as bp
     >>> from brainpy import neurons, synapses, synouts
     >>> import matplotlib.pyplot as plt
     >>>
@@ -319,7 +319,7 @@ class DualExponential(_TwoEndConnAlignPre):
 
     **Model Examples**
 
-    >>> import brainpy as bp
+    >>> import brainpy.version2 as bp
     >>> from brainpy import neurons, synapses, synouts
     >>> import matplotlib.pyplot as plt
     >>>
@@ -441,7 +441,7 @@ class Alpha(_TwoEndConnAlignPre):
 
     **Model Examples**
 
-    >>> import brainpy as bp
+    >>> import brainpy.version2 as bp
     >>> from brainpy import neurons, synapses, synouts
     >>> import matplotlib.pyplot as plt
     >>>
@@ -602,7 +602,7 @@ class NMDA(_TwoEndConnAlignPre):
     - `(Wang, 2002) Decision making spiking model <https://brainpy-examples.readthedocs.io/en/latest/decision_making/Wang_2002_decision_making_spiking.html>`_
 
 
-    >>> import brainpy as bp
+    >>> import brainpy.version2 as bp
     >>> from brainpy import synapses, neurons
     >>> import matplotlib.pyplot as plt
     >>>

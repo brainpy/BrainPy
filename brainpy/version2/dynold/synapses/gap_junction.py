@@ -2,12 +2,12 @@
 
 from typing import Union, Dict, Callable
 
-import brainpy.math as bm
-from brainpy._src.connect import TwoEndConnector
-from brainpy._src.dyn.base import NeuDyn
-from brainpy._src.dynold.synapses import TwoEndConn
-from brainpy._src.initialize import Initializer, parameter
-from brainpy.types import ArrayType
+import brainpy.version2.math as bm
+from brainpy.version2.connect import TwoEndConnector
+from brainpy.version2.dyn.base import NeuDyn
+from brainpy.version2.dynold.synapses import TwoEndConn
+from brainpy.version2.initialize import Initializer, parameter
+from brainpy.version2.types import ArrayType
 
 __all__ = [
     'GapJunction',

@@ -3,8 +3,8 @@ from typing import Union, Dict
 import jax.numpy as jnp
 from jax import ops
 
-from brainpy._src.math.interoperability import as_jax
-from brainpy._src.math.ndarray import BaseArray as Array
+from brainpy.version2.math.interoperability import as_jax
+from brainpy.version2.math.ndarray import BaseArray as Array
 
 __all__ = [
     'seg_matmul',
@@ -105,7 +105,7 @@ def seg_matmul(A, B):
 
     Examples::
 
-    >>> import brainpy.math as bm
+    >>> import brainpy.version2.math as bm
 
     1. when the left matrix :math:`A` is a sparse matrix with the shape of :math:`(N, M)`,
 

@@ -4,10 +4,10 @@ from typing import Union, Tuple, Optional, Sequence, Callable
 
 from jax import lax
 
-from brainpy import math as bm, tools
-from brainpy._src.dnn.base import Layer
-from brainpy._src.initialize import Initializer, XavierNormal, ZeroInit, parameter
-from brainpy.types import ArrayType
+from brainpy.version2 import math as bm, tools
+from brainpy.version2.dnn.base import Layer
+from brainpy.version2.initialize import Initializer, XavierNormal, ZeroInit, parameter
+from brainpy.version2.types import ArrayType
 
 __all__ = [
     'Conv1d', 'Conv2d', 'Conv3d',

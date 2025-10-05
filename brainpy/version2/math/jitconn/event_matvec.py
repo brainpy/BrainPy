@@ -6,10 +6,10 @@ import brainevent
 import jax
 import numpy as np
 
-from brainpy._src.math.jitconn.matvec import (mv_prob_homo,
+from brainpy.version2.math.jitconn.matvec import (mv_prob_homo,
                                               mv_prob_uniform,
                                               mv_prob_normal)
-from brainpy._src.math.ndarray import BaseArray as Array
+from brainpy.version2.math.ndarray import BaseArray as Array
 
 __all__ = [
     'event_mv_prob_homo',

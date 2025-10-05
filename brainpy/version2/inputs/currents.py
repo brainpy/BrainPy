@@ -7,7 +7,7 @@ import jax.numpy as jnp
 import numpy as np
 
 from brainpy import math as bm
-from brainpy.check import is_float, is_integer
+from brainpy.version2.check import is_float, is_integer
 
 __all__ = [
     'section_input',
@@ -83,7 +83,7 @@ def constant_input(I_and_duration, dt=None):
     If you want to get an input where the size is 0 bwteen 0-100 ms,
     and the size is 1. between 100-200 ms.
 
-    >>> import brainpy.math as bm
+    >>> import brainpy.version2.math as bm
     >>> constant_input([(0, 100), (1, 100)])
     >>> constant_input([(bm.zeros(100), 100), (bm.random.rand(100), 100)])
 
@@ -127,8 +127,8 @@ def constant_current(*args, **kwargs):
     .. deprecated:: 2.1.13
        Use ``constant_current()`` instead.
     """
-    warnings.warn('Please use "brainpy.inputs.constant_input()" instead. '
-                  '"brainpy.inputs.constant_current()" is deprecated since version 2.1.13.',
+    warnings.warn('Please use "brainpy.version2.inputs.constant_input()" instead. '
+                  '"brainpy.version2.inputs.constant_current()" is deprecated since version 2.1.13.',
                   DeprecationWarning)
     return constant_input(*args, **kwargs)
 
@@ -186,8 +186,8 @@ def spike_current(*args, **kwargs):
     .. deprecated:: 2.1.13
        Use ``spike_current()`` instead.
     """
-    warnings.warn('Please use "brainpy.inputs.spike_input()" instead. '
-                  '"brainpy.inputs.spike_current()" is deprecated since version 2.1.13.',
+    warnings.warn('Please use "brainpy.version2.inputs.spike_input()" instead. '
+                  '"brainpy.version2.inputs.spike_current()" is deprecated since version 2.1.13.',
                   DeprecationWarning)
     return constant_input(*args, **kwargs)
 
@@ -232,8 +232,8 @@ def ramp_current(*args, **kwargs):
     .. deprecated:: 2.1.13
        Use ``ramp_input()`` instead.
     """
-    warnings.warn('Please use "brainpy.inputs.ramp_input()" instead. '
-                  '"brainpy.inputs.ramp_current()" is deprecated since version 2.1.13.',
+    warnings.warn('Please use "brainpy.version2.inputs.ramp_input()" instead. '
+                  '"brainpy.version2.inputs.ramp_current()" is deprecated since version 2.1.13.',
                   DeprecationWarning)
     return constant_input(*args, **kwargs)
 

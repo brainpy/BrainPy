@@ -2,15 +2,15 @@
 
 from typing import Union, Dict, Callable, Optional
 
-from brainpy._src.connect import TwoEndConnector
-from brainpy._src.dyn import synapses
-from brainpy._src.dyn.base import NeuDyn
-from brainpy._src.dynold.synapses import _TwoEndConnAlignPre
-from brainpy._src.dynold.synouts import CUBA
-from brainpy._src.dynsys import Sequential
-from brainpy._src.initialize import Initializer
-from brainpy._src.mixin import ParamDesc
-from brainpy.types import ArrayType
+from brainpy.version2.connect import TwoEndConnector
+from brainpy.version2.dyn import synapses
+from brainpy.version2.dyn.base import NeuDyn
+from brainpy.version2.dynold.synapses import _TwoEndConnAlignPre
+from brainpy.version2.dynold.synouts import CUBA
+from brainpy.version2.dynsys import Sequential
+from brainpy.version2.initialize import Initializer
+from brainpy.version2.mixin import ParamDesc
+from brainpy.version2.types import ArrayType
 
 __all__ = [
     'STP'
@@ -80,7 +80,7 @@ class STP(_TwoEndConnAlignPre):
 
     **STD**
 
-    >>> import brainpy as bp
+    >>> import brainpy.version2 as bp
     >>> import matplotlib.pyplot as plt
     >>>
     >>> neu1 = bp.neurons.LIF(1)
@@ -109,7 +109,7 @@ class STP(_TwoEndConnAlignPre):
 
     **STF**
 
-    >>> import brainpy as bp
+    >>> import brainpy.version2 as bp
     >>> import matplotlib.pyplot as plt
     >>>
     >>> neu1 = bp.neurons.LIF(1)

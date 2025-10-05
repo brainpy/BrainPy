@@ -4,9 +4,9 @@ from typing import Callable, Optional
 
 import numpy as np
 
-import brainpy.math as bm
+import brainpy.version2.math as bm
 from brainpy import check
-from brainpy.types import ArrayType
+from brainpy.version2.types import ArrayType
 from .base import Encoder
 
 __all__ = [

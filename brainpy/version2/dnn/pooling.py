@@ -6,8 +6,8 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
-from brainpy import math as bm, check
-from brainpy._src.dnn.base import Layer
+from brainpy.version2 import math as bm, check
+from brainpy.version2.dnn.base import Layer
 
 __all__ = [
     'MaxPool',

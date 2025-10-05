@@ -23,8 +23,8 @@ import jax
 import jax.numpy as jnp
 import flax.linen as nn
 
-import brainpy as bp
-import brainpy.math as bm
+import brainpy.version2 as bp
+import brainpy.version2.math as bm
 
 bm.set_platform('cpu')
 bm.set_mode(bm.training_mode)

@@ -9,8 +9,8 @@ from jax import vmap
 from jax.lax import stop_gradient
 
 from brainpy import check
-from brainpy.check import is_float, is_integer, jit_error
-from brainpy._errors import UnsupportedError
+from brainpy.version2.check import is_float, is_integer, jit_error
+from brainpy.version2._errors import UnsupportedError
 from .compat_numpy import broadcast_to, expand_dims, concatenate
 from .environment import get_dt, get_float
 from .interoperability import as_jax
@@ -47,7 +47,7 @@ class TimeDelay(AbstractDelay):
 
     For example, we create a delay variable which has a maximum delay length of 1 ms
 
-    >>> import brainpy.math as bm
+    >>> import brainpy.version2.math as bm
     >>> delay = bm.TimeDelay(bm.zeros(3), delay_len=1., dt=0.1)
     >>> delay(-0.5)
     [-0. -0. -0.]
@@ -372,7 +372,7 @@ class LengthDelay(AbstractDelay):
         batch_axis: int = None
     ):
         if not isinstance(delay_target, (ndarray, jnp.ndarray)):
-            raise ValueError(f'Must be an instance of brainpy.math.ndarray '
+            raise ValueError(f'Must be an instance of brainpy.version2.math.ndarray '
                              f'or jax.numpy.ndarray. But we got {type(delay_target)}')
 
         # delay_len

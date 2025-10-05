@@ -2,7 +2,7 @@
 
 from typing import Dict, Union
 
-import brainpy.math as bm
+import brainpy.version2.math as bm
 from .base import SDEIntegrator
 
 __all__ = [

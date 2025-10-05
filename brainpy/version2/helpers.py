@@ -23,7 +23,7 @@ def reset_level(level: int = 0):
 
     The lower the level, the earlier the function is called.
 
-    >>> import brainpy as bp
+    >>> import brainpy.version2 as bp
     >>> bp.reset_level(0)
     >>> bp.reset_level(-1)
     >>> bp.reset_level(-2)
@@ -44,7 +44,7 @@ def reset_level(level: int = 0):
 def reset_state(target: DynamicalSystem, *args, **kwargs):
     """Reset states of all children nodes in the given target.
 
-    See https://brainpy.readthedocs.io/en/latest/tutorial_toolbox/state_resetting.html for details.
+    See https://brainpy.version2.readthedocs.io/en/latest/tutorial_toolbox/state_resetting.html for details.
 
     Args:
       target: The target DynamicalSystem.

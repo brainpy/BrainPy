@@ -5,7 +5,7 @@ import unittest
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
 
-import brainpy as bp
+import brainpy.version2 as bp
 
 show = False
 

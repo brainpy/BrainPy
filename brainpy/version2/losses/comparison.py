@@ -11,8 +11,8 @@ from jax.lax import scan
 from jax.scipy.special import logsumexp
 from jax.tree_util import tree_map
 
-import brainpy.math as bm
-from brainpy.types import ArrayType
+import brainpy.version2.math as bm
+from brainpy.version2.types import ArrayType
 from .base import Loss, WeightedLoss
 from .utils import _reduce, _multi_return, _is_leaf
 

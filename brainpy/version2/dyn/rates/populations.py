@@ -4,20 +4,20 @@ from typing import Union, Callable
 
 import jax
 
-from brainpy import math as bm
-from brainpy._src.context import share
-from brainpy._src.dyn.base import NeuDyn
-from brainpy._src.dyn.others.noise import OUProcess
-from brainpy._src.initialize import (Initializer,
+from brainpy.version2 import math as bm
+from brainpy.version2.context import share
+from brainpy.version2.dyn.base import NeuDyn
+from brainpy.version2.dyn.others.noise import OUProcess
+from brainpy.version2.initialize import (Initializer,
                                      Uniform,
                                      parameter,
                                      variable,
                                      variable_,
                                      ZeroInit)
-from brainpy._src.integrators.joint_eq import JointEq
-from brainpy._src.integrators.ode.generic import odeint
-from brainpy.check import is_initializer
-from brainpy.types import Shape, ArrayType
+from brainpy.version2.integrators.joint_eq import JointEq
+from brainpy.version2.integrators.ode.generic import odeint
+from brainpy.version2.check import is_initializer
+from brainpy.version2.types import Shape, ArrayType
 
 __all__ = [
     'FHN',
@@ -216,7 +216,7 @@ class FeedbackFHN(RateModel):
 
     **Model Examples**
 
-    >>> import brainpy as bp
+    >>> import brainpy.version2 as bp
     >>> fhn = bp.rates.FeedbackFHN(1, delay=10.)
     >>> runner = bp.DSRunner(fhn, inputs=('input', 1.), monitors=['x', 'y'])
     >>> runner.run(100.)

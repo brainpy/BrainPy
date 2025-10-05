@@ -3,11 +3,11 @@ from typing import Union, Callable, Optional, Tuple
 import jax
 import numpy as np
 
-import brainpy.math as bm
-from brainpy._src.connect import TwoEndConnector, All2All, One2One, MatConn, IJConn
-from brainpy._src.dynsys import DynamicalSystem
-from brainpy._src.initialize import Initializer, parameter
-from brainpy.types import ArrayType
+import brainpy.version2.math as bm
+from brainpy.version2.connect import TwoEndConnector, All2All, One2One, MatConn, IJConn
+from brainpy.version2.dynsys import DynamicalSystem
+from brainpy.version2.initialize import Initializer, parameter
+from brainpy.version2.types import ArrayType
 
 
 class SynConnNS(DynamicalSystem):

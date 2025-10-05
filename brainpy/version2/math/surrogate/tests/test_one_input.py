@@ -3,8 +3,8 @@
 import jax
 from absl.testing import parameterized
 
-import brainpy.math as bm
-from brainpy._src.math.surrogate import _one_input as one_input
+import brainpy.version2.math as bm
+from brainpy.version2.math.surrogate import _one_input as one_input
 
 
 class TestOneInputGrad(parameterized.TestCase):

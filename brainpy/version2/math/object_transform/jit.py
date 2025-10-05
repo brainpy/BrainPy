@@ -80,14 +80,14 @@ def jit(
     JIT (Just-In-Time) compilation for BrainPy computation.
 
     This function has the same ability to just-in-time compile a pure function,
-    but it can also JIT compile a :py:class:`brainpy.DynamicalSystem`, or a
-    :py:class:`brainpy.BrainPyObject` object.
+    but it can also JIT compile a :py:class:`brainpy.version2.DynamicalSystem`, or a
+    :py:class:`brainpy.version2.BrainPyObject` object.
 
     Examples::
     
     You can JIT any object in which all dynamical variables are defined as :py:class:`~.Variable`.
 
-    >>> import brainpy as bp
+    >>> import brainpy.version2 as bp
     >>> class Hello(bp.BrainPyObject):
     >>>   def __init__(self):
     >>>     super(Hello, self).__init__()
@@ -157,8 +157,8 @@ def cls_jit(
     
     This transformation can be put on any class function. For example,
 
-    >>> import brainpy as bp
-    >>> import brainpy.math as bm
+    >>> import brainpy.version2 as bp
+    >>> import brainpy.version2.math as bm
     >>>
     >>> class SomeProgram(bp.BrainPyObject):
     >>>   def __init__(self):

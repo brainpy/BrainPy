@@ -4,8 +4,8 @@ import unittest
 
 import jax.numpy as jnp
 
-import brainpy.math as bm
-from brainpy._src.math.delayvars import ROTATE_UPDATE, CONCAT_UPDATE
+import brainpy.version2.math as bm
+from brainpy.version2.math.delayvars import ROTATE_UPDATE, CONCAT_UPDATE
 
 
 class TestTimeDelay(unittest.TestCase):

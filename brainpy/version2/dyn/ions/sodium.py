@@ -1,9 +1,9 @@
 from typing import Union, Callable, Optional
 
-import brainpy.math as bm
-from brainpy._src.dyn.base import IonChaDyn
-from brainpy._src.initialize import Initializer, parameter
-from brainpy.types import Shape, ArrayType
+import brainpy.version2.math as bm
+from brainpy.version2.dyn.base import IonChaDyn
+from brainpy.version2.initialize import Initializer, parameter
+from brainpy.version2.types import Shape, ArrayType
 from .base import Ion
 
 __all__ = [

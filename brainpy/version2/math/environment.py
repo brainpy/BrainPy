@@ -144,8 +144,8 @@ class environment(_DecoratorContextManager):
 
     For instance::
 
-      >>> import brainpy as bp
-      >>> import brainpy.math as bm
+      >>> import brainpy.version2 as bp
+      >>> import brainpy.version2.math as bm
       >>>
       >>> with bm.environment(mode=bm.training_mode, dt=0.1):
       >>>   lif1 = bp.neurons.LIF(1)
@@ -270,7 +270,7 @@ class training_environment(environment):
     This is a short-cut context setting for an environment with the training mode.
     It is equivalent to::
 
-      >>> import brainpy.math as bm
+      >>> import brainpy.version2.math as bm
       >>> with bm.environment(mode=bm.training_mode):
       >>>   pass
 
@@ -307,7 +307,7 @@ class batching_environment(environment):
     This is a short-cut context setting for an environment with the batching mode.
     It is equivalent to::
 
-      >>> import brainpy.math as bm
+      >>> import brainpy.version2.math as bm
       >>> with bm.environment(mode=bm.batching_mode):
       >>>   pass
 
@@ -427,10 +427,10 @@ def ditype():
     """Default int type.
 
     .. deprecated:: 2.3.1
-       Use `brainpy.math.int_` instead.
+       Use `brainpy.version2.math.int_` instead.
     """
     # raise errors.NoLongerSupportError('\nGet default integer data type through `ditype()` has been deprecated. \n'
-    #                                   'Use `brainpy.math.int_` instead.')
+    #                                   'Use `brainpy.version2.math.int_` instead.')
     return defaults.int_
 
 
@@ -438,11 +438,11 @@ def dftype():
     """Default float type.
 
     .. deprecated:: 2.3.1
-       Use `brainpy.math.float_` instead.
+       Use `brainpy.version2.math.float_` instead.
     """
 
     # raise errors.NoLongerSupportError('\nGet default floating data type through `dftype()` has been deprecated. \n'
-    #                                   'Use `brainpy.math.float_` instead.')
+    #                                   'Use `brainpy.version2.math.float_` instead.')
     return defaults.float_
 
 
@@ -585,7 +585,7 @@ def set_mode(mode: modes.Mode):
       The instance of :py:class:`~.Mode`.
     """
     if not isinstance(mode, modes.Mode):
-        raise TypeError(f'Must be instance of brainpy.math.Mode. '
+        raise TypeError(f'Must be instance of brainpy.version2.math.Mode. '
                         f'But we got {type(mode)}: {mode}')
     defaults.mode = mode
 
@@ -610,7 +610,7 @@ def set_membrane_scaling(membrane_scaling: scales.Scaling):
       The instance of :py:class:`~.Scaling`.
     """
     if not isinstance(membrane_scaling, scales.Scaling):
-        raise TypeError(f'Must be instance of brainpy.math.Scaling. '
+        raise TypeError(f'Must be instance of brainpy.version2.math.Scaling. '
                         f'But we got {type(membrane_scaling)}: {membrane_scaling}')
     defaults.membrane_scaling = membrane_scaling
 
@@ -632,8 +632,8 @@ def enable_x64(x64=None):
     else:
         warnings.warn(
             '\n'
-            'Instead of "brainpy.math.enable_x64(True)", use "brainpy.math.enable_x64()". \n'
-            'Instead of "brainpy.math.enable_x64(False)", use "brainpy.math.disable_x64()". \n',
+            'Instead of "brainpy.version2.math.enable_x64(True)", use "brainpy.version2.math.enable_x64()". \n'
+            'Instead of "brainpy.version2.math.enable_x64(False)", use "brainpy.version2.math.disable_x64()". \n',
             DeprecationWarning
         )
     if x64:

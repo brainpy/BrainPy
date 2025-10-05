@@ -14,19 +14,19 @@ import jax
 import numpy as np
 from jax.tree_util import register_pytree_node_class
 
-from brainpy._src.math.defaults import defaults
-from brainpy._src.math.modes import Mode
-from brainpy._src.math.ndarray import (Array, )
-from brainpy._src.math.object_transform.collectors import (ArrayCollector, Collector)
-from brainpy._src.math.object_transform.naming import (
+from brainpy.version2.math.defaults import defaults
+from brainpy.version2.math.modes import Mode
+from brainpy.version2.math.ndarray import (Array, )
+from brainpy.version2.math.object_transform.collectors import (ArrayCollector, Collector)
+from brainpy.version2.math.object_transform.naming import (
     get_unique_name,
     check_name_uniqueness
 )
-from brainpy._src.math.object_transform.variables import (
+from brainpy.version2.math.object_transform.variables import (
     Variable, VariableView, TrainVar,
     VarList, VarDict
 )
-from brainpy._src.math.sharding import BATCH_AXIS
+from brainpy.version2.math.sharding import BATCH_AXIS
 
 variable_ = None
 StateLoadResult = namedtuple('StateLoadResult', ['missing_keys', 'unexpected_keys'])
@@ -44,18 +44,18 @@ class BrainPyObject(object):
 
     The subclass of BrainPyObject includes but not limited to:
 
-    - ``DynamicalSystem`` in *brainpy.dyn.base.py*
-    - ``Integrator`` in *brainpy.integrators.base.py*
-    - ``Optimizer`` in *brainpy.optimizers.py*
-    - ``Scheduler`` in *brainpy.optimizers.py*
+    - ``DynamicalSystem`` in *brainpy.version2.dyn.base.py*
+    - ``Integrator`` in *brainpy.version2.integrators.base.py*
+    - ``Optimizer`` in *brainpy.version2.optimizers.py*
+    - ``Scheduler`` in *brainpy.version2.optimizers.py*
 
     .. note::
       Note a variable created in the ``BrainPyObject`` will never be replaced.
 
       For example, if here we create an object which has an attribute ``a``:
 
-      >>> import brainpy as bp
-      >>> import brainpy.math as bm
+      >>> import brainpy.version2 as bp
+      >>> import brainpy.version2.math as bm
       >>>
       >>> class MyObj(bp.BrainPyObject):
       >>>   def __init__(self):
@@ -84,7 +84,7 @@ class BrainPyObject(object):
       there will be an error.
 
       >>> ob.reset2()
-      brainpy.errors.MathError: The shape of the original data is (1,), while we got () with batch_axis=None.
+      brainpy.version2.errors.MathError: The shape of the original data is (1,), while we got () with batch_axis=None.
 
 
     """
@@ -174,7 +174,7 @@ class BrainPyObject(object):
           batch_axis: int. The batch axis, if batch size is given.
           axis_names: sequence of str. The name for each axis. These names should match the given ``axes``.
           batch_axis_name: str. The name for the batch axis. The name will be used
-            if ``batch_or_mode`` is given. Default is ``brainpy.math.sharding.BATCH_AXIS``.
+            if ``batch_or_mode`` is given. Default is ``brainpy.version2.math.sharding.BATCH_AXIS``.
 
         Returns:
           The instance of :py:class:`~.Variable`.
@@ -202,7 +202,7 @@ class BrainPyObject(object):
 
         global variable_
         if variable_ is None:
-            from brainpy.initialize import variable_
+            from brainpy.version2.initialize import variable_
         with jax.ensure_compile_time_eval():
             value = variable_(init, shape, batch_or_mode, batch_axis, axis_names, batch_axis_name)
             value.ready_to_trace = True
@@ -669,7 +669,7 @@ class FunAsObject(BrainPyObject):
         return self.target(*args, **kwargs)
 
     def __repr__(self) -> str:
-        from brainpy._src.tools import repr_context
+        from brainpy.version2.tools import repr_context
         name = self.__class__.__name__
         indent = " " * (len(name) + 1)
         indent2 = indent + " " * len('nodes=')
@@ -718,7 +718,7 @@ class NodeList(list):
     That is to say, any nodes that are wrapped into :py:class:`~.NodeList` will be automatically
     retieved when using :py:func:`~.nodes()` function.
 
-    >>> import brainpy as bp
+    >>> import brainpy.version2 as bp
     >>> l = bm.node_list([bp.dnn.Dense(1, 2),
     >>>                   bp.dnn.LSTMCell(2, 3)])
     """

@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
-import brainpy as bp
-from brainpy.integrators import sde
+import brainpy.version2 as bp
+from brainpy.version2.integrators import sde
 
 block = False
 sigma = 10

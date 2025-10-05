@@ -6,13 +6,13 @@ from typing import Union, Sequence, Any, Optional, Callable
 import jax
 import jax.numpy as jnp
 
-from brainpy import math as bm
-from brainpy._src.context import share
-from brainpy._src.dyn.base import NeuDyn
-from brainpy._src.dyn.utils import get_spk_type
-from brainpy._src.initialize import parameter, variable_
-from brainpy._src.mixin import ReturnInfo
-from brainpy.types import Shape, ArrayType
+from brainpy.version2 import math as bm
+from brainpy.version2.context import share
+from brainpy.version2.dyn.base import NeuDyn
+from brainpy.version2.dyn.utils import get_spk_type
+from brainpy.version2.initialize import parameter, variable_
+from brainpy.version2.mixin import ReturnInfo
+from brainpy.version2.types import Shape, ArrayType
 
 __all__ = [
     'InputGroup',

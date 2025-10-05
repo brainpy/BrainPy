@@ -9,16 +9,16 @@ from typing import Dict, Optional, Union, Callable
 
 from brainevent._csr_impl_plasticity import csr_on_pre, csr2csc_on_post
 from brainevent._dense_impl_plasticity import dense_on_pre, dense_on_post
-from brainpy import math as bm
-from brainpy._src import connect, initialize as init
-from brainpy._src.context import share
-from brainpy._src.dnn.base import Layer
-from brainpy._src.mixin import SupportOnline, SupportOffline, SupportSTDP
-from brainpy.check import is_initializer
-from brainpy.connect import csr2csc
-from brainpy._errors import MathError
-from brainpy.initialize import XavierNormal, ZeroInit, Initializer, parameter
-from brainpy.types import ArrayType, Sharding
+from brainpy.version2 import math as bm
+from brainpy.version2 import connect, initialize as init
+from brainpy.version2.context import share
+from brainpy.version2.dnn.base import Layer
+from brainpy.version2.mixin import SupportOnline, SupportOffline, SupportSTDP
+from brainpy.version2.check import is_initializer
+from brainpy.version2.connect import csr2csc
+from brainpy.version2._errors import MathError
+from brainpy.version2.initialize import XavierNormal, ZeroInit, Initializer, parameter
+from brainpy.version2.types import ArrayType, Sharding
 
 __all__ = [
     'Dense', 'Linear',
@@ -381,7 +381,7 @@ class MaskedLinear(Layer, SupportSTDP):
     where :math:`y` is the postsynaptic value, :math:`x` the presynaptic value,
     :math:`M` the synaptic weight using a dense matrix.
 
-    >>> import brainpy as bp
+    >>> import brainpy.version2 as bp
     >>> l = bp.dnn.MaskedLinear(bp.conn.FixedProb(0.1, pre=100, post=100),
     >>>                         weight=0.1)
 

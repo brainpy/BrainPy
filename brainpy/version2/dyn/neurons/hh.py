@@ -2,17 +2,17 @@ from functools import partial
 from typing import Any, Sequence
 from typing import Union, Callable, Optional
 
-import brainpy.math as bm
-from brainpy._src.context import share
-from brainpy._src.dyn.base import NeuDyn, IonChaDyn
-from brainpy._src.initialize import OneInit
-from brainpy._src.initialize import Uniform, variable_, noise as init_noise
-from brainpy._src.integrators import JointEq
-from brainpy._src.integrators import odeint, sdeint
-from brainpy._src.mixin import Container, TreeNode
-from brainpy._src.types import ArrayType
-from brainpy.check import is_initializer
-from brainpy.types import Shape
+import brainpy.version2.math as bm
+from brainpy.version2.context import share
+from brainpy.version2.dyn.base import NeuDyn, IonChaDyn
+from brainpy.version2.initialize import OneInit
+from brainpy.version2.initialize import Uniform, variable_, noise as init_noise
+from brainpy.version2.integrators import JointEq
+from brainpy.version2.integrators import odeint, sdeint
+from brainpy.version2.mixin import Container, TreeNode
+from brainpy.version2.types import ArrayType
+from brainpy.version2.check import is_initializer
+from brainpy.version2.types import Shape
 
 __all__ = [
     'HHTypedNeuron',
@@ -239,7 +239,7 @@ class HHLTC(NeuDyn):
 
     .. code-block:: python
 
-        import brainpy as bp
+        import brainpy.version2 as bp
 
         neu = bp.dyn.HHLTC(1)
 
@@ -471,7 +471,7 @@ class HH(HHLTC):
 
     .. code-block:: python
 
-      import brainpy as bp
+      import brainpy.version2 as bp
       import matplotlib.pyplot as plt
 
       neu = bp.dyn.HH(1,)
@@ -836,7 +836,7 @@ class WangBuzsakiHHLTC(NeuDyn):
 
     .. code-block:: python
 
-        import brainpy as bp
+        import brainpy.version2 as bp
         import matplotlib.pyplot as plt
 
         neu = bp.dyn.WangBuzsakiHHLTC(1, )
@@ -1058,7 +1058,7 @@ class WangBuzsakiHH(WangBuzsakiHHLTC):
 
     .. code-block:: python
 
-        import brainpy as bp
+        import brainpy.version2 as bp
         import matplotlib.pyplot as plt
 
         neu = bp.dyn.WangBuzsakiHH(1, )

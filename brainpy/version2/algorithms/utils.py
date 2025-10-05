@@ -2,7 +2,7 @@
 
 from itertools import combinations_with_replacement
 
-import brainpy.math as bm
+import brainpy.version2.math as bm
 
 __all__ = [
     'Sigmoid',

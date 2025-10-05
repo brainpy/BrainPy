@@ -6,7 +6,7 @@ import jax.numpy as jnp
 import numpy as np
 
 from brainpy import tools
-from brainpy._src import math as bm
+from brainpy.version2 import math as bm
 from .base import _InterLayerInitializer
 
 __all__ = [

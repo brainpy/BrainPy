@@ -2,12 +2,12 @@ from typing import Union, Callable
 
 import jax.numpy as jnp
 
-import brainpy.math as bm
-from brainpy._src.context import share
-from brainpy._src.dyn.base import NeuDyn
-from brainpy._src.initialize import variable_, parameter
-from brainpy._src.integrators.sde.generic import sdeint
-from brainpy.types import Shape, ArrayType
+import brainpy.version2.math as bm
+from brainpy.version2.context import share
+from brainpy.version2.dyn.base import NeuDyn
+from brainpy.version2.initialize import variable_, parameter
+from brainpy.version2.integrators.sde.generic import sdeint
+from brainpy.version2.types import Shape, ArrayType
 
 __all__ = [
     'OUProcess',

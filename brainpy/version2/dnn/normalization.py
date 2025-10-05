@@ -4,11 +4,11 @@ from typing import Union, Optional, Sequence, Callable
 
 from jax import lax, numpy as jnp
 
-from brainpy import math as bm
-from brainpy._src.context import share
-from brainpy._src.dnn.base import Layer
-from brainpy.initialize import ZeroInit, OneInit, Initializer, parameter
-from brainpy.types import ArrayType
+from brainpy.version2 import math as bm
+from brainpy.version2.context import share
+from brainpy.version2.dnn.base import Layer
+from brainpy.version2.initialize import ZeroInit, OneInit, Initializer, parameter
+from brainpy.version2.types import ArrayType
 
 __all__ = [
     'BatchNorm1d',
@@ -446,8 +446,8 @@ class LayerNorm(Layer):
 
     Examples::
 
-    >>> import brainpy as bp
-    >>> import brainpy.math as bm
+    >>> import brainpy.version2 as bp
+    >>> import brainpy.version2.math as bm
     >>>
     >>> # NLP Example
     >>> batch, sentence_length, embedding_dim = 20, 5, 10
@@ -538,8 +538,8 @@ class GroupNorm(Layer):
 
     Examples::
 
-    >>> import brainpy as bp
-    >>> import brainpy.math as bm
+    >>> import brainpy.version2 as bp
+    >>> import brainpy.version2.math as bm
     >>> input = bm.random.randn(20, 10, 10, 6)
     >>> # Separate 6 channels into 3 groups
     >>> m = bp.layers.GroupNorm(3, 6)

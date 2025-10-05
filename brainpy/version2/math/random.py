@@ -14,7 +14,7 @@ from jax._src.core import _canonicalize_dimension, _invalid_shape_error
 from jax._src.typing import Shape
 from jax.tree_util import register_pytree_node_class
 
-from brainpy.check import jit_error_checking, jit_error_checking_no_args
+from brainpy.version2.check import jit_error_checking, jit_error_checking_no_args
 from .compat_numpy import shape
 from .environment import get_int
 from .ndarray import Array, _return, BaseArray
@@ -1473,7 +1473,7 @@ def rand(*dn, key: Optional[Union[int, JAX_RAND_KEY]] = None):
 
     Examples::
 
-    >>> brainpy.math.random.rand(3,2)
+    >>> brainpy.version2.math.random.rand(3,2)
     array([[ 0.14022471,  0.96360618],  #random
            [ 0.37601032,  0.25528411],  #random
            [ 0.49313049,  0.94909878]]) #random
@@ -1522,7 +1522,7 @@ def randint(low, high=None, size: Optional[Union[int, Sequence[int]]] = None, dt
 
     Examples::
 
-    >>> import brainpy.math as bm
+    >>> import brainpy.version2.math as bm
     >>> bm.random.randint(2, size=10)
     array([1, 0, 0, 0, 1, 1, 0, 0, 1, 0]) # random
     >>> bm.random.randint(1, size=10)
@@ -1602,7 +1602,7 @@ def random_integers(low,
 
     Examples::
 
-    >>> import brainpy.math as bm
+    >>> import brainpy.version2.math as bm
     >>> bm.random.random_integers(5)
     4 # random
     >>> type(bm.random.random_integers(5))
@@ -1681,7 +1681,7 @@ def randn(*dn, key: Optional[Union[int, JAX_RAND_KEY]] = None):
 
     Examples::
 
-    >>> import brainpy.math as bm
+    >>> import brainpy.version2.math as bm
     >>> bm.random.randn()
     2.1923875335537315  # random
 
@@ -1736,7 +1736,7 @@ def random_sample(size: Optional[Union[int, Sequence[int]]] = None, key: Optiona
 
     Examples::
 
-    >>> import brainpy.math as bm
+    >>> import brainpy.version2.math as bm
     >>> bm.random.random_sample()
     0.47108547995356098 # random
     >>> type(bm.random.random_sample())
@@ -1824,10 +1824,10 @@ def choice(a, size: Optional[Union[int, Sequence[int]]] = None, replace=True, p=
 
     Generate a uniform random sample from np.arange(5) of size 3:
 
-    >>> import brainpy.math as bm
+    >>> import brainpy.version2.math as bm
     >>> bm.random.choice(5, 3)
     array([0, 3, 4]) # random
-    >>> #This is equivalent to brainpy.math.random.randint(0,5,3)
+    >>> #This is equivalent to brainpy.version2.math.random.randint(0,5,3)
 
     Generate a non-uniform random sample from np.arange(5) of size 3:
 
@@ -1839,7 +1839,7 @@ def choice(a, size: Optional[Union[int, Sequence[int]]] = None, replace=True, p=
 
     >>> bm.random.choice(5, 3, replace=False)
     array([3,1,0]) # random
-    >>> #This is equivalent to brainpy.math.random.permutation(np.arange(5))[:3]
+    >>> #This is equivalent to brainpy.version2.math.random.permutation(np.arange(5))[:3]
 
     Generate a non-uniform random sample from np.arange(5) of size
     3 without replacement:
@@ -1883,7 +1883,7 @@ def permutation(x,
 
     Examples::
 
-    >>> import brainpy.math as bm
+    >>> import brainpy.version2.math as bm
     >>> bm.random.permutation(10)
     array([1, 7, 4, 3, 0, 9, 2, 5, 8, 6]) # random
 
@@ -1918,7 +1918,7 @@ def shuffle(x, axis=0, key: Optional[Union[int, JAX_RAND_KEY]] = None):
 
     Examples::
 
-    >>> import brainpy.math as bm
+    >>> import brainpy.version2.math as bm
     >>> arr = np.arange(10)
     >>> bm.random.shuffle(arr)
     >>> arr
@@ -4521,7 +4521,7 @@ def weibull(a,
     Draw samples from the distribution:
 
     >>> a = 5. # shape
-    >>> s = brainpy.math.random.weibull(a, 1000)
+    >>> s = brainpy.version2.math.random.weibull(a, 1000)
 
     Display the histogram of the samples, along with
     the probability density function:
@@ -4531,7 +4531,7 @@ def weibull(a,
     >>> def weib(x,n,a):
     ...     return (a / n) * (x / n)**(a - 1) * np.exp(-(x / n)**a)
 
-    >>> count, bins, ignored = plt.hist(brainpy.math.random.weibull(5.,1000))
+    >>> count, bins, ignored = plt.hist(brainpy.version2.math.random.weibull(5.,1000))
     >>> x = np.arange(1,100.)/50.
     >>> scale = count.max()/weib(x, 1., 5.).max()
     >>> plt.plot(x, weib(x, 1., 5.)*scale)
@@ -4626,7 +4626,7 @@ def zipf(a,
 
     >>> a = 4.0
     >>> n = 20000
-    >>> s = brainpy.math.random.zipf(a, n)
+    >>> s = brainpy.version2.math.random.zipf(a, n)
 
     Display the histogram of the samples, along with
     the expected histogram based on the probability

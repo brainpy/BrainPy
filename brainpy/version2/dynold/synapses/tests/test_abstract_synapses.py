@@ -3,9 +3,9 @@
 
 from absl.testing import parameterized
 
-import brainpy as bp
-import brainpy.math as bm
-from brainpy._src.dynold.synapses import abstract_models
+import brainpy.version2 as bp
+import brainpy.version2.math as bm
+from brainpy.version2.dynold.synapses import abstract_models
 
 
 class Test_Abstract_Synapse(parameterized.TestCase):

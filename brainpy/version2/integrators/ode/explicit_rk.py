@@ -67,9 +67,9 @@ More details please see references [2]_ [3]_ [4]_.
 
 """
 
-from brainpy._src.integrators import constants as C, utils
-from brainpy._src.integrators.ode import common
-from brainpy._src.integrators.ode.base import ODEIntegrator
+from brainpy.version2.integrators import constants as C, utils
+from brainpy.version2.integrators.ode import common
+from brainpy.version2.integrators.ode.base import ODEIntegrator
 from .generic import register_ode_integrator
 
 __all__ = [
@@ -392,7 +392,7 @@ class Heun2(ExplicitRKIntegrator):
 
     **Geometric interpretation**
 
-    In the :py:func:`brainpy.integrators.ode.midpoint`, we have already known Euler
+    In the :py:func:`brainpy.version2.integrators.ode.midpoint`, we have already known Euler
     method has big estimation error because it uses the
     line tangent to the function at the beginning of the interval :math:`t_n` as an
     estimate of the slope of the function over the interval :math:`(t_n, t_{n+1})`.
@@ -465,9 +465,9 @@ class RK2(ExplicitRKIntegrator):
 
     **Derivation**
 
-    In the :py:func:`brainpy.integrators.ode.midpoint`,
-    :py:func:`brainpy.integrators.ode.heun2`, and :py:func:`brainpy.integrators.ode.ralston2`,
-    we have already known first-order Euler method :py:func:`brainpy.integrators.ode.euler`
+    In the :py:func:`brainpy.version2.integrators.ode.midpoint`,
+    :py:func:`brainpy.version2.integrators.ode.heun2`, and :py:func:`brainpy.version2.integrators.ode.ralston2`,
+    we have already known first-order Euler method :py:func:`brainpy.version2.integrators.ode.euler`
     has big estimation error.
 
     Here, we seek to derive a generic second order Runge-Kutta method [1]_ for the

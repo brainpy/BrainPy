@@ -2,9 +2,9 @@
 import numpy as np
 from absl.testing import parameterized
 
-import brainpy as bp
-import brainpy.math as bm
-from brainpy._src.dyn.neurons import lif
+import brainpy.version2 as bp
+import brainpy.version2.math as bm
+from brainpy.version2.dyn.neurons import lif
 
 
 class Test_lif(parameterized.TestCase):

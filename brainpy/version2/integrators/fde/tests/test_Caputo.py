@@ -5,7 +5,7 @@ import unittest
 
 import numpy as np
 
-import brainpy as bp
+import brainpy.version2 as bp
 
 
 class TestCaputoL1(unittest.TestCase):

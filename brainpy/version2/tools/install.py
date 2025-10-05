@@ -16,6 +16,6 @@ BrainPy needs jaxlib, please install it.
 
 Note that the versions of "jax" and "jaxlib" should be consistent, like "jax=0.3.14" and "jaxlib=0.3.14".  
 
-For more detail installation instructions, please see https://brainpy.readthedocs.io/en/latest/quickstart/installation.html#dependency-2-jax 
+For more detail installation instructions, please see https://brainpy.version2.readthedocs.io/en/latest/quickstart/installation.html#dependency-2-jax 
 
 '''

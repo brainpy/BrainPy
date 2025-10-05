@@ -7,10 +7,10 @@ import jax.numpy as jnp
 import numpy as np
 from jax import vmap
 
-import brainpy.math as bm
-from brainpy import _errors, math
-from brainpy._src.analysis import stability, plotstyle, constants as C, utils
-from brainpy._src.analysis.lowdim.lowdim_analyzer import *
+import brainpy.version2.math as bm
+from brainpy.version2 import _errors, math
+from brainpy.version2.analysis import stability, plotstyle, constants as C, utils
+from brainpy.version2.analysis.lowdim.lowdim_analyzer import *
 
 pyplot = None
 

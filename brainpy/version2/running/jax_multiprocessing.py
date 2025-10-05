@@ -6,8 +6,8 @@ import numpy as np
 from jax import vmap, pmap
 from jax.tree_util import tree_unflatten, tree_flatten
 
-import brainpy.math as bm
-from brainpy.types import ArrayType
+import brainpy.version2.math as bm
+from brainpy.version2.types import ArrayType
 
 __all__ = [
     'jax_vectorize_map',
@@ -90,7 +90,7 @@ def jax_parallelize_map(
 
     This function can be used in multi- CPU or GPU backends.
     If you are using it in a single CPU, please set host device count
-    by ``brainpy.math.set_host_device_count(n)`` before.
+    by ``brainpy.version2.math.set_host_device_count(n)`` before.
 
     Parameters::
 

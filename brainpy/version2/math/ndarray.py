@@ -9,7 +9,7 @@ from jax import numpy as jnp
 from jax.dtypes import canonicalize_dtype
 from jax.tree_util import register_pytree_node_class
 
-from brainpy._errors import MathError
+from brainpy.version2._errors import MathError
 from .defaults import defaults
 
 bm = None
@@ -854,7 +854,7 @@ class BaseArray:
 
         Example::
 
-            >>> x = brainpy.math.random.randn(4, 4)
+            >>> x = brainpy.version2.math.random.randn(4, 4)
             >>> x.size
            [4, 4]
             >>> y = x.view(16)
@@ -864,7 +864,7 @@ class BaseArray:
             >>> z.size
             [2, 8]
 
-            >>> a = brainpy.math.random.randn(1, 2, 3, 4)
+            >>> a = brainpy.version2.math.random.randn(1, 2, 3, 4)
             >>> a.size
             [1, 2, 3, 4]
             >>> b = a.transpose(1, 2)  # Swaps 2nd and 3rd dimension
@@ -873,7 +873,7 @@ class BaseArray:
             >>> c = a.view(1, 3, 2, 4)  # Does not change tensor layout in memory
             >>> c.size
             [1, 3, 2, 4]
-            >>> brainpy.math.equal(b, c)
+            >>> brainpy.version2.math.equal(b, c)
             False
 
 
@@ -915,22 +915,22 @@ class BaseArray:
 
         Example::
 
-            >>> x = brainpy.math.random.randn(4, 4)
+            >>> x = brainpy.version2.math.random.randn(4, 4)
             >>> x
             Array([[ 0.9482, -0.0310,  1.4999, -0.5316],
                     [-0.1520,  0.7472,  0.5617, -0.8649],
                     [-2.4724, -0.0334, -0.2976, -0.8499],
                     [-0.2109,  1.9913, -0.9607, -0.6123]])
             >>> x.dtype
-            brainpy.math.float32
+            brainpy.version2.math.float32
 
-            >>> y = x.view(brainpy.math.int32)
+            >>> y = x.view(brainpy.version2.math.int32)
             >>> y
             tensor([[ 1064483442, -1124191867,  1069546515, -1089989247],
                     [-1105482831,  1061112040,  1057999968, -1084397505],
                     [-1071760287, -1123489973, -1097310419, -1084649136],
                     [-1101533110,  1073668768, -1082790149, -1088634448]],
-                dtype=brainpy.math.int32)
+                dtype=brainpy.version2.math.int32)
             >>> y[0, 0] = 1000000000
             >>> x
             tensor([[ 0.0047, -0.0310,  1.4999, -0.5316],
@@ -938,15 +938,15 @@ class BaseArray:
                     [-2.4724, -0.0334, -0.2976, -0.8499],
                     [-0.2109,  1.9913, -0.9607, -0.6123]])
 
-            >>> x.view(brainpy.math.cfloat)
+            >>> x.view(brainpy.version2.math.cfloat)
             tensor([[ 0.0047-0.0310j,  1.4999-0.5316j],
                     [-0.1520+0.7472j,  0.5617-0.8649j],
                     [-2.4724-0.0334j, -0.2976-0.8499j],
                     [-0.2109+1.9913j, -0.9607-0.6123j]])
-            >>> x.view(brainpy.math.cfloat).size
+            >>> x.view(brainpy.version2.math.cfloat).size
             [4, 2]
 
-            >>> x.view(brainpy.math.uint8)
+            >>> x.view(brainpy.version2.math.uint8)
             tensor([[  0, 202, 154,  59, 182, 243, 253, 188, 185, 252, 191,  63, 240,  22,
                        8, 191],
                     [227, 165,  27, 190, 128,  72,  63,  63, 146, 203,  15,  63,  22, 106,
@@ -954,8 +954,8 @@ class BaseArray:
                     [205,  59,  30, 192, 112, 206,   8, 189,   7,  95, 152, 190,  12, 147,
                       89, 191],
                     [ 43, 246,  87, 190, 235, 226, 254,  63, 111, 240, 117, 191, 177, 191,
-                      28, 191]], dtype=brainpy.math.uint8)
-            >>> x.view(brainpy.math.uint8).size
+                      28, 191]], dtype=brainpy.version2.math.uint8)
+            >>> x.view(brainpy.version2.math.uint8).size
             [4, 16]
 
         """
@@ -1047,7 +1047,7 @@ class BaseArray:
         equals
         Array.expand_dims(dim)
 
-        See :func:`brainpy.math.unsqueeze`
+        See :func:`brainpy.version2.math.unsqueeze`
         """
         return _return(jnp.expand_dims(self.value, dim))
 
@@ -1507,7 +1507,7 @@ class Array(BaseArray):
 
     - In-place updating is supported.
 
-    >>> import brainpy.math as bm
+    >>> import brainpy.version2.math as bm
     >>> a = bm.asarray([1, 2, 3.])
     >>> a[0] = 10.
 
@@ -1541,7 +1541,7 @@ class Array(BaseArray):
 
     # @classmethod
     # def __instancecheck__(cls, subclass):
-    #   from brainpy.math import Variable
+    #   from brainpy.version2.math import Variable
     #   if issubclass(subclass, Variable):
     #     return True
     #   if isinstance(subclass, Array):

@@ -2,20 +2,20 @@
 
 from typing import Union, Callable
 
-import brainpy.math as bm
-from brainpy import check
-from brainpy._src.context import share
-from brainpy._src.dyn.base import NeuDyn
-from brainpy._src.dyn.neurons import hh
-from brainpy._src.initialize import (OneInit,
+import brainpy.version2.math as bm
+from brainpy.version2 import check
+from brainpy.version2.context import share
+from brainpy.version2.dyn.base import NeuDyn
+from brainpy.version2.dyn.neurons import hh
+from brainpy.version2.initialize import (OneInit,
                                      Initializer,
                                      parameter,
                                      noise as init_noise,
                                      variable_)
-from brainpy._src.integrators.joint_eq import JointEq
-from brainpy._src.integrators.ode.generic import odeint
-from brainpy._src.integrators.sde.generic import sdeint
-from brainpy.types import Shape, ArrayType
+from brainpy.version2.integrators.joint_eq import JointEq
+from brainpy.version2.integrators.ode.generic import odeint
+from brainpy.version2.integrators.sde.generic import sdeint
+from brainpy.version2.types import Shape, ArrayType
 
 __all__ = [
     'HH',
@@ -116,15 +116,15 @@ class HH(hh.HH):
 
     **Model Examples**
 
-    >>> import brainpy as bp
+    >>> import brainpy.version2 as bp
     >>> group = bp.neurons.HH(2)
     >>> runner = bp.DSRunner(group, monitors=['V'], inputs=('input', 10.))
     >>> runner.run(200.)
     >>> bp.visualize.line_plot(runner.mon.ts, runner.mon.V, show=True)
 
 
-    >>> import brainpy as bp
-    >>> import brainpy.math as bm
+    >>> import brainpy.version2 as bp
+    >>> import brainpy.version2.math as bm
     >>> import matplotlib.pyplot as plt
     >>>
     >>> group = bp.neurons.HH(2)
@@ -252,7 +252,7 @@ class MorrisLecar(hh.MorrisLecar):
     **Model Examples**
 
 
-    >>> import brainpy as bp
+    >>> import brainpy.version2 as bp
     >>>
     >>> group = bp.neurons.MorrisLecar(1)
     >>> runner = bp.DSRunner(group, monitors=['V', 'W'], inputs=('input', 100.))

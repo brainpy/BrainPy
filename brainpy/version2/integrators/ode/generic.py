@@ -2,7 +2,7 @@
 
 from typing import Dict
 
-from brainpy._src.math.delayvars import AbstractDelay, NeuTimeDelay
+from brainpy.version2.math.delayvars import AbstractDelay, NeuTimeDelay
 from .base import ODEIntegrator
 
 __all__ = [
@@ -36,7 +36,7 @@ def odeint(
     .. plot::
       :include-source: True
 
-      >>> import brainpy as bp
+      >>> import brainpy.version2 as bp
       >>> import matplotlib.pyplot as plt
       >>>
       >>> a=0.7;  b=0.8;  tau=12.5;  Vth=1.9

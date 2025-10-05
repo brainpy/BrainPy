@@ -2,8 +2,8 @@ from typing import Union, Optional, Sequence
 
 import numpy as np
 
-from brainpy import math as bm, initialize as init
-from brainpy.types import ArrayType
+from brainpy.version2 import math as bm, initialize as init
+from brainpy.version2.types import ArrayType
 from .base import SynOut
 
 __all__ = [
@@ -30,7 +30,7 @@ class COBA(SynOut):
       The axis names for variable for parallelization.
     name: str
       The model name.
-    scaling: brainpy.Scaling
+    scaling: brainpy.version2.Scaling
       The scaling object.
 
     See Also::
@@ -67,7 +67,7 @@ class CUBA(SynOut):
 
     name: str
       The model name.
-    scaling: brainpy.Scaling
+    scaling: brainpy.version2.Scaling
       The scaling object.
 
     See Also::

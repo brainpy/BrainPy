@@ -8,8 +8,8 @@ from typing import Dict, Callable, Sequence
 import jax
 
 from brainpy import check
-from brainpy._src.math.ndarray import BaseArray as Array
-from brainpy._errors import UnsupportedError
+from brainpy.version2.math.ndarray import BaseArray as Array
+from brainpy.version2._errors import UnsupportedError
 
 __all__ = [
     'get_default',

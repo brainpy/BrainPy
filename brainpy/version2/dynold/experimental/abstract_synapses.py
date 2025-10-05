@@ -4,14 +4,14 @@ from typing import Union, Dict, Callable, Optional
 
 from jax import vmap
 
-import brainpy.math as bm
-from brainpy._src.connect import TwoEndConnector, All2All, One2One
-from brainpy._src.context import share
-from brainpy._src.dynold.experimental.base import SynConnNS, SynOutNS, SynSTPNS
-from brainpy._src.initialize import Initializer, variable_
-from brainpy._src.integrators import odeint, JointEq
-from brainpy.check import is_float
-from brainpy.types import ArrayType
+import brainpy.version2.math as bm
+from brainpy.version2.connect import TwoEndConnector, All2All, One2One
+from brainpy.version2.context import share
+from brainpy.version2.dynold.experimental.base import SynConnNS, SynOutNS, SynSTPNS
+from brainpy.version2.initialize import Initializer, variable_
+from brainpy.version2.integrators import odeint, JointEq
+from brainpy.version2.check import is_float
+from brainpy.version2.types import ArrayType
 
 
 class Exponential(SynConnNS):
@@ -324,7 +324,7 @@ class Alpha(DualExponential):
     .. plot::
       :include-source: True
 
-      >>> import brainpy as bp
+      >>> import brainpy.version2 as bp
       >>> from brainpy import neurons, synapses, synouts
       >>> import matplotlib.pyplot as plt
       >>>

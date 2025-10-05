@@ -4,7 +4,7 @@ import pytest
 
 pytest.skip('skip', allow_module_level=True)
 
-import brainpy as bp
+import brainpy.version2 as bp
 
 
 def test_random_fix_pre1():

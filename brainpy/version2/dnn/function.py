@@ -2,8 +2,8 @@
 
 from typing import Callable, Optional, Sequence
 
-import brainpy.math as bm
-from brainpy._src.dnn.base import Layer
+import brainpy.version2.math as bm
+from brainpy.version2.dnn.base import Layer
 
 __all__ = [
     'Activation',
@@ -59,7 +59,7 @@ class Flatten(Layer):
         mode: Mode. Enable training this node or not. (default True).
 
     Examples::
-        >>> import brainpy.math as bm
+        >>> import brainpy.version2.math as bm
         >>> inp = bm.random.randn(32, 1, 5, 5)
         >>> # With default parameters
         >>> m = Flatten()
@@ -118,8 +118,8 @@ class Unflatten(Layer):
         sizes: Sequence of int. New shape of the unflattened dimension.
 
     Examples:
-        >>> import brainpy as bp
-        >>> import brainpy.math as bm
+        >>> import brainpy.version2 as bp
+        >>> import brainpy.version2.math as bm
         >>> input = bm.random.randn(2, 50)
         >>> # With tuple of ints
         >>> m = bp.Sequential(

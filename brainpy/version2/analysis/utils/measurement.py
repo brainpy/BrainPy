@@ -7,8 +7,8 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
-import brainpy._src.math as bm
-from brainpy.tools import numba_jit
+import brainpy.version2.math as bm
+from brainpy.version2.tools import numba_jit
 
 __all__ = [
     'find_indexes_of_limit_cycle_max',

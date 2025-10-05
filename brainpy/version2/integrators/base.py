@@ -6,10 +6,10 @@ from typing import Dict, Sequence, Union, Callable
 
 import jax
 
-from brainpy._src.math import TimeDelay, LengthDelay
-from brainpy._src.math.object_transform.base import BrainPyObject
-from brainpy.check import is_float, is_dict_data
-from brainpy._errors import DiffEqError
+from brainpy.version2.math import TimeDelay, LengthDelay
+from brainpy.version2.math.object_transform.base import BrainPyObject
+from brainpy.version2.check import is_float, is_dict_data
+from brainpy.version2._errors import DiffEqError
 from ._jaxpr_to_source_code import jaxpr_to_python_code
 from .constants import DT
 
@@ -163,14 +163,14 @@ class Integrator(AbstractIntegrator):
                 delay.update(dict_vars[key])
             else:
                 raise ValueError('Unknown delay variable. We only supports '
-                                 'brainpy.math.LengthDelay, brainpy.math.TimeDelay. '
+                                 'brainpy.version2.math.LengthDelay, brainpy.version2.math.TimeDelay. '
                                  f'While we got {delay}')
 
         return new_vars
 
     def to_math_expr(self):
         if self._math_expr is None:
-            raise ValueError('Please call ``brainpy.integrators.compile_integrators`` first.')
+            raise ValueError('Please call ``brainpy.version2.integrators.compile_integrators`` first.')
         return self._math_expr
 
 

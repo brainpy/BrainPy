@@ -291,7 +291,7 @@ def msort(a):
 
     Notes::
 
-    ``brainpy.math.msort(a)`` is equivalent to  ``brainpy.math.sort(a, axis=0)``.
+    ``brainpy.version2.math.msort(a)`` is equivalent to  ``brainpy.version2.math.sort(a, axis=0)``.
 
     """
     return sort(a, axis=0)
@@ -477,13 +477,13 @@ def shape(a):
 
     Examples::
 
-    >>> brainpy.math.shape(brainpy.math.eye(3))
+    >>> brainpy.version2.math.shape(brainpy.version2.math.eye(3))
     (3, 3)
-    >>> brainpy.math.shape([[1, 3]])
+    >>> brainpy.version2.math.shape([[1, 3]])
     (1, 2)
-    >>> brainpy.math.shape([0])
+    >>> brainpy.version2.math.shape([0])
     (1,)
-    >>> brainpy.math.shape(0)
+    >>> brainpy.version2.math.shape(0)
     ()
 
     """
@@ -518,12 +518,12 @@ def size(a, axis=None):
 
     Examples::
 
-    >>> a = brainpy.math.array([[1,2,3], [4,5,6]])
-    >>> brainpy.math.size(a)
+    >>> a = brainpy.version2.math.array([[1,2,3], [4,5,6]])
+    >>> brainpy.version2.math.size(a)
     6
-    >>> brainpy.math.size(a, 1)
+    >>> brainpy.version2.math.size(a, 1)
     3
-    >>> brainpy.math.size(a, 0)
+    >>> brainpy.version2.math.size(a, 0)
     2
     """
     if isinstance(a, (BaseArray, jax.Array, np.ndarray)):

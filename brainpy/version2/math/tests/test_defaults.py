@@ -1,6 +1,6 @@
 import unittest
 
-import brainpy.math as bm
+import brainpy.version2.math as bm
 
 
 class TestDefaults(unittest.TestCase):

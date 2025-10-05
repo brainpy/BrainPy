@@ -1,23 +1,16 @@
 # -*- coding: utf-8 -*-
 
 import numbers
-import sys
 import warnings
 from dataclasses import dataclass
 from typing import Union, Dict, Callable, Sequence, Optional, Any
-from typing import (_type_check, _remove_dups_flatten)
 
-import brainstate.mixin
 import jax
 
+import brainstate.mixin
 from brainpy.version2 import math as bm, tools
 from brainpy.version2.math.object_transform.naming import get_unique_name
 from brainpy.version2.types import ArrayType
-
-if sys.version_info.minor > 8:
-    from typing import (_UnionGenericAlias)
-else:
-    from typing import (_GenericAlias, _tp_cache)
 
 DynamicalSystem = None
 delay_identifier, init_delay_by_return = None, None
@@ -39,6 +32,13 @@ __all__ = [
     'SupportOffline',
 ]
 
+MixIn = brainstate.mixin.Mixin
+ParamDesc = brainstate.mixin.ParamDesc
+ParamDescriber = brainstate.mixin.ParamDescriber
+AlignPost = brainstate.mixin.AlignPost
+BindCondData = brainstate.mixin.BindCondData
+JointType = brainstate.mixin.JointTypes
+
 
 def _get_delay_tool():
     global delay_identifier, init_delay_by_return
@@ -51,14 +51,6 @@ def _get_dynsys():
     global DynamicalSystem
     if DynamicalSystem is None: from brainpy.version2.dynsys import DynamicalSystem
     return DynamicalSystem
-
-
-MixIn = brainstate.mixin.Mixin
-ParamDesc = brainstate.mixin.ParamDesc
-ParamDescriber = brainstate.mixin.ParamDescriber
-AlignPost = brainstate.mixin.AlignPost
-BindCondData = brainstate.mixin.BindCondData
-JointType = brainstate.mixin.JointTypes
 
 
 @dataclass

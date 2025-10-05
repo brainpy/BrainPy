@@ -4,8 +4,8 @@
 import pytest
 from absl.testing import parameterized
 
-import brainpy as bp
-import brainpy.math as bm
+import brainpy.version2 as bp
+import brainpy.version2.math as bm
 
 pytest.skip("Skip the test due to the jax 0.5.0 version", allow_module_level=True)
 

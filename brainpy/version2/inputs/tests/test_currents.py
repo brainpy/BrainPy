@@ -5,7 +5,7 @@ from unittest import TestCase
 
 import numpy as np
 
-import brainpy as bp
+import brainpy.version2 as bp
 
 plt = None
 block = False
