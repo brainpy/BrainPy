@@ -149,7 +149,7 @@ class SpikeTimeGroup(NeuDyn):
         self.times = bm.asarray(times)
         self.indices = bm.asarray(indices, dtype=bm.int_)
         if need_sort:
-            sort_idx = bm.argsort(self.times)
+            sort_idx = jnp.argsort(self.times.value)
             self.indices.value = self.indices[sort_idx]
             self.times.value = self.times[sort_idx]
 
@@ -221,7 +221,6 @@ class PoissonGroup(NeuDyn):
     def update(self):
         spikes = bm.random.rand_like(self.spike) <= (self.freqs * share['dt'] / 1000.)
         spikes = bm.asarray(spikes, dtype=self.spk_type)
-        # spikes = bm.sharding.partition(spikes, self.spike.sharding)
         self.spike.value = spikes
         return spikes
 

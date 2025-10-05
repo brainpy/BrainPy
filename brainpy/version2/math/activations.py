@@ -13,6 +13,7 @@ can make.
 
 import operator
 
+import brainunit as u
 import jax
 import jax.numpy as jnp
 import jax.scipy
@@ -52,8 +53,10 @@ __all__ = [
     'swish',
     'selu',
     'identity',
+    'tanh',
 ]
 
+tanh = u.math.tanh
 
 def get(activation):
     global_vars = globals()

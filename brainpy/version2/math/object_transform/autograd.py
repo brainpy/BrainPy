@@ -5,6 +5,7 @@ from typing import Union, Callable, Dict, Sequence, Optional
 import brainstate.transform
 
 from .variables import Variable
+from ._utils import warp_to_no_state_input_output
 
 __all__ = [
     'grad',  # gradient of scalar function
@@ -141,7 +142,7 @@ def grad(
                               return_value=return_value)
     else:
         return brainstate.transform.grad(
-            func,
+            warp_to_no_state_input_output(func),
             grad_states=grad_vars,
             argnums=argnums,
             holomorphic=holomorphic,
@@ -216,7 +217,7 @@ def jacrev(
     """
 
     return brainstate.transform.jacrev(
-        func,
+        warp_to_no_state_input_output(func),
         grad_states=grad_vars,
         argnums=argnums,
         holomorphic=holomorphic,
@@ -285,7 +286,7 @@ def jacfwd(
       The transformed object.
     """
     return brainstate.transform.jacfwd(
-        func,
+        warp_to_no_state_input_output(func),
         grad_states=grad_vars,
         argnums=argnums,
         holomorphic=holomorphic,
@@ -329,7 +330,7 @@ def hessian(
     """
 
     return brainstate.transform.hessian(
-        func,
+        warp_to_no_state_input_output(func),
         grad_states=grad_vars,
         argnums=argnums,
         holomorphic=holomorphic,
@@ -390,7 +391,7 @@ def vector_grad(
       The vector gradient function.
     """
     return brainstate.transform.vector_grad(
-        func,
+        warp_to_no_state_input_output(func),
         grad_states=grad_vars,
         argnums=argnums,
         return_value=return_value,

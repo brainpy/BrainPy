@@ -163,4 +163,4 @@ if __name__ == '__main__':
     channels, neurons, synapses, rates, experimental, synouts, synplast
     modes
     Base
-    ArrayCollector, Collector
+    ArrayCollector, Collector, errors

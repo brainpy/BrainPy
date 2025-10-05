@@ -9,9 +9,11 @@ The JIT compilation tools for JAX backend.
 
 from typing import Callable, Union, Optional, Sequence, Any, Iterable
 
+import jax.tree
+
 import brainstate.transform
 from brainstate.typing import Missing
-import jax.tree
+from ._utils import warp_to_no_state_input_output
 
 __all__ = [
     'jit',
@@ -129,7 +131,7 @@ def jit(
       A callable jitted function, set up for just-in-time compilation.
     """
     return brainstate.transform.jit(
-        func,
+        warp_to_no_state_input_output(func),
         static_argnums=static_argnums,
         donate_argnums=donate_argnums,
         static_argnames=static_argnames,
@@ -194,13 +196,15 @@ def cls_jit(
     else:
         raise ValueError('static_argnums is not supported yet.')
 
-    return jit(func=func,
-               static_argnums=static_argnums,
+    return jit(
+        func=func,
+        static_argnums=static_argnums,
                static_argnames=static_argnames,
                inline=inline,
                keep_unused=keep_unused,
                abstracted_axes=abstracted_axes,
-               **kwargs)
+        **kwargs
+    )
 
 
 cls_jit.__doc__ = cls_jit.__doc__.format(jit_pars=_jit_par)

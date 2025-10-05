@@ -13,6 +13,7 @@ __all__ = [
 
 AsyncManager = braintools.file.AsyncManager
 
+
 def _array_dict_state(x: Array) -> Dict[str, jax.Array]:
     return x.value
 

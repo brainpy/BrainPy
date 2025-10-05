@@ -86,22 +86,12 @@ class Array(u.CustomArray):
     def __init__(self, value, dtype: Any = None):
         # array value
         if isinstance(value, Array):
-            value = value._value
+            value = value.value
         elif isinstance(value, (tuple, list, np.ndarray)):
             value = jnp.asarray(value)
         if dtype is not None:
             value = jnp.asarray(value, dtype=dtype)
         self._value = value
-
-    def _check_tracer(self):
-        self_value = self.value
-        if hasattr(self_value, '_trace') and hasattr(self_value._trace.main, 'jaxpr_stack'):
-            if len(self_value._trace.main.jaxpr_stack) == 0:
-                raise jax.errors.UnexpectedTracerError('This Array is modified during the transformation. '
-                                                       'BrainPy only supports transformations for Variable. '
-                                                       'Please declare it as a Variable.') from jax.core.escaped_tracer_error(
-                    self_value, None)
-        return self_value
 
     def tree_flatten(self):
         return (self.value,), None
@@ -109,6 +99,10 @@ class Array(u.CustomArray):
     @classmethod
     def tree_unflatten(cls, aux_data, flat_contents):
         return cls(*flat_contents)
+
+        # ins = object.__new__(cls)
+        # ins._value = flat_contents[0]
+        # return ins
 
     @property
     def data(self):
@@ -125,7 +119,7 @@ class Array(u.CustomArray):
 
     @value.setter
     def value(self, value):
-        self_value = self._check_tracer()
+        self_value = self._value
 
         if isinstance(value, Array):
             value = value.value
@@ -182,6 +176,27 @@ class Array(u.CustomArray):
     @property
     def device_buffer(self):
         return self.value.device_buffer
+
+    def fill_(self, fill_value):
+        """Fill the array with a scalar value.
+
+        Args:
+          fill_value: the scalar value to fill the array.
+        """
+        if isinstance(fill_value, Array):
+            fill_value = fill_value.value
+        elif isinstance(fill_value, np.ndarray):
+            fill_value = jnp.asarray(fill_value)
+        elif isinstance(fill_value, jax.Array):
+            pass
+        else:
+            fill_value = jnp.asarray(fill_value)
+        # check
+        if fill_value.shape != ():
+            raise MathError(f"The shape of the fill value must be (), "
+                            f"while we got {fill_value.shape}.")
+        self.value = jnp.full(self.shape, fill_value, dtype=self.dtype)
+        return self
 
 
 

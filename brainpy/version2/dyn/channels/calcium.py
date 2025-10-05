@@ -18,11 +18,11 @@ from .base import IonChannel
 
 __all__ = [
     'CalciumChannel',
-
     'ICaN_IS2008',
     'ICaT_HM1992',
     'ICaT_HP1992',
     'ICaHT_HM1992',
+    'ICaHT_Re1993',
     'ICaL_IS2008',
 ]
 

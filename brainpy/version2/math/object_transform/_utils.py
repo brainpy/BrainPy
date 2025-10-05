@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 
+from functools import wraps
 from typing import Dict
 
+import jax.tree
+
+import brainstate
 from .base import BrainPyObject, ArrayCollector
 
 __all__ = [
@@ -28,3 +32,41 @@ def get_brainpy_object(target) -> Dict[str, BrainPyObject]:
         return {target.name: target}
     else:
         return dict()
+
+
+def _remove_state(x):
+    if isinstance(x, brainstate.State):
+        return x.value
+    return x
+
+
+def warp_to_no_state_input_output(fn):
+    """A decorator to warp a function to a no-state input-output function.
+
+    The decorated function should have the following signature:
+
+        def fn(input1, input2, ..., state1, state2, ...):
+            ...
+
+    The decorated function will be transformed to:
+
+        def fn(inputs, states):
+            ...
+
+    where `inputs` is a list of all input arguments, and `states` is a list of all state arguments.
+
+    Args:
+        fn: The function to be decorated.
+    """
+
+    if isinstance(fn, brainstate.typing.Missing):
+        return fn
+
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        args, kwargs = jax.tree.map(_remove_state, (args, kwargs), is_leaf=lambda x: isinstance(x, brainstate.State))
+        out = fn(*args, **kwargs)
+        out = jax.tree.map(_remove_state, out, is_leaf=lambda x: isinstance(x, brainstate.State))
+        return out
+
+    return wrapper

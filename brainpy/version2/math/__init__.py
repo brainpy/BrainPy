@@ -61,6 +61,18 @@ from .pre_syn_post import *
 from .scales import *
 
 del jnp, config
+from brainpy.version2.deprecations import deprecation_getattr
 
 
 from .defaults import defaults
+
+__getattr__ = deprecation_getattr(
+    __name__,
+    {},
+    redirects=[
+        'mode', 'membrane_scaling', 'dt', 'bool_', 'int_', 'float_', 'complex_', 'bp_object_as_pytree',
+        'numpy_func_return'
+    ],
+    redirect_module=defaults
+)
+del deprecation_getattr, defaults

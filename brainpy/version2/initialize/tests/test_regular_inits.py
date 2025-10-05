@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import unittest
 
+import jax
+
 import brainpy.version2 as bp
 
 
@@ -33,4 +35,4 @@ class TestIdentityInit(unittest.TestCase):
                     assert weights.shape == (size[0], size[0])
                 else:
                     assert weights.shape == size
-                assert isinstance(weights, bp.math.ndarray)
+                assert isinstance(weights, (bp.math.ndarray, jax.Array))

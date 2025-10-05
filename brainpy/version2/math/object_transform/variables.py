@@ -62,7 +62,8 @@ class Variable(brainstate.State, Array):
 
         if isinstance(value, Array):
             value = value.value
-        super().__init__(value)
+        Array.__init__(self, value, dtype=dtype)
+        brainstate.State.__init__(self, value)
 
         # check batch axis
         if isinstance(value, Variable):

@@ -103,11 +103,13 @@ class Expon(SynDyn, AlignPost):
         # synapse parameters
         tau: Union[float, ArrayType, Callable] = 8.0,
     ):
-        super().__init__(name=name,
-                         mode=mode,
-                         size=size,
-                         keep_size=keep_size,
-                         sharding=sharding)
+        super().__init__(
+            name=name,
+            mode=mode,
+            size=size,
+            keep_size=keep_size,
+            sharding=sharding
+        )
 
         # parameters
         self.tau = self.init_param(tau)

@@ -4,6 +4,7 @@ from typing import Union, Tuple, Optional, Sequence, Callable
 
 from jax import lax
 
+import brainstate
 from brainpy.version2 import math as bm, tools
 from brainpy.version2.dnn.base import Layer
 from brainpy.version2.initialize import Initializer, XavierNormal, ZeroInit, parameter
@@ -177,9 +178,9 @@ class _GeneralConv(Layer):
                                      feature_group_count=self.groups,
                                      dimension_numbers=self.dimension_numbers)
         if nonbatching:
-            return y[0] if self.b is None else (y + self.b.value)[0]
+            return y[0] if self.b is None else (y + self.b)[0]
         else:
-            return y if self.b is None else (y + self.b.value)
+            return y if self.b is None else (y + self.b)
 
     def __repr__(self):
         return (f'{self.__class__.__name__}(in_channels={self.in_channels}, '
@@ -548,7 +549,7 @@ class _GeneralConvTranspose(Layer):
         if x.ndim == self.num_spatial_dims + 1:
             nonbatching = True
             x = x.unsqueeze(0)
-        w = self.w.value
+        w = brainstate.maybe_state(self.w)
         if self.mask is not None:
             try:
                 lax.broadcast_shapes(self.w.shape, self.mask.shape)
@@ -563,9 +564,9 @@ class _GeneralConvTranspose(Layer):
                                rhs_dilation=None,
                                dimension_numbers=self.dimension_numbers)
         if nonbatching:
-            return y[0] if self.b is None else (y + self.b.value)[0]
+            return y[0] if self.b is None else (y + self.b)[0]
         else:
-            return y if self.b is None else (y + self.b.value)
+            return y if self.b is None else (y + self.b)
 
     def __repr__(self):
         return (f'{self.__class__.__name__}(in_channels={self.in_channels}, '

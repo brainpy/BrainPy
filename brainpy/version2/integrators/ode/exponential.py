@@ -109,7 +109,7 @@ from functools import wraps
 
 import jax.numpy as jnp
 
-from brainpy import _errors
+from brainpy import _errors as errors
 from brainpy.version2 import math as bm
 from brainpy.version2.integrators import constants as C, utils, joint_eq
 from brainpy.version2.integrators.ode.base import ODEIntegrator
@@ -359,8 +359,10 @@ class ExponentialEuler(ODEIntegrator):
                 assert len(args) > 0
                 if args[0].dtype not in [jnp.float32, jnp.float64, jnp.float16, jnp.bfloat16]:
                     raise ValueError(
-                        'The input data type should be float32, float64, float16, or bfloat16 when using Exponential Euler method.'
-                        f'But we got {args[0].dtype}.')
+                        'The input data type should be float32, float64, float16, '
+                        'or bfloat16 when using Exponential Euler method.'
+                        f'But we got {args[0].dtype}.'
+                    )
                 dt = kwargs.pop(C.DT, self.dt)
                 linear, derivative = bm.vector_grad(eq, argnums=0, return_value=True)(*args, **kwargs)
                 phi = bm.exprel(dt * linear)

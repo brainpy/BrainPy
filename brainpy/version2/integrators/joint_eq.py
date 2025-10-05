@@ -2,7 +2,7 @@
 
 import inspect
 
-from brainpy import _errors
+from brainpy._errors import DiffEqError
 from brainpy.version2.math.object_transform.base import Collector
 
 __all__ = [
@@ -21,19 +21,19 @@ def _get_args(f):
             else:
                 kwargs[par.name] = par.default
         elif par.kind is inspect.Parameter.VAR_POSITIONAL:
-            raise errors.DiffEqError(f'{JointEq.__name__} does not support VAR_POSITIONAL parameters '
-                                     f'*{par.name} (error in {f}).')
+            raise DiffEqError(f'{JointEq.__name__} does not support VAR_POSITIONAL parameters '
+                              f'*{par.name} (error in {f}).')
         elif par.kind is inspect.Parameter.KEYWORD_ONLY:
-            raise errors.DiffEqError(f'{JointEq.__name__} does not support KEYWORD_ONLY parameters, '
-                                     f'e.g., *  (error in {f}).')
+            raise DiffEqError(f'{JointEq.__name__} does not support KEYWORD_ONLY parameters, '
+                              f'e.g., *  (error in {f}).')
         elif par.kind is inspect.Parameter.POSITIONAL_ONLY:
-            raise errors.DiffEqError(f'{JointEq.__name__} does not support POSITIONAL_ONLY parameters, '
-                                     'e.g., /  (error in {f}).')
+            raise DiffEqError(f'{JointEq.__name__} does not support POSITIONAL_ONLY parameters, '
+                              'e.g., /  (error in {f}).')
         elif par.kind is inspect.Parameter.VAR_KEYWORD:
-            raise errors.DiffEqError(f'{JointEq.__name__} does not support VAR_KEYWORD '
-                                     f'arguments **{par.name} (error in {f}).')
+            raise DiffEqError(f'{JointEq.__name__} does not support VAR_KEYWORD '
+                              f'arguments **{par.name} (error in {f}).')
         else:
-            raise errors.DiffEqError(f'Unknown argument type: {par.kind}')
+            raise DiffEqError(f'Unknown argument type: {par.kind}')
 
     # variables
     vars = []
@@ -59,7 +59,7 @@ def _std_func(f, all_vars: list):
                 params[par] = args_and_kwargs[par]
             else:
                 if par not in all_vars:
-                    raise errors.DiffEqError(f'Missing {par} during the functional call of {f}.')
+                    raise DiffEqError(f'Missing {par} during the functional call of {f}.')
                 params[par] = vars[all_vars.index(par)]
         for par, value in f_kwargs.items():
             if par in args_and_kwargs:
@@ -129,7 +129,7 @@ class JointEq(object):
             elif callable(eq):
                 yield eq
             else:
-                raise errors.DiffEqError(f'Elements in "eqs" only supports callable function, but got {eq}.')
+                raise DiffEqError(f'Elements in "eqs" only supports callable function, but got {eq}.')
 
     def __init__(self, *eqs):
         eqs = list(self._check_eqs(eqs))
@@ -141,8 +141,8 @@ class JointEq(object):
             vars, _, _ = _get_args(eq)
             for var in vars:
                 if var in vars_in_eqs:
-                    raise errors.DiffEqError(f'Variable "{var}" has been used, however we got a same '
-                                             f'variable name in {eq}. Please change another name.')
+                    raise DiffEqError(f'Variable "{var}" has been used, however we got a same '
+                                      f'variable name in {eq}. Please change another name.')
             vars_in_eqs.extend(vars)
             self.vars_in_eqs.append(vars)
 
@@ -158,26 +158,26 @@ class JointEq(object):
                     all_arg_pars.append(par)
             for key, value in kwargs.items():
                 if key in all_kwarg_pars and value != all_kwarg_pars[key]:
-                    raise errors.DiffEqError(f'We got two different default value of "{key}": '
-                                             f'{all_kwarg_pars[key]} != {value}')
+                    raise DiffEqError(f'We got two different default value of "{key}": '
+                                      f'{all_kwarg_pars[key]} != {value}')
                 elif (key not in vars_in_eqs) and (key not in all_arg_pars):
                     all_kwarg_pars[key] = value
                 else:
-                    raise errors.DiffEqError
+                    raise DiffEqError
 
         # # variable names provided
         # if not isinstance(variables, (tuple, list)):
-        #   raise errors.DiffEqError(f'"variables" must be a list/tuple of str, but we got {variables}')
+        #   raise DiffEqError(f'"variables" must be a list/tuple of str, but we got {variables}')
         # for v in variables:
         #   if not isinstance(v, str):
-        #     raise errors.DiffEqError(f'"variables" must be a list/tuple of str, but we got {v} in "variables"')
+        #     raise DiffEqError(f'"variables" must be a list/tuple of str, but we got {v} in "variables"')
         # if len(vars_in_eqs) != len(variables):
-        #   raise errors.DiffEqError(f'We detect {len(vars_in_eqs)} variables "{vars_in_eqs}" '
+        #   raise DiffEqError(f'We detect {len(vars_in_eqs)} variables "{vars_in_eqs}" '
         #                            f'in the provided equations. However, the used provided '
         #                            f'"variables" have {len(variables)} variables '
         #                            f'"{variables}".')
         # if len(set(vars_in_eqs) - set(variables)) != 0:
-        #   raise errors.DiffEqError(f'We detect there are variable "{vars_in_eqs}" in the provided '
+        #   raise DiffEqError(f'We detect there are variable "{vars_in_eqs}" in the provided '
         #                            f'equations, while the user provided variables "{variables}" '
         #                            f'is not the same.')
 

@@ -4,7 +4,7 @@ import unittest
 
 import pytest
 
-from brainpy import _errors
+from brainpy import _errors as errors
 from brainpy.version2 import odeint
 
 

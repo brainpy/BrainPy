@@ -7,8 +7,7 @@ from pprint import pprint
 import jax.numpy as jnp
 
 import brainpy.version2.math as bm
-from brainpy import _errors
-from brainpy._errors import UnsupportedError
+from brainpy._errors import UnsupportedError, CodeError, DiffEqError
 
 __all__ = [
     'get_args',
@@ -22,9 +21,11 @@ __all__ = [
 def check_kws(parameters, keywords):
     for key, meaning in keywords.items():
         if key in parameters:
-            raise errors.CodeError(f'"{key}" is a keyword for '
-                                   f'numerical solvers in BrainPy, denoting '
-                                   f'"{meaning}". Please change another name.')
+            raise CodeError(
+                f'"{key}" is a keyword for '
+                f'numerical solvers in BrainPy, denoting '
+                f'"{meaning}". Please change another name.'
+            )
 
 
 def get_args(f):
@@ -74,16 +75,16 @@ def get_args(f):
             reduced_args.append(f'*{par.name}')
 
         elif par.kind is inspect.Parameter.KEYWORD_ONLY:
-            raise errors.DiffEqError(f'In BrainPy, numerical integrators do not support KEYWORD_ONLY '
-                                     f'parameters, e.g., * (error in {f}).')
+            raise DiffEqError(f'In BrainPy, numerical integrators do not support KEYWORD_ONLY '
+                              f'parameters, e.g., * (error in {f}).')
         elif par.kind is inspect.Parameter.POSITIONAL_ONLY:
-            raise errors.DiffEqError(f'In BrainPy, numerical integrators do not support POSITIONAL_ONLY '
-                                     f'parameters, e.g., / (error in {f}).')
+            raise DiffEqError(f'In BrainPy, numerical integrators do not support POSITIONAL_ONLY '
+                              f'parameters, e.g., / (error in {f}).')
         elif par.kind is inspect.Parameter.VAR_KEYWORD:  # TODO
-            raise errors.DiffEqError(f'In BrainPy, numerical integrators do not support VAR_KEYWORD '
-                                     f'arguments: {str(par)} (error in {f}).')
+            raise DiffEqError(f'In BrainPy, numerical integrators do not support VAR_KEYWORD '
+                              f'arguments: {str(par)} (error in {f}).')
         else:
-            raise errors.DiffEqError(f'Unknown argument type: {par.kind} (error in {f}).')
+            raise DiffEqError(f'Unknown argument type: {par.kind} (error in {f}).')
 
         args.append(str(par))
 

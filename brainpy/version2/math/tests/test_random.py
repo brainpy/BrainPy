@@ -116,7 +116,7 @@ class TestRandom(unittest.TestCase):
 
     def test_shuffle2(self):
         br.seed()
-        a = bm.arange(12).reshape(4, 3)
+        a = bm.Array(bm.arange(12).reshape(4, 3))
         bm.random.shuffle(a, axis=1)
         self.assertTupleEqual(a.shape, (4, 3))
         self.assertEqual(len(bm.unique(a)), 12)

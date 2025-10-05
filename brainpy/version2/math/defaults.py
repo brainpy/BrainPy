@@ -26,7 +26,8 @@ class setting:
             # register brainpy object as pytree
             bp_object_as_pytree=False,
             # default return array type
-            numpy_func_return='bp_array'  # 'bp_array','jax_array'
+            # numpy_func_return='jax_array',  # 'bp_array','jax_array'
+            numpy_func_return='bp_array',  # 'bp_array','jax_array'
         )
 
     @property

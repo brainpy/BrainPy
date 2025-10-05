@@ -1,8 +1,14 @@
 import brainpy.version2 as bp
 import brainpy.version2.math as bm
 
-neu_pars = dict(V_rest=-60., V_th=-50., V_reset=-60., tau=20., tau_ref=5.,
-                V_initializer=bp.init.Normal(-55., 2.))
+neu_pars = dict(
+    V_rest=-60.,
+    V_th=-50.,
+    V_reset=-60.,
+    tau=20.,
+    tau_ref=5.,
+    V_initializer=bp.init.Normal(-55., 2.)
+)
 
 
 class EICOBA_PreAlign(bp.DynamicalSystem):

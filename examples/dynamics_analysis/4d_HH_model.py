@@ -7,9 +7,9 @@ bm.random.seed(123)
 
 I = 5.
 model = bp.neurons.HH(1)
-# runner = bp.DSRunner(model, inputs=(model.input, I), monitors=['V'])
-# runner.run(100)
-# bp.visualize.line_plot(runner.mon.ts, runner.mon.V, legend='V', show=True)
+runner = bp.DSRunner(model, inputs=(model.input, I), monitors=['V'])
+runner.run(100)
+bp.visualize.line_plot(runner.mon.ts, runner.mon.V, legend='V', show=True)
 
 # analysis
 bm.enable_x64()

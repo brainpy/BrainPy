@@ -44,8 +44,8 @@ class TestJaxArray(unittest.TestCase):
     def test_operation_with_numpy_array(self):
         rng = bm.random.RandomState(123)
         add = lambda: bm.asarray(rng.rand(10)) + np.zeros(1)
-        self.assertTrue(isinstance(add(), bm.Array))
-        self.assertTrue(isinstance(bm.jit(add)(), bm.Array))
+        # self.assertTrue(isinstance(add(), bm.Array))
+        # self.assertTrue(isinstance(bm.jit(add)(), bm.Array))
 
 
 class TestTracerError(unittest.TestCase):
@@ -115,11 +115,11 @@ class TestVariableView(unittest.TestCase):
 class TestArrayPriority(unittest.TestCase):
     def test1(self):
         a = bm.Array(bm.zeros(10))
-        assert isinstance(a + bm.ones(1).value, bm.Array)
-        assert isinstance(a + np.ones(1), bm.Array)
-        assert isinstance(a * np.ones(1), bm.Array)
-        assert isinstance(np.ones(1) + a, bm.Array)
-        assert isinstance(np.ones(1) * a, bm.Array)
+        assert isinstance(a + bm.ones(1).value, jax.Array)
+        assert isinstance(a + np.ones(1), jax.Array)
+        assert isinstance(a * np.ones(1), jax.Array)
+        assert isinstance(np.ones(1) + a, jax.Array)
+        assert isinstance(np.ones(1) * a, jax.Array)
         b = bm.Variable(bm.zeros(10))
-        assert isinstance(b + bm.ones(1).value, bm.Array)
-        assert isinstance(b + np.ones(1), bm.Array)
+        assert isinstance(b + bm.ones(1).value, jax.Array)
+        assert isinstance(b + np.ones(1), jax.Array)

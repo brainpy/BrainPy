@@ -36,7 +36,7 @@ class NMDA(bp.Projection):
         syn = bp.dyn.NMDA.desc(pre.num, a=0.5, tau_decay=100., tau_rise=2.)
         out = bp.dyn.MgBlock(E=0., cc_Mg=1.0)
         self.proj = bp.dyn.FullProjAlignPreDSMg(
-            pre=pre, delay=delay, syn=syn,
+            pre=pre, delay=None, syn=syn,
             comm=comm, out=out, post=post
         )
 
@@ -194,8 +194,8 @@ class DecisionMakingNet(bp.DynSysGroup):
         # define I->E/I conn
         self.I2B = AMPA(self.I, self.B, 'all2all', 0.5, g_I2E_GABAa, tau=5., E=-70.)
         self.I2A = AMPA(self.I, self.A, 'all2all', 0.5, g_I2E_GABAa, tau=5., E=-70.)
-        # self.I2N = AMPA(self.I, self.N, 'all2all', 0.5, g_I2E_GABAa, tau=5., E=-70.)
-        # self.I2I = AMPA(self.I, self.I, 'all2all', 0.5, g_I2I_GABAa, tau=5., E=-70.)
+        self.I2N = AMPA(self.I, self.N, 'all2all', 0.5, g_I2E_GABAa, tau=5., E=-70.)
+        self.I2I = AMPA(self.I, self.I, 'all2all', 0.5, g_I2I_GABAa, tau=5., E=-70.)
 
         # define external projections
         self.noise2B = AMPA(self.noise_B, self.B, 'one2one', None, g_ext2E_AMPA, tau=2., E=0.)

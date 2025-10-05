@@ -14,7 +14,9 @@ from ._jaxpr_to_source_code import jaxpr_to_python_code
 from .constants import DT
 
 __all__ = [
+    'AbstractIntegrator',
     'Integrator',
+    'compile_integrators',
 ]
 
 

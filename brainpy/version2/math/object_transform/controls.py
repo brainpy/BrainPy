@@ -3,10 +3,11 @@
 import numbers
 from typing import Union, Sequence, Any, Dict, Callable, Optional
 
-import brainstate
 import jax.numpy as jnp
 
+import brainstate
 from brainpy.version2.math.ndarray import Array
+from ._utils import warp_to_no_state_input_output
 
 __all__ = [
     'cond',
@@ -73,7 +74,12 @@ def cond(
     """
     if not isinstance(operands, (tuple, list)):
         operands = (operands,)
-    return brainstate.transform.cond(pred, true_fun, false_fun, *operands)
+    return brainstate.transform.cond(
+        pred,
+        warp_to_no_state_input_output(true_fun),
+        warp_to_no_state_input_output(false_fun),
+        *operands
+    )
 
 
 def ifelse(
@@ -141,9 +147,9 @@ def ifelse(
     # Convert non-callable branches to callables
     def make_callable(branch):
         if callable(branch):
-            return branch
+            return warp_to_no_state_input_output(branch)
         else:
-            return lambda *args: branch
+            return warp_to_no_state_input_output(lambda *args: branch)
 
     branches = [make_callable(branch) for branch in branches]
 
@@ -287,8 +293,11 @@ def for_loop(
     """
     if not isinstance(operands, (tuple, list)):
         operands = (operands,)
-    return brainstate.transform.for_loop(body_fun, *operands, reverse=reverse, unroll=unroll,
-                                         pbar=brainstate.transform.ProgressBar() if progress_bar else None, )
+    return brainstate.transform.for_loop(
+        warp_to_no_state_input_output(body_fun),
+        *operands, reverse=reverse, unroll=unroll,
+        pbar=brainstate.transform.ProgressBar() if progress_bar else None,
+    )
 
 
 def scan(
@@ -348,7 +357,7 @@ def scan(
       The stacked outputs of ``body_fun`` when scanned over the leading axis of the inputs.
     """
     return brainstate.transform.scan(
-        body_fun,
+        warp_to_no_state_input_output(body_fun),
         init=init,
         xs=operands,
         reverse=reverse,
@@ -430,31 +439,8 @@ def while_loop(
         else:
             return r
 
-    return brainstate.transform.while_loop(lambda x: cond_fun(*x), body, operands)
-
-    # # Try brainstate's while_loop first, fallback to Python implementation if needed
-    # try:
-    #
-    #
-    # except ValueError as e:
-    #     if "should not have any write states" in str(e):
-    #         # Check if we're in a JIT context by looking for tracers
-    #         import jax
-    #
-    #         # Check if any operand is a tracer
-    #         in_jit_context = any(isinstance(op, jax.core.Tracer) for op in operands)
-    #
-    #         if in_jit_context:
-    #             # Cannot use Python while loop in JIT context, re-raise the original error
-    #             raise e
-    #         else:
-    #             # Fallback to Python while loop when condition function modifies state
-    #             # and we're not in JIT context
-    #             val = operands
-    #             while cond_fun(*val):
-    #                 result = body_fun(*val)
-    #                 if result is not None:
-    #                     val = result
-    #             return val
-    #     else:
-    #         raise e
+    return brainstate.transform.while_loop(
+        warp_to_no_state_input_output(lambda x: cond_fun(*x)),
+        warp_to_no_state_input_output(body),
+        operands
+    )
