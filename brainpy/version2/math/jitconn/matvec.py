@@ -5,7 +5,7 @@ import brainevent
 import jax
 import numpy as np
 
-from brainpy.version2.math.ndarray import BaseArray as Array
+from brainpy.version2.math.ndarray import Array as Array
 
 __all__ = [
     'mv_prob_homo',

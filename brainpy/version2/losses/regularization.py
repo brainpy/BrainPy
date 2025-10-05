@@ -75,5 +75,5 @@ def smooth_labels(labels, alpha: float) -> jnp.ndarray:
       a smoothed version of the one hot input labels.
     """
     r = tree_map(lambda tar: (1.0 - alpha) * tar + alpha / tar.shape[-1],
-                 labels, is_leaf=lambda x: isinstance(x, bm.BaseArray))
+                 labels, is_leaf=lambda x: isinstance(x, bm.Array))
     return _multi_return(r)

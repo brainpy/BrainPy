@@ -145,7 +145,7 @@ class IntegratorRunner(Runner):
                             f'but we got {type(target)}')
         # get maximum size and initial variables
         if inits is not None:
-            if isinstance(inits, (list, tuple, bm.BaseArray, jnp.ndarray)):
+            if isinstance(inits, (list, tuple, bm.Array, jnp.ndarray)):
                 assert len(target.variables) == len(inits)
                 inits = {k: inits[i] for i, k in enumerate(target.variables)}
             assert isinstance(inits, dict), f'"inits" must be a dict, but we got {type(inits)}'

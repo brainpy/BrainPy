@@ -1,4 +1,4 @@
-from typing import Optional, Any, List, Callable, Sequence, Union, Dict, Tuple
+from typing import Optional, Any, Sequence
 
 import jax
 import numpy as np
@@ -7,9 +7,9 @@ from jax.dtypes import canonicalize_dtype
 from jax.tree_util import register_pytree_node_class
 
 import brainstate
-from brainpy.version2.math.ndarray import BaseArray
-from brainpy.version2.math.sharding import BATCH_AXIS
 from brainpy._errors import MathError
+from brainpy.version2.math.ndarray import Array
+from brainpy.version2.math.sharding import BATCH_AXIS
 from brainstate._state import record_state_value_read, record_state_value_write
 
 __all__ = [
@@ -23,206 +23,8 @@ __all__ = [
 ]
 
 
-class VariableStack(dict):
-    """Variable stack, for collecting all :py:class:`~.Variable` used in the program.
-
-    :py:class:`~.VariableStack` supports all features of python dict.
-    """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._values = dict()
-
-    def add(self, var: 'Variable'):
-        """Add a new :py:class:`~.Variable`."""
-        assert isinstance(var, Variable), f'must be instance of {Variable}'
-        id_ = id(var)
-        if id_ not in self:
-            self[id_] = var
-            self._values[id_] = var._value
-
-    def collect_values(self):
-        """Collect the value of each variable once again."""
-        for id_, var in self.items():
-            self._values[id_] = var._value
-
-    def assign_org_values(self):
-        """Assign the original value for each variable."""
-        for id_, var in self.items():
-            if id_ in self._values:
-                var._value = self._values[id_]
-
-    def assign(self, data: Union[Dict, Sequence], check: bool = True):
-        """Assign the value for each :math:`~.Variable` according to the given ``data``.
-
-        Args:
-          data: dict, list, tuple. The data of all variables
-          check: bool. Check whether the shape and type of the given data are consistent with original data.
-        """
-        if isinstance(data, dict):
-            assert len(data) == len(self), 'Data length mismatch. '
-            if check:
-                for id_, elem in self.items():
-                    elem.value = data[id_]
-            else:
-                for id_, elem in self.items():
-                    elem._value = data[id_]
-        elif isinstance(data, (tuple, list)):
-            assert len(data) == len(self), 'Data length mismatch. '
-            if check:
-                for i, elem in enumerate(self.values()):
-                    elem.value = data[i]
-            else:
-                for i, elem in enumerate(self.values()):
-                    elem._value = data[i]
-        else:
-            raise TypeError
-
-    def call_on_subset(self, cond: Callable, call: Callable) -> dict:
-        """Call a function on the subset of this :py:class:`~VariableStack`.
-
-        >>> import brainpy.version2.math as bm
-        >>> stack = VariableStack(a=bm.Variable(1), b=bm.random.RandomState(1))
-        >>> stack.call_on_subset(lambda a: isinstance(a, bm.random.RandomState),
-        >>>                      lambda a: a.split_key())
-        {'b': Array([3819641963, 2025898573], dtype=uint32)}
-
-        Args:
-          cond: The function to determine whether the element belongs to the wanted subset.
-          call: The function to call if the element belongs to the wanted subset.
-
-        Returns:
-          A dict containing the results of ``call`` function for each element in the ``cond`` constrained subset.
-        """
-        res = dict()
-        for id_, elem in self.items():
-            if cond(elem):
-                res[id_] = call(elem)
-        return res
-
-    def separate_by_instance(self, cls: type) -> Tuple['VariableStack', 'VariableStack']:
-        """Separate all variables into two groups: (variables that are instances of the given ``cls``,
-        variables that are not instances of the given ``cls``).
-
-        >>> import brainpy.version2.math as bm
-        >>> stack = VariableStack(a=bm.Variable(1), b=bm.random.RandomState(1))
-        >>> stack.separate_by_instance(bm.random.RandomState)
-        ({'b': RandomState(key=([0, 1], dtype=uint32))},
-         {'a': Variable(value=Array([0.]), dtype=float32)})
-        >>> stack.separate_by_instance(bm.Variable)
-        ({'a': Variable(value=Array([0.]), dtype=float32),
-          'b': RandomState(key=([0, 1], dtype=uint32))},
-         {})
-
-        Args:
-          cls: The class type.
-
-        Returns:
-          A tuple with two elements:
-
-          - VariableStack of variables that are instances of the given ``cls``
-          - VariableStack of variables that are not instances of the given ``cls``
-        """
-        is_instances = type(self)()
-        not_instances = type(self)()
-        for id_, elem in self.items():
-            if isinstance(elem, cls):
-                is_instances[id_] = elem
-            else:
-                not_instances[id_] = elem
-        return is_instances, not_instances
-
-    def subset_by_instance(self, cls: type) -> 'VariableStack':
-        """Collect all variables which are instances of the given class type."""
-        new_dict = type(self)()
-        for id_, elem in self.items():
-            if isinstance(elem, cls):
-                new_dict[id_] = elem
-        return new_dict
-
-    def subset_by_not_instance(self, cls: type) -> 'VariableStack':
-        """Collect all variables which are not instance of the given class type."""
-        new_dict = type(self)()
-        for id_, elem in self.items():
-            if not isinstance(elem, cls):
-                new_dict[id_] = elem
-        return new_dict
-
-    instance_of = subset_by_instance
-    not_instance_of = subset_by_not_instance
-
-    def dict_data_of_subset(self, subset_cond: Callable) -> dict:
-        """Get data of the given subset constrained by function ``subset_cond``.
-
-        Args:
-          subset_cond: A function to determine whether the element is in the subset wanted.
-
-        Returns:
-          A dict of data for elements of the wanted subset.
-        """
-        res = dict()
-        for id_, elem in self.items():
-            if subset_cond(elem):
-                res[id_] = elem.value
-        return res
-
-    def dict_data(self) -> dict:
-        """Get all data in the collected variables with a python dict structure."""
-        new_dict = dict()
-        for id_, elem in tuple(self.items()):
-            new_dict[id_] = elem.value
-        return new_dict
-
-    def list_data(self) -> list:
-        """Get all data in the collected variables with a python list structure."""
-        new_list = list()
-        for elem in tuple(self.values()):
-            new_list.append(elem.value if isinstance(elem, BaseArray) else elem)
-        return new_list
-
-    def remove_by_id(self, *ids, error_when_absent=False):
-        """Remove or pop variables in the stack by the given ids."""
-        if error_when_absent:
-            for id_ in ids:
-                self.pop(id_)
-        else:
-            for id_ in ids:
-                self.pop(id_, None)
-
-    remove_var_by_id = remove_by_id
-
-    @classmethod
-    def num_of_stack(self):
-        return len(var_stack_list)
-
-    @classmethod
-    def is_first_stack(self):
-        return len(var_stack_list) == 0
-
-    def __enter__(self) -> 'VariableStack':
-        self.collect_values()  # recollect the original value of each variable
-        var_stack_list.append(self)
-        return self
-
-    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
-        var_stack_list.pop()
-        self.assign_org_values()  # reassign the original value for each variable
-        self._values.clear()
-
-    def __add__(self, other: dict):
-        new_dict = VariableStack(self)
-        new_dict.update(other)
-        new_dict._values.update(self._values)
-        if isinstance(other, VariableStack):
-            new_dict._values.update(other._values)
-        return new_dict
-
-
-var_stack_list: List[VariableStack] = []
-
-
 @register_pytree_node_class
-class Variable(brainstate.State, BaseArray):
+class Variable(brainstate.State, Array):
     """The pointer to specify the dynamical variable.
 
     Initializing an instance of ``Variable`` by two ways:
@@ -258,7 +60,7 @@ class Variable(brainstate.State, BaseArray):
         else:
             value = value_or_size
 
-        if isinstance(value, BaseArray):
+        if isinstance(value, Array):
             value = value.value
         super().__init__(value)
 
@@ -339,7 +141,7 @@ class Variable(brainstate.State, BaseArray):
         if ext_dtype != int_dtype:
             raise MathError(f"The dtype of the original data is {int_dtype}, "
                             f"while we got {ext_dtype}.")
-        if isinstance(v, BaseArray):
+        if isinstance(v, Array):
             v = v.value
         elif isinstance(v, np.ndarray):
             v = jnp.asarray(v)
@@ -353,64 +155,6 @@ class Variable(brainstate.State, BaseArray):
         self._been_writen = True  # set the flag
         self._write_value(v)  # write the value
 
-    # def tree_flatten(self):
-    #     """Flattens this variable.
-    #
-    #     Returns:
-    #       A pair where the first element is a list of leaf values
-    #       and the second element is a treedef representing the
-    #       structure of the flattened tree.
-    #     """
-    #     return (self._value,), None
-    #
-    # @classmethod
-    # def tree_unflatten(cls, aux_data, flat_contents):
-    #     """Reconstructs a variable from the aux_data and the leaves.
-    #
-    #     Args:
-    #       aux_data:
-    #       flat_contents:
-    #
-    #     Returns:
-    #       The variable.
-    #     """
-    #     return cls(*flat_contents)
-
-    # def clone(self) -> 'Variable':
-    #     """Clone the variable. """
-    #     r = type(self)(jnp.array(self.value, copy=True), batch_axis=self.batch_axis)
-    #     return r
-
-    # def __eq__(self, other):
-    #     """Override State's __eq__ to use BaseArray behavior for element-wise comparison."""
-    #     from brainpy.version2.math.ndarray import _check_input_array, _return
-    #     return _return(self.value == _check_input_array(other))
-    #
-    # def __ne__(self, other):
-    #     """Override State's __ne__ to use BaseArray behavior for element-wise comparison."""
-    #     from brainpy.version2.math.ndarray import _check_input_array, _return
-    #     return _return(self.value != _check_input_array(other))
-    #
-    # def __lt__(self, other):
-    #     """Override State's __lt__ to use BaseArray behavior for element-wise comparison."""
-    #     from brainpy.version2.math.ndarray import _check_input_array, _return
-    #     return _return(self.value < _check_input_array(other))
-    #
-    # def __le__(self, other):
-    #     """Override State's __le__ to use BaseArray behavior for element-wise comparison."""
-    #     from brainpy.version2.math.ndarray import _check_input_array, _return
-    #     return _return(self.value <= _check_input_array(other))
-    #
-    # def __gt__(self, other):
-    #     """Override State's __gt__ to use BaseArray behavior for element-wise comparison."""
-    #     from brainpy.version2.math.ndarray import _check_input_array, _return
-    #     return _return(self.value > _check_input_array(other))
-    #
-    # def __ge__(self, other):
-    #     """Override State's __ge__ to use BaseArray behavior for element-wise comparison."""
-    #     from brainpy.version2.math.ndarray import _check_input_array, _return
-    #     return _return(self.value >= _check_input_array(other))
-
 
 def _get_dtype(v):
     if hasattr(v, 'dtype'):
@@ -421,7 +165,7 @@ def _get_dtype(v):
 
 
 def _as_jax_array_(obj):
-    return obj.value if isinstance(obj, BaseArray) else obj
+    return obj.value if isinstance(obj, Array) else obj
 
 
 @register_pytree_node_class
@@ -502,7 +246,7 @@ class VariableView(Variable):
         value: Variable,
         index: Any,
     ):
-        self.index = jax.tree_util.tree_map(_as_jax_array_, index, is_leaf=lambda a: isinstance(a, BaseArray))
+        self.index = jax.tree_util.tree_map(_as_jax_array_, index, is_leaf=lambda a: isinstance(a, Array))
         if not isinstance(value, Variable):
             raise ValueError('Must be instance of Variable.')
         super().__init__(value.value, batch_axis=value.batch_axis)
@@ -543,7 +287,7 @@ class VariableView(Variable):
         if v.dtype != self._value.dtype:
             raise MathError(f"The dtype of the original data is {self._value.dtype}, "
                             f"while we got {v.dtype}.")
-        self._value[self.index] = v.value if isinstance(v, BaseArray) else v
+        self._value[self.index] = v.value if isinstance(v, Array) else v
 
 
 @register_pytree_node_class

@@ -946,10 +946,10 @@ def ctc_loss_with_forward_probs(
     assert (labels.shape == label_paddings.shape)
     assert (logits.shape[:2] == logit_paddings.shape)
 
-    logits = logits.value if isinstance(logits, bm.BaseArray) else logits
-    logit_paddings = logit_paddings.value if isinstance(logit_paddings, bm.BaseArray) else logit_paddings
-    labels = labels.value if isinstance(labels, bm.BaseArray) else labels
-    label_paddings = label_paddings.value if isinstance(label_paddings, bm.BaseArray) else label_paddings
+    logits = logits.value if isinstance(logits, bm.Array) else logits
+    logit_paddings = logit_paddings.value if isinstance(logit_paddings, bm.Array) else logit_paddings
+    labels = labels.value if isinstance(labels, bm.Array) else labels
+    label_paddings = label_paddings.value if isinstance(label_paddings, bm.Array) else label_paddings
 
     logprobs = bm.log_softmax(logits).value
     labellens = maxlabellen - jnp.sum(label_paddings, axis=1).astype(jnp.int32)

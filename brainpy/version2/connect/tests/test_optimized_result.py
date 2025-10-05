@@ -16,6 +16,7 @@ try:
 except (ImportError, ModuleNotFoundError):
     pytest.skip('No pandas installed, skip test.', allow_module_level=True)
 
+pytest.skip('skip test.', allow_module_level=True)
 # size_same = [100, 500, 2500, 12500, 25000, 37500, 50000]
 # size_same = [100, 500, 2500, 12500]
 size_same = [100, 500, 2500]

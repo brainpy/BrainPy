@@ -71,7 +71,7 @@ class ReturnInfo:
             else:
                 size = tuple(self.size)
             init = self.data(size)
-        elif isinstance(self.data, (bm.BaseArray, jax.Array)):
+        elif isinstance(self.data, (bm.Array, jax.Array)):
             init = self.data
         else:
             raise ValueError

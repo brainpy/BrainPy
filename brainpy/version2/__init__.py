@@ -128,6 +128,9 @@ from brainpy.version2.math.object_transform.collectors import (
 )
 
 
+from brainpy.version2.deprecations import deprecation_getattr
+
+
 if __name__ == '__main__':
     connect
     initialize,  # weight initialization

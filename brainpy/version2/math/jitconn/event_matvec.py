@@ -9,7 +9,7 @@ import numpy as np
 from brainpy.version2.math.jitconn.matvec import (mv_prob_homo,
                                               mv_prob_uniform,
                                               mv_prob_normal)
-from brainpy.version2.math.ndarray import BaseArray as Array
+from brainpy.version2.math.ndarray import Array as Array
 
 __all__ = [
     'event_mv_prob_homo',

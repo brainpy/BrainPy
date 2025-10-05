@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import jax
-import jax.numpy as jnp
 import numpy as np
-from jax.tree_util import tree_flatten, tree_unflatten
-from jax.tree_util import tree_map
+import jax.numpy as jnp
+import saiunit.math as umath
+from jax.tree_util import tree_flatten, tree_unflatten, tree_map
 
 from ._utils import _compatible_with_brainpy_array, _as_jax_array_
 from .interoperability import *
-from .ndarray import Array, BaseArray
+from .ndarray import Array
 
 __all__ = [
     'full', 'full_like', 'eye', 'identity', 'diag', 'tri', 'tril', 'triu',
@@ -108,11 +108,11 @@ def _return(a):
 def fill_diagonal(a, val, inplace=True):
     if a.ndim < 2:
         raise ValueError(f'Only support tensor has dimension >= 2, but got {a.shape}')
-    if not isinstance(a, BaseArray) and inplace:
+    if not isinstance(a, Array) and inplace:
         raise ValueError('``fill_diagonal()`` is used in in-place updating, therefore '
                          'it requires a brainpy Array. If you want to disable '
                          'inplace updating, use ``fill_diagonal(inplace=False)``.')
-    val = val.value if isinstance(val, BaseArray) else val
+    val = val.value if isinstance(val, Array) else val
     i, j = jnp.diag_indices(_min(a.shape[-2:]))
     r = as_jax(a).at[..., i, j].set(val)
     if inplace:
@@ -122,66 +122,66 @@ def fill_diagonal(a, val, inplace=True):
 
 
 def zeros(shape, dtype=None):
-    return _return(jnp.zeros(shape, dtype=dtype))
+    return _return(umath.zeros(shape, dtype=dtype))
 
 
 def ones(shape, dtype=None):
-    return _return(jnp.ones(shape, dtype=dtype))
+    return _return(umath.ones(shape, dtype=dtype))
 
 
 def empty(shape, dtype=None):
-    return _return(jnp.zeros(shape, dtype=dtype))
+    return _return(umath.zeros(shape, dtype=dtype))
 
 
 def zeros_like(a, dtype=None, shape=None):
     a = _as_jax_array_(a)
-    return _return(jnp.zeros_like(a, dtype=dtype, shape=shape))
+    return _return(umath.zeros_like(a, dtype=dtype, shape=shape))
 
 
 def ones_like(a, dtype=None, shape=None):
     a = _as_jax_array_(a)
-    return _return(jnp.ones_like(a, dtype=dtype, shape=shape))
+    return _return(umath.ones_like(a, dtype=dtype, shape=shape))
 
 
 def empty_like(a, dtype=None, shape=None):
     a = _as_jax_array_(a)
-    return _return(jnp.zeros_like(a, dtype=dtype, shape=shape))
+    return _return(umath.zeros_like(a, dtype=dtype, shape=shape))
 
 
 def array(a, dtype=None, copy=True, order="K", ndmin=0) -> Array:
     a = _as_jax_array_(a)
     try:
-        res = jnp.array(a, dtype=dtype, copy=copy, order=order, ndmin=ndmin)
+        res = umath.array(a, dtype=dtype, copy=copy, order=order, ndmin=ndmin)
     except TypeError:
-        leaves, tree = tree_flatten(a, is_leaf=lambda a: isinstance(a, BaseArray))
+        leaves, tree = tree_flatten(a, is_leaf=lambda a: isinstance(a, Array))
         leaves = [_as_jax_array_(l) for l in leaves]
         a = tree_unflatten(tree, leaves)
-        res = jnp.array(a, dtype=dtype, copy=copy, order=order, ndmin=ndmin)
+        res = umath.array(a, dtype=dtype, copy=copy, order=order, ndmin=ndmin)
     return _return(res)
 
 
 def asarray(a, dtype=None, order=None):
     a = _as_jax_array_(a)
     try:
-        res = jnp.asarray(a=a, dtype=dtype, order=order)
+        res = umath.asarray(a=a, dtype=dtype, order=order)
     except TypeError:
-        leaves, tree = tree_flatten(a, is_leaf=lambda a: isinstance(a, BaseArray))
+        leaves, tree = tree_flatten(a, is_leaf=lambda a: isinstance(a, Array))
         leaves = [_as_jax_array_(l) for l in leaves]
         arrays = tree_unflatten(tree, leaves)
-        res = jnp.asarray(a=arrays, dtype=dtype, order=order)
+        res = umath.asarray(a=arrays, dtype=dtype, order=order)
     return _return(res)
 
 
 def arange(*args, **kwargs):
     args = [_as_jax_array_(a) for a in args]
     kwargs = {k: _as_jax_array_(v) for k, v in kwargs.items()}
-    return _return(jnp.arange(*args, **kwargs))
+    return _return(umath.arange(*args, **kwargs))
 
 
 def linspace(*args, **kwargs):
     args = [_as_jax_array_(a) for a in args]
     kwargs = {k: _as_jax_array_(v) for k, v in kwargs.items()}
-    res = jnp.linspace(*args, **kwargs)
+    res = umath.linspace(*args, **kwargs)
     if isinstance(res, tuple):
         return _return(res[0]), res[1]
     else:
@@ -191,7 +191,7 @@ def linspace(*args, **kwargs):
 def logspace(*args, **kwargs):
     args = [_as_jax_array_(a) for a in args]
     kwargs = {k: _as_jax_array_(v) for k, v in kwargs.items()}
-    return _return(jnp.logspace(*args, **kwargs))
+    return _return(umath.logspace(*args, **kwargs))
 
 
 def asanyarray(a, dtype=None, order=None):
@@ -215,8 +215,8 @@ def in1d(ar1, ar2, assume_unique: bool = False, invert: bool = False) -> Array:
     # Note: an algorithm based on searchsorted has better scaling, but in practice
     # is very slow on accelerators because it relies on lax control flow. If XLA
     # ever supports binary search natively, we should switch to this:
-    #   ar2_flat = jnp.sort(ar2_flat)
-    #   ind = jnp.searchsorted(ar2_flat, ar1_flat)
+    #   ar2_flat = umath.sort(ar2_flat)
+    #   ind = umath.searchsorted(ar2_flat, ar1_flat)
     #   if invert:
     #     return ar1_flat != ar2_flat[ind]
     #   else:
@@ -229,38 +229,38 @@ def in1d(ar1, ar2, assume_unique: bool = False, invert: bool = False) -> Array:
 
 # Others
 # ------
-meshgrid = _compatible_with_brainpy_array(jnp.meshgrid)
-vander = _compatible_with_brainpy_array(jnp.vander)
-full = _compatible_with_brainpy_array(jnp.full)
-full_like = _compatible_with_brainpy_array(jnp.full_like)
-eye = _compatible_with_brainpy_array(jnp.eye)
-identity = _compatible_with_brainpy_array(jnp.identity)
-diag = _compatible_with_brainpy_array(jnp.diag)
-tri = _compatible_with_brainpy_array(jnp.tri)
-tril = _compatible_with_brainpy_array(jnp.tril)
-triu = _compatible_with_brainpy_array(jnp.triu)
+meshgrid = _compatible_with_brainpy_array(umath.meshgrid)
+vander = _compatible_with_brainpy_array(umath.vander)
+full = _compatible_with_brainpy_array(umath.full)
+full_like = _compatible_with_brainpy_array(umath.full_like)
+eye = _compatible_with_brainpy_array(umath.eye)
+identity = _compatible_with_brainpy_array(umath.identity)
+diag = _compatible_with_brainpy_array(umath.diag)
+tri = _compatible_with_brainpy_array(umath.tri)
+tril = _compatible_with_brainpy_array(umath.tril)
+triu = _compatible_with_brainpy_array(umath.triu)
 delete = _compatible_with_brainpy_array(jnp.delete)
 take_along_axis = _compatible_with_brainpy_array(jnp.take_along_axis)
-block = _compatible_with_brainpy_array(jnp.block)
-broadcast_arrays = _compatible_with_brainpy_array(jnp.broadcast_arrays)
-broadcast_shapes = _compatible_with_brainpy_array(jnp.broadcast_shapes)
-broadcast_to = _compatible_with_brainpy_array(jnp.broadcast_to)
-compress = _compatible_with_brainpy_array(jnp.compress)
+block = _compatible_with_brainpy_array(umath.block)
+broadcast_arrays = _compatible_with_brainpy_array(umath.broadcast_arrays)
+broadcast_shapes = _compatible_with_brainpy_array(umath.broadcast_shapes)
+broadcast_to = _compatible_with_brainpy_array(umath.broadcast_to)
+compress = _compatible_with_brainpy_array(umath.compress)
 diag_indices = _compatible_with_brainpy_array(jnp.diag_indices)
-diag_indices_from = _compatible_with_brainpy_array(jnp.diag_indices_from)
-diagflat = _compatible_with_brainpy_array(jnp.diagflat)
-diagonal = _compatible_with_brainpy_array(jnp.diagonal)
-einsum = _compatible_with_brainpy_array(jnp.einsum)
+diag_indices_from = _compatible_with_brainpy_array(umath.diag_indices_from)
+diagflat = _compatible_with_brainpy_array(umath.diagflat)
+diagonal = _compatible_with_brainpy_array(umath.diagonal)
+einsum = _compatible_with_brainpy_array(umath.einsum)
 einsum_path = _compatible_with_brainpy_array(jnp.einsum_path)
 geomspace = _compatible_with_brainpy_array(jnp.geomspace)
-gradient = _compatible_with_brainpy_array(jnp.gradient)
+gradient = _compatible_with_brainpy_array(umath.gradient)
 histogram2d = _compatible_with_brainpy_array(jnp.histogram2d)
 histogram_bin_edges = _compatible_with_brainpy_array(jnp.histogram_bin_edges)
 histogramdd = _compatible_with_brainpy_array(jnp.histogramdd)
 i0 = _compatible_with_brainpy_array(jnp.i0)
 indices = _compatible_with_brainpy_array(jnp.indices)
 insert = _compatible_with_brainpy_array(jnp.insert)
-intersect1d = _compatible_with_brainpy_array(jnp.intersect1d)
+intersect1d = _compatible_with_brainpy_array(umath.intersect1d)
 iscomplex = _compatible_with_brainpy_array(jnp.iscomplex)
 isin = _compatible_with_brainpy_array(jnp.isin)
 ix_ = _compatible_with_brainpy_array(jnp.ix_)
@@ -297,9 +297,9 @@ def msort(a):
     return sort(a, axis=0)
 
 
-nan_to_num = _compatible_with_brainpy_array(jnp.nan_to_num)
-nanargmax = _compatible_with_brainpy_array(jnp.nanargmax)
-nanargmin = _compatible_with_brainpy_array(jnp.nanargmin)
+nan_to_num = _compatible_with_brainpy_array(umath.nan_to_num)
+nanargmax = _compatible_with_brainpy_array(umath.nanargmax)
+nanargmin = _compatible_with_brainpy_array(umath.nanargmin)
 pad = _compatible_with_brainpy_array(jnp.pad)
 poly = _compatible_with_brainpy_array(jnp.poly)
 polyadd = _compatible_with_brainpy_array(jnp.polyadd)
@@ -312,10 +312,10 @@ polyval = _compatible_with_brainpy_array(jnp.polyval)
 resize = _compatible_with_brainpy_array(jnp.resize)
 rollaxis = _compatible_with_brainpy_array(jnp.rollaxis)
 roots = _compatible_with_brainpy_array(jnp.roots)
-rot90 = _compatible_with_brainpy_array(jnp.rot90)
+rot90 = _compatible_with_brainpy_array(umath.rot90)
 setdiff1d = _compatible_with_brainpy_array(jnp.setdiff1d)
 setxor1d = _compatible_with_brainpy_array(jnp.setxor1d)
-tensordot = _compatible_with_brainpy_array(jnp.tensordot)
+tensordot = _compatible_with_brainpy_array(umath.tensordot)
 trim_zeros = _compatible_with_brainpy_array(jnp.trim_zeros)
 union1d = _compatible_with_brainpy_array(jnp.union1d)
 unravel_index = _compatible_with_brainpy_array(jnp.unravel_index)
@@ -323,132 +323,132 @@ unwrap = _compatible_with_brainpy_array(jnp.unwrap)
 
 # math funcs
 # ----------
-isreal = _compatible_with_brainpy_array(jnp.isreal)
-isscalar = _compatible_with_brainpy_array(jnp.isscalar)
-real = _compatible_with_brainpy_array(jnp.real)
-imag = _compatible_with_brainpy_array(jnp.imag)
-conj = _compatible_with_brainpy_array(jnp.conj)
-conjugate = _compatible_with_brainpy_array(jnp.conjugate)
-ndim = _compatible_with_brainpy_array(jnp.ndim)
-add = _compatible_with_brainpy_array(jnp.add)
-reciprocal = _compatible_with_brainpy_array(jnp.reciprocal)
-negative = _compatible_with_brainpy_array(jnp.negative)
-positive = _compatible_with_brainpy_array(jnp.positive)
-multiply = _compatible_with_brainpy_array(jnp.multiply)
-divide = _compatible_with_brainpy_array(jnp.divide)
-power = _compatible_with_brainpy_array(jnp.power)
-subtract = _compatible_with_brainpy_array(jnp.subtract)
-true_divide = _compatible_with_brainpy_array(jnp.true_divide)
-floor_divide = _compatible_with_brainpy_array(jnp.floor_divide)
-float_power = _compatible_with_brainpy_array(jnp.float_power)
-fmod = _compatible_with_brainpy_array(jnp.fmod)
-mod = _compatible_with_brainpy_array(jnp.mod)
-divmod = _compatible_with_brainpy_array(jnp.divmod)
-remainder = _compatible_with_brainpy_array(jnp.remainder)
-modf = _compatible_with_brainpy_array(jnp.modf)
-abs = _compatible_with_brainpy_array(jnp.abs)
-absolute = _compatible_with_brainpy_array(jnp.absolute)
-exp = _compatible_with_brainpy_array(jnp.exp)
-exp2 = _compatible_with_brainpy_array(jnp.exp2)
-expm1 = _compatible_with_brainpy_array(jnp.expm1)
-log = _compatible_with_brainpy_array(jnp.log)
-log10 = _compatible_with_brainpy_array(jnp.log10)
-log1p = _compatible_with_brainpy_array(jnp.log1p)
-log2 = _compatible_with_brainpy_array(jnp.log2)
-logaddexp = _compatible_with_brainpy_array(jnp.logaddexp)
-logaddexp2 = _compatible_with_brainpy_array(jnp.logaddexp2)
-lcm = _compatible_with_brainpy_array(jnp.lcm)
-gcd = _compatible_with_brainpy_array(jnp.gcd)
-arccos = _compatible_with_brainpy_array(jnp.arccos)
-arccosh = _compatible_with_brainpy_array(jnp.arccosh)
-arcsin = _compatible_with_brainpy_array(jnp.arcsin)
-arcsinh = _compatible_with_brainpy_array(jnp.arcsinh)
-arctan = _compatible_with_brainpy_array(jnp.arctan)
-arctan2 = _compatible_with_brainpy_array(jnp.arctan2)
-arctanh = _compatible_with_brainpy_array(jnp.arctanh)
-cos = _compatible_with_brainpy_array(jnp.cos)
-cosh = _compatible_with_brainpy_array(jnp.cosh)
-sin = _compatible_with_brainpy_array(jnp.sin)
-sinc = _compatible_with_brainpy_array(jnp.sinc)
-sinh = _compatible_with_brainpy_array(jnp.sinh)
-tan = _compatible_with_brainpy_array(jnp.tan)
-tanh = _compatible_with_brainpy_array(jnp.tanh)
-deg2rad = _compatible_with_brainpy_array(jnp.deg2rad)
-rad2deg = _compatible_with_brainpy_array(jnp.rad2deg)
-degrees = _compatible_with_brainpy_array(jnp.degrees)
-radians = _compatible_with_brainpy_array(jnp.radians)
-hypot = _compatible_with_brainpy_array(jnp.hypot)
-round = _compatible_with_brainpy_array(jnp.round)
+isreal = _compatible_with_brainpy_array(umath.isreal)
+isscalar = _compatible_with_brainpy_array(umath.isscalar)
+real = _compatible_with_brainpy_array(umath.real)
+imag = _compatible_with_brainpy_array(umath.imag)
+conj = _compatible_with_brainpy_array(umath.conj)
+conjugate = _compatible_with_brainpy_array(umath.conjugate)
+ndim = _compatible_with_brainpy_array(umath.ndim)
+add = _compatible_with_brainpy_array(umath.add)
+reciprocal = _compatible_with_brainpy_array(umath.reciprocal)
+negative = _compatible_with_brainpy_array(umath.negative)
+positive = _compatible_with_brainpy_array(umath.positive)
+multiply = _compatible_with_brainpy_array(umath.multiply)
+divide = _compatible_with_brainpy_array(umath.divide)
+power = _compatible_with_brainpy_array(umath.power)
+subtract = _compatible_with_brainpy_array(umath.subtract)
+true_divide = _compatible_with_brainpy_array(umath.true_divide)
+floor_divide = _compatible_with_brainpy_array(umath.floor_divide)
+float_power = _compatible_with_brainpy_array(umath.float_power)
+fmod = _compatible_with_brainpy_array(umath.fmod)
+mod = _compatible_with_brainpy_array(umath.mod)
+divmod = _compatible_with_brainpy_array(umath.divmod)
+remainder = _compatible_with_brainpy_array(umath.remainder)
+modf = _compatible_with_brainpy_array(umath.modf)
+abs = _compatible_with_brainpy_array(umath.abs)
+absolute = _compatible_with_brainpy_array(umath.absolute)
+exp = _compatible_with_brainpy_array(umath.exp)
+exp2 = _compatible_with_brainpy_array(umath.exp2)
+expm1 = _compatible_with_brainpy_array(umath.expm1)
+log = _compatible_with_brainpy_array(umath.log)
+log10 = _compatible_with_brainpy_array(umath.log10)
+log1p = _compatible_with_brainpy_array(umath.log1p)
+log2 = _compatible_with_brainpy_array(umath.log2)
+logaddexp = _compatible_with_brainpy_array(umath.logaddexp)
+logaddexp2 = _compatible_with_brainpy_array(umath.logaddexp2)
+lcm = _compatible_with_brainpy_array(umath.lcm)
+gcd = _compatible_with_brainpy_array(umath.gcd)
+arccos = _compatible_with_brainpy_array(umath.arccos)
+arccosh = _compatible_with_brainpy_array(umath.arccosh)
+arcsin = _compatible_with_brainpy_array(umath.arcsin)
+arcsinh = _compatible_with_brainpy_array(umath.arcsinh)
+arctan = _compatible_with_brainpy_array(umath.arctan)
+arctan2 = _compatible_with_brainpy_array(umath.arctan2)
+arctanh = _compatible_with_brainpy_array(umath.arctanh)
+cos = _compatible_with_brainpy_array(umath.cos)
+cosh = _compatible_with_brainpy_array(umath.cosh)
+sin = _compatible_with_brainpy_array(umath.sin)
+sinc = _compatible_with_brainpy_array(umath.sinc)
+sinh = _compatible_with_brainpy_array(umath.sinh)
+tan = _compatible_with_brainpy_array(umath.tan)
+tanh = _compatible_with_brainpy_array(umath.tanh)
+deg2rad = _compatible_with_brainpy_array(umath.deg2rad)
+rad2deg = _compatible_with_brainpy_array(umath.rad2deg)
+degrees = _compatible_with_brainpy_array(umath.degrees)
+radians = _compatible_with_brainpy_array(umath.radians)
+hypot = _compatible_with_brainpy_array(umath.hypot)
+round = _compatible_with_brainpy_array(umath.round)
 around = round
 round_ = round
-rint = _compatible_with_brainpy_array(jnp.rint)
-floor = _compatible_with_brainpy_array(jnp.floor)
-ceil = _compatible_with_brainpy_array(jnp.ceil)
-trunc = _compatible_with_brainpy_array(jnp.trunc)
-fix = _compatible_with_brainpy_array(jnp.fix)
-prod = _compatible_with_brainpy_array(jnp.prod)
+rint = _compatible_with_brainpy_array(umath.rint)
+floor = _compatible_with_brainpy_array(umath.floor)
+ceil = _compatible_with_brainpy_array(umath.ceil)
+trunc = _compatible_with_brainpy_array(umath.trunc)
+fix = _compatible_with_brainpy_array(umath.fix)
+prod = _compatible_with_brainpy_array(umath.prod)
 
-sum = _compatible_with_brainpy_array(jnp.sum)
+sum = _compatible_with_brainpy_array(umath.sum)
 
-diff = _compatible_with_brainpy_array(jnp.diff)
-median = _compatible_with_brainpy_array(jnp.median)
-nancumprod = _compatible_with_brainpy_array(jnp.nancumprod)
-nancumsum = _compatible_with_brainpy_array(jnp.nancumsum)
-cumprod = _compatible_with_brainpy_array(jnp.cumprod)
+diff = _compatible_with_brainpy_array(umath.diff)
+median = _compatible_with_brainpy_array(umath.median)
+nancumprod = _compatible_with_brainpy_array(umath.nancumprod)
+nancumsum = _compatible_with_brainpy_array(umath.nancumsum)
+cumprod = _compatible_with_brainpy_array(umath.cumprod)
 cumproduct = cumprod
-cumsum = _compatible_with_brainpy_array(jnp.cumsum)
-nanprod = _compatible_with_brainpy_array(jnp.nanprod)
-nansum = _compatible_with_brainpy_array(jnp.nansum)
-ediff1d = _compatible_with_brainpy_array(jnp.ediff1d)
-cross = _compatible_with_brainpy_array(jnp.cross)
+cumsum = _compatible_with_brainpy_array(umath.cumsum)
+nanprod = _compatible_with_brainpy_array(umath.nanprod)
+nansum = _compatible_with_brainpy_array(umath.nansum)
+ediff1d = _compatible_with_brainpy_array(umath.ediff1d)
+cross = _compatible_with_brainpy_array(umath.cross)
 if jax.__version__ >= '0.4.18':
     trapz = _compatible_with_brainpy_array(jax.scipy.integrate.trapezoid)
 else:
-    trapz = _compatible_with_brainpy_array(jnp.trapz)
-isfinite = _compatible_with_brainpy_array(jnp.isfinite)
-isinf = _compatible_with_brainpy_array(jnp.isinf)
-isnan = _compatible_with_brainpy_array(jnp.isnan)
-signbit = _compatible_with_brainpy_array(jnp.signbit)
-nextafter = _compatible_with_brainpy_array(jnp.nextafter)
-copysign = _compatible_with_brainpy_array(jnp.copysign)
-ldexp = _compatible_with_brainpy_array(jnp.ldexp)
-frexp = _compatible_with_brainpy_array(jnp.frexp)
-convolve = _compatible_with_brainpy_array(jnp.convolve)
-sqrt = _compatible_with_brainpy_array(jnp.sqrt)
-cbrt = _compatible_with_brainpy_array(jnp.cbrt)
-square = _compatible_with_brainpy_array(jnp.square)
-fabs = _compatible_with_brainpy_array(jnp.fabs)
-sign = _compatible_with_brainpy_array(jnp.sign)
-heaviside = _compatible_with_brainpy_array(jnp.heaviside)
-maximum = _compatible_with_brainpy_array(jnp.maximum)
-minimum = _compatible_with_brainpy_array(jnp.minimum)
-fmax = _compatible_with_brainpy_array(jnp.fmax)
-fmin = _compatible_with_brainpy_array(jnp.fmin)
-interp = _compatible_with_brainpy_array(jnp.interp)
-clip = _compatible_with_brainpy_array(jnp.clip)
-angle = _compatible_with_brainpy_array(jnp.angle)
-bitwise_not = _compatible_with_brainpy_array(jnp.bitwise_not)
-invert = _compatible_with_brainpy_array(jnp.invert)
-bitwise_and = _compatible_with_brainpy_array(jnp.bitwise_and)
-bitwise_or = _compatible_with_brainpy_array(jnp.bitwise_or)
-bitwise_xor = _compatible_with_brainpy_array(jnp.bitwise_xor)
-left_shift = _compatible_with_brainpy_array(jnp.left_shift)
-right_shift = _compatible_with_brainpy_array(jnp.right_shift)
-equal = _compatible_with_brainpy_array(jnp.equal)
-not_equal = _compatible_with_brainpy_array(jnp.not_equal)
-greater = _compatible_with_brainpy_array(jnp.greater)
-greater_equal = _compatible_with_brainpy_array(jnp.greater_equal)
-less = _compatible_with_brainpy_array(jnp.less)
-less_equal = _compatible_with_brainpy_array(jnp.less_equal)
-array_equal = _compatible_with_brainpy_array(jnp.array_equal)
-isclose = _compatible_with_brainpy_array(jnp.isclose)
-allclose = _compatible_with_brainpy_array(jnp.allclose)
-logical_not = _compatible_with_brainpy_array(jnp.logical_not)
-logical_and = _compatible_with_brainpy_array(jnp.logical_and)
-logical_or = _compatible_with_brainpy_array(jnp.logical_or)
-logical_xor = _compatible_with_brainpy_array(jnp.logical_xor)
-all = _compatible_with_brainpy_array(jnp.all)
-any = _compatible_with_brainpy_array(jnp.any)
+    trapz = _compatible_with_brainpy_array(jnp.trapezoid)
+isfinite = _compatible_with_brainpy_array(umath.isfinite)
+isinf = _compatible_with_brainpy_array(umath.isinf)
+isnan = _compatible_with_brainpy_array(umath.isnan)
+signbit = _compatible_with_brainpy_array(umath.signbit)
+nextafter = _compatible_with_brainpy_array(umath.nextafter)
+copysign = _compatible_with_brainpy_array(umath.copysign)
+ldexp = _compatible_with_brainpy_array(umath.ldexp)
+frexp = _compatible_with_brainpy_array(umath.frexp)
+convolve = _compatible_with_brainpy_array(umath.convolve)
+sqrt = _compatible_with_brainpy_array(umath.sqrt)
+cbrt = _compatible_with_brainpy_array(umath.cbrt)
+square = _compatible_with_brainpy_array(umath.square)
+fabs = _compatible_with_brainpy_array(umath.fabs)
+sign = _compatible_with_brainpy_array(umath.sign)
+heaviside = _compatible_with_brainpy_array(umath.heaviside)
+maximum = _compatible_with_brainpy_array(umath.maximum)
+minimum = _compatible_with_brainpy_array(umath.minimum)
+fmax = _compatible_with_brainpy_array(umath.fmax)
+fmin = _compatible_with_brainpy_array(umath.fmin)
+interp = _compatible_with_brainpy_array(umath.interp)
+clip = _compatible_with_brainpy_array(umath.clip)
+angle = _compatible_with_brainpy_array(umath.angle)
+bitwise_not = _compatible_with_brainpy_array(umath.bitwise_not)
+invert = _compatible_with_brainpy_array(umath.invert)
+bitwise_and = _compatible_with_brainpy_array(umath.bitwise_and)
+bitwise_or = _compatible_with_brainpy_array(umath.bitwise_or)
+bitwise_xor = _compatible_with_brainpy_array(umath.bitwise_xor)
+left_shift = _compatible_with_brainpy_array(umath.left_shift)
+right_shift = _compatible_with_brainpy_array(umath.right_shift)
+equal = _compatible_with_brainpy_array(umath.equal)
+not_equal = _compatible_with_brainpy_array(umath.not_equal)
+greater = _compatible_with_brainpy_array(umath.greater)
+greater_equal = _compatible_with_brainpy_array(umath.greater_equal)
+less = _compatible_with_brainpy_array(umath.less)
+less_equal = _compatible_with_brainpy_array(umath.less_equal)
+array_equal = _compatible_with_brainpy_array(umath.array_equal)
+isclose = _compatible_with_brainpy_array(umath.isclose)
+allclose = _compatible_with_brainpy_array(umath.allclose)
+logical_not = _compatible_with_brainpy_array(umath.logical_not)
+logical_and = _compatible_with_brainpy_array(umath.logical_and)
+logical_or = _compatible_with_brainpy_array(umath.logical_or)
+logical_xor = _compatible_with_brainpy_array(umath.logical_xor)
+all = _compatible_with_brainpy_array(umath.all)
+any = _compatible_with_brainpy_array(umath.any)
 
 alltrue = all
 sometrue = any
@@ -477,6 +477,7 @@ def shape(a):
 
     Examples::
 
+    >>> import brainpy
     >>> brainpy.version2.math.shape(brainpy.version2.math.eye(3))
     (3, 3)
     >>> brainpy.version2.math.shape([[1, 3]])
@@ -487,7 +488,7 @@ def shape(a):
     ()
 
     """
-    if isinstance(a, (BaseArray, jax.Array, np.ndarray)):
+    if isinstance(a, (Array, jax.Array, np.ndarray)):
         return a.shape
     else:
         return np.shape(a)
@@ -518,6 +519,7 @@ def size(a, axis=None):
 
     Examples::
 
+    >>> import brainpy
     >>> a = brainpy.version2.math.array([[1,2,3], [4,5,6]])
     >>> brainpy.version2.math.size(a)
     6
@@ -526,7 +528,7 @@ def size(a, axis=None):
     >>> brainpy.version2.math.size(a, 0)
     2
     """
-    if isinstance(a, (BaseArray, jax.Array, np.ndarray)):
+    if isinstance(a, (Array, jax.Array, np.ndarray)):
         if axis is None:
             return a.size
         else:
@@ -535,50 +537,50 @@ def size(a, axis=None):
         return np.size(a, axis=axis)
 
 
-reshape = _compatible_with_brainpy_array(jnp.reshape)
-ravel = _compatible_with_brainpy_array(jnp.ravel)
-moveaxis = _compatible_with_brainpy_array(jnp.moveaxis)
-transpose = _compatible_with_brainpy_array(jnp.transpose)
-swapaxes = _compatible_with_brainpy_array(jnp.swapaxes)
-concatenate = _compatible_with_brainpy_array(jnp.concatenate)
-stack = _compatible_with_brainpy_array(jnp.stack)
-vstack = _compatible_with_brainpy_array(jnp.vstack)
+reshape = _compatible_with_brainpy_array(umath.reshape)
+ravel = _compatible_with_brainpy_array(umath.ravel)
+moveaxis = _compatible_with_brainpy_array(umath.moveaxis)
+transpose = _compatible_with_brainpy_array(umath.transpose)
+swapaxes = _compatible_with_brainpy_array(umath.swapaxes)
+concatenate = _compatible_with_brainpy_array(umath.concatenate)
+stack = _compatible_with_brainpy_array(umath.stack)
+vstack = _compatible_with_brainpy_array(umath.vstack)
 product = prod
 row_stack = vstack
-hstack = _compatible_with_brainpy_array(jnp.hstack)
-dstack = _compatible_with_brainpy_array(jnp.dstack)
-column_stack = _compatible_with_brainpy_array(jnp.column_stack)
-split = _compatible_with_brainpy_array(jnp.split)
-dsplit = _compatible_with_brainpy_array(jnp.dsplit)
-hsplit = _compatible_with_brainpy_array(jnp.hsplit)
-vsplit = _compatible_with_brainpy_array(jnp.vsplit)
-tile = _compatible_with_brainpy_array(jnp.tile)
-repeat = _compatible_with_brainpy_array(jnp.repeat)
-unique = _compatible_with_brainpy_array(jnp.unique)
-append = _compatible_with_brainpy_array(jnp.append)
-flip = _compatible_with_brainpy_array(jnp.flip)
-fliplr = _compatible_with_brainpy_array(jnp.fliplr)
-flipud = _compatible_with_brainpy_array(jnp.flipud)
-roll = _compatible_with_brainpy_array(jnp.roll)
-atleast_1d = _compatible_with_brainpy_array(jnp.atleast_1d)
-atleast_2d = _compatible_with_brainpy_array(jnp.atleast_2d)
-atleast_3d = _compatible_with_brainpy_array(jnp.atleast_3d)
-expand_dims = _compatible_with_brainpy_array(jnp.expand_dims)
-squeeze = _compatible_with_brainpy_array(jnp.squeeze)
-sort = _compatible_with_brainpy_array(jnp.sort)
-argsort = _compatible_with_brainpy_array(jnp.argsort)
-argmax = _compatible_with_brainpy_array(jnp.argmax)
-argmin = _compatible_with_brainpy_array(jnp.argmin)
-argwhere = _compatible_with_brainpy_array(jnp.argwhere)
-nonzero = _compatible_with_brainpy_array(jnp.nonzero)
-flatnonzero = _compatible_with_brainpy_array(jnp.flatnonzero)
-where = _compatible_with_brainpy_array(jnp.where)
-searchsorted = _compatible_with_brainpy_array(jnp.searchsorted)
-extract = _compatible_with_brainpy_array(jnp.extract)
-count_nonzero = _compatible_with_brainpy_array(jnp.count_nonzero)
-max = _compatible_with_brainpy_array(jnp.max)
+hstack = _compatible_with_brainpy_array(umath.hstack)
+dstack = _compatible_with_brainpy_array(umath.dstack)
+column_stack = _compatible_with_brainpy_array(umath.column_stack)
+split = _compatible_with_brainpy_array(umath.split)
+dsplit = _compatible_with_brainpy_array(umath.dsplit)
+hsplit = _compatible_with_brainpy_array(umath.hsplit)
+vsplit = _compatible_with_brainpy_array(umath.vsplit)
+tile = _compatible_with_brainpy_array(umath.tile)
+repeat = _compatible_with_brainpy_array(umath.repeat)
+unique = _compatible_with_brainpy_array(umath.unique)
+append = _compatible_with_brainpy_array(umath.append)
+flip = _compatible_with_brainpy_array(umath.flip)
+fliplr = _compatible_with_brainpy_array(umath.fliplr)
+flipud = _compatible_with_brainpy_array(umath.flipud)
+roll = _compatible_with_brainpy_array(umath.roll)
+atleast_1d = _compatible_with_brainpy_array(umath.atleast_1d)
+atleast_2d = _compatible_with_brainpy_array(umath.atleast_2d)
+atleast_3d = _compatible_with_brainpy_array(umath.atleast_3d)
+expand_dims = _compatible_with_brainpy_array(umath.expand_dims)
+squeeze = _compatible_with_brainpy_array(umath.squeeze)
+sort = _compatible_with_brainpy_array(umath.sort)
+argsort = _compatible_with_brainpy_array(umath.argsort)
+argmax = _compatible_with_brainpy_array(umath.argmax)
+argmin = _compatible_with_brainpy_array(umath.argmin)
+argwhere = _compatible_with_brainpy_array(umath.argwhere)
+nonzero = _compatible_with_brainpy_array(umath.nonzero)
+flatnonzero = _compatible_with_brainpy_array(umath.flatnonzero)
+where = _compatible_with_brainpy_array(umath.where)
+searchsorted = _compatible_with_brainpy_array(umath.searchsorted)
+extract = _compatible_with_brainpy_array(umath.extract)
+count_nonzero = _compatible_with_brainpy_array(umath.count_nonzero)
+max = _compatible_with_brainpy_array(umath.max)
 
-min = _compatible_with_brainpy_array(jnp.min)
+min = _compatible_with_brainpy_array(umath.min)
 
 amax = max
 amin = min
@@ -587,68 +589,68 @@ apply_over_axes = _compatible_with_brainpy_array(jnp.apply_over_axes)
 array_equiv = _compatible_with_brainpy_array(jnp.array_equiv)
 array_repr = _compatible_with_brainpy_array(jnp.array_repr)
 array_str = _compatible_with_brainpy_array(jnp.array_str)
-array_split = _compatible_with_brainpy_array(jnp.array_split)
+array_split = _compatible_with_brainpy_array(umath.array_split)
 
 # indexing funcs
 # --------------
 
-tril_indices = jnp.tril_indices
-triu_indices = jnp.triu_indices
-tril_indices_from = _compatible_with_brainpy_array(jnp.tril_indices_from)
-triu_indices_from = _compatible_with_brainpy_array(jnp.triu_indices_from)
-take = _compatible_with_brainpy_array(jnp.take)
-select = _compatible_with_brainpy_array(jnp.select)
-nanmin = _compatible_with_brainpy_array(jnp.nanmin)
-nanmax = _compatible_with_brainpy_array(jnp.nanmax)
-ptp = _compatible_with_brainpy_array(jnp.ptp)
-percentile = _compatible_with_brainpy_array(jnp.percentile)
-nanpercentile = _compatible_with_brainpy_array(jnp.nanpercentile)
-quantile = _compatible_with_brainpy_array(jnp.quantile)
-nanquantile = _compatible_with_brainpy_array(jnp.nanquantile)
-average = _compatible_with_brainpy_array(jnp.average)
-mean = _compatible_with_brainpy_array(jnp.mean)
-std = _compatible_with_brainpy_array(jnp.std)
-var = _compatible_with_brainpy_array(jnp.var)
-nanmedian = _compatible_with_brainpy_array(jnp.nanmedian)
-nanmean = _compatible_with_brainpy_array(jnp.nanmean)
-nanstd = _compatible_with_brainpy_array(jnp.nanstd)
-nanvar = _compatible_with_brainpy_array(jnp.nanvar)
-corrcoef = _compatible_with_brainpy_array(jnp.corrcoef)
-correlate = _compatible_with_brainpy_array(jnp.correlate)
-cov = _compatible_with_brainpy_array(jnp.cov)
-histogram = _compatible_with_brainpy_array(jnp.histogram)
-bincount = _compatible_with_brainpy_array(jnp.bincount)
-digitize = _compatible_with_brainpy_array(jnp.digitize)
-bartlett = _compatible_with_brainpy_array(jnp.bartlett)
-blackman = _compatible_with_brainpy_array(jnp.blackman)
-hamming = _compatible_with_brainpy_array(jnp.hamming)
-hanning = _compatible_with_brainpy_array(jnp.hanning)
-kaiser = _compatible_with_brainpy_array(jnp.kaiser)
+tril_indices = umath.tril_indices
+triu_indices = umath.triu_indices
+tril_indices_from = _compatible_with_brainpy_array(umath.tril_indices_from)
+triu_indices_from = _compatible_with_brainpy_array(umath.triu_indices_from)
+take = _compatible_with_brainpy_array(umath.take)
+select = _compatible_with_brainpy_array(umath.select)
+nanmin = _compatible_with_brainpy_array(umath.nanmin)
+nanmax = _compatible_with_brainpy_array(umath.nanmax)
+ptp = _compatible_with_brainpy_array(umath.ptp)
+percentile = _compatible_with_brainpy_array(umath.percentile)
+nanpercentile = _compatible_with_brainpy_array(umath.nanpercentile)
+quantile = _compatible_with_brainpy_array(umath.quantile)
+nanquantile = _compatible_with_brainpy_array(umath.nanquantile)
+average = _compatible_with_brainpy_array(umath.average)
+mean = _compatible_with_brainpy_array(umath.mean)
+std = _compatible_with_brainpy_array(umath.std)
+var = _compatible_with_brainpy_array(umath.var)
+nanmedian = _compatible_with_brainpy_array(umath.nanmedian)
+nanmean = _compatible_with_brainpy_array(umath.nanmean)
+nanstd = _compatible_with_brainpy_array(umath.nanstd)
+nanvar = _compatible_with_brainpy_array(umath.nanvar)
+corrcoef = _compatible_with_brainpy_array(umath.corrcoef)
+correlate = _compatible_with_brainpy_array(umath.correlate)
+cov = _compatible_with_brainpy_array(umath.cov)
+histogram = _compatible_with_brainpy_array(umath.histogram)
+bincount = _compatible_with_brainpy_array(umath.bincount)
+digitize = _compatible_with_brainpy_array(umath.digitize)
+bartlett = _compatible_with_brainpy_array(umath.bartlett)
+blackman = _compatible_with_brainpy_array(umath.blackman)
+hamming = _compatible_with_brainpy_array(umath.hamming)
+hanning = _compatible_with_brainpy_array(umath.hanning)
+kaiser = _compatible_with_brainpy_array(umath.kaiser)
 
 # constants
 # ---------
 
-e = jnp.e
-pi = jnp.pi
-inf = jnp.inf
+e = umath.e
+pi = umath.pi
+inf = umath.inf
 
 # linear algebra
 # --------------
 
-dot = _compatible_with_brainpy_array(jnp.dot)
-vdot = _compatible_with_brainpy_array(jnp.vdot)
-inner = _compatible_with_brainpy_array(jnp.inner)
-outer = _compatible_with_brainpy_array(jnp.outer)
-kron = _compatible_with_brainpy_array(jnp.kron)
-matmul = _compatible_with_brainpy_array(jnp.matmul)
-trace = _compatible_with_brainpy_array(jnp.trace)
+dot = _compatible_with_brainpy_array(umath.dot)
+vdot = _compatible_with_brainpy_array(umath.vdot)
+inner = _compatible_with_brainpy_array(umath.inner)
+outer = _compatible_with_brainpy_array(umath.outer)
+kron = _compatible_with_brainpy_array(umath.kron)
+matmul = _compatible_with_brainpy_array(umath.matmul)
+trace = _compatible_with_brainpy_array(umath.trace)
 
-dtype = jnp.dtype
-finfo = jnp.finfo
-iinfo = jnp.iinfo
+dtype = umath.dtype
+finfo = umath.finfo
+iinfo = umath.iinfo
 
 can_cast = _compatible_with_brainpy_array(jnp.can_cast)
-choose = _compatible_with_brainpy_array(jnp.choose)
+choose = _compatible_with_brainpy_array(umath.choose)
 copy = _compatible_with_brainpy_array(jnp.copy)
 frombuffer = _compatible_with_brainpy_array(jnp.frombuffer)
 fromfile = _compatible_with_brainpy_array(jnp.fromfile)
@@ -656,12 +658,12 @@ fromfunction = _compatible_with_brainpy_array(jnp.fromfunction)
 fromiter = _compatible_with_brainpy_array(jnp.fromiter)
 fromstring = _compatible_with_brainpy_array(jnp.fromstring)
 get_printoptions = np.get_printoptions
-iscomplexobj = _compatible_with_brainpy_array(jnp.iscomplexobj)
+iscomplexobj = _compatible_with_brainpy_array(umath.iscomplexobj)
 isneginf = _compatible_with_brainpy_array(jnp.isneginf)
 isposinf = _compatible_with_brainpy_array(jnp.isposinf)
 isrealobj = _compatible_with_brainpy_array(jnp.isrealobj)
-issubdtype = jnp.issubdtype
-issubsctype = jnp.issubdtype
+issubdtype = umath.issubdtype
+issubsctype = umath.issubdtype
 iterable = _compatible_with_brainpy_array(jnp.iterable)
 packbits = _compatible_with_brainpy_array(jnp.packbits)
 piecewise = _compatible_with_brainpy_array(jnp.piecewise)
@@ -669,7 +671,7 @@ printoptions = np.printoptions
 set_printoptions = np.set_printoptions
 promote_types = _compatible_with_brainpy_array(jnp.promote_types)
 ravel_multi_index = _compatible_with_brainpy_array(jnp.ravel_multi_index)
-result_type = _compatible_with_brainpy_array(jnp.result_type)
+result_type = _compatible_with_brainpy_array(umath.result_type)
 sort_complex = _compatible_with_brainpy_array(jnp.sort_complex)
 unpackbits = _compatible_with_brainpy_array(jnp.unpackbits)
 
@@ -719,7 +721,7 @@ info = np.info
 
 
 def place(arr, mask, vals):
-    if not isinstance(arr, BaseArray):
+    if not isinstance(arr, Array):
         raise ValueError(f'Must be an instance of brainpy Array, but we got {type(arr)}')
     arr[mask] = vals
 
@@ -728,13 +730,13 @@ polydiv = _compatible_with_brainpy_array(jnp.polydiv)
 
 
 def put(a, ind, v):
-    if not isinstance(a, BaseArray):
+    if not isinstance(a, Array):
         raise ValueError(f'Must be an instance of brainpy Array, but we got {type(a)}')
     a[ind] = v
 
 
 def putmask(a, mask, values):
-    if not isinstance(a, BaseArray):
+    if not isinstance(a, Array):
         raise ValueError(f'Must be an instance of brainpy Array, but we got {type(a)}')
     if a.shape != values.shape:
         raise ValueError('Only support the shapes of "a" and "values" are consistent.')
@@ -753,8 +755,8 @@ def savetxt(fname, X, fmt='%.18e', delimiter=' ', newline='\n', header='',
 
 
 def savez_compressed(file, *args, **kwds):
-    args = tuple([(as_numpy(a) if isinstance(a, (jnp.ndarray, BaseArray)) else a) for a in args])
-    kwds = {k: (as_numpy(v) if isinstance(v, (jnp.ndarray, BaseArray)) else v)
+    args = tuple([(as_numpy(a) if isinstance(a, (jnp.ndarray, Array)) else a) for a in args])
+    kwds = {k: (as_numpy(v) if isinstance(v, (jnp.ndarray, Array)) else v)
             for k, v in kwds.items()}
     np.savez_compressed(file, *args, **kwds)
 
@@ -764,7 +766,7 @@ typename = np.typename
 
 
 def copyto(dst, src):
-    if not isinstance(dst, BaseArray):
+    if not isinstance(dst, Array):
         raise ValueError('dst must be an instance of ArrayType.')
     dst[:] = src
 

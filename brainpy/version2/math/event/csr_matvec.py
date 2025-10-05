@@ -15,7 +15,7 @@ from typing import Union, Tuple
 import brainevent
 import jax
 
-from brainpy.version2.math.ndarray import BaseArray as Array
+from brainpy.version2.math.ndarray import Array as Array
 
 __all__ = [
     'csrmv'

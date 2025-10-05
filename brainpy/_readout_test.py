@@ -18,6 +18,7 @@ import unittest
 
 import jax.numpy as jnp
 
+import brainunit as u
 import brainstate
 import braintools
 import brainpy
@@ -42,9 +43,9 @@ class TestReadoutModels(unittest.TestCase):
     def test_LeakySpikeReadout(self):
         with brainstate.environ.context(dt=0.1):
             model = brainpy.LeakySpikeReadout(
-                in_size=self.in_size, tau=self.tau, V_th=self.V_th,
+                in_size=self.in_size, tau=self.tau, V_th=self.V_th * u.mV,
                 V_initializer=braintools.init.Constant(0. * u.mV),
-                w_init=braintools.init.KaimingNormal()
+                w_init=braintools.init.KaimingNormal(unit=u.mV)
             )
             model.init_state(batch_size=self.batch_size)
             with brainstate.environ.context(t=0.):

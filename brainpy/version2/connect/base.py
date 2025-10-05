@@ -17,6 +17,7 @@ __all__ = [
     'PRE2POST', 'POST2PRE',
     'PRE2SYN', 'POST2SYN',
     'SUPPORTED_SYN_STRUCTURE',
+    'COO', 'CSC', 'CSR',
 
     # the connection dtypes
     'set_default_dtype', 'MAT_DTYPE', 'IDX_DTYPE', 'get_idx_type',

@@ -238,7 +238,7 @@ def is_initializer(
     """Check the initializer.
     """
     global Array
-    if Array is None: from brainpy.version2.math.ndarray import BaseArray as Array
+    if Array is None: from brainpy.version2.math.ndarray import Array as Array
 
     global init
     if init is None:
@@ -271,7 +271,7 @@ def is_connector(
     """
     global Array
     if Array is None:
-        from brainpy.version2.math.ndarray import BaseArray as Array
+        from brainpy.version2.math.ndarray import Array as Array
     global conn
     if conn is None: from brainpy.version2 import connect as conn
 

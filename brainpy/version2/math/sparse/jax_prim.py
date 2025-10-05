@@ -4,7 +4,7 @@ import jax.numpy as jnp
 from jax import ops
 
 from brainpy.version2.math.interoperability import as_jax
-from brainpy.version2.math.ndarray import BaseArray as Array
+from brainpy.version2.math.ndarray import Array as Array
 
 __all__ = [
     'seg_matmul',

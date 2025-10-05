@@ -30,13 +30,13 @@ A simple way to convert your `(x_train, y_train)` data is defining it as a pytho
 
 
 def format_ys(cls, ys):
-    if isinstance(ys, (bm.BaseArray, jnp.ndarray)):
+    if isinstance(ys, (bm.Array, jnp.ndarray)):
         if len(cls.train_nodes) == 1:
             ys = {cls.train_nodes[0].name: ys}
         else:
             raise ValueError(f'The network\n {cls.target} \nhas {len(cls.train_nodes)} '
                              f'training nodes, while we only got one target data.')
-    is_dict_data(ys, key_type=str, val_type=(bm.BaseArray, jnp.ndarray))
+    is_dict_data(ys, key_type=str, val_type=(bm.Array, jnp.ndarray))
 
     # check data path
     abs_node_names = [node.name for node in cls.train_nodes]

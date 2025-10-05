@@ -8,7 +8,7 @@ import pytest
 from absl.testing import parameterized
 
 import brainpy.version2.math as bm
-from brainpy.version2.optimizers import scheduler
+from brainpy.version2.optim import scheduler
 
 show = False
 

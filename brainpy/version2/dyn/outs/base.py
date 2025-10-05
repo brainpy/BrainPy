@@ -37,21 +37,21 @@ class SynOut(DynamicalSystem, ParamDesc, BindCondData):
 
     def offset_scaling(self, x, bias=None, scale=None):
         s = self.scaling.offset_scaling(x, bias=bias, scale=scale)
-        if isinstance(x, bm.BaseArray):
+        if isinstance(x, bm.Array):
             x.value = s
             return x
         return s
 
     def std_scaling(self, x, scale=None):
         s = self.scaling.std_scaling(x, scale=scale)
-        if isinstance(x, bm.BaseArray):
+        if isinstance(x, bm.Array):
             x.value = s
             return x
         return s
 
     def inv_scaling(self, x, scale=None):
         s = self.scaling.inv_scaling(x, scale=scale)
-        if isinstance(x, bm.BaseArray):
+        if isinstance(x, bm.Array):
             x.value = s
             return x
         return s

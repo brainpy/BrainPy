@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import brainpy as bp
-import brainpy.math as bm
-
-bm.set_host_device_count(20)
+import brainpy.version2 as bp
+import brainpy.version2.math as bm
 
 
 class HH(bp.dyn.CondNeuGroup):

@@ -29,7 +29,7 @@ __all__ = [
 
 
 def _is_brainpy_array(s):
-    return isinstance(s, bm.BaseArray)
+    return isinstance(s, bm.Array)
 
 
 class BPTrainer(DSTrainer):
@@ -508,7 +508,7 @@ class BPTT(BPTrainer):
         num_step = self._get_input_time_step(xs=inputs)
         indices = np.arange(self.i0, self.i0 + num_step, dtype=np.int_)
         if isinstance(self.target.mode, bm.BatchingMode) and self.data_first_axis == 'B':
-            inputs = tree_map(lambda x: bm.moveaxis(x, 0, 1), inputs, is_leaf=lambda x: isinstance(x, bm.BaseArray))
+            inputs = tree_map(lambda x: bm.moveaxis(x, 0, 1), inputs, is_leaf=lambda x: isinstance(x, bm.Array))
         if not isinstance(inputs, (tuple, list)):
             inputs = (inputs,)
         outs, mons = self._predict(indices, *inputs, shared_args=shared_args)

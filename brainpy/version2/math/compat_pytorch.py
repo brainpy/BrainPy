@@ -11,6 +11,7 @@ __all__ = [
     'Tensor',
     'flatten',
     'unflatten',
+    'unsqueeze',
     'cat',
     'abs',
     'absolute',
@@ -32,6 +33,7 @@ __all__ = [
     'atanh',
     'clamp_max',
     'clamp_min',
+    'arctan2',
 ]
 
 Tensor = Array

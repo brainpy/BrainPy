@@ -10,7 +10,7 @@ else:
     from jax.core import Primitive
 from jax.core import ShapedArray
 from jax.interpreters import batching, mlir, xla
-from .ndarray import BaseArray
+from .ndarray import Array
 
 __all__ = [
     'remove_vmap'
@@ -18,7 +18,7 @@ __all__ = [
 
 
 def remove_vmap(x, op='any'):
-    if isinstance(x, BaseArray):
+    if isinstance(x, Array):
         x = x.value
     if op == 'any':
         return _any_without_vmap(x)

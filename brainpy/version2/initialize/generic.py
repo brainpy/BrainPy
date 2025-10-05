@@ -89,7 +89,7 @@ def parameter(
         param = bm.asarray(param)
     elif isinstance(param, bm.Variable):
         param = param
-    elif isinstance(param, bm.BaseArray):
+    elif isinstance(param, bm.Array):
         param = param
     else:
         raise ValueError(f'Unknown param type {type(param)}: {param}')
@@ -103,7 +103,7 @@ def parameter(
 
 
 def variable_(
-    init: Union[Callable, bm.BaseArray, jax.Array],
+    init: Union[Callable, bm.Array, jax.Array],
     sizes: Shape = None,
     batch_or_mode: Optional[Union[int, bool, bm.Mode]] = None,
     batch_axis: int = 0,
