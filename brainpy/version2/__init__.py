@@ -127,25 +127,6 @@ from brainpy.version2.math.object_transform.collectors import (
     Collector as Collector,
 )
 
-# deprecated
-from brainpy.version2._add_deprecations import deprecation_getattr2
-
-__deprecations = {
-    'Module': ('brainpy.version2.Module', 'brainpy.version2.DynamicalSystem', DynamicalSystem),
-    'Channel': ('brainpy.version2.Channel', 'brainpy.version2.dyn.IonChannel', dyn.IonChannel),
-    'SynConn': ('brainpy.version2.SynConn', 'brainpy.version2.dyn.SynConn', dyn.SynConn),
-    'Container': ('brainpy.version2.Container', 'brainpy.version2.DynSysGroup', DynSysGroup),
-
-    'optimizers': ('brainpy.version2.optimizers', 'brainpy.version2.optim', optim),
-    'TensorCollector': ('brainpy.version2.TensorCollector', 'brainpy.version2.ArrayCollector', ArrayCollector),
-    'SynSTP': ('brainpy.version2.SynSTP', 'brainpy.version2.synapses.SynSTP', synapses.SynSTP),
-    'SynOut': ('brainpy.version2.SynOut', 'brainpy.version2.synapses.SynOut', synapses.SynOut),
-    'TwoEndConn': ('brainpy.version2.TwoEndConn', 'brainpy.version2.synapses.TwoEndConn', synapses.TwoEndConn),
-    'CondNeuGroup': ('brainpy.version2.CondNeuGroup', 'brainpy.version2.dyn.CondNeuGroup', dyn.CondNeuGroup),
-}
-__getattr__ = deprecation_getattr2('brainpy', __deprecations)
-
-del deprecation_getattr2
 
 if __name__ == '__main__':
     connect
@@ -180,4 +161,3 @@ if __name__ == '__main__':
     modes
     Base
     ArrayCollector, Collector
-    __deprecations, __getattr__

@@ -582,7 +582,7 @@ class SlowPointFinder(base.DSAnalyzer):
         # visualization
         if plot:
             import matplotlib.pyplot as plt
-            from brainpy import visualize
+            from brainpy.version2 import visualize
             jacobian = bm.as_numpy(jacobian)
 
             num_col = min(num_col, num_point)

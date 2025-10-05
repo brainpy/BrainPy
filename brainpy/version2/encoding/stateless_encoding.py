@@ -3,7 +3,7 @@
 from typing import Optional
 
 import brainpy.version2.math as bm
-from brainpy import check
+from brainpy.version2 import check
 from .base import Encoder
 
 __all__ = [

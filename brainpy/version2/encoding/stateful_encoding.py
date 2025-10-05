@@ -5,7 +5,7 @@ from typing import Callable, Optional
 import numpy as np
 
 import brainpy.version2.math as bm
-from brainpy import check
+from brainpy.version2 import check
 from brainpy.version2.types import ArrayType
 from .base import Encoder
 

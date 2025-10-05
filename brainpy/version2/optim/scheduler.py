@@ -7,7 +7,7 @@ import jax
 import jax.numpy as jnp
 
 import brainpy.version2.math as bm
-from brainpy import check
+from brainpy.version2 import check
 from brainpy.version2.math.object_transform.base import BrainPyObject
 from brainpy._errors import MathError
 

@@ -325,7 +325,7 @@ class Alpha(DualExponential):
       :include-source: True
 
       >>> import brainpy.version2 as bp
-      >>> from brainpy import neurons, synapses, synouts
+      >>> from brainpy.version2 import neurons, synapses, synouts
       >>> import matplotlib.pyplot as plt
       >>>
       >>> neu1 = neurons.LIF(1)

@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from brainpy import _errors
-from brainpy import odeint
+from brainpy.version2 import odeint
 
 
 class TestExponentialEuler(unittest.TestCase):

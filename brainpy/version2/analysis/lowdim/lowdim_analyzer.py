@@ -9,8 +9,9 @@ from jax import numpy as jnp
 from jax import vmap
 from jax.scipy.optimize import minimize
 
+import brainpy._errors as errors
 import brainpy.version2.math as bm
-from brainpy.version2 import _errors, tools
+from brainpy.version2 import tools
 from brainpy.version2.analysis import constants as C, utils
 from brainpy.version2.analysis.base import DSAnalyzer
 from brainpy.version2.math.object_transform.collectors import Collector

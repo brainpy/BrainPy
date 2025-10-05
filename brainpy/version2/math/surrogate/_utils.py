@@ -7,7 +7,7 @@ from typing import Dict, Callable, Sequence
 
 import jax
 
-from brainpy import check
+from brainpy.version2 import check
 from brainpy.version2.math.ndarray import BaseArray as Array
 from brainpy._errors import UnsupportedError
 

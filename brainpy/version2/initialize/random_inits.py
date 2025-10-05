@@ -5,7 +5,7 @@ import math
 import jax.numpy as jnp
 import numpy as np
 
-from brainpy import tools
+from brainpy.version2 import tools
 from brainpy.version2 import math as bm
 from .base import _InterLayerInitializer
 

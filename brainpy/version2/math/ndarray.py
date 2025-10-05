@@ -1004,7 +1004,7 @@ class BaseArray:
     def as_variable(self):
         """As an instance of Variable."""
         global bm
-        if bm is None: from brainpy import math as bm
+        if bm is None: from brainpy.version2 import math as bm
         return bm.Variable(self)
 
     def __format__(self, specification):
@@ -1438,7 +1438,7 @@ class BaseArray:
 
     def uniform_(self, low=0., high=1.):
         global bm
-        if bm is None: from brainpy import math as bm
+        if bm is None: from brainpy.version2 import math as bm
         self.value = bm.random.uniform(low, high, self.shape)
         return self
 
@@ -1456,7 +1456,7 @@ class BaseArray:
           std: the standard deviation.
         """
         global bm
-        if bm is None: from brainpy import math as bm
+        if bm is None: from brainpy.version2 import math as bm
         self.value = bm.random.lognormal(mean, std, self.shape)
         return self
 
@@ -1465,7 +1465,7 @@ class BaseArray:
         Fills self tensor with elements samples from the normal distribution parameterized by mean and std.
         """
         global bm
-        if bm is None: from brainpy import math as bm
+        if bm is None: from brainpy.version2 import math as bm
         self.value = bm.random.randn(*self.shape)
         return self
 

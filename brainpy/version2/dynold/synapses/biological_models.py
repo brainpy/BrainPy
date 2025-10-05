@@ -230,7 +230,7 @@ class BioNMDA(_TwoEndConnAlignPre):
     synaptic plasticity and mediating learning and memory functions [3]_.
 
     >>> import brainpy.version2 as bp
-    >>> from brainpy import neurons, synapses
+    >>> from brainpy.version2 import neurons, synapses
     >>> import matplotlib.pyplot as plt
     >>>
     >>> neu1 = neurons.HH(1)

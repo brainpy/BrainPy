@@ -25,7 +25,7 @@ import jax
 import brainstate
 import braintools
 from brainstate.typing import Size, ArrayLike
-from ._lif import Neuron
+from ._base import Neuron
 
 __all__ = [
     'LeakyRateReadout',

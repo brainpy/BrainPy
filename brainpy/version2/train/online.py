@@ -7,7 +7,7 @@ import numpy as np
 import tqdm.auto
 from jax.tree_util import tree_map
 
-from brainpy import math as bm, tools
+from brainpy.version2 import math as bm, tools
 from brainpy.version2.context import share
 from brainpy.version2.dynsys import DynamicalSystem
 from brainpy.version2.helpers import clear_input

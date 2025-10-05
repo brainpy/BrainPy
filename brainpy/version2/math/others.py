@@ -7,7 +7,7 @@ import jax
 import jax.numpy as jnp
 from jax.tree_util import tree_map
 
-from brainpy import check, tools
+from brainpy.version2 import check, tools
 from .compat_numpy import fill_diagonal
 from .environment import get_dt, get_int
 from .interoperability import as_jax

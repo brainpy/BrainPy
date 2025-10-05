@@ -44,7 +44,7 @@ class Delta(TwoEndConn):
     **Model Examples**
 
     >>> import brainpy.version2 as bp
-    >>> from brainpy import synapses, neurons
+    >>> from brainpy.version2 import synapses, neurons
     >>> import matplotlib.pyplot as plt
     >>>
     >>> neu1 = neurons.LIF(1)
@@ -182,7 +182,7 @@ class Exponential(TwoEndConn):
 
 
     >>> import brainpy.version2 as bp
-    >>> from brainpy import neurons, synapses, synouts
+    >>> from brainpy.version2 import neurons, synapses, synouts
     >>> import matplotlib.pyplot as plt
     >>>
     >>> neu1 = neurons.LIF(1)
@@ -320,7 +320,7 @@ class DualExponential(_TwoEndConnAlignPre):
     **Model Examples**
 
     >>> import brainpy.version2 as bp
-    >>> from brainpy import neurons, synapses, synouts
+    >>> from brainpy.version2 import neurons, synapses, synouts
     >>> import matplotlib.pyplot as plt
     >>>
     >>> neu1 = neurons.LIF(1)
@@ -442,7 +442,7 @@ class Alpha(_TwoEndConnAlignPre):
     **Model Examples**
 
     >>> import brainpy.version2 as bp
-    >>> from brainpy import neurons, synapses, synouts
+    >>> from brainpy.version2 import neurons, synapses, synouts
     >>> import matplotlib.pyplot as plt
     >>>
     >>> neu1 = neurons.LIF(1)
@@ -603,7 +603,7 @@ class NMDA(_TwoEndConnAlignPre):
 
 
     >>> import brainpy.version2 as bp
-    >>> from brainpy import synapses, neurons
+    >>> from brainpy.version2 import synapses, neurons
     >>> import matplotlib.pyplot as plt
     >>>
     >>> neu1 = neurons.HH(1)

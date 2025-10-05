@@ -6,5 +6,6 @@ from .conv import *
 from .dropout import *
 from .function import *
 from .interoperation_flax import *
+from .linear import *
 from .normalization import *
 from .pooling import *

@@ -124,7 +124,7 @@ class DiffusiveCoupling(DelayCoupling):
     Examples::
 
     >>> import brainpy.version2 as bp
-    >>> from brainpy import rates
+    >>> from brainpy.version2 import rates
     >>> areas = bp.rates.FHN(80, x_ou_sigma=0.01, y_ou_sigma=0.01, name='fhn')
     >>> conn = bp.synapses.DiffusiveCoupling(areas.x, areas.x, areas.input,
     >>>                                      conn_mat=Cmat, delay_steps=Dmat,

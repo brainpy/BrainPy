@@ -8,7 +8,7 @@ import jax.numpy as jnp
 from jax import vmap
 from jax.lax import stop_gradient
 
-from brainpy import check
+from brainpy.version2 import check
 from brainpy.version2.check import is_float, is_integer, jit_error
 from brainpy._errors import UnsupportedError
 from .compat_numpy import broadcast_to, expand_dims, concatenate

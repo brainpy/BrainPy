@@ -15,6 +15,7 @@ import jax.tree
 
 __all__ = [
     'jit',
+    'cls_jit',
 ]
 
 _jit_par = '''

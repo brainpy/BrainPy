@@ -242,7 +242,7 @@ def is_initializer(
 
     global init
     if init is None:
-        from brainpy import initialize
+        from brainpy.version2 import initialize
         init = initialize
 
     name = '' if name is None else name
@@ -273,7 +273,7 @@ def is_connector(
     if Array is None:
         from brainpy.version2.math.ndarray import BaseArray as Array
     global conn
-    if conn is None: from brainpy import connect as conn
+    if conn is None: from brainpy.version2 import connect as conn
 
     name = '' if name is None else name
     if connector is None:

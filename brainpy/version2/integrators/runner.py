@@ -11,7 +11,7 @@ import numpy as np
 import tqdm.auto
 from jax.tree_util import tree_flatten
 
-from brainpy import math as bm
+from brainpy.version2 import math as bm
 from brainpy.version2.math.object_transform.base import Collector
 from brainpy.version2.running.runner import Runner
 from brainpy._errors import RunningError

@@ -6,7 +6,7 @@ import warnings
 import jax.numpy as jnp
 import numpy as np
 
-from brainpy import math as bm
+from brainpy.version2 import math as bm
 from brainpy.version2.check import is_float, is_integer
 
 __all__ = [

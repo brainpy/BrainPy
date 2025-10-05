@@ -5,7 +5,7 @@ import unittest
 import pytest
 
 from brainpy import _errors
-from brainpy import odeint
+from brainpy.version2 import odeint
 
 
 class TestAdaptiveRKKeywords(unittest.TestCase):

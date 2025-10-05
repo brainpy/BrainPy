@@ -23,7 +23,7 @@ class _Delta:
 
 
 class HalfProjDelta(Projection):
-    """Defining the half-part of the synaptic projection for the Delta synapse model.
+    r"""Defining the half-part of the synaptic projection for the Delta synapse model.
 
     The synaptic projection requires the input is the spiking data, otherwise
     the synapse is not the Delta synapse model.
@@ -109,7 +109,7 @@ class HalfProjDelta(Projection):
 
 
 class FullProjDelta(Projection):
-    """Full-chain of the synaptic projection for the Delta synapse model.
+    r"""Full-chain of the synaptic projection for the Delta synapse model.
 
     The synaptic projection requires the input is the spiking data, otherwise
     the synapse is not the Delta synapse model.

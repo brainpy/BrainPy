@@ -3,7 +3,7 @@ from typing import Union, Dict, Callable, Optional, Tuple
 
 import jax
 
-from brainpy import math as bm
+from brainpy.version2 import math as bm
 from brainpy.version2.connect import TwoEndConnector, One2One, All2All
 from brainpy.version2.dnn import linear
 from brainpy.version2.dyn.base import NeuDyn

@@ -7,7 +7,7 @@ import numpy as np
 import tqdm.auto
 
 import brainpy.version2.math as bm
-from brainpy import tools
+from brainpy.version2 import tools
 from brainpy.version2.context import share
 from brainpy.version2.dynsys import DynamicalSystem
 from brainpy.version2.mixin import SupportOffline

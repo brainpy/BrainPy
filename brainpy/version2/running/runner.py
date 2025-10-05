@@ -6,7 +6,7 @@ from typing import Callable, Dict, Sequence, Union
 
 import numpy as np
 
-from brainpy import math as bm, check
+from brainpy.version2 import math as bm, check
 from brainpy.version2.math.object_transform.base import BrainPyObject
 from brainpy._errors import MonitorError, RunningError
 from brainpy.version2.tools import DotDict

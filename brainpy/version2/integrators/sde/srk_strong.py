@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from brainpy import math
+from brainpy.version2 import math
 from brainpy.version2.integrators import constants, utils
 
 __all__ = [

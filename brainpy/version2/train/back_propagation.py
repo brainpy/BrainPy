@@ -11,8 +11,8 @@ from tqdm import tqdm
 
 import brainpy.version2.losses as losses
 import brainpy.version2.math as bm
-from brainpy import optim
-from brainpy import tools
+from brainpy.version2 import optim
+from brainpy.version2 import tools
 from brainpy.version2.context import share
 from brainpy.version2.dynsys import DynamicalSystem
 from brainpy.version2.helpers import clear_input
