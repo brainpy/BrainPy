@@ -548,7 +548,7 @@ class _GeneralConvTranspose(Layer):
         nonbatching = False
         if x.ndim == self.num_spatial_dims + 1:
             nonbatching = True
-            x = x.unsqueeze(0)
+            x = bm.unsqueeze(x, 0)
         w = brainstate.maybe_state(self.w)
         if self.mask is not None:
             try:

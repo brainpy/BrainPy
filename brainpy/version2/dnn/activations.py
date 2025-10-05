@@ -1,3 +1,4 @@
+import warnings
 from typing import Optional
 
 from brainpy.version2 import math as bm
@@ -14,11 +15,10 @@ __all__ = [
 
 def _inplace(inp, val, inplace):
     if inplace:
-        assert isinstance(inp, bm.Array), 'input must be instance of brainpy.version2.math.Array if inplace=True'
-        inp.value = val
-        return inp
-    else:
-        return val
+        warnings.warn(
+            'inplace operation is no longer supported and will be removed in future versions.', DeprecationWarning
+        )
+    return val
 
 
 class Threshold(Layer):

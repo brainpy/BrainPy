@@ -17,7 +17,7 @@ class Test_input(parameterized.TestCase):
         self.assertTupleEqual(runner.mon['spike'].shape, (300, 2))
 
     def test_PoissonGroup(self):
-        model = input.PoissonGroup(size=2, freqs=1000, seed=0)
+        model = input.PoissonGroup(size=2, freqs=1000)
         runner = bp.DSRunner(model,
                              monitors=['spike'],
                              progress_bar=False)
