@@ -130,7 +130,6 @@ from brainpy.version2 import (
     synouts,  # synaptic output
     synplast,  # synaptic plasticity
 )
-from brainpy.version2 import modes
 from brainpy.version2.math.object_transform.base import (
     Base as Base,
 )

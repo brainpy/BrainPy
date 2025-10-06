@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-# Copyright 2025 BDP Ecosystem Limited. All Rights Reserved.
+# Copyright 2025 BrainX Ecosystem Limited. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,14 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+
+
+import braintools
 import jax.numpy as jnp
 import numpy as onp
 
 from brainpy.version2 import math as bm
 
 __all__ = [
+    'cross_correlation',
+    'voltage_fluctuation',
+    'matrix_correlation',
+    'weighted_correlation',
+    'functional_connectivity',
     'raster_plot',
     'firing_rate',
+    'unitary_LFP',
 ]
 
 
@@ -83,3 +91,11 @@ def firing_rate(spikes, width, dt=None, numpy=True):
     width1 = int(width / 2 / dt) * 2 + 1
     window = np.ones(width1) * 1000 / width
     return np.convolve(np.mean(spikes, axis=1), window, mode='same')
+
+
+cross_correlation = braintools.metric.cross_correlation
+voltage_fluctuation = braintools.metric.voltage_fluctuation
+matrix_correlation = braintools.metric.matrix_correlation
+functional_connectivity = braintools.metric.functional_connectivity
+weighted_correlation = braintools.metric.weighted_correlation
+unitary_LFP = braintools.metric.unitary_LFP

@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-import numbers
 import warnings
 from dataclasses import dataclass
 from typing import Union, Dict, Callable, Sequence, Optional, Any
@@ -25,14 +24,12 @@ from brainpy.version2 import math as bm, tools
 from brainpy.version2.math.object_transform.naming import get_unique_name
 from brainpy.version2.types import ArrayType
 
-DynamicalSystem = None
 delay_identifier, init_delay_by_return = None, None
 
 __all__ = [
     'MixIn',
     'ParamDesc',
     'ParamDescriber',
-    'DelayRegister',
     'AlignPost',
     'Container',
     'TreeNode',
@@ -58,12 +55,6 @@ def _get_delay_tool():
     if init_delay_by_return is None: from brainpy.version2.delay import init_delay_by_return
     if delay_identifier is None: from brainpy.version2.delay import delay_identifier
     return delay_identifier, init_delay_by_return
-
-
-def _get_dynsys():
-    global DynamicalSystem
-    if DynamicalSystem is None: from brainpy.version2.dynsys import DynamicalSystem
-    return DynamicalSystem
 
 
 @dataclass
@@ -203,97 +194,6 @@ class TreeNode(MixIn):
         if not issubclass(root, master_type):
             raise TypeError(f'Type does not match. {leaf} requires a master with type '
                             f'of {leaf.master_type}, but the master now is {root}.')
-
-
-class DelayRegister(MixIn):
-
-    def register_delay(
-        self,
-        identifier: str,
-        delay_step: Optional[Union[int, ArrayType, Callable]],
-        delay_target: bm.Variable,
-        initial_delay_data: Union[Callable, ArrayType, numbers.Number] = None,
-    ):
-        """Register delay variable.
-
-        Args:
-          identifier: str. The delay access name.
-          delay_target: The target variable for delay.
-          delay_step: The delay time step.
-          initial_delay_data: The initializer for the delay data.
-
-        Returns:
-          delay_pos: The position of the delay.
-        """
-        _delay_identifier, _init_delay_by_return = _get_delay_tool()
-        DynamicalSystem = _get_dynsys()
-        assert isinstance(self, DynamicalSystem), f'self must be an instance of {DynamicalSystem.__name__}'
-        _delay_identifier = _delay_identifier + identifier
-        if not self.has_aft_update(_delay_identifier):
-            self.add_aft_update(_delay_identifier, _init_delay_by_return(delay_target, initial_delay_data))
-        delay_cls = self.get_aft_update(_delay_identifier)
-        name = get_unique_name('delay')
-        delay_cls.register_entry(name, delay_step)
-        return name
-
-    def get_delay_data(
-        self,
-        identifier: str,
-        delay_pos: str,
-        *indices: Union[int, slice, bm.Array, jax.Array],
-    ):
-        """Get delay data according to the provided delay steps.
-
-        Parameters::
-
-        identifier: str
-          The delay variable name.
-        delay_pos: str
-          The delay length.
-        indices: optional, int, slice, ArrayType
-          The indices of the delay.
-
-        Returns::
-
-        delay_data: ArrayType
-          The delay data at the given time.
-        """
-        _delay_identifier, _init_delay_by_return = _get_delay_tool()
-        _delay_identifier = _delay_identifier + identifier
-        delay_cls = self.get_aft_update(_delay_identifier)
-        return delay_cls.at(delay_pos, *indices)
-
-    def update_local_delays(self, nodes: Union[Sequence, Dict] = None):
-        """Update local delay variables.
-
-        This function should be called after updating neuron groups or delay sources.
-        For example, in a network model,
-
-
-        Parameters::
-
-        nodes: sequence, dict
-          The nodes to update their delay variables.
-        """
-        warnings.warn('.update_local_delays() has been removed since brainpy>=2.4.6',
-                      DeprecationWarning)
-
-    def reset_local_delays(self, nodes: Union[Sequence, Dict] = None):
-        """Reset local delay variables.
-
-        Parameters::
-
-        nodes: sequence, dict
-          The nodes to Reset their delay variables.
-        """
-        warnings.warn('.reset_local_delays() has been removed since brainpy>=2.4.6',
-                      DeprecationWarning)
-
-    def get_delay_var(self, name):
-        _delay_identifier, _init_delay_by_return = _get_delay_tool()
-        _delay_identifier = _delay_identifier + name
-        delay_cls = self.get_aft_update(_delay_identifier)
-        return delay_cls
 
 
 class SupportInputProj(MixIn):
