@@ -122,6 +122,7 @@ class AMPA(Synapse):
     $$
 
     where:
+
     - $g$ represents the fraction of receptors in the open state
     - $\alpha$ is the binding rate constant [ms^-1 mM^-1]
     - $\beta$ is the unbinding rate constant [ms^-1]
