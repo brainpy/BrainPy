@@ -12,8 +12,8 @@
 #
 
 import os
-import sys
 import shutil
+import sys
 
 sys.path.insert(0, os.path.abspath('./'))
 sys.path.insert(0, os.path.abspath('../'))
@@ -41,13 +41,15 @@ os.makedirs('apis/auto/', exist_ok=True)
 # sys.exit()
 
 changelogs = [
-  ('../brainpy-changelog.md', 'apis/auto/brainpy-changelog.md'),
-  ('../brainpylib-changelog.md', 'apis/auto/brainpylib-changelog.md'),
+    ('../brainpy-changelog.md', 'apis/auto/brainpy-changelog.md'),
+    ('../brainpylib-changelog.md', 'apis/auto/brainpylib-changelog.md'),
 ]
 for source, dest in changelogs:
-  if os.path.exists(dest):
-    os.remove(dest)
-  shutil.copyfile(source, dest)
+    if os.path.exists(dest):
+        os.remove(dest)
+    shutil.copyfile(source, dest)
+shutil.copyfile('../images/*', './_static/')
+
 
 # -- Project information -----------------------------------------------------
 
@@ -64,18 +66,18 @@ release = brainpy.__version__
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-  'sphinx.ext.autodoc',
-  'sphinx.ext.autosummary',
-  'sphinx.ext.intersphinx',
-  'sphinx.ext.mathjax',
-  'sphinx.ext.napoleon',
-  'sphinx.ext.viewcode',
-  'sphinx_autodoc_typehints',
-  'myst_nb',
-  'matplotlib.sphinxext.plot_directive',
-  'sphinx_thebe',
-  'sphinx_design'
-  # 'sphinx-mathjax-offline',
+    'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.mathjax',
+    'sphinx.ext.napoleon',
+    'sphinx.ext.viewcode',
+    'sphinx_autodoc_typehints',
+    'myst_nb',
+    'matplotlib.sphinxext.plot_directive',
+    'sphinx_thebe',
+    'sphinx_design'
+    # 'sphinx-mathjax-offline',
 ]
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -83,7 +85,6 @@ extensions = [
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 source_suffix = ['.rst', '.ipynb', '.md']
-
 
 # source_suffix = '.rst'
 autosummary_generate = True
@@ -138,7 +139,6 @@ thebe_config = {
     "repository_url": "https://github.com/binder-examples/jupyter-stacks-datascience",
     "repository_branch": "master",
 }
-
 
 html_theme_options = {
     'logo_only': True,
