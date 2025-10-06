@@ -74,7 +74,7 @@ We provide a Binder environment for BrainPy. You can use the following button to
 
 ## Citing 
 
-If you are using ``brainpy 2.0``, please consider citing the corresponding paper:
+If you are using ``brainpy``, please consider citing the corresponding paper:
 
 ```bibtex
 @article {10.7554/eLife.86365,
