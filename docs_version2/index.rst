@@ -6,9 +6,6 @@ general-purpose Brain Dynamics Programming (BDP).
 
 
 
-
-
-
 .. _BrainPy: https://github.com/brainpy/BrainPy
 
 
@@ -26,11 +23,13 @@ Installation
 
           pip install -U brainpy[cpu]
 
-    .. tab-item:: GPU (CUDA 12)
+    .. tab-item:: GPU
 
        .. code-block:: bash
 
           pip install -U brainpy[cuda12]
+
+          pip install -U brainpy[cuda13]
 
     .. tab-item:: TPU
 
@@ -42,13 +41,7 @@ Installation
 
        .. code-block:: bash
 
-          pip install -U BrainX[cpu]
-
-          # or
-          pip install -U BrainX[cuda12]
-
-          # or
-          pip install -U BrainX[tpu]
+          pip install -U BrainX
 
 
 

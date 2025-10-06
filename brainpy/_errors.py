@@ -169,37 +169,6 @@ class MPARestoreTargetRequiredError(BrainPyError):
         super().__init__(error_msg)
 
 
-class MPARestoreDataCorruptedError(BrainPyError):
-    """A multiprocess array stored in Google Cloud Storage doesn't contain a "commit_success.txt" file, which should be written at the end of the save.
-
-    Failure of finding it could indicate a corruption of your saved GDA data.
-    """
-    __module__ = 'brainpy'
-
-    def __init__(self, step, path):
-        super().__init__(
-            f'Restore checkpoint failed at step: "{step}" on multiprocess array at '
-            f' "{path}": No "commit_success.txt" found on this "_gda" directory. '
-            'Was its save halted before completion?')
-
-
-class MPARestoreTypeNotMatchError(BrainPyError):
-    """Make sure the multiprocess array type you use matches your configuration in jax.config.jax_array.
-
-    If you turned `jax.config.jax_array` on, you should use
-    `jax.experimental.array.Array` everywhere, instead of using
-    `GlobalDeviceArray`. Otherwise, avoid using jax.experimental.array
-    to restore your checkpoint.
-    """
-    __module__ = 'brainpy'
-
-    def __init__(self, step, gda_path):
-        super().__init__(
-            f'Restore checkpoint failed at step: "{step}" on multiprocess array at '
-            f' "{gda_path}": The array type provided by the target does not match '
-            'the JAX global configuration, namely the jax.config.jax_array.')
-
-
 class AlreadyExistsError(BrainPyError):
     """Attempting to overwrite a file via copy.
 
@@ -226,20 +195,6 @@ class InvalidCheckpointError(BrainPyError):
         super().__init__(
             f'Trying to save an outdated checkpoint at step: "{step}" and path: "{path}".'
         )
-
-
-class InvalidCheckpointPath(BrainPyError):
-    """A checkpoint cannot be stored in a directory that already has
-
-    a checkpoint at the current or a later step.
-
-    You can pass ``overwrite=True`` to disable this behavior and
-    overwrite existing checkpoints in the target directory.
-    """
-    __module__ = 'brainpy'
-
-    def __init__(self, path):
-        super().__init__(f'Invalid checkpoint at "{path}".')
 
 
 class JaxTracerError(MathError):
