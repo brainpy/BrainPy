@@ -13,7 +13,7 @@ build:
     post_checkout:
       # Copy the appropriate conf.py based on project name
       - |
-        if [ "$READTHEDOCS_PROJECT" = "brainpy-version2" ]; then
+        if [ "$PROJECT_VERSION" = "brainpy-version2" ]; then
           mkdir -p docs_build
           cp -r docs_version2/* docs_build/
         else

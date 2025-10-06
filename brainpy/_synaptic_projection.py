@@ -17,12 +17,11 @@
 
 from typing import Callable, Union, Tuple
 
+import braintools
 import brainunit as u
 
-import braintools
 import brainstate
 from brainstate.typing import ArrayLike
-
 from ._projection import Projection
 
 __all__ = [

@@ -18,16 +18,16 @@
 
 from typing import Optional, Callable
 
-from brainstate.typing import Size, ArrayLike
-import brainstate
 import braintools
 import brainunit as u
+
+import brainstate
+from brainstate.typing import Size, ArrayLike
 from ._base import Synapse
 
 __all__ = [
-     'Alpha', 'AMPA', 'GABAa',
+    'Alpha', 'AMPA', 'GABAa',
 ]
-
 
 
 class Alpha(Synapse):

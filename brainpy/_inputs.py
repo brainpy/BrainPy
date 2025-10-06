@@ -21,9 +21,8 @@ import jax
 import numpy as np
 
 import brainstate
-from brainstate.typing import ArrayLike, Size, DTypeLike
 from brainpy._misc import set_module_as
-
+from brainstate.typing import ArrayLike, Size, DTypeLike
 
 __all__ = [
     'SpikeTime',

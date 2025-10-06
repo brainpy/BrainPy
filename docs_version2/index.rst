@@ -136,6 +136,7 @@ Learn more
    :maxdepth: 1
    :caption: Quickstart
 
+   quickstart/installation.rst
    quickstart/simulation
    quickstart/training
    quickstart/analysis
@@ -153,5 +154,5 @@ Learn more
    advanced_tutorials.rst
    FAQ.rst
    api.rst
-   apis/auto/brainpy-changelog.md
-   apis/auto/brainpylib-changelog.md
+   brainpy-changelog.md
+   brainpylib-changelog.md

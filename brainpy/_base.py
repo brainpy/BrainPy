@@ -16,6 +16,7 @@
 from typing import Callable, Optional
 
 import braintools
+
 import brainstate
 
 __all__ = [
@@ -304,7 +305,7 @@ class Synapse(brainstate.nn.Dynamics):
 
     **Alignment Patterns**
 
-    Some synapse models inherit from ``brainstate.mixin.AlignPost`` to enable
+    Some synapse models inherit from :class:`AlignPost` to enable
     event-driven computation where synaptic variables are aligned with postsynaptic
     neurons. This is particularly efficient for sparse connectivity patterns.
 

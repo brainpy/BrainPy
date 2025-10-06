@@ -270,7 +270,7 @@ class Num1DAnalyzer(LowDimAnalyzer):
 
     @property
     def F_fx(self):
-        """Make the standard function call of :math:`f_x (*\mathrm{vars}, *\mathrm{pars})`.
+        r"""Make the standard function call of :math:`f_x (*\mathrm{vars}, *\mathrm{pars})`.
 
         This function has been transformed into the standard call.
         For instance, if the user has the ``target_vars=("v1", "v2")`` and
@@ -912,7 +912,8 @@ class Num2DAnalyzer(Num1DAnalyzer):
     def _get_fixed_points(self, candidates, *args, tol_aux=1e-7,
                           tol_unique=1e-2, tol_opt_candidate=None,
                           num_segment=1):
-        """Get the fixed points according to the initial ``candidates`` and the parameter setting ``args``.
+        r"""
+        Get the fixed points according to the initial ``candidates`` and the parameter setting ``args``.
 
         "candidates" and "args" can be obtained through:
 

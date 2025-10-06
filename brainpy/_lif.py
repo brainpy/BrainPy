@@ -17,16 +17,16 @@
 
 from typing import Callable
 
-import brainstate
+import braintools
 import brainunit as u
 import jax
-from brainstate.typing import ArrayLike, Size
 
-import braintools
+import brainstate
+from brainstate.typing import ArrayLike, Size
 from ._base import Neuron
 
 __all__ = [
-     'IF', 'LIF', 'LIFRef', 'ALIF',
+    'IF', 'LIF', 'LIFRef', 'ALIF',
 ]
 
 

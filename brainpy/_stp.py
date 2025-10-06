@@ -17,10 +17,10 @@
 
 from typing import Optional
 
+import braintools
 import brainunit as u
 
 import brainstate
-import braintools
 from brainstate.typing import ArrayLike, Size
 from ._base import Synapse
 

@@ -33,7 +33,6 @@ __all__ = [
     'MonitorError',
     'MathError',
     'JaxTracerError',
-    'ConcretizationTypeError',
     'GPUOperatorNotFound',
     'SharedArgError',
 ]
@@ -128,75 +127,6 @@ class MathError(BrainPyError):
     __module__ = 'brainpy'
 
 
-class MPACheckpointingRequiredError(BrainPyError):
-    """To optimally save and restore a multiprocess array (GDA or jax Array outputted from pjit), use GlobalAsyncCheckpointManager.
-
-    You can create an GlobalAsyncCheckpointManager at top-level and pass it as
-    argument::
-
-      from jax.experimental.gda_serialization import serialization as gdas
-      gda_manager = gdas.GlobalAsyncCheckpointManager()
-      brainpy.checkpoints.save(..., gda_manager=gda_manager)
-    """
-    __module__ = 'brainpy'
-
-    def __init__(self, path, step):
-        super().__init__(
-            f'Checkpoint failed at step: "{step}" and path: "{path}": Target '
-            'contains a multiprocess array should be saved/restored with a '
-            'GlobalAsyncCheckpointManager.')
-
-
-class MPARestoreTargetRequiredError(BrainPyError):
-    """Provide a valid target when restoring a checkpoint with a multiprocess array.
-
-    Multiprocess arrays need a sharding (global meshes and partition specs) to be
-    initialized. Therefore, to restore a checkpoint that contains a multiprocess
-    array, make sure the ``target`` you passed contains valid multiprocess arrays
-    at the corresponding tree structure location. If you cannot provide a full
-    valid ``target``, consider ``allow_partial_mpa_restoration=True``.
-    """
-    __module__ = 'brainpy'
-
-    def __init__(self, path, step, key=None):
-        error_msg = (
-            f'Restore checkpoint failed at step: "{step}" and path: "{path}": '
-            'Checkpoints containing a multiprocess array need to be restored with '
-            'a target with pre-created arrays. If you cannot provide a full valid '
-            'target, consider ``allow_partial_mpa_restoration=True``. ')
-        if key:
-            error_msg += f'This error fired when trying to restore array at {key}.'
-        super().__init__(error_msg)
-
-
-class AlreadyExistsError(BrainPyError):
-    """Attempting to overwrite a file via copy.
-
-    You can pass ``overwrite=True`` to disable this behavior and overwrite
-    existing files in.
-    """
-    __module__ = 'brainpy'
-
-    def __init__(self, path):
-        super().__init__(f'Trying overwrite an existing file: "{path}".')
-
-
-class InvalidCheckpointError(BrainPyError):
-    """A checkpoint cannot be stored in a directory that already has
-
-    a checkpoint at the current or a later step.
-
-    You can pass ``overwrite=True`` to disable this behavior and
-    overwrite existing checkpoints in the target directory.
-    """
-    __module__ = 'brainpy'
-
-    def __init__(self, path, step):
-        super().__init__(
-            f'Trying to save an outdated checkpoint at step: "{step}" and path: "{path}".'
-        )
-
-
 class JaxTracerError(MathError):
     __module__ = 'brainpy'
 
@@ -224,22 +154,6 @@ class JaxTracerError(MathError):
         msg = 'While there are changed variables which are not wrapped into "dyn_vars". Please check!'
 
         super(JaxTracerError, self).__init__(msg)
-
-
-class ConcretizationTypeError(Exception):
-    __module__ = 'brainpy'
-
-    def __init__(self):
-        super(ConcretizationTypeError, self).__init__(
-            'This problem may be caused by several ways:\n'
-            '1. Your if-else conditional statement relies on instances of brainpy.math.Variable. \n'
-            '2. Your if-else conditional statement relies on functional arguments which do not '
-            'set in "static_argnames" when applying JIT compilation. More details please see '
-            'https://jax.readthedocs.io/en/latest/errors.html#jax.errors.ConcretizationTypeError\n'
-            '3. The static variables which set in the "static_argnames" are provided '
-            'as arguments, not keyword arguments, like "jit_f(v1, v2)" [<- wrong]. '
-            'Please write it as "jit_f(static_k1=v1, static_k2=v2)" [<- right].'
-        )
 
 
 class GPUOperatorNotFound(Exception):

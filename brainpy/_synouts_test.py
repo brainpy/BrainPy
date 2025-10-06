@@ -20,7 +20,6 @@ import brainunit as u
 import jax.numpy as jnp
 import numpy as np
 
-import brainstate
 import brainpy
 
 
