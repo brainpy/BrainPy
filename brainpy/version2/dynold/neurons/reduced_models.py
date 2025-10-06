@@ -998,7 +998,7 @@ class HindmarshRose(NeuDyn):
 
         # parameters for training
         mode: bm.Mode = None,
-        spike_fun: Callable = bm.surrogate.inv_square_grad2,
+        spike_fun: Callable = bm.surrogate.InvSquareGrad(),
     ):
         # initialization
         super(HindmarshRose, self).__init__(size=size,

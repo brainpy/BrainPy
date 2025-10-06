@@ -95,4 +95,5 @@ for _mod_name in _deprecated_modules:
 
 del _sys, _mod_name, _deprecated_modules
 
+version2.__version__ = __version__
 

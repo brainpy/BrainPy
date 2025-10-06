@@ -121,7 +121,7 @@ class IF(Neuron):
         tau: brainstate.typing.ArrayLike = 5. * u.ms,
         V_th: brainstate.typing.ArrayLike = 1. * u.mV,  # should be positive
         V_initializer: Callable = braintools.init.Constant(0. * u.mV),
-        spk_fun: Callable = brainstate.surrogate.ReluGrad(),
+        spk_fun: Callable = braintools.surrogate.ReluGrad(),
         spk_reset: str = 'soft',
         name: str = None,
     ):
@@ -247,7 +247,7 @@ class LIF(Neuron):
         V_reset: ArrayLike = 0. * u.mV,
         V_rest: ArrayLike = 0. * u.mV,
         V_initializer: Callable = braintools.init.Constant(0. * u.mV),
-        spk_fun: Callable = brainstate.surrogate.ReluGrad(),
+        spk_fun: Callable = braintools.surrogate.ReluGrad(),
         spk_reset: str = 'soft',
         name: str = None,
     ):
@@ -399,7 +399,7 @@ class LIFRef(Neuron):
         V_reset: ArrayLike = 0. * u.mV,
         V_rest: ArrayLike = 0. * u.mV,
         V_initializer: Callable = braintools.init.Constant(0. * u.mV),
-        spk_fun: Callable = brainstate.surrogate.ReluGrad(),
+        spk_fun: Callable = braintools.surrogate.ReluGrad(),
         spk_reset: str = 'soft',
         name: str = None,
     ):
@@ -571,7 +571,7 @@ class ALIF(Neuron):
         V_reset: ArrayLike = 0. * u.mV,
         V_rest: ArrayLike = 0. * u.mV,
         beta: ArrayLike = 0.1 * u.mV,
-        spk_fun: Callable = brainstate.surrogate.ReluGrad(),
+        spk_fun: Callable = braintools.surrogate.ReluGrad(),
         spk_reset: str = 'soft',
         V_initializer: Callable = braintools.init.Constant(0. * u.mV),
         a_initializer: Callable = braintools.init.Constant(0.),

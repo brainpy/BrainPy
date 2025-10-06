@@ -29,8 +29,10 @@ Details in the following.
 #
 
 import brainstate
+import braintools
 
 random = brainstate.random
+surrogate = braintools.surrogate
 import jax.numpy as jnp
 from jax import config
 
@@ -40,7 +42,7 @@ from . import fft
 from . import linalg
 # others
 from . import sharding
-from . import surrogate, event, sparse, jitconn
+from . import event, sparse, jitconn
 # functions
 from .activations import *
 from .compat_numpy import *

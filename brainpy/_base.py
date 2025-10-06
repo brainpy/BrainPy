@@ -15,6 +15,7 @@
 
 from typing import Callable, Optional
 
+import braintools
 import brainstate
 
 __all__ = [
@@ -202,7 +203,7 @@ class Neuron(brainstate.nn.Dynamics):
     def __init__(
         self,
         in_size: brainstate.typing.Size,
-        spk_fun: Callable = brainstate.surrogate.InvSquareGrad(),
+        spk_fun: Callable = braintools.surrogate.InvSquareGrad(),
         spk_reset: str = 'soft',
         name: Optional[str] = None,
     ):

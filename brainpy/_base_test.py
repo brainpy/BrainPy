@@ -54,7 +54,7 @@ class TestNeuronBaseClass(unittest.TestCase):
 
         # Test initialization
         self.assertEqual(neuron.in_size, (self.in_size,))
-        self.assertIsInstance(neuron.spk_fun, brainstate.surrogate.InvSquareGrad)
+        self.assertIsInstance(neuron.spk_fun, braintools.surrogate.InvSquareGrad)
         self.assertEqual(neuron.spk_reset, 'soft')
 
         # Test that get_spike raises NotImplementedError
@@ -66,12 +66,12 @@ class TestNeuronBaseClass(unittest.TestCase):
         neuron = Neuron(in_size=self.in_size)
 
         self.assertEqual(neuron.spk_reset, 'soft')
-        self.assertIsInstance(neuron.spk_fun, brainstate.surrogate.InvSquareGrad)
+        self.assertIsInstance(neuron.spk_fun, braintools.surrogate.InvSquareGrad)
         self.assertIsNone(neuron.name)
 
     def test_neuron_custom_parameters(self):
         """Test custom parameter initialization."""
-        custom_spk_fun = brainstate.surrogate.ReluGrad()
+        custom_spk_fun = braintools.surrogate.ReluGrad()
         neuron = Neuron(
             in_size=self.in_size,
             spk_fun=custom_spk_fun,
@@ -91,9 +91,9 @@ class TestNeuronBaseClass(unittest.TestCase):
     def test_neuron_various_surrogate_functions(self):
         """Test different surrogate gradient functions."""
         surrogate_functions = [
-            brainstate.surrogate.ReluGrad(),
-            brainstate.surrogate.Sigmoid(),
-            brainstate.surrogate.InvSquareGrad(),
+            braintools.surrogate.ReluGrad(),
+            braintools.surrogate.Sigmoid(),
+            braintools.surrogate.InvSquareGrad(),
         ]
 
         for spk_fun in surrogate_functions:

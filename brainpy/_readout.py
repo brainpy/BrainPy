@@ -169,7 +169,7 @@ class LeakySpikeReadout(Neuron):
         V_th: ArrayLike = 1. * u.mV,
         w_init: Callable = braintools.init.KaimingNormal(unit=u.mV),
         V_initializer: ArrayLike = braintools.init.Constant(0. * u.mV),
-        spk_fun: Callable = brainstate.surrogate.ReluGrad(),
+        spk_fun: Callable = braintools.surrogate.ReluGrad(),
         spk_reset: str = 'soft',
         name: str = None,
     ):
