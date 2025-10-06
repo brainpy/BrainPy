@@ -10,8 +10,19 @@ build:
   tools:
     python: "3.13"
 
+  jobs:
+    post_checkout:
+      # Set up symbolic link based on RTD project name
+      - |
+        if [ "$PROJECT_VERSION" = "brainpy-version2" ]; then
+          ln -sf docs_version2 docs_build
+        else
+          ln -sf docs docs_build
+        fi
+
 # Build documentation using the wrapper conf.py
 # The wrapper will dynamically load the correct docs based on READTHEDOCS_PROJECT
+# Build documentation using the symlinked directory
 sphinx:
   configuration: docs_build/conf.py
 
