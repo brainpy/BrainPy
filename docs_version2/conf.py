@@ -42,7 +42,6 @@ os.makedirs('apis/auto/', exist_ok=True)
 
 shutil.copytree('../images/', './_static/logos/', dirs_exist_ok=True)
 
-
 # -- Project information -----------------------------------------------------
 
 project = 'BrainPy'
@@ -95,17 +94,11 @@ nitpick_ignore = [
 
 suppress_warnings = ["myst.domains", "ref.ref"]
 numfig = True
-myst_enable_extensions = [
-    "dollarmath",
-    "amsmath",
-    "deflist",
-    "colon_fence",
-]
+myst_enable_extensions = ["dollarmath", "amsmath", "deflist", "colon_fence"]
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
-
 
 # href with no underline and white bold text color
 announcement = """
@@ -115,20 +108,19 @@ announcement = """
 """
 
 html_theme_options = {
-  'repository_url': 'https://github.com/brainpy/BrainPy',
-  'use_repository_button': True,  # add a 'link to repository' button
-  'use_issues_button': False,  # add an 'Open an Issue' button
-  'path_to_docs': 'docs',  # used to compute the path to launch notebooks in colab
-  'launch_buttons': {
-    'colab_url': 'https://colab.research.google.com/',
-  },
-  'prev_next_buttons_location': None,
-  'show_navbar_depth': 1,
-  'announcement': announcement,
-  'logo_only': True,
-  'show_toc_level': 2,
+    'repository_url': 'https://github.com/brainpy/BrainPy',
+    'use_repository_button': True,  # add a 'link to repository' button
+    'use_issues_button': False,  # add an 'Open an Issue' button
+    'path_to_docs': 'docs',  # used to compute the path to launch notebooks in colab
+    'launch_buttons': {
+        'colab_url': 'https://colab.research.google.com/',
+    },
+    'prev_next_buttons_location': None,
+    'show_navbar_depth': 1,
+    'announcement': announcement,
+    'logo_only': True,
+    'show_toc_level': 2,
 }
-
 
 html_theme = "sphinx_book_theme"
 html_logo = "_static/logos/logo.png"
@@ -137,7 +129,7 @@ html_copy_source = True
 html_sourcelink_suffix = ""
 html_favicon = "_static/logos/logo-square.png"
 html_last_updated_fmt = ""
-html_css_files = ['css/flax_theme.css']
+html_css_files = ['css/theme.css']
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

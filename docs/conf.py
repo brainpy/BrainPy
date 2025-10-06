@@ -1,40 +1,35 @@
-# Copyright 2024 BrainX Ecosystem Limited. All Rights Reserved.
+# Configuration file for the Sphinx documentation builder.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# ==============================================================================
+# This file only contains a selection of the most common options. For a full
+# a_list see the documentation:
+# https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+# -- Path setup --------------------------------------------------------------
+
+# If extensions (or modules to document with autodoc) are in another directory,
+# add these directories to sys.path here. If the directory is relative to the
+# documentation root, use os.path.abspath to make it absolute, like shown here.
+#
 
 import os
+import shutil
 import sys
 
+sys.path.insert(0, os.path.abspath('./'))
 sys.path.insert(0, os.path.abspath('../'))
 
 import brainpy
-import shutil
 
-shutil.rmtree('changelog.md', ignore_errors=True)
-shutil.rmtree('apis/generated', ignore_errors=True)
-shutil.rmtree('_build', ignore_errors=True)
-shutil.copy('../changelog.md', './changelog.md')
+shutil.copytree('../images/', './_static/logos/', dirs_exist_ok=True)
 
 # -- Project information -----------------------------------------------------
 
-project = 'brainstate'
-copyright = '2024, brainstate'
-author = 'BrainState Developers'
+project = 'BrainPy'
+copyright = '2020-, BrainPy'
+author = 'BrainPy Team'
 
 # The full version, including alpha/beta/rc tags
-release = brainstate.__version__
+release = brainpy.__version__
 
 # -- General configuration ---------------------------------------------------
 
@@ -52,8 +47,8 @@ extensions = [
     'myst_nb',
     'matplotlib.sphinxext.plot_directive',
     'sphinx_thebe',
-    'sphinx_design',
-    'sphinx_math_dollar',
+    'sphinx_design'
+    # 'sphinx-mathjax-offline',
 ]
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -67,38 +62,53 @@ autosummary_generate = True
 
 # The master toctree document.
 master_doc = 'index'
-
 intersphinx_mapping = {
-    "python": ("https://docs.python.org/3.13", None),
+    "python": ("https://docs.python.org/3.8", None),
     "sphinx": ("https://www.sphinx-doc.org/en/master", None),
 }
 nitpick_ignore = [
     ("py:class", "docutils.nodes.document"),
     ("py:class", "docutils.parsers.rst.directives.body.Sidebar"),
 ]
-
 suppress_warnings = ["myst.domains", "ref.ref"]
-
 numfig = True
-
-myst_enable_extensions = [
-    "dollarmath",
-    "amsmath",
-    "deflist",
-    "colon_fence",
-]
+myst_enable_extensions = ["dollarmath", "amsmath", "deflist", "colon_fence"]
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
+# href with no underline and white bold text color
+announcement = """
+<a href="https://brainpy-v2.readthedocs.io" style="text-decoration: none; color: white;">
+  This site covers the new BrainPy 3.0 API. 
+  <span style="color: lightgray;">[Click here for the classical <b>BrainPy 2.0</b> API]</span>
+</a>
+"""
+
+html_theme_options = {
+    'repository_url': 'https://github.com/brainpy/BrainPy',
+    'use_repository_button': True,  # add a 'link to repository' button
+    'use_issues_button': False,  # add an 'Open an Issue' button
+    'path_to_docs': 'docs',  # used to compute the path to launch notebooks in colab
+    'launch_buttons': {
+        'colab_url': 'https://colab.research.google.com/',
+    },
+    'prev_next_buttons_location': None,
+    'show_navbar_depth': 1,
+    'announcement': announcement,
+    'logo_only': True,
+    'show_toc_level': 2,
+}
+
 html_theme = "sphinx_book_theme"
-html_logo = "_static/brainstate.png"
-html_title = "brainstate"
+html_logo = "_static/logos/logo.png"
+html_title = "BrainPy documentation"
 html_copy_source = True
 html_sourcelink_suffix = ""
-html_favicon = "_static/brainstate.png"
+html_favicon = "_static/logos/logo-square.png"
 html_last_updated_fmt = ""
+html_css_files = ['css/theme.css']
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -110,15 +120,10 @@ thebe_config = {
     "repository_branch": "master",
 }
 
-html_theme_options = {
-    'show_toc_level': 2,
-}
-
 # -- Options for myst ----------------------------------------------
+# Notebook cell execution timeout; defaults to 30.
+execution_timeout = 200
 
 autodoc_default_options = {
     'exclude-members': '....,default_rng',
 }
-napoleon_google_docstring = True
-napoleon_numpy_docstring = True
-
