@@ -1,8 +1,8 @@
-``brainpy.integrators`` module
-==============================
+``brainpy.version2.integrators`` module
+=======================================
 
-.. currentmodule:: brainpy.integrators 
-.. automodule:: brainpy.integrators 
+.. currentmodule:: brainpy.version2.integrators
+.. automodule:: brainpy.version2.integrators
 
 .. contents::
    :local:
@@ -11,8 +11,8 @@
 ODE integrators
 ---------------
 
-.. currentmodule:: brainpy.integrators.ode 
-.. automodule:: brainpy.integrators.ode 
+.. currentmodule:: brainpy.version2.integrators.ode
+.. automodule:: brainpy.version2.integrators.ode
 
 Base ODE Integrator
 ~~~~~~~~~~~~~~~~~~~
@@ -93,8 +93,8 @@ Exponential ODE Integrators
 SDE integrators
 ---------------
 
-.. currentmodule:: brainpy.integrators.sde 
-.. automodule:: brainpy.integrators.sde 
+.. currentmodule:: brainpy.version2.integrators.sde
+.. automodule:: brainpy.version2.integrators.sde
 
 Base SDE Integrator
 ~~~~~~~~~~~~~~~~~~~
@@ -152,8 +152,8 @@ SRK methods for scalar Wiener process
 FDE integrators
 ---------------
 
-.. currentmodule:: brainpy.integrators.fde 
-.. automodule:: brainpy.integrators.fde 
+.. currentmodule:: brainpy.version2.integrators.fde
+.. automodule:: brainpy.version2.integrators.fde
 
 Base FDE Integrator
 ~~~~~~~~~~~~~~~~~~~

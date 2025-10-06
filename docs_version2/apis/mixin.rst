@@ -1,8 +1,8 @@
-``brainpy.mixin`` module
-========================
+``brainpy.version2.mixin`` module
+=================================
 
-.. currentmodule:: brainpy.mixin 
-.. automodule:: brainpy.mixin 
+.. currentmodule:: brainpy.version2.mixin
+.. automodule:: brainpy.version2.mixin
 
 .. autosummary::
    :toctree: generated/

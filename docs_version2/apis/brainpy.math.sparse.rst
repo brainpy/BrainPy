@@ -1,8 +1,8 @@
-``brainpy.math.sparse``: Sparse Operators
-=========================================
+``brainpy.version2.math.sparse``: Sparse Operators
+==================================================
 
-.. currentmodule:: brainpy.math.sparse
-.. automodule:: brainpy.math.sparse
+.. currentmodule:: brainpy.version2.math.sparse
+.. automodule:: brainpy.version2.math.sparse
 
 .. autosummary::
    :toctree: generated/

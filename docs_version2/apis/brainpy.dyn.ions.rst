@@ -1,8 +1,8 @@
 Ion Dynamics
 ======================
 
-.. currentmodule:: brainpy.dyn
-.. automodule:: brainpy.dyn
+.. currentmodule:: brainpy.version2.dyn
+.. automodule:: brainpy.version2.dyn
 
 
 In the context of the brain, ions are electrically charged particles that play a crucial role in the

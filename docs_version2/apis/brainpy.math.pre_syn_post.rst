@@ -1,8 +1,8 @@
 Operators for Pre-Syn-Post Conversion
 =====================================
 
-.. currentmodule:: brainpy.math
-.. automodule:: brainpy.math
+.. currentmodule:: brainpy.version2.math
+.. automodule:: brainpy.version2.math
 
 .. autosummary::
    :toctree: generated/

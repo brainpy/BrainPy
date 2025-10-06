@@ -1,8 +1,8 @@
-``brainpy.math.surrogate``: Surrogate Gradient Functions
-========================================================
+``brainpy.version2.math.surrogate``: Surrogate Gradient Functions
+=================================================================
 
-.. currentmodule:: brainpy.math.surrogate
-.. automodule:: brainpy.math.surrogate
+.. currentmodule:: brainpy.version2.math.surrogate
+.. automodule:: brainpy.version2.math.surrogate
 
 .. autosummary::
    :toctree: generated/

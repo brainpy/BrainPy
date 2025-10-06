@@ -1,8 +1,8 @@
-``brainpy.dnn`` module
-======================
+``brainpy.version2.dnn`` module
+===============================
 
-.. currentmodule:: brainpy.dnn 
-.. automodule:: brainpy.dnn 
+.. currentmodule:: brainpy.version2.dnn
+.. automodule:: brainpy.version2.dnn
 
 .. contents::
    :local:

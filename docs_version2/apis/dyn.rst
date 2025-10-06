@@ -1,5 +1,5 @@
-``brainpy.dyn`` module
-======================
+``brainpy.version2.dyn`` module
+===============================
 
 
 The `brainpy.dyn` module provides standard implementations for ions, ion channels, neurons, synapses, synaptic

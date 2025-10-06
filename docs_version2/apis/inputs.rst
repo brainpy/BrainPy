@@ -1,8 +1,8 @@
-``brainpy.inputs`` module
-=========================
+``brainpy.version2.inputs`` module
+==================================
 
-.. currentmodule:: brainpy.inputs 
-.. automodule:: brainpy.inputs 
+.. currentmodule:: brainpy.version2.inputs
+.. automodule:: brainpy.version2.inputs
 
 .. autosummary::
    :toctree: generated/

@@ -1,8 +1,8 @@
-``brainpy.losses`` module
-=========================
+``brainpy.version2.losses`` module
+==================================
 
-.. currentmodule:: brainpy.losses 
-.. automodule:: brainpy.losses 
+.. currentmodule:: brainpy.version2.losses
+.. automodule:: brainpy.version2.losses
 
 .. contents::
    :local:

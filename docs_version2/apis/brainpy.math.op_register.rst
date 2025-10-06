@@ -10,8 +10,8 @@ Operator Registration
 General Operator Customization Interface
 ----------------------------------------
 
-.. currentmodule:: brainpy.math
-.. automodule:: brainpy.math
+.. currentmodule:: brainpy.version2.math
+.. automodule:: brainpy.version2.math
 
 .. autosummary::
    :toctree: generated/
@@ -25,8 +25,8 @@ General Operator Customization Interface
 CPU Operator Customization with Taichi
 -------------------------------------
 
-.. currentmodule:: brainpy.math
-.. automodule:: brainpy.math
+.. currentmodule:: brainpy.version2.math
+.. automodule:: brainpy.version2.math
 
 .. autosummary::
    :toctree: generated/

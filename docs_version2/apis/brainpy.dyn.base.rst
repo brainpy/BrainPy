@@ -1,8 +1,8 @@
 Base Classes
 ============
 
-.. currentmodule:: brainpy.dyn
-.. automodule:: brainpy.dyn
+.. currentmodule:: brainpy.version2.dyn
+.. automodule:: brainpy.version2.dyn
 
 .. autosummary::
    :toctree: generated/

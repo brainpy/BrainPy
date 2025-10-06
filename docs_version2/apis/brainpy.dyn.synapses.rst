@@ -1,8 +1,8 @@
 Synaptic Dynamics
 ======================
 
-.. currentmodule:: brainpy.dyn
-.. automodule:: brainpy.dyn
+.. currentmodule:: brainpy.version2.dyn
+.. automodule:: brainpy.version2.dyn
 
 
 Synaptic dynamics refers to the processes that modulate the strength of synaptic connections between

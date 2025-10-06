@@ -2,8 +2,8 @@
 Computing Modes
 ===============
 
-.. currentmodule:: brainpy.math
-.. automodule:: brainpy.math
+.. currentmodule:: brainpy.version2.math
+.. automodule:: brainpy.version2.math
 
 .. autosummary::
    :toctree: generated/

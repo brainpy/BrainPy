@@ -1,8 +1,8 @@
 Firing Rate Models
 ==================
 
-.. currentmodule:: brainpy.dyn
-.. automodule:: brainpy.dyn
+.. currentmodule:: brainpy.version2.dyn
+.. automodule:: brainpy.version2.dyn
 
 
 Population Rate Models

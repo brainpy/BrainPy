@@ -1,8 +1,8 @@
-``brainpy.running`` module
-==========================
+``brainpy.version2.running`` module
+===================================
 
-.. currentmodule:: brainpy.running 
-.. automodule:: brainpy.running 
+.. currentmodule:: brainpy.version2.running
+.. automodule:: brainpy.version2.running
 
 .. autosummary::
    :toctree: generated/
