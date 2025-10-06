@@ -7,6 +7,7 @@ import numpy as np
 import tqdm.auto
 from jax.tree_util import tree_map
 
+import brainstate.environ
 from brainpy.version2 import math as bm, tools
 from brainpy.version2.context import share
 from brainpy.version2.dynsys import DynamicalSystem
@@ -143,64 +144,65 @@ class OnlineTrainer(DSTrainer):
         reset_state: bool = False,
         shared_args: Dict = None,
     ) -> Output:
-        if shared_args is None: shared_args = dict()
-        shared_args['fit'] = shared_args.get('fit', True)
-        shared_args = tools.DotDict(shared_args)
+        with brainstate.environ.context(fit=True):
+            if shared_args is None: shared_args = dict()
+            shared_args['fit'] = shared_args.get('fit', True)
+            shared_args = tools.DotDict(shared_args)
 
-        # checking training and testing data
-        if not isinstance(train_data, (list, tuple)):
-            raise ValueError(f"{self.__class__.__name__} only support "
-                             f"training data with the format of (X, Y) pair, "
-                             f"but we got a {type(train_data)}.")
-        if len(train_data) != 2:
-            raise ValueError(f"{self.__class__.__name__} only support "
-                             f"training data with the format of (X, Y) pair, "
-                             f"but we got a sequence with length {len(train_data)}")
-        xs, ys = train_data
+            # checking training and testing data
+            if not isinstance(train_data, (list, tuple)):
+                raise ValueError(f"{self.__class__.__name__} only support "
+                                 f"training data with the format of (X, Y) pair, "
+                                 f"but we got a {type(train_data)}.")
+            if len(train_data) != 2:
+                raise ValueError(f"{self.__class__.__name__} only support "
+                                 f"training data with the format of (X, Y) pair, "
+                                 f"but we got a sequence with length {len(train_data)}")
+            xs, ys = train_data
 
-        # reset the model states
-        if reset_state:
-            num_batch = self._get_input_batch_size(xs)
-            self.target.reset(num_batch)
-            self.reset_state()
+            # reset the model states
+            if reset_state:
+                num_batch = self._get_input_batch_size(xs)
+                self.target.reset(num_batch)
+                self.reset_state()
 
-        # format input/target data
-        ys = format_ys(self, ys)
-        num_step = self._get_input_time_step(xs=xs)
+            # format input/target data
+            ys = format_ys(self, ys)
+            num_step = self._get_input_time_step(xs=xs)
 
-        indices = np.arange(self.i0, num_step + self.i0, dtype=np.int_)
-        if self.data_first_axis == 'B':
-            xs = tree_map(lambda x: bm.moveaxis(x, 0, 1),
-                          xs,
-                          is_leaf=lambda x: isinstance(x, bm.Array))
-            ys = tree_map(lambda y: bm.moveaxis(y, 0, 1),
-                          ys,
-                          is_leaf=lambda y: isinstance(y, bm.Array))
+            indices = np.arange(self.i0, num_step + self.i0, dtype=np.int_)
+            if self.data_first_axis == 'B':
+                xs = tree_map(lambda x: bm.moveaxis(x, 0, 1),
+                              xs,
+                              is_leaf=lambda x: isinstance(x, bm.Array))
+                ys = tree_map(lambda y: bm.moveaxis(y, 0, 1),
+                              ys,
+                              is_leaf=lambda y: isinstance(y, bm.Array))
 
-        # init monitor
-        for key in self._monitors.keys():
-            self.mon[key] = []  # reshape the monitor items
+            # init monitor
+            for key in self._monitors.keys():
+                self.mon[key] = []  # reshape the monitor items
 
-        # init progress bar
-        if self.progress_bar:
-            self._pbar = tqdm.auto.tqdm(total=num_step)
-            self._pbar.set_description(f"Train {num_step} steps: ", refresh=True)
+            # init progress bar
+            if self.progress_bar:
+                self._pbar = tqdm.auto.tqdm(total=num_step)
+                self._pbar.set_description(f"Train {num_step} steps: ", refresh=True)
 
-        # prediction
-        xs = (xs,) if not isinstance(xs, (tuple, list)) else xs
-        outs, hists = self._fit(indices, xs=xs, ys=ys, shared_args=shared_args)
+            # prediction
+            xs = (xs,) if not isinstance(xs, (tuple, list)) else xs
+            outs, hists = self._fit(indices, xs=xs, ys=ys, shared_args=shared_args)
 
-        # close the progress bar
-        if self.progress_bar:
-            self._pbar.close()
+            # close the progress bar
+            if self.progress_bar:
+                self._pbar.close()
 
-        # post-running for monitors
-        if self.numpy_mon_after_run:
-            hists = tree_map(lambda a: np.asarray(a), hists, is_leaf=lambda a: isinstance(a, bm.Array))
-        for key in hists.keys():
-            self.mon[key] = hists[key]
-        self.i0 += num_step
-        return outs
+            # post-running for monitors
+            if self.numpy_mon_after_run:
+                hists = tree_map(lambda a: np.asarray(a), hists, is_leaf=lambda a: isinstance(a, bm.Array))
+            for key in hists.keys():
+                self.mon[key] = hists[key]
+            self.i0 += num_step
+            return outs
 
     def _fit(self,
              indices: ArrayType,

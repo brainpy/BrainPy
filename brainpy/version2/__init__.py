@@ -70,6 +70,7 @@ from brainpy.version2 import (
 )
 
 NeuGroup = NeuGroupNS = dyn.NeuDyn
+dyn.DynamicalSystem = DynamicalSystem
 
 # common tools
 from brainpy.version2.context import (share as share)
@@ -129,6 +130,9 @@ from brainpy.version2.math.object_transform.collectors import (
 
 
 from brainpy.version2.deprecations import deprecation_getattr
+
+optimizers = optim
+
 
 
 if __name__ == '__main__':

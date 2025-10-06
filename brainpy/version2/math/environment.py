@@ -14,6 +14,7 @@ import jax
 from jax import config, numpy as jnp, devices
 from jax.lib import xla_bridge
 
+import brainstate.environ
 from . import modes
 from . import scales
 from .defaults import defaults
@@ -454,14 +455,7 @@ def set_float(dtype: type):
     dtype: type
       The float type.
     """
-    if dtype in [jnp.float16, 'float16', 'f16']:
-        defaults.float_ = jnp.float16
-    elif dtype in [jnp.float32, 'float32', 'f32']:
-        defaults.float_ = jnp.float32
-    elif dtype in [jnp.float64, 'float64', 'f64']:
-        defaults.float_ = jnp.float64
-    else:
-        raise NotImplementedError
+    defaults.float_ = brainstate.environ.dftype()
 
 
 def get_float():
@@ -483,16 +477,7 @@ def set_int(dtype: type):
     dtype: type
       The integer type.
     """
-    if dtype in [jnp.int8, 'int8', 'i8']:
-        defaults.int_ = jnp.int8
-    elif dtype in [jnp.int16, 'int16', 'i16']:
-        defaults.int_ = jnp.int16
-    elif dtype in [jnp.int32, 'int32', 'i32']:
-        defaults.int_ = jnp.int32
-    elif dtype in [jnp.int64, 'int64', 'i64']:
-        defaults.int_ = jnp.int64
-    else:
-        raise NotImplementedError
+    defaults.int_ = brainstate.environ.ditype()
 
 
 def get_int():
@@ -536,7 +521,7 @@ def set_complex(dtype: type):
     dtype: type
       The complex type.
     """
-    defaults.complex_ = dtype
+    defaults.complex_ = brainstate.environ.dctype()
 
 
 def get_complex():
@@ -637,11 +622,12 @@ def enable_x64(x64=None):
             DeprecationWarning
         )
     if x64:
-        config.update("jax_enable_x64", True)
+        brainstate.environ.set(precision=64)
         set_int(jnp.int64)
         set_float(jnp.float64)
         set_complex(jnp.complex128)
     else:
+        brainstate.environ.set(precision=32)
         disable_x64()
 
 

@@ -1,24 +1,15 @@
-from brainpy.version2.dyn.projections.vanilla import VanillaProj
-from brainpy.version2.dyn.projections.delta import (
-  HalfProjDelta,
-  FullProjDelta,
-)
-from brainpy.version2.dyn.projections.align_post import (
-  HalfProjAlignPostMg,
-  FullProjAlignPostMg,
-  HalfProjAlignPost,
-  FullProjAlignPost,
-)
-from brainpy.version2.dyn.projections.align_pre import (
-  FullProjAlignPreSDMg,
-  FullProjAlignPreDSMg,
-  FullProjAlignPreSD,
-  FullProjAlignPreDS,
-)
-from brainpy.version2.dyn.projections.conn import (
-  SynConn as SynConn,
-)
-from brainpy.version2.dyn.projections.inputs import (
-  InputVar,
-  PoissonInput,
-)
+from .align_post import *
+from .align_pre import *
+from .base import *
+from .conn import *
+from .delta import *
+from .inputs import *
+from .plasticity import *
+from .vanilla import *
+
+ProjAlignPostMg1 = HalfProjAlignPostMg
+ProjAlignPostMg2 = FullProjAlignPostMg
+ProjAlignPreMg1 = FullProjAlignPreDSMg
+ProjAlignPreMg2 = FullProjAlignPreSDMg
+ProjAlignPost1 = HalfProjAlignPost
+ProjAlignPost2 = FullProjAlignPost

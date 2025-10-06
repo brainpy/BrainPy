@@ -9,3 +9,5 @@ from .interoperation_flax import *
 from .linear import *
 from .normalization import *
 from .pooling import *
+from brainpy.version2.dyn.rates.nvar import NVAR
+

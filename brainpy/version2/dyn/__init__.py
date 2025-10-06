@@ -8,5 +8,4 @@ from .outs import *
 from .projections import *
 from .rates import *
 from .synapses import *
-
 NeuGroup = NeuDyn

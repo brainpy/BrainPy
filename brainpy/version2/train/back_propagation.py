@@ -11,6 +11,7 @@ from tqdm import tqdm
 
 import brainpy.version2.losses as losses
 import brainpy.version2.math as bm
+import brainstate.environ
 from brainpy.version2 import optim
 from brainpy.version2 import tools
 from brainpy.version2.context import share
@@ -230,208 +231,207 @@ class BPTrainer(DSTrainer):
              Please set batch size in your dataset.
 
         """
+        with brainstate.environ.context(fit=True):
+            if shared_args is None:
+                shared_args = dict()
+            shared_args['fit'] = shared_args.get('fit', True)
+            shared_args = tools.DotDict(shared_args)
 
-        share.save(fit=True)
-        if shared_args is None:
-            shared_args = dict()
-        shared_args['fit'] = shared_args.get('fit', True)
-        shared_args = tools.DotDict(shared_args)
+            if batch_size is not None:
+                raise NoLongerSupportError('Please set batch size in your data. '
+                                           'Specifically, make an iterable dataset '
+                                           'which return a batch of (X, Y) data.')
+            if isinstance(train_data, (tuple, list)):
+                if len(train_data) == 2:
+                    raise UnsupportedError(msg)
 
-        if batch_size is not None:
-            raise NoLongerSupportError('Please set batch size in your data. '
-                                       'Specifically, make an iterable dataset '
-                                       'which return a batch of (X, Y) data.')
-        if isinstance(train_data, (tuple, list)):
-            if len(train_data) == 2:
-                raise UnsupportedError(msg)
+            if fun_after_report is not None:
+                assert callable(fun_after_report), ('\n'
+                                                    'Unknown "fun_after_report", '
+                                                    'it should be a callable function receiving '
+                                                    'three arguments: idx, metrics, phase')
 
-        if fun_after_report is not None:
-            assert callable(fun_after_report), ('\n'
-                                                'Unknown "fun_after_report", '
-                                                'it should be a callable function receiving '
-                                                'three arguments: idx, metrics, phase')
+            if shared_args is None:
+                shared_args = dict()
+            shared_args['fit'] = shared_args.get('fit', True)
 
-        if shared_args is None:
-            shared_args = dict()
-        shared_args['fit'] = shared_args.get('fit', True)
+            true_progress_bar = self.progress_bar
+            self.progress_bar = False
 
-        true_progress_bar = self.progress_bar
-        self.progress_bar = False
+            # training the model
+            detailed_train_metric = dict()
+            report_train_metric = dict()
+            detailed_test_metric = dict()
+            report_test_metric = dict()
 
-        # training the model
-        detailed_train_metric = dict()
-        report_train_metric = dict()
-        detailed_test_metric = dict()
-        report_test_metric = dict()
+            fit_i, fit_t = 0, 0
+            test_i, test_t = 0, 0
+            for epoch_idx in range(num_epoch):
 
-        fit_i, fit_t = 0, 0
-        test_i, test_t = 0, 0
-        for epoch_idx in range(num_epoch):
-
-            # training set
-            fit_t0 = time.time()
-            fit_epoch_metric = dict(loss=[])
-            _training_data = train_data() if callable(train_data) else train_data
-            if hasattr(_training_data, '__len__'):
-                bar = tqdm(total=len(_training_data))
-            else:
-                bar = None
-
-            for x, y in _training_data:
-                # reset state
-                if reset_state:
-                    self.target.reset(self._get_input_batch_size(x))
-                    self.reset_state()
-
-                # training
-                res = self.f_train(shared_args, x, y)
-
-                # loss
-                fit_epoch_metric['loss'].append(res[0])
-                if self.loss_has_aux:
-                    if not isinstance(res[1], dict):
-                        raise TypeError(f'Auxiliary data in loss function should be a dict. But we got {type(res)}')
-                    for k, v in res[1].items():
-                        if k not in fit_epoch_metric:
-                            fit_epoch_metric[k] = []
-                        fit_epoch_metric[k].append(v)
-                if bar is not None:
-                    bar.update(1)
-
-                # report
-                fit_i += 1
-                if num_report > 0 and fit_i % num_report == 0:
-                    fit_t1 = time.time()
-                    aux = {}
-                    for k, v in fit_epoch_metric.items():
-                        aux[k] = jnp.mean(bm.as_jax(bm.asarray(v)))
-                        if k not in report_train_metric:
-                            report_train_metric[k] = []
-                            detailed_train_metric[k] = []
-                        report_train_metric[k].append(aux[k])
-                        detailed_train_metric[k].extend(v)
-                        v.clear()
-                    _report = (f'Train {fit_i} steps, use {fit_t + fit_t1 - fit_t0:.4f} s' +
-                               ', {}'.format(", ".join([f"{k} {v}" for k, v in aux.items()])))
-                    if bar is not None:
-                        bar.set_description(_report, refresh=True)
-                    else:
-                        print(_report)
-                    if fun_after_report is not None:
-                        fun_after_report(fit_i, aux, 'fit')
-                    fit_t0 = time.time()
-                    fit_t = 0
-
-            if num_report <= 0:
-                fit_t1 = time.time()
-                aux = {}
-                for k, v in fit_epoch_metric.items():
-                    aux[k] = np.mean(np.asarray(v))
-                    if k not in report_train_metric:
-                        report_train_metric[k] = []
-                        detailed_train_metric[k] = []
-                    report_train_metric[k].append(aux[k])
-                    detailed_train_metric[k].extend(v)
-                    v.clear()
-                _report = (f'Train {epoch_idx} epoch, use {fit_t1 - fit_t0:.4f} s' +
-                           ', {}'.format(", ".join([f"{k} {v}" for k, v in aux.items()])))
-                if bar is not None:
-                    bar.set_description(_report, refresh=True)
-                else:
-                    print(_report)
-                if fun_after_report is not None:
-                    fun_after_report(epoch_idx, aux, 'fit')
-            else:
-                fit_t = time.time() - fit_t0
-            self.optimizer.lr.step_epoch()
-            if bar is not None: bar.close()
-
-            # testing set
-            if test_data is not None:
-                test_t0 = time.time()
-                test_epoch_metric = dict(loss=[])
-                _testing_data = test_data() if callable(test_data) else test_data
-                if hasattr(_testing_data, '__len__'):
-                    bar = tqdm(total=len(_testing_data))
+                # training set
+                fit_t0 = time.time()
+                fit_epoch_metric = dict(loss=[])
+                _training_data = train_data() if callable(train_data) else train_data
+                if hasattr(_training_data, '__len__'):
+                    bar = tqdm(total=len(_training_data))
                 else:
                     bar = None
-                for x, y in _testing_data:
+
+                for x, y in _training_data:
                     # reset state
                     if reset_state:
                         self.target.reset(self._get_input_batch_size(x))
                         self.reset_state()
 
-                    # testing
-                    res = self.f_loss(shared_args, x, y)
+                    # training
+                    res = self.f_train(shared_args, x, y)
 
                     # loss
+                    fit_epoch_metric['loss'].append(res[0])
                     if self.loss_has_aux:
-                        test_epoch_metric['loss'].append(res[0])
                         if not isinstance(res[1], dict):
                             raise TypeError(f'Auxiliary data in loss function should be a dict. But we got {type(res)}')
                         for k, v in res[1].items():
-                            if k not in test_epoch_metric:
-                                test_epoch_metric[k] = []
-                            test_epoch_metric[k].append(v)
-                    else:
-                        test_epoch_metric['loss'].append(res)
-
-                    if bar is not None: bar.update(1)
+                            if k not in fit_epoch_metric:
+                                fit_epoch_metric[k] = []
+                            fit_epoch_metric[k].append(v)
+                    if bar is not None:
+                        bar.update(1)
 
                     # report
-                    test_i += 1
-                    if num_report > 0 and test_i % num_report == 0:
-                        test_t1 = time.time()
+                    fit_i += 1
+                    if num_report > 0 and fit_i % num_report == 0:
+                        fit_t1 = time.time()
                         aux = {}
-                        for k, v in test_epoch_metric.items():
-                            aux[k] = np.mean(np.asarray(v))
-                            if k not in report_test_metric:
-                                report_test_metric[k] = []
-                                detailed_test_metric[k] = []
-                            report_test_metric[k].append(aux[k])
-                            detailed_test_metric[k].extend(v)
+                        for k, v in fit_epoch_metric.items():
+                            aux[k] = jnp.mean(bm.as_jax(bm.asarray(v)))
+                            if k not in report_train_metric:
+                                report_train_metric[k] = []
+                                detailed_train_metric[k] = []
+                            report_train_metric[k].append(aux[k])
+                            detailed_train_metric[k].extend(v)
                             v.clear()
-                        _report = (f'Test {test_i} steps, use {test_t + test_t1 - test_t0:.4f} s' +
+                        _report = (f'Train {fit_i} steps, use {fit_t + fit_t1 - fit_t0:.4f} s' +
                                    ', {}'.format(", ".join([f"{k} {v}" for k, v in aux.items()])))
                         if bar is not None:
                             bar.set_description(_report, refresh=True)
                         else:
                             print(_report)
                         if fun_after_report is not None:
-                            fun_after_report(test_i, aux, 'test')
-                        test_t0 = time.time()
-                        test_t = 0
+                            fun_after_report(fit_i, aux, 'fit')
+                        fit_t0 = time.time()
+                        fit_t = 0
 
                 if num_report <= 0:
-                    test_t1 = time.time()
+                    fit_t1 = time.time()
                     aux = {}
-                    for k, v in test_epoch_metric.items():
-                        aux[k] = jnp.mean(bm.as_jax(bm.asarray(v)))
-                        if k not in report_test_metric:
-                            report_test_metric[k] = []
-                            detailed_test_metric[k] = []
-                        report_test_metric[k].append(aux[k])
-                        detailed_test_metric[k].extend(v)
+                    for k, v in fit_epoch_metric.items():
+                        aux[k] = np.mean(np.asarray(v))
+                        if k not in report_train_metric:
+                            report_train_metric[k] = []
+                            detailed_train_metric[k] = []
+                        report_train_metric[k].append(aux[k])
+                        detailed_train_metric[k].extend(v)
                         v.clear()
-                    _report = (f'Test {epoch_idx} epoch, use {test_t1 - test_t0:.4f} s' +
+                    _report = (f'Train {epoch_idx} epoch, use {fit_t1 - fit_t0:.4f} s' +
                                ', {}'.format(", ".join([f"{k} {v}" for k, v in aux.items()])))
                     if bar is not None:
                         bar.set_description(_report, refresh=True)
                     else:
                         print(_report)
                     if fun_after_report is not None:
-                        fun_after_report(epoch_idx, aux, 'test')
+                        fun_after_report(epoch_idx, aux, 'fit')
                 else:
-                    test_t = time.time() - test_t0
-
+                    fit_t = time.time() - fit_t0
+                self.optimizer.lr.step_epoch()
                 if bar is not None: bar.close()
 
-        # finally
-        self._report_train_metrics = {k: np.asarray(v) for k, v in report_train_metric.items()}
-        self._detailed_train_metrics = {k: np.asarray(v) for k, v in detailed_train_metric.items()}
-        self._report_test_metrics = {k: np.asarray(v) for k, v in report_test_metric.items()}
-        self._detailed_test_metrics = {k: np.asarray(v) for k, v in detailed_test_metric.items()}
-        self.progress_bar = true_progress_bar
+                # testing set
+                if test_data is not None:
+                    test_t0 = time.time()
+                    test_epoch_metric = dict(loss=[])
+                    _testing_data = test_data() if callable(test_data) else test_data
+                    if hasattr(_testing_data, '__len__'):
+                        bar = tqdm(total=len(_testing_data))
+                    else:
+                        bar = None
+                    for x, y in _testing_data:
+                        # reset state
+                        if reset_state:
+                            self.target.reset(self._get_input_batch_size(x))
+                            self.reset_state()
+
+                        # testing
+                        res = self.f_loss(shared_args, x, y)
+
+                        # loss
+                        if self.loss_has_aux:
+                            test_epoch_metric['loss'].append(res[0])
+                            if not isinstance(res[1], dict):
+                                raise TypeError(f'Auxiliary data in loss function should be a dict. But we got {type(res)}')
+                            for k, v in res[1].items():
+                                if k not in test_epoch_metric:
+                                    test_epoch_metric[k] = []
+                                test_epoch_metric[k].append(v)
+                        else:
+                            test_epoch_metric['loss'].append(res)
+
+                        if bar is not None: bar.update(1)
+
+                        # report
+                        test_i += 1
+                        if num_report > 0 and test_i % num_report == 0:
+                            test_t1 = time.time()
+                            aux = {}
+                            for k, v in test_epoch_metric.items():
+                                aux[k] = np.mean(np.asarray(v))
+                                if k not in report_test_metric:
+                                    report_test_metric[k] = []
+                                    detailed_test_metric[k] = []
+                                report_test_metric[k].append(aux[k])
+                                detailed_test_metric[k].extend(v)
+                                v.clear()
+                            _report = (f'Test {test_i} steps, use {test_t + test_t1 - test_t0:.4f} s' +
+                                       ', {}'.format(", ".join([f"{k} {v}" for k, v in aux.items()])))
+                            if bar is not None:
+                                bar.set_description(_report, refresh=True)
+                            else:
+                                print(_report)
+                            if fun_after_report is not None:
+                                fun_after_report(test_i, aux, 'test')
+                            test_t0 = time.time()
+                            test_t = 0
+
+                    if num_report <= 0:
+                        test_t1 = time.time()
+                        aux = {}
+                        for k, v in test_epoch_metric.items():
+                            aux[k] = jnp.mean(bm.as_jax(bm.asarray(v)))
+                            if k not in report_test_metric:
+                                report_test_metric[k] = []
+                                detailed_test_metric[k] = []
+                            report_test_metric[k].append(aux[k])
+                            detailed_test_metric[k].extend(v)
+                            v.clear()
+                        _report = (f'Test {epoch_idx} epoch, use {test_t1 - test_t0:.4f} s' +
+                                   ', {}'.format(", ".join([f"{k} {v}" for k, v in aux.items()])))
+                        if bar is not None:
+                            bar.set_description(_report, refresh=True)
+                        else:
+                            print(_report)
+                        if fun_after_report is not None:
+                            fun_after_report(epoch_idx, aux, 'test')
+                    else:
+                        test_t = time.time() - test_t0
+
+                    if bar is not None: bar.close()
+
+            # finally
+            self._report_train_metrics = {k: np.asarray(v) for k, v in report_train_metric.items()}
+            self._detailed_train_metrics = {k: np.asarray(v) for k, v in detailed_train_metric.items()}
+            self._report_test_metrics = {k: np.asarray(v) for k, v in report_test_metric.items()}
+            self._detailed_test_metrics = {k: np.asarray(v) for k, v in detailed_test_metric.items()}
+            self.progress_bar = true_progress_bar
 
     def _step_func_grad(self, shared_args, inputs, targets):
         tran_vars = self.target.train_vars().unique()

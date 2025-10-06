@@ -7,6 +7,7 @@ import numpy as np
 import tqdm.auto
 
 import brainpy.version2.math as bm
+import brainstate.environ
 from brainpy.version2 import tools
 from brainpy.version2.context import share
 from brainpy.version2.dynsys import DynamicalSystem
@@ -154,60 +155,61 @@ class OfflineTrainer(DSTrainer):
         shared_args: dict
           The shared keyword arguments for the target models.
         """
-        if shared_args is None:
-            shared_args = dict()
-        shared_args['fit'] = shared_args.get('fit', True)
-        shared_args = tools.DotDict(shared_args)
+        with brainstate.environ.context(fit=True):
+            if shared_args is None:
+                shared_args = dict()
+            shared_args['fit'] = shared_args.get('fit', True)
+            shared_args = tools.DotDict(shared_args)
 
-        # checking training and testing data
-        if not isinstance(train_data, (list, tuple)):
-            raise ValueError(f"{self.__class__.__name__} only support "
-                             f"training data with the format of (X, Y) pair, "
-                             f"but we got a {type(train_data)}.")
-        if len(train_data) != 2:
-            raise ValueError(f"{self.__class__.__name__} only support "
-                             f"training data with the format of (X, Y) pair, "
-                             f"but we got a sequence with length {len(train_data)}")
-        xs, ys = train_data
+            # checking training and testing data
+            if not isinstance(train_data, (list, tuple)):
+                raise ValueError(f"{self.__class__.__name__} only support "
+                                 f"training data with the format of (X, Y) pair, "
+                                 f"but we got a {type(train_data)}.")
+            if len(train_data) != 2:
+                raise ValueError(f"{self.__class__.__name__} only support "
+                                 f"training data with the format of (X, Y) pair, "
+                                 f"but we got a sequence with length {len(train_data)}")
+            xs, ys = train_data
 
-        # prediction, get all needed data
-        shared_args['fit'] = shared_args.get('fit', False)
-        outs = self.predict(inputs=xs, reset_state=reset_state, shared_args=shared_args)
+            # prediction, get all needed data
+            shared_args['fit'] = shared_args.get('fit', True)
+            outs = self.predict(inputs=xs, reset_state=reset_state, shared_args=shared_args)
 
-        # check target data
-        ys = format_ys(self, ys)
+            # check target data
+            ys = format_ys(self, ys)
 
-        # init progress bar
-        if self.progress_bar:
-            self._pbar = tqdm.auto.tqdm(total=len(self.train_nodes))
-            self._pbar.set_description(f"Train {len(self.train_nodes)} nodes: ", refresh=True)
+            # init progress bar
+            if self.progress_bar:
+                self._pbar = tqdm.auto.tqdm(total=len(self.train_nodes))
+                self._pbar.set_description(f"Train {len(self.train_nodes)} nodes: ", refresh=True)
 
-        # training
-        monitor_data = dict()
-        for node in self.train_nodes:
-            key = f'{node.name}-fit_record'
-            monitor_data[key] = self.mon.get(key)
-        run_fun = self._jit_fun_train if self.jit['fit'] else self._fun_train
-        shared_args['fit'] = True
-        run_fun(monitor_data, ys)
-        del monitor_data
+            # training
+            monitor_data = dict()
+            for node in self.train_nodes:
+                key = f'{node.name}-fit_record'
+                monitor_data[key] = self.mon.get(key)
+            run_fun = self._jit_fun_train if self.jit['fit'] else self._fun_train
+            shared_args['fit'] = True
+            run_fun(monitor_data, ys)
+            del monitor_data
 
-        # close the progress bar
-        if self.progress_bar:
-            self._pbar.close()
+            # close the progress bar
+            if self.progress_bar:
+                self._pbar.close()
 
-        # final things
-        for node in self.train_nodes:
-            # Only pop if the key exists
-            fit_record_key = f'{node.name}-fit_record'
-            if fit_record_key in self.mon:
-                self.mon.pop(fit_record_key)
-            node.fit_record.clear()  # clear fit records
-        if self._true_numpy_mon_after_run:
-            for key in self.mon.keys():
-                self.mon[key] = np.asarray(self.mon[key])
+            # final things
+            for node in self.train_nodes:
+                # Only pop if the key exists
+                fit_record_key = f'{node.name}-fit_record'
+                if fit_record_key in self.mon:
+                    self.mon.pop(fit_record_key)
+                node.fit_record.clear()  # clear fit records
+            if self._true_numpy_mon_after_run:
+                for key in self.mon.keys():
+                    self.mon[key] = np.asarray(self.mon[key])
 
-        return outs
+            return outs
 
     def _fun_train(self,
                    monitor_data: Dict[str, ArrayType],

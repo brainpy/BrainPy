@@ -11,6 +11,7 @@ import jax.numpy as jnp
 import numpy as np
 from jax.tree_util import tree_map, tree_flatten
 
+import brainstate.environ
 from brainpy.version2 import math as bm, tools
 from brainpy.version2.context import share
 from brainpy.version2.deprecations import _input_deprecate_msg
@@ -457,7 +458,7 @@ class DSRunner(Runner):
             self.reset_state()
 
         # shared arguments and inputs
-        indices = np.arange(self.i0, self.i0 + num_step, dtype=bm.int_)
+        indices = np.arange(self.i0, self.i0 + num_step, dtype=brainstate.environ.ditype())
 
         if isinstance(self.target.mode, bm.BatchingMode) and self.data_first_axis == 'B':
             inputs = tree_map(lambda x: jnp.moveaxis(x, 0, 1), inputs)
