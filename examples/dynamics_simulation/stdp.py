@@ -21,8 +21,7 @@ class STDPNet(bp.DynSysGroup):
         # neuron groups
         self.noise = bp.dyn.PoissonGroup(num_poisson, freqs=15.)
         self.group = bp.dyn.Lif(
-            num_lif, V_reset=-60., V_rest=-74, V_th=-54, tau=10.,
-            V_initializer=bp.init.Normal(-60., 1.)
+            num_lif, V_reset=-60., V_rest=-74, V_th=-54, tau=10., V_initializer=bp.init.Normal(-60., 1.)
         )
 
         # synapses

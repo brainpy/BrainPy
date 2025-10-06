@@ -3,8 +3,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-import brainpy as bp
-import brainpy.math as bm
+import brainpy.version2 as bp
+import brainpy.version2.math as bm
 
 
 class AMPA(bp.Projection):
@@ -64,8 +64,8 @@ class Tool:
         return bm.asarray(all_freqs)
 
     def visualize_results(self, mon, IA_freqs, IB_freqs, t_start=0., title=None):
-        fig, gs = bp.visualize.get_figure(4, 1, 3, 10)
-        axes = [fig.add_subplot(gs[i, 0]) for i in range(4)]
+        fig, gs = bp.visualize.get_figure(6, 1, 3, 10)
+        axes = [fig.add_subplot(gs[i, 0]) for i in range(6)]
 
         ax = axes[0]
         bp.visualize.raster_plot(mon['ts'], mon['A.spike'], markersize=1, ax=ax)
@@ -85,6 +85,22 @@ class Tool:
         ax.axvline(self.pre_stimulus_period + self.stimulus_period + self.delay_period, linestyle='dashed')
 
         ax = axes[2]
+        bp.visualize.raster_plot(mon['ts'], mon['I.spike'], markersize=1, ax=ax)
+        ax.set_ylabel("Group I")
+        ax.set_xlim(t_start, self.total_period + 1)
+        ax.axvline(self.pre_stimulus_period, linestyle='dashed')
+        ax.axvline(self.pre_stimulus_period + self.stimulus_period, linestyle='dashed')
+        ax.axvline(self.pre_stimulus_period + self.stimulus_period + self.delay_period, linestyle='dashed')
+
+        ax = axes[3]
+        bp.visualize.raster_plot(mon['ts'], mon['N.spike'], markersize=1, ax=ax)
+        ax.set_ylabel("Group N")
+        ax.set_xlim(t_start, self.total_period + 1)
+        ax.axvline(self.pre_stimulus_period, linestyle='dashed')
+        ax.axvline(self.pre_stimulus_period + self.stimulus_period, linestyle='dashed')
+        ax.axvline(self.pre_stimulus_period + self.stimulus_period + self.delay_period, linestyle='dashed')
+
+        ax = axes[4]
         rateA = bp.measure.firing_rate(mon['A.spike'], width=10.)
         rateB = bp.measure.firing_rate(mon['B.spike'], width=10.)
         ax.plot(mon['ts'], rateA, label="Group A")
@@ -96,7 +112,7 @@ class Tool:
         ax.axvline(self.pre_stimulus_period + self.stimulus_period + self.delay_period, linestyle='dashed')
         ax.legend()
 
-        ax = axes[3]
+        ax = axes[5]
         ax.plot(mon['ts'], IA_freqs, label="group A")
         ax.plot(mon['ts'], IB_freqs, label="group B")
         ax.set_ylabel("Input activity [Hz]")
@@ -218,7 +234,7 @@ def single_run():
         net.IA.freqs[0] = IA_freqs[i]
         net.IB.freqs[0] = IB_freqs[i]
 
-    runner = bp.DSRunner(net, inputs=give_input, monitors=['A.spike', 'B.spike'])
+    runner = bp.DSRunner(net, inputs=give_input, monitors=['A.spike', 'B.spike', 'I.spike', 'N.spike'])
     runner.run(tool.total_period)
     tool.visualize_results(runner.mon, IA_freqs, IB_freqs)
 

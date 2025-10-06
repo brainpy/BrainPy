@@ -38,10 +38,10 @@ dependencies = [
     "numpy>=1.15",
     "jax",
     "tqdm",
-    "brainstate",
+    "brainstate>=0.1.6",
     "brainunit",
-    "brainevent",
-    "braintools",
+    "brainevent>=0.0.4",
+    "braintools>=0.0.9",
 ]
 
 dynamic = ['version']
@@ -53,16 +53,41 @@ dynamic = ['version']
 "Source Code" = "https://github.com/brainpy/BrainPy"
 
 [project.optional-dependencies]
-cpu = ["jax[cpu]", "brainstate[cpu]", "brainunit[cpu]", "brainevent[cpu]"]
-cuda12 = ["jax[cuda12]", "brainstate[cuda12]", "brainunit[cuda12]", "brainevent[cuda12]"]
-tpu = ["jax[tpu]", "brainstate[cuda12]", "brainunit[cuda12]", "brainevent[cuda12]"]
+cpu = [
+    "jax[cpu]",
+    "brainstate",
+    "brainunit",
+    "brainevent",
+    "braintools",
+]
+cuda12 = [
+    "jax[cuda12]",
+    "brainstate",
+    "brainunit",
+    "brainevent",
+    "braintools",
+]
+cuda13 = [
+    "jax[cuda13]",
+    "brainstate",
+    "brainunit",
+    "brainevent",
+    "braintools",
+]
+tpu = [
+    "jax[tpu]",
+    "brainstate",
+    "brainunit",
+    "brainevent",
+    "braintools",
+]
 
 [tool.setuptools]
 package-dir = {"" = "."}
 
 [tool.setuptools.packages.find]
 where = ["."]
-exclude = ["lib*", "docs", "tests"]
+exclude = ["lib*", "docs", "tests", "docker*", "examples", "scripts", "images", "dist"]
 
 [tool.setuptools.dynamic]
 version = {attr = "brainpy.__version__"}

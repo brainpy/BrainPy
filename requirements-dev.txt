@@ -6,7 +6,7 @@ tqdm
 pathos
 numba
 brainstate
-braintools
+braintools>=0.1.0
 setuptools
 
 

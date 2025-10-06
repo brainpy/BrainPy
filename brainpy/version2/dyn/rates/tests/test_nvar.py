@@ -1,0 +1,27 @@
+from absl.testing import absltest
+from absl.testing import parameterized
+
+import brainpy.version2 as bp
+import brainpy.version2.math as bm
+
+
+class Test_NVAR(parameterized.TestCase):
+    @parameterized.product(
+        mode=[bm.BatchingMode(),
+              bm.NonBatchingMode()]
+    )
+    def test_NVAR(self, mode):
+        bm.random.seed()
+        input = bm.random.randn(1, 5)
+        layer = bp.dyn.NVAR(num_in=5,
+                            delay=10,
+                            mode=mode)
+        if mode in [bm.NonBatchingMode()]:
+            for i in input:
+                output = layer(i)
+        else:
+            output = layer(input)
+
+
+if __name__ == '__main__':
+    absltest.main()

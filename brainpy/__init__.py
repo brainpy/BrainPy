@@ -1,146 +1,99 @@
-# -*- coding: utf-8 -*-
-
+# Copyright 2025 BrainX Ecosystem Limited. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
 
 __version__ = "3.0.0"
+__version_info__ = (3, 0, 0)
 
-#  Part: Toolbox  #
-# --------------- #
-# modules of toolbox
-from brainpy import (
-    connect,  # synaptic connection
-    initialize,  # weight initialization
-    optim,  # gradient descent optimizers
-    losses,  # loss functions
-    measure,  # methods for data analysis
-    inputs,  # methods for generating input currents
-    encoding,  # encoding schema
-    checkpoints,  # checkpoints
-    check,  # error checking
-    mixin,  # mixin classes
-    algorithms,  # online or offline training algorithms
-)
-# fundamental supporting modules
-from brainpy import errors, check, tools
+from . import version2
+from ._base import *
+from ._base import __all__ as base_all
+from ._errors import *
+from ._errors import __all__ as errors_all
+from ._exponential import *
+from ._exponential import __all__ as exp_all
+from ._inputs import *
+from ._inputs import __all__ as inputs_all
+from ._lif import *
+from ._lif import __all__ as neuron_all
+from ._projection import *
+from ._projection import __all__ as proj_all
+from ._readout import *
+from ._readout import __all__ as readout_all
+from ._stp import *
+from ._stp import __all__ as stp_all
+from ._synapse import *
+from ._synapse import __all__ as synapse_all
+from ._synaptic_projection import *
+from ._synaptic_projection import __all__ as synproj_all
+from ._synouts import *
+from ._synouts import __all__ as synout_all
+
+__main__ = ['version2'] + errors_all + inputs_all + neuron_all + readout_all + stp_all + synapse_all
+__main__ = __main__ + synout_all + base_all + exp_all + proj_all + synproj_all
+del errors_all, inputs_all, neuron_all, readout_all, stp_all, synapse_all, synout_all, base_all
+del exp_all, proj_all, synproj_all
 
 
-#  Part: Math Foundation  #
-# ----------------------- #
-# math foundation
-from brainpy import math
-from .math import BrainPyObject
+# Deprecation warnings for brainpy.xxx -> brainpy.version2.xxx
+def __getattr__(name):
+    """Provide deprecation warnings for moved modules."""
+    import warnings
 
-# convenient alias
-conn = connect
-init = initialize
+    if hasattr(version2, name):
+        warnings.warn(
+            f"Accessing 'brainpy.{name}' is deprecated. "
+            f"Please use 'brainpy.version2.{name}' instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        return getattr(version2, name)
 
-# numerical integrators
-from brainpy import integrators
-from brainpy.integrators import ode, sde, fde
-from brainpy._src.integrators.base import (Integrator as Integrator)
-from brainpy._src.integrators.joint_eq import (JointEq as JointEq)
-from brainpy._src.integrators.runner import (IntegratorRunner as IntegratorRunner)
-from brainpy._src.integrators.ode.generic import (odeint as odeint)
-from brainpy._src.integrators.sde.generic import (sdeint as sdeint)
-from brainpy._src.integrators.fde.generic import (fdeint as fdeint)
+    raise AttributeError(f"'brainpy' has no attribute '{name}'")
 
-#  Part: Models  #
-# -------------- #
 
-# base classes
-from brainpy._src.dynsys import (
-    DynamicalSystem as DynamicalSystem,
-    DynSysGroup as DynSysGroup,  # collectors
-    Sequential as Sequential,
-    Dynamic as Dynamic,  # category
-    Projection as Projection,
-    receive_update_input,  # decorators
-    receive_update_output,
-    not_receive_update_input,
-    not_receive_update_output,
-)
+def __dir__():
+    """Return list of attributes including deprecated ones for tab completion."""
+    # Get the default attributes
+    default_attrs = list(globals().keys())
 
-DynamicalSystemNS = DynamicalSystem
-Network = DynSysGroup
-# delays
-from brainpy._src.delay import (
-    VarDelay as VarDelay,
-)
+    # Add all public attributes from version2 for discoverability
+    version2_attrs = [attr for attr in dir(version2) if not attr.startswith('_')]
 
-# building blocks
-from brainpy import (
-    dnn, layers,  # module for dnn layers
-    dyn,  # module for modeling dynamics
-)
+    # Combine and return unique attributes
+    return sorted(set(default_attrs + version2_attrs))
 
-NeuGroup = NeuGroupNS = dyn.NeuDyn
 
-# common tools
-from brainpy._src.context import (share as share)
-from brainpy._src.helpers import (reset_level as reset_level,
-                                  reset_state as reset_state,
-                                  save_state as save_state,
-                                  load_state as load_state,
-                                  clear_input as clear_input)
+# Register deprecated modules in sys.modules to support "import brainpy.xxx" syntax
+import sys as _sys
 
-#  Part: Running  #
-# --------------- #
-from brainpy._src.runners import (DSRunner as DSRunner)
-from brainpy._src.transform import (LoopOverTime as LoopOverTime, )
-from brainpy import (running as running)
+_deprecated_modules = [
+    'math', 'check', 'tools', 'connect', 'initialize', 'init', 'conn',
+    'optim', 'losses', 'measure', 'inputs', 'encoding', 'checkpoints',
+    'mixin', 'algorithms', 'integrators', 'ode', 'sde', 'fde',
+    'dnn', 'layers', 'dyn', 'running', 'train', 'analysis',
+    'channels', 'neurons', 'rates', 'synapses', 'synouts', 'synplast',
+    'visualization', 'visualize', 'types', 'modes', 'context',
+    'helpers', 'delay', 'dynsys', 'runners', 'transform', 'dynold'
+]
 
-#  Part: Training  #
-# ---------------- #
-from brainpy._src.train.base import (DSTrainer as DSTrainer, )
-from brainpy._src.train.back_propagation import (BPTT as BPTT,
-                                                 BPFF as BPFF, )
-from brainpy._src.train.online import (OnlineTrainer as OnlineTrainer,
-                                       ForceTrainer as ForceTrainer, )
-from brainpy._src.train.offline import (OfflineTrainer as OfflineTrainer,
-                                        RidgeTrainer as RidgeTrainer, )
+# Create wrapper modules that show deprecation warnings
+for _mod_name in _deprecated_modules:
+    if hasattr(version2, _mod_name):
+        _sys.modules[f'brainpy.{_mod_name}'] = getattr(version2, _mod_name)
 
-#  Part: Analysis  #
-# ---------------- #
-from brainpy import (analysis as analysis)
+del _sys, _mod_name, _deprecated_modules
 
-#  Part: Others    #
-# ---------------- #
-import brainpy._src.visualization as visualize
+version2.__version__ = __version__
 
-#  Part: Deprecations  #
-# -------------------- #
-from brainpy._src import train
-from brainpy import (
-    channels,  # channel models
-    neurons,  # neuron groups
-    synapses,  # synapses
-    rates,  # rate models
-    experimental,
-    synouts,  # synaptic output
-    synplast,  # synaptic plasticity
-)
-from brainpy._src import modes
-from brainpy._src.math.object_transform.base import (
-    Base as Base,
-    ArrayCollector as ArrayCollector,
-    Collector as Collector,
-)
-
-# deprecated
-from brainpy._add_deprecations import deprecation_getattr2
-
-__deprecations = {
-    'Module': ('brainpy.Module', 'brainpy.DynamicalSystem', DynamicalSystem),
-    'Channel': ('brainpy.Channel', 'brainpy.dyn.IonChannel', dyn.IonChannel),
-    'SynConn': ('brainpy.SynConn', 'brainpy.dyn.SynConn', dyn.SynConn),
-    'Container': ('brainpy.Container', 'brainpy.DynSysGroup', DynSysGroup),
-
-    'optimizers': ('brainpy.optimizers', 'brainpy.optim', optim),
-    'TensorCollector': ('brainpy.TensorCollector', 'brainpy.ArrayCollector', ArrayCollector),
-    'SynSTP': ('brainpy.SynSTP', 'brainpy.synapses.SynSTP', synapses.SynSTP),
-    'SynOut': ('brainpy.SynOut', 'brainpy.synapses.SynOut', synapses.SynOut),
-    'TwoEndConn': ('brainpy.TwoEndConn', 'brainpy.synapses.TwoEndConn', synapses.TwoEndConn),
-    'CondNeuGroup': ('brainpy.CondNeuGroup', 'brainpy.dyn.CondNeuGroup', dyn.CondNeuGroup),
-}
-__getattr__ = deprecation_getattr2('brainpy', __deprecations)
-
-del deprecation_getattr2

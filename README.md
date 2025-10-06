@@ -22,25 +22,34 @@ BrainPy is a flexible, efficient, and extensible framework for computational neu
 - **Ecosystem**: https://brainmodeling.readthedocs.io/
 
 
-BrainPy is rewritten based on [brainstate](https://github.com/chaobrain/brainstate) since August 2025, please learn [brainstate documentation](https://brainstate.readthedocs.io/) for the latest updates. 
+``BrainPy>=3.0.0`` is rewritten based on [brainstate](https://github.com/chaobrain/brainstate) since August 2025, please learn [brainstate documentation](https://brainstate.readthedocs.io/) for the latest updates. 
 
 
 ## Installation
 
 BrainPy is based on Python (>=3.10) and can be installed on Linux (Ubuntu 16.04 or later), macOS (10.12 or later), and Windows platforms. 
 
-
-### Using BrainPy with docker
-
-We provide a docker image for BrainPy. You can use the following command to pull the image:
 ```bash
-$ docker pull brainpy/brainpy:latest
+pip install brainpy -U
 ```
 
-Then, you can run the image with the following command:
+If you want to use BrainPy with different hardware support, please install the corresponding version of BrainPy:
+
 ```bash
-$ docker run -it --platform linux/amd64 brainpy/brainpy:latest
+pip install brainpy[cpu] -U  # install with CPU support only
+pip install brainpy[cuda12] -U  # install with CUDA 12.x support
+pip install brainpy[cuda13] -U  # install with CUDA 13.x support
+pip install brainpy[tpu] -U  # install with TPU support
 ```
+
+
+Install the brainpy with the ecosystem packages:
+
+```bash
+pip install BrainX -U
+```
+
+
 
 
 ### Using BrainPy with Binder
@@ -54,7 +63,6 @@ We provide a Binder environment for BrainPy. You can use the following button to
 
 ## Ecosystem
 
-
 - **[BrainPy](https://github.com/brainpy/BrainPy)**: The solution for the general-purpose brain dynamics programming. 
 - **[brainpy-examples](https://github.com/brainpy/examples)**: Comprehensive examples of BrainPy computation. 
 - **[brain modeling ecosystem](https://brainmodeling.readthedocs.io/)**: A collection of tools and libraries for brain modeling and simulation.
@@ -63,9 +71,10 @@ We provide a Binder environment for BrainPy. You can use the following button to
 - [第二届神经计算建模与编程培训班 (Second Training Course on Neural Modeling and Programming)](https://github.com/brainpy/2nd-neural-modeling-and-programming-course)
 
 
+
 ## Citing 
 
-If you are using ``brainpy``, please consider citing the corresponding paper:
+If you are using ``brainpy 2.0``, please consider citing the corresponding paper:
 
 ```bibtex
 @article {10.7554/eLife.86365,
@@ -85,6 +94,20 @@ If you are using ``brainpy``, please consider citing the corresponding paper:
     journal = {eLife},
     issn = {2050-084X},
     publisher = {eLife Sciences Publications, Ltd},
+}
+```
+
+
+If you want to cite ``brainpy 1.0``, please consider using the corresponding paper:
+
+```bibtex
+@inproceedings{wang2021just,
+    title={A Just-In-Time Compilation Approach for Neural Dynamics Simulation},
+    author={Wang, Chaoming and Jiang, Yingqian and Liu, Xinyu and Lin, Xiaohan and Zou, Xiaolong and Ji, Zilong and Wu, Si},
+    booktitle={International Conference on Neural Information Processing},
+    pages={15--26},
+    year={2021},
+    organization={Springer}
 }
 ```
 

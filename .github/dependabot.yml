@@ -1,26 +1,62 @@
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for all configuration options:
-# https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
+# Dependabot configuration for automated dependency updates
+# Documentation: https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
 
 version: 2
+
 updates:
+  # Python dependencies
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
     allow:
       - dependency-type: "all"
     commit-message:
-      prefix: ":arrow_up:"
-    open-pull-requests-limit: 50
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+      include: "scope"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "brainpy/maintainers"
+    labels:
+      - "dependencies"
+      - "python"
+    # Group minor and patch updates together
+    groups:
+      development-dependencies:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+      production-dependencies:
+        dependency-type: "production"
+        update-types:
+          - "patch"
 
+  # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "daily"
-    allow:
-      - dependency-type: "all"
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
     commit-message:
-      prefix: ":arrow_up:"
-    open-pull-requests-limit: 50
+      prefix: "chore(ci)"
+      include: "scope"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "brainpy/maintainers"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"

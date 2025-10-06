@@ -1,7 +1,17 @@
 # Release notes (``brainpy``)
 
 
-## brainpy>2.3.x
+
+## brainpy 3.0.0
+
+
+### Version 3.0.0
+
+
+
+
+
+## brainpy 2.3.x
 ### Version 2.6.1
 #### Breaking Changes
 - Fixing compatibility issues between `numpy` and `jax`

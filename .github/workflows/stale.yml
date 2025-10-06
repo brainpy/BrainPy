@@ -1,0 +1,58 @@
+name: Close Stale Issues and PRs
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Run daily at midnight UTC
+  workflow_dispatch:  # Allow manual triggers
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mark/Close Stale Issues and PRs
+        uses: actions/stale@v9
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+          # Issue settings
+          days-before-issue-stale: 90
+          days-before-issue-close: 14
+          stale-issue-message: >
+            This issue has been automatically marked as stale because it has not had
+            recent activity in the last 90 days. It will be closed in 14 days if no
+            further activity occurs. If this issue is still relevant, please comment
+            to keep it open. Thank you for your contributions!
+          close-issue-message: >
+            This issue was automatically closed because it has been stale for 14 days
+            with no activity. If you believe this is still relevant, please feel free
+            to reopen it or create a new issue.
+          stale-issue-label: 'stale'
+
+          # PR settings
+          days-before-pr-stale: 60
+          days-before-pr-close: 14
+          stale-pr-message: >
+            This pull request has been automatically marked as stale because it has not had
+            recent activity in the last 60 days. It will be closed in 14 days if no
+            further activity occurs. If this PR is still relevant, please comment or push
+            new commits to keep it open. Thank you for your contributions!
+          close-pr-message: >
+            This pull request was automatically closed because it has been stale for 14 days
+            with no activity. If you'd like to continue working on this, please feel free
+            to reopen it or create a new PR.
+          stale-pr-label: 'stale'
+
+          # Exemptions
+          exempt-issue-labels: 'pinned,security,good first issue,help wanted,enhancement'
+          exempt-pr-labels: 'pinned,work-in-progress,blocked'
+          exempt-all-milestones: true
+
+          # Operations per run (to avoid rate limits)
+          operations-per-run: 100
+
+          # Remove stale label when updated
+          remove-stale-when-updated: true

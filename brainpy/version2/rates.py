@@ -1,0 +1,13 @@
+# -*- coding: utf-8 -*-
+
+
+"""
+This module has been deprecated since brainpy>=2.4.0. Use ``brainpy.version2.dyn`` module instead.
+"""
+
+from .dyn.rates import *
+
+
+if __name__ == '__main__':
+    FHN
+

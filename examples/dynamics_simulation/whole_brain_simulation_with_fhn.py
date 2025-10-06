@@ -4,8 +4,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-import brainpy as bp
-import brainpy.math as bm
+import brainpy.version2 as bp
+import brainpy.version2.math as bm
 
 
 def bifurcation_analysis():
@@ -29,7 +29,7 @@ class Network(bp.DynSysGroup):
         # ConnectomeDB of the Human Connectome Project (HCP)
         # from the following link:
         # - https://share.weiyun.com/wkPpARKy
-        hcp = np.load('data/hcp.npz')
+        hcp = np.load('../../tests/simulation/data/hcp.npz')
         conn_mat = bm.asarray(hcp['Cmat'])
         bm.fill_diagonal(conn_mat, 0)
         delay_mat = bm.round(hcp['Dmat'] / signal_speed / bm.dt).astype(bm.int_)
@@ -94,6 +94,6 @@ def net_analysis():
 
 
 if __name__ == '__main__':
-    # bifurcation_analysis()
+    bifurcation_analysis()
     net_simulation()
-    # net_analysis()
+    net_analysis()

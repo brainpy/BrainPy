@@ -5,8 +5,8 @@ import brainpy_datasets as bd
 import jax.numpy as jnp
 from tqdm import tqdm
 
-import brainpy as bp
-import brainpy.math as bm
+import brainpy.version2 as bp
+import brainpy.version2.math as bm
 
 traindata = bd.vision.MNIST(root='./data', split='train', download=True)
 testdata = bd.vision.MNIST(root='./data', split='test', download=True)
@@ -57,7 +57,7 @@ def force_online_train(num_hidden=2000, num_in=28, num_out=10, train_stage='fina
     x_test = jnp.asarray(testdata.data / 255, dtype=bm.float_)
     y_train = bm.one_hot(traindata.targets, 10, dtype=bm.float_)
 
-    reservoir = bp.layers.Reservoir(
+    reservoir = bp.rates.Reservoir(
         num_in,
         num_hidden,
         Win_initializer=bp.init.Uniform(-0.6, 0.6),

@@ -1,2 +1,0 @@
-def commono():
-    return None

@@ -24,34 +24,34 @@ extensions/cmake-build-debug
 BrainPyExamples/
 BrainModels/
 book/
-docs/examples
-docs/apis/jaxsetting.rst
-docs/quickstart/data
+docs_version2/examples
+docs_version2/apis/jaxsetting.rst
+docs_version2/quickstart/data
 examples/recurrent_neural_network/neurogym
 develop/iconip_paper
 develop/benchmark/COBA/results
 develop/test
 develop/outputdir
-docs/tutorial_math/data
-docs/tutorial_simulation/data
+docs_version2/tutorial_math/data
+docs_version2/tutorial_simulation/data
 
-docs/images/numpybrain_arch.pptx
-docs/images/synapses_index.pdf
-docs/images/synapses_index.xlsx
-docs/images/neuron_structure.xlsx
-docs/images/neuron_structure.pdf
-docs/images/connection_methods.pptx
+docs_version2/images/numpybrain_arch.pptx
+docs_version2/images/synapses_index.pdf
+docs_version2/images/synapses_index.xlsx
+docs_version2/images/neuron_structure.xlsx
+docs_version2/images/neuron_structure.pdf
+docs_version2/images/connection_methods.pptx
 
 */_autosummary
 */generated
 
-docs/apis/auto
-docs/quickstart/.ipynb_checkpoints
+docs_version2/apis/auto
+docs_version2/quickstart/.ipynb_checkpoints
 
-docs/apis/_autosummary
-docs/apis/generated
-docs/apis/math/generated
-docs/apis/integrators/generated
+docs_version2/apis/_autosummary
+docs_version2/apis/generated
+docs_version2/apis/math/generated
+docs_version2/apis/integrators/generated
 
 develop/benchmark/COBA/brian2*
 develop/benchmark/COBA/annarchy*
@@ -65,20 +65,20 @@ develop/benchmark/CUBA/brian2*
 \#*\#
 *.pyc
 .DS_Store
-docs/_autosummary
-docs/generated
-docs/_build
+docs_version2/_autosummary
+docs_version2/generated
+docs_version2/_build
 dist/
 build/
 *.egg-info
 .idea
-docs/images/logo1.tif
-docs/images/logo2.tif
-docs/images/logo3.tif
-docs/images/logo4.tif
+docs_version2/images/logo1.tif
+docs_version2/images/logo2.tif
+docs_version2/images/logo3.tif
+docs_version2/images/logo4.tif
 
 */__pycache__
-docs/c4_examples/
+docs_version2/c4_examples/
 
 
 __pycache__/
@@ -148,7 +148,7 @@ instance/
 .scrapy
 
 # Sphinx documentation
-docs/_build/
+docs_version2/_build/
 
 # PyBuilder
 .pybuilder/
@@ -216,13 +216,16 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-/docs/apis/simulation/generated/
+/docs_version2/apis/simulation/generated/
 !/brainpy/dyn/tests/data/
 /examples/dynamics_simulation/data/
 /examples/training_snn_models/logs/T100_b64_lr0.001/
 /examples/training_snn_models/logs/
 /examples/training_snn_models/data/
-/docs/tutorial_advanced/data/
+/docs_version2/tutorial_advanced/data/
 /my_tests/
 /examples/dynamics_simulation/Joglekar_2018_data/
-/docs/apis/deprecated/generated/
+/docs_version2/apis/deprecated/generated/
+/bugs/
+/dev/
+/.claude/

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import brainpy as bp
-import brainpy.math as bm
+import brainpy.version2 as bp
+import brainpy.version2.math as bm
 
 bp.math.enable_x64()
 bp.math.set_platform('cpu')
