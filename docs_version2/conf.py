@@ -48,7 +48,7 @@ for source, dest in changelogs:
     if os.path.exists(dest):
         os.remove(dest)
     shutil.copyfile(source, dest)
-shutil.copyfile('../images/*', './_static/')
+shutil.copytree('../images/', './_static/logos/', dirs_exist_ok=True)
 
 
 # -- Project information -----------------------------------------------------
@@ -123,11 +123,11 @@ myst_enable_extensions = [
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 html_theme = "sphinx_book_theme"
-html_logo = "_static/logo.png"
+html_logo = "_static/logos/logo.png"
 html_title = "BrainPy documentation"
 html_copy_source = True
 html_sourcelink_suffix = ""
-html_favicon = "_static/logo-square.png"
+html_favicon = "_static/logos/logo-square.png"
 html_last_updated_fmt = ""
 
 # Add any paths that contain custom static files (such as style sheets) here,
