@@ -9,7 +9,6 @@ general-purpose Brain Dynamics Programming (BDP).
 
 
 
-
 .. _BrainPy: https://github.com/brainpy/BrainPy
 
 
