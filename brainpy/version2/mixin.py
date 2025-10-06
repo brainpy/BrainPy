@@ -19,7 +19,8 @@ from typing import Union, Dict, Callable, Sequence, Optional, Any
 
 import jax
 
-import brainstate.mixin
+import brainstate
+from brainpy import mixin
 from brainpy.version2 import math as bm, tools
 from brainpy.version2.math.object_transform.naming import get_unique_name
 from brainpy.version2.types import ArrayType
@@ -45,8 +46,8 @@ __all__ = [
 MixIn = brainstate.mixin.Mixin
 ParamDesc = brainstate.mixin.ParamDesc
 ParamDescriber = brainstate.mixin.ParamDescriber
-AlignPost = brainstate.mixin.AlignPost
-BindCondData = brainstate.mixin.BindCondData
+AlignPost = mixin.AlignPost
+BindCondData = mixin.BindCondData
 JointType = brainstate.mixin.JointTypes
 
 

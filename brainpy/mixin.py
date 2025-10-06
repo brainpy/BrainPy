@@ -185,7 +185,7 @@ class BindCondData(brainstate.mixin.Mixin):
         self._conductance = None
 
 
-class Mode(brainstate.nn.Mixin):
+class Mode(brainstate.mixin.Mixin):
     """
     Base class for computation behavior modes.
 
