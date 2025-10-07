@@ -22,8 +22,8 @@ sys.path.insert(0, r'D:\codes\projects\brainstate')
 import brainpy
 shutil.copytree('../images/', './_static/logos/', dirs_exist_ok=True)
 shutil.copyfile('../changelog.md', './changelog.md')
-shutil.rmtree('./generated')
-shutil.rmtree('./_build')
+shutil.rmtree('./generated', ignore_errors=True)
+shutil.rmtree('./_build', ignore_errors=True)
 
 
 # -- Project information -----------------------------------------------------
