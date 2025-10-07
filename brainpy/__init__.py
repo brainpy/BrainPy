@@ -82,7 +82,7 @@ import sys as _sys
 _deprecated_modules = [
     'math', 'check', 'tools', 'connect', 'initialize', 'init', 'conn',
     'optim', 'losses', 'measure', 'inputs', 'encoding', 'checkpoints',
-    'mixin', 'algorithms', 'integrators', 'ode', 'sde', 'fde',
+    'algorithms', 'integrators', 'ode', 'sde', 'fde',
     'dnn', 'layers', 'dyn', 'running', 'train', 'analysis',
     'channels', 'neurons', 'rates', 'synapses', 'synouts', 'synplast',
     'visualization', 'visualize', 'types', 'modes', 'context',

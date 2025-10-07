@@ -17,10 +17,11 @@ import sys
 
 sys.path.insert(0, os.path.abspath('./'))
 sys.path.insert(0, os.path.abspath('../'))
+sys.path.insert(0, r'D:\codes\projects\brainstate')
 
 import brainpy
-
 shutil.copytree('../images/', './_static/logos/', dirs_exist_ok=True)
+shutil.copyfile('../changelog.md', './changelog.md')
 
 # -- Project information -----------------------------------------------------
 

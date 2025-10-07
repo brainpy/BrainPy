@@ -19,6 +19,7 @@
 # - Susin, Eduarda, and Alain Destexhe. “Integration, coincidence detection and resonance in networks of spiking neurons expressing gamma oscillations and asynchronous states.” PLoS computational biology 17.9 (2021): e1009416.
 #
 
+import braintools
 import brainunit as u
 import matplotlib.pyplot as plt
 import numpy as np
@@ -26,7 +27,6 @@ from scipy.signal import kaiserord, lfilter, firwin, hilbert
 
 import brainpy
 import brainstate
-import braintools
 
 # Table 1: specific neuron model parameters
 RS_par = dict(

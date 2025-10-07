@@ -128,7 +128,7 @@ def simulate_ping_net():
         times = u.math.arange(0. * u.ms, duration, brainstate.environ.get_dt())
         indices = u.math.arange(0, len(times))
         returns = brainstate.transform.for_loop(net.update, indices, times, varied_rates,
-                                              pbar=brainstate.transform.ProgressBar(100))
+                                                pbar=brainstate.transform.ProgressBar(100))
 
         # visualization
         visualize_simulation_results(

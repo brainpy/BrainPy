@@ -10,6 +10,27 @@ general-purpose Brain Dynamics Programming (BDP).
 
 
 
+.. note::
+
+    From September 2025, BrainPy has been upgraded to version 3.x.
+    To compatible apis within version 2.x. Please change your code:
+
+    .. code-block:: python
+
+       # Old version (v2.x)
+       import brainpy as bp
+       import brainpy.math as bm
+
+    to the new version:
+
+
+    .. code-block:: python
+
+       # New version (v3.x)
+       import brainpy.version2 as bp
+       import brainpy.version2.math as bm
+
+
 
 ----
 

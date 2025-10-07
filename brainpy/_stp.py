@@ -209,7 +209,6 @@ class STD(Synapse):
         self,
         in_size: Size,
         name: Optional[str] = None,
-        # synapse parameters
         tau: ArrayLike = 200. * u.ms,
         U: ArrayLike = 0.07,
     ):
@@ -220,7 +219,9 @@ class STD(Synapse):
         self.U = braintools.init.param(U, self.varshape)
 
     def init_state(self, batch_size: int = None, **kwargs):
-        self.x = brainstate.HiddenState(braintools.init.param(braintools.init.Constant(1.), self.varshape, batch_size))
+        self.x = brainstate.HiddenState(
+            braintools.init.param(braintools.init.Constant(1.), self.varshape, batch_size)
+        )
 
     def reset_state(self, batch_size: int = None, **kwargs):
         self.x.value = braintools.init.param(braintools.init.Constant(1.), self.varshape, batch_size)

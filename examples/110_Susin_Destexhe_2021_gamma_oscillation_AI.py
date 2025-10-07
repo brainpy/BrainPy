@@ -23,12 +23,12 @@
 #  Asynchronous Network
 
 
+import braintools
 import brainunit as u
 import matplotlib.pyplot as plt
 
 import brainpy
 import brainstate
-import braintools
 from Susin_Destexhe_2021_gamma_oscillation import (
     get_inputs, visualize_simulation_results,
     RS_par, FS_par, Ch_par, AdEx
@@ -164,7 +164,8 @@ def simulate_ai_net():
         # simulation
         times = u.math.arange(0. * u.ms, duration, brainstate.environ.get_dt())
         indices = u.math.arange(0, len(times))
-        returns = brainstate.transform.for_loop(net.update, indices, times, varied_rates, pbar=brainstate.transform.ProgressBar(100))
+        returns = brainstate.transform.for_loop(net.update, indices, times, varied_rates,
+                                                pbar=brainstate.transform.ProgressBar(100))
 
         # # spike raster plot
         # spikes = returns['FS.spike']
