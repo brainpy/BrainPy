@@ -15,6 +15,10 @@ import os
 import shutil
 import sys
 
+
+print(os.environ['CURRENT_VERSION'])
+
+
 sys.path.insert(0, os.path.abspath('./'))
 sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, r'D:\codes\projects\brainstate')
