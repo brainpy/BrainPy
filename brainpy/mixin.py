@@ -21,7 +21,7 @@ import jax
 
 import brainstate
 
-bm, delay_identifier, init_delay_by_return = None, None, None
+bm, delay_identifier, init_delay_by_return, DynamicalSystem = None, None, None, None
 
 __all__ = [
     'MixIn',
