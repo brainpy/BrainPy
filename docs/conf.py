@@ -15,16 +15,42 @@ import os
 import shutil
 import sys
 
+# 要保留的文件/文件夹列表
+keep_files = {'highlight_test_lexer.py', 'conf.py', 'make.bat', 'Makefile'}
+
+# 遍历当前目录
+for item in os.listdir('.'):
+    if item not in keep_files:
+        path = os.path.join('.', item)
+        try:
+            if os.path.isfile(path):
+                os.remove(path)
+            elif os.path.isdir(path):
+                shutil.rmtree(path)
+        except Exception as e:
+            print(f"Error deleting {item}: {e}")
+
+build_version = os.environ.get('CURRENT_VERSION', 'v3')
+if build_version == 'v2':
+    shutil.copytree(
+        os.path.join(os.path.dirname(__file__), '../docs_version2'),
+        os.path.join(os.path.dirname(__file__), ),
+        dirs_exist_ok=True
+    )
+else:
+    shutil.copytree(
+        os.path.join(os.path.dirname(__file__), '../docs_version3'),
+        os.path.join(os.path.dirname(__file__), ),
+        dirs_exist_ok=True
+    )
+
 sys.path.insert(0, os.path.abspath('./'))
 sys.path.insert(0, os.path.abspath('../'))
-sys.path.insert(0, r'D:\codes\projects\brainstate')
 
 import brainpy
+
 shutil.copytree('../images/', './_static/logos/', dirs_exist_ok=True)
 shutil.copyfile('../changelog.md', './changelog.md')
-shutil.rmtree('./generated', ignore_errors=True)
-shutil.rmtree('./_build', ignore_errors=True)
-
 
 # -- Project information -----------------------------------------------------
 
@@ -88,12 +114,20 @@ myst_enable_extensions = ["dollarmath", "amsmath", "deflist", "colon_fence"]
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # href with no underline and white bold text color
-announcement = """
-<a href="https://brainpy-v2.readthedocs.io" style="text-decoration: none; color: white;">
-  This site covers the new BrainPy 3.0 API. 
-  <span style="color: lightgray;">[Click here for the classical <b>BrainPy 2.0</b> API]</span>
-</a>
-"""
+
+if build_version == 'v2':
+    announcement = """
+    <a href="https://brainpy.readthedocs.io" style="text-decoration: none; color: white;">
+      This site covers the old BrainPy 2.0 API. <span style="color: lightgray;">[Explore the new <b>BrainPy 3.0</b> API ✨]</span>
+    </a>
+    """
+else:
+    announcement = """
+    <a href="https://brainpy-v2.readthedocs.io" style="text-decoration: none; color: white;">
+      This site covers the new BrainPy 3.0 API. 
+      <span style="color: lightgray;">[Click here for the classical <b>BrainPy 2.0</b> API]</span>
+    </a>
+    """
 
 html_theme_options = {
     'repository_url': 'https://github.com/brainpy/BrainPy',
