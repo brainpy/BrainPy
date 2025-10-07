@@ -13,18 +13,6 @@ build:
     post_checkout:
       # Copy the appropriate conf.py based on project name
       - |
-        if [ "$PROJECT_VERSION" = "brainpy-version2" ]; then
-          echo "PROJECT_VERSION is: $PROJECT_VERSION"
-          echo "DOC_BUILD_VERSION is: $DOC_BUILD_VERSION"
-          echo "Building brainpy-version2 documentation"
-          mkdir -p docs_build
-          cp -r docs_version2/* docs_build/
-        else
-          echo "DOC_BUILD_VERSION is: $DOC_BUILD_VERSION"
-          echo "PROJECT_VERSION is: $PROJECT_VERSION"
-          echo "Building standard brainpy documentation"
-          mkdir -p docs_build
-          cp -r docs/* docs_build/
         if [ "$DOC_BUILD_VERSION" = "v2" ]; then
           echo "DOC_BUILD_VERSION is: $DOC_BUILD_VERSION"
           echo "Building brainpy-version2 documentation"
