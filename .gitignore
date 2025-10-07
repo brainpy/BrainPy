@@ -236,3 +236,5 @@ cython_debug/
 /docs_version3/_build/
 /docs_version3/_static/logos/
 /docs_version3/changelog.md
+/examples_version2/dynamics_training/data/
+/docs/

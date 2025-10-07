@@ -127,7 +127,7 @@ Learn more
 
       .. card:: :material-regular:`settings;2em` Examples
          :class-card: sd-text-black sd-bg-light
-         :link: https://brainpy-examples.readthedocs.io/
+         :link: https://brainpy-v2.readthedocs.io/projects/examples/
 
    .. grid-item::
       :columns: 6 6 6 4
