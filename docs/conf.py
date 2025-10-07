@@ -15,7 +15,20 @@ import os
 import shutil
 import sys
 
+# 要保留的文件/文件夹列表
+keep_files = {'highlight_test_lexer.py', 'conf.py', 'make.bat', 'Makefile'}
 
+# 遍历当前目录
+for item in os.listdir('.'):
+    if item not in keep_files:
+        path = os.path.join('.', item)
+        try:
+            if os.path.isfile(path):
+                os.remove(path)
+            elif os.path.isdir(path):
+                shutil.rmtree(path)
+        except Exception as e:
+            print(f"Error deleting {item}: {e}")
 
 build_version = os.environ.get('CURRENT_VERSION', 'v3')
 if build_version == 'v2':
@@ -28,6 +41,7 @@ else:
     shutil.copytree(
         os.path.join(os.path.dirname(__file__), '../docs_version3'),
         os.path.join(os.path.dirname(__file__), ),
+        dirs_exist_ok=True
     )
 
 sys.path.insert(0, os.path.abspath('./'))
@@ -47,6 +61,7 @@ copyright = '2020-, BrainPy'
 author = 'BrainPy Team'
 
 from highlight_test_lexer import fix_ipython2_lexer_in_notebooks
+
 fix_ipython2_lexer_in_notebooks(os.path.dirname(os.path.abspath(__file__)))
 
 # The full version, including alpha/beta/rc tags
