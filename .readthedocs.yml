@@ -16,8 +16,8 @@ build:
         CURRENT_VERSION="${READTHEDOCS_VERSION_NAME}"
         echo "Building documentation for version: $CURRENT_VERSION"
 
-        # Check if this is a v2 version (branch/tag starts with v2 or contains version2)
-        if [[ "$CURRENT_VERSION" == stable* ]] || [[ "$CURRENT_VERSION" == v2* ]] || [[ "$CURRENT_VERSION" == *version2* ]]; then
+        # Check if this is a v2 version (latest, stable, or tags starting with v2)
+        if [[ "$CURRENT_VERSION" == "latest" ]] || [[ "$CURRENT_VERSION" == stable* ]] || [[ "$CURRENT_VERSION" == v2* ]] || [[ "$CURRENT_VERSION" == *version2* ]]; then
           echo "Building brainpy-version2 documentation"
           mkdir -p docs_build
           cp -r docs_version2/* docs_build/
@@ -29,7 +29,7 @@ build:
 
 # Build documentation using the copied conf.py
 sphinx:
-  configuration: docs_build/conf.py
+  configuration: docs_version2/conf.py
 
 # Optionally set the version of Python and requirements required to build your docs
 python:
