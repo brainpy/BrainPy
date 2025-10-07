@@ -44,12 +44,12 @@ class Neuron(brainstate.nn.Dynamics):
         for multi-dimensional input (e.g., ``100`` or ``(28, 28)``).
     spk_fun : Callable, optional
         Surrogate gradient function for the non-differentiable spike generation operation.
-        Default is ``brainstate.surrogate.InvSquareGrad()``. Common alternatives include:
+        Default is ``braintools.surrogate.InvSquareGrad()``. Common alternatives include:
 
-        - ``brainstate.surrogate.ReluGrad()``
-        - ``brainstate.surrogate.SigmoidGrad()``
-        - ``brainstate.surrogate.GaussianGrad()``
-        - ``brainstate.surrogate.ATan()``
+        - ``braintools.surrogate.ReluGrad()``
+        - ``braintools.surrogate.SigmoidGrad()``
+        - ``braintools.surrogate.GaussianGrad()``
+        - ``braintools.surrogate.ATan()``
     spk_reset : str, optional
         Reset mechanism applied after spike generation. Default is ``'soft'``.
 
@@ -150,7 +150,7 @@ class Neuron(brainstate.nn.Dynamics):
         ...     in_size=100,
         ...     tau=10*u.ms,
         ...     V_th=1.0*u.mV,
-        ...     spk_fun=brainstate.surrogate.ReluGrad(),
+        ...     spk_fun=braintools.surrogate.ReluGrad(),
         ...     spk_reset='soft'
         ... )
         >>>

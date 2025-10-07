@@ -22,12 +22,19 @@ sys.path.insert(0, r'D:\codes\projects\brainstate')
 import brainpy
 shutil.copytree('../images/', './_static/logos/', dirs_exist_ok=True)
 shutil.copyfile('../changelog.md', './changelog.md')
+shutil.rmtree('./generated')
+shutil.rmtree('./_build')
+
 
 # -- Project information -----------------------------------------------------
 
 project = 'BrainPy'
 copyright = '2020-, BrainPy'
 author = 'BrainPy Team'
+
+from highlight_test_lexer import fix_ipython2_lexer_in_notebooks
+
+fix_ipython2_lexer_in_notebooks(os.path.dirname(os.path.abspath(__file__)))
 
 # The full version, including alpha/beta/rc tags
 release = brainpy.__version__
@@ -48,7 +55,8 @@ extensions = [
     'myst_nb',
     'matplotlib.sphinxext.plot_directive',
     'sphinx_thebe',
-    'sphinx_design'
+    'sphinx_design',
+    'sphinx_math_dollar',
     # 'sphinx-mathjax-offline',
 ]
 # Add any paths that contain custom static files (such as style sheets) here,

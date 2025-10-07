@@ -14,6 +14,7 @@ Neuron Models
 .. autosummary::
    :toctree: generated/
    :nosignatures:
+   :template: classtemplate.rst
 
    Neuron
    LIF
@@ -31,6 +32,8 @@ Synapse Models
 .. autosummary::
    :toctree: generated/
    :nosignatures:
+   :template: classtemplate.rst
+
 
    Synapse
    Delta
@@ -48,6 +51,8 @@ Short-Term Plasticity
 .. autosummary::
    :toctree: generated/
    :nosignatures:
+   :template: classtemplate.rst
+
 
    STP
    STD
@@ -60,6 +65,8 @@ Synaptic Output
 .. autosummary::
    :toctree: generated/
    :nosignatures:
+   :template: classtemplate.rst
+
 
    CUBA
    COBA
@@ -72,6 +79,8 @@ Projection
 .. autosummary::
    :toctree: generated/
    :nosignatures:
+   :template: classtemplate.rst
+
 
    Projection
    FullProjDelta
@@ -84,6 +93,8 @@ Readout
 .. autosummary::
    :toctree: generated/
    :nosignatures:
+   :template: classtemplate.rst
+
 
    Readout
    Dense
@@ -96,6 +107,8 @@ Input Generators
 .. autosummary::
    :toctree: generated/
    :nosignatures:
+   :template: classtemplate.rst
+
 
    spike_input
    latency_input
