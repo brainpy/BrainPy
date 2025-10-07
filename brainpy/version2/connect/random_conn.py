@@ -20,9 +20,9 @@ import numpy as np
 from jax import vmap, jit, numpy as jnp
 
 import brainpy.version2.math as bm
-from brainpy.version2.tools.package import SUPPORT_NUMBA
 from brainpy._errors import ConnectorError
 from brainpy.version2.tools import numba_seed, numba_jit, numba_range, format_seed
+from brainpy.version2.tools.package import SUPPORT_NUMBA
 from .base import *
 
 __all__ = [

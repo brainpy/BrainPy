@@ -13,6 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+from . import utils
 from .offline import *
 from .online import *
-from . import utils

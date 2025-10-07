@@ -21,10 +21,10 @@ from brainpy.version2.context import share
 from brainpy.version2.dyn.base import NeuDyn
 from brainpy.version2.dyn.neurons import hh
 from brainpy.version2.initialize import (OneInit,
-                                     Initializer,
-                                     parameter,
-                                     noise as init_noise,
-                                     variable_)
+                                         Initializer,
+                                         parameter,
+                                         noise as init_noise,
+                                         variable_)
 from brainpy.version2.integrators.joint_eq import JointEq
 from brainpy.version2.integrators.ode.generic import odeint
 from brainpy.version2.integrators.sde.generic import sdeint

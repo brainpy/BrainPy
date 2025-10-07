@@ -21,12 +21,12 @@ import tqdm.auto
 
 import brainpy.version2.math as bm
 import brainstate.environ
+from brainpy.mixin import SupportOffline
 from brainpy.version2 import tools
+from brainpy.version2.algorithms.offline import get, RidgeRegression, OfflineAlgorithm
 from brainpy.version2.context import share
 from brainpy.version2.dynsys import DynamicalSystem
-from brainpy.version2.mixin import SupportOffline
 from brainpy.version2.runners import _call_fun_with_share
-from brainpy.version2.algorithms.offline import get, RidgeRegression, OfflineAlgorithm
 from brainpy.version2.types import ArrayType, Output
 from ._utils import format_ys
 from .base import DSTrainer

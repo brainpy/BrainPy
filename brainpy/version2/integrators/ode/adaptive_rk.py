@@ -67,7 +67,6 @@ More details please check [1]_ [2]_ [3]_.
 
 import jax.numpy as jnp
 
-from brainpy import _errors
 from brainpy.version2.integrators import constants as C, utils
 from brainpy.version2.integrators.ode import common
 from brainpy.version2.integrators.ode.base import ODEIntegrator

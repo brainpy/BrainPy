@@ -17,6 +17,17 @@
 This module has been deprecated since brainpy>=2.4.0. Use ``brainpy.version2.dyn`` module instead.
 """
 
+from brainpy.version2.dyn.synapses.delay_couplings import (
+    DiffusiveCoupling,
+    AdditiveCoupling,
+)
+from brainpy.version2.dynold.synapses.abstract_models import (
+    Delta as Delta,
+    Exponential as Exponential,
+    DualExponential as DualExponential,
+    Alpha as Alpha,
+    NMDA as NMDA,
+)
 from brainpy.version2.dynold.synapses.base import (
     _SynSTP as SynSTP,
     _SynOut as SynOut,
@@ -27,13 +38,6 @@ from brainpy.version2.dynold.synapses.biological_models import (
     GABAa as GABAa,
     BioNMDA as BioNMDA,
 )
-from brainpy.version2.dynold.synapses.abstract_models import (
-    Delta as Delta,
-    Exponential as Exponential,
-    DualExponential as DualExponential,
-    Alpha as Alpha,
-    NMDA as NMDA,
-)
 from brainpy.version2.dynold.synapses.compat import (
     DeltaSynapse as DeltaSynapse,
     ExpCUBA as ExpCUBA,
@@ -43,15 +47,11 @@ from brainpy.version2.dynold.synapses.compat import (
     AlphaCUBA as AlphaCUBA,
     AlphaCOBA as AlphaCOBA,
 )
-from brainpy.version2.dynold.synapses.learning_rules import (
-    STP as STP,
-)
-from brainpy.version2.dyn.synapses.delay_couplings import (
-    DiffusiveCoupling,
-    AdditiveCoupling,
-)
 from brainpy.version2.dynold.synapses.gap_junction import (
     GapJunction
+)
+from brainpy.version2.dynold.synapses.learning_rules import (
+    STP as STP,
 )
 
 if __name__ == '__main__':

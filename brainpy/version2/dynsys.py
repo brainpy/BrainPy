@@ -23,12 +23,12 @@ import jax
 import numpy as np
 
 from brainpy._errors import NoImplementationError, UnsupportedError
+from brainpy.mixin import SupportAutoDelay, Container, SupportInputProj, _get_delay_tool, MixIn
 from brainpy.version2 import tools, math as bm
 from brainpy.version2.context import share
 from brainpy.version2.deprecations import _update_deprecate_msg
 from brainpy.version2.initialize import parameter, variable_
 from brainpy.version2.math.object_transform.naming import get_unique_name
-from brainpy.version2.mixin import SupportAutoDelay, Container, SupportInputProj, _get_delay_tool, MixIn
 from brainpy.version2.types import ArrayType, Shape
 
 __all__ = [

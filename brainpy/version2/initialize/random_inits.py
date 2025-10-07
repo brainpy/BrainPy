@@ -18,8 +18,8 @@ import math
 import jax.numpy as jnp
 import numpy as np
 
-from brainpy.version2 import tools
 from brainpy.version2 import math as bm
+from brainpy.version2 import tools
 from .base import _InterLayerInitializer
 
 __all__ = [

@@ -13,19 +13,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-import warnings
 from functools import partial
 from typing import Union, Sequence, Any, Optional, Callable
 
 import jax
 import jax.numpy as jnp
 
+from brainpy.mixin import ReturnInfo
 from brainpy.version2 import math as bm
 from brainpy.version2.context import share
 from brainpy.version2.dyn.base import NeuDyn
 from brainpy.version2.dyn.utils import get_spk_type
 from brainpy.version2.initialize import parameter, variable_
-from brainpy.version2.mixin import ReturnInfo
 from brainpy.version2.types import Shape, ArrayType
 
 __all__ = [

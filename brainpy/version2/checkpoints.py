@@ -14,12 +14,12 @@
 # ==============================================================================
 from typing import Dict, Any, Optional
 
-import jax
-
 import braintools
+import jax
+from braintools.file import msgpack_register_serialization, AsyncManager
+
 from brainpy.version2.math.ndarray import Array
 from brainpy.version2.types import PyTree
-from braintools.file import msgpack_register_serialization, AsyncManager
 
 __all__ = [
     'save_pytree', 'load_pytree', 'AsyncManager',

@@ -20,9 +20,9 @@ from typing import Dict, Callable, Sequence
 
 import jax
 
+from brainpy._errors import UnsupportedError
 from brainpy.version2 import check
 from brainpy.version2.math.ndarray import Array as Array
-from brainpy._errors import UnsupportedError
 
 __all__ = [
     'get_default',

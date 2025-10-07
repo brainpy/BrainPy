@@ -231,3 +231,4 @@ cython_debug/
 /.claude/
 /docs_version2/_static/logos/
 /docs/_static/logos/
+/docs/_build/

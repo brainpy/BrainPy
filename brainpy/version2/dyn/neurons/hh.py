@@ -17,15 +17,15 @@ from typing import Any, Sequence
 from typing import Union, Callable, Optional
 
 import brainpy.version2.math as bm
+from brainpy.mixin import Container, TreeNode
+from brainpy.version2.check import is_initializer
 from brainpy.version2.context import share
 from brainpy.version2.dyn.base import NeuDyn, IonChaDyn
 from brainpy.version2.initialize import OneInit
 from brainpy.version2.initialize import Uniform, variable_, noise as init_noise
 from brainpy.version2.integrators import JointEq
 from brainpy.version2.integrators import odeint, sdeint
-from brainpy.version2.mixin import Container, TreeNode
 from brainpy.version2.types import ArrayType
-from brainpy.version2.check import is_initializer
 from brainpy.version2.types import Shape
 
 __all__ = [

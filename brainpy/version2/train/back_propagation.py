@@ -25,13 +25,13 @@ from tqdm import tqdm
 import brainpy.version2.losses as losses
 import brainpy.version2.math as bm
 import brainstate.environ
+from brainpy._errors import UnsupportedError, NoLongerSupportError
 from brainpy.version2 import optim
 from brainpy.version2 import tools
 from brainpy.version2.context import share
 from brainpy.version2.dynsys import DynamicalSystem
 from brainpy.version2.helpers import clear_input
 from brainpy.version2.running import constants as c
-from brainpy._errors import UnsupportedError, NoLongerSupportError
 from brainpy.version2.types import ArrayType, Output
 from ._utils import msg
 from .base import DSTrainer

@@ -15,8 +15,8 @@
 # ==============================================================================
 import unittest
 
-import brainpy.version2.math.compat_pytorch as torch
 import brainpy.version2.math as bm
+import brainpy.version2.math.compat_pytorch as torch
 from brainpy.version2.math import compat_pytorch
 
 

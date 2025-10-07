@@ -16,14 +16,13 @@
 import jax.lax
 import jax.numpy as jnp
 import numpy as np
+import scipy.optimize as soptimize
 from jax import grad, jit, vmap
 from jax.flatten_util import ravel_pytree
 
 import brainpy.version2.math as bm
 from brainpy import _errors as errors
 from . import f_without_jaxarray_return
-
-import scipy.optimize as soptimize
 
 __all__ = [
     'ECONVERGED', 'ECONVERR',

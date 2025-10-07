@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Copyright 2025 BrainX Ecosystem Limited. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,19 +13,40 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+import warnings
+from dataclasses import dataclass
+from typing import Union, Dict, Callable, Sequence, Optional, Any
 
-from typing import Optional
+import jax
 
 import brainstate
 
+bm, delay_identifier, init_delay_by_return = None, None, None
+
 __all__ = [
+    'MixIn',
+    'ParamDesc',
+    'ParamDescriber',
     'AlignPost',
+    'Container',
+    'TreeNode',
     'BindCondData',
-    'Mode',
-    'JointMode',
-    'Batching',
-    'Training',
+    'JointType',
+    'SupportSTDP',
+    'SupportAutoDelay',
+    'SupportInputProj',
+    'SupportOnline',
+    'SupportOffline',
 ]
+
+MixIn = brainstate.mixin.Mixin
+ParamDesc = brainstate.mixin.ParamDesc
+ParamDescriber = brainstate.mixin.ParamDescriber
+JointType = brainstate.mixin.JointTypes
+
+
+def _get_bm():
+    global bm
 
 
 class AlignPost(brainstate.mixin.Mixin):
@@ -185,558 +207,317 @@ class BindCondData(brainstate.mixin.Mixin):
         self._conductance = None
 
 
-class Mode(brainstate.mixin.Mixin):
+def _get_delay_tool():
+    global delay_identifier, init_delay_by_return
+    if init_delay_by_return is None: from brainpy.version2.delay import init_delay_by_return
+    if delay_identifier is None: from brainpy.version2.delay import delay_identifier
+    return delay_identifier, init_delay_by_return
+
+
+@dataclass
+class ReturnInfo:
+    size: Sequence[int]
+    axis_names: Optional[Sequence[str]] = None
+    batch_or_mode: Optional[Union[int, brainstate.mixin.Mode]] = None
+    data: Union[Callable, jax.Array] = jax.numpy.zeros
+
+    def get_data(self):
+        bm = _get_bm()
+        if isinstance(self.data, Callable):
+            if isinstance(self.batch_or_mode, int):
+                size = (self.batch_or_mode,) + tuple(self.size)
+            elif isinstance(self.batch_or_mode, bm.NonBatchingMode):
+                size = tuple(self.size)
+            elif isinstance(self.batch_or_mode, bm.BatchingMode):
+                size = (self.batch_or_mode.batch_size,) + tuple(self.size)
+            else:
+                size = tuple(self.size)
+            init = self.data(size)
+        elif isinstance(self.data, (bm.Array, jax.Array)):
+            init = self.data
+        else:
+            raise ValueError
+        return init
+
+
+class Container(MixIn):
+    """Container :py:class:`~.MixIn` which wrap a group of objects.
     """
-    Base class for computation behavior modes.
+    children: dict()
 
-    Modes are used to represent different computational contexts or behaviors,
-    such as training vs evaluation, batched vs single-sample processing, etc.
-    They provide a flexible way to configure how models and components behave
-    in different scenarios.
-
-    Examples
-    --------
-    Creating a custom mode:
-
-    .. code-block:: python
-
-        >>> import brainstate
-        >>>
-        >>> class InferenceMode(brainstate.mixin.Mode):
-        ...     def __init__(self, use_cache=True):
-        ...         self.use_cache = use_cache
-        >>>
-        >>> # Create mode instances
-        >>> inference = InferenceMode(use_cache=True)
-        >>> print(inference)  # Output: InferenceMode
-
-    Checking mode types:
-
-    .. code-block:: python
-
-        >>> class FastMode(brainstate.mixin.Mode):
-        ...     pass
-        >>>
-        >>> class SlowMode(brainstate.mixin.Mode):
-        ...     pass
-        >>>
-        >>> fast = FastMode()
-        >>> slow = SlowMode()
-        >>>
-        >>> # Check exact mode type
-        >>> assert fast.is_a(FastMode)
-        >>> assert not fast.is_a(SlowMode)
-        >>>
-        >>> # Check if mode is an instance of a type
-        >>> assert fast.has(brainstate.mixin.Mode)
-
-    Using modes in a model:
-
-    .. code-block:: python
-
-        >>> class Model:
-        ...     def __init__(self):
-        ...         self.mode = brainstate.mixin.Training()
-        ...
-        ...     def forward(self, x):
-        ...         if self.mode.has(brainstate.mixin.Training):
-        ...             # Training-specific logic
-        ...             return self.train_forward(x)
-        ...         else:
-        ...             # Inference logic
-        ...             return self.eval_forward(x)
-        ...
-        ...     def train_forward(self, x):
-        ...         return x + 0.1  # Add noise during training
-        ...
-        ...     def eval_forward(self, x):
-        ...         return x  # No noise during evaluation
-    """
-
-    def __repr__(self):
-        """
-        String representation of the mode.
-
-        Returns
-        -------
-        str
-            The class name of the mode.
-        """
-        return self.__class__.__name__
-
-    def __eq__(self, other: 'Mode'):
-        """
-        Check equality of modes based on their type.
-
-        Parameters
-        ----------
-        other : Mode
-            Another mode to compare with.
-
-        Returns
-        -------
-        bool
-            True if both modes are of the same class.
-        """
-        assert isinstance(other, Mode)
-        return other.__class__ == self.__class__
-
-    def is_a(self, mode: type):
-        """
-        Check whether the mode is exactly the desired mode type.
-
-        This performs an exact type match, not checking for subclasses.
-
-        Parameters
-        ----------
-        mode : type
-            The mode type to check against.
-
-        Returns
-        -------
-        bool
-            True if this mode is exactly of the specified type.
-
-        Examples
-        --------
-        .. code-block:: python
-
-            >>> import brainstate
-            >>>
-            >>> training_mode = brainstate.mixin.Training()
-            >>> assert training_mode.is_a(brainstate.mixin.Training)
-            >>> assert not training_mode.is_a(brainstate.mixin.Batching)
-        """
-        assert isinstance(mode, type), 'Must be a type.'
-        return self.__class__ == mode
-
-    def has(self, mode: type):
-        """
-        Check whether the mode includes the desired mode type.
-
-        This checks if the current mode is an instance of the specified type,
-        including checking for subclasses.
-
-        Parameters
-        ----------
-        mode : type
-            The mode type to check for.
-
-        Returns
-        -------
-        bool
-            True if this mode is an instance of the specified type.
-
-        Examples
-        --------
-        .. code-block:: python
-
-            >>> import brainstate
-            >>>
-            >>> # Create a custom mode that extends Training
-            >>> class AdvancedTraining(brainstate.mixin.Training):
-            ...     pass
-            >>>
-            >>> advanced = AdvancedTraining()
-            >>> assert advanced.has(brainstate.mixin.Training)  # True (subclass)
-            >>> assert advanced.has(brainstate.mixin.Mode)      # True (base class)
-        """
-        assert isinstance(mode, type), 'Must be a type.'
-        return isinstance(self, mode)
-
-
-class JointMode(Mode):
-    """
-    A mode that combines multiple modes simultaneously.
-
-    JointMode allows expressing that a computation is in multiple modes at once,
-    such as being both in training mode and batching mode. This is useful for
-    complex scenarios where multiple behavioral aspects need to be active.
-
-    Parameters
-    ----------
-    *modes : Mode
-        The modes to combine.
-
-    Attributes
-    ----------
-    modes : tuple of Mode
-        The individual modes that are combined.
-    types : set of type
-        The types of the combined modes.
-
-    Raises
-    ------
-    TypeError
-        If any of the provided arguments is not a Mode instance.
-
-    Examples
-    --------
-    Combining training and batching modes:
-
-    .. code-block:: python
-
-        >>> import brainstate
-        >>>
-        >>> # Create individual modes
-        >>> training = brainstate.mixin.Training()
-        >>> batching = brainstate.mixin.Batching(batch_size=32)
-        >>>
-        >>> # Combine them
-        >>> joint = brainstate.mixin.JointMode(training, batching)
-        >>> print(joint)  # JointMode(Training, Batching(in_size=32, axis=0))
-        >>>
-        >>> # Check if specific modes are present
-        >>> assert joint.has(brainstate.mixin.Training)
-        >>> assert joint.has(brainstate.mixin.Batching)
-        >>>
-        >>> # Access attributes from combined modes
-        >>> print(joint.batch_size)  # 32 (from Batching mode)
-
-    Using in model configuration:
-
-    .. code-block:: python
-
-        >>> class NeuralNetwork:
-        ...     def __init__(self):
-        ...         self.mode = None
-        ...
-        ...     def set_train_mode(self, batch_size=1):
-        ...         # Set both training and batching modes
-        ...         training = brainstate.mixin.Training()
-        ...         batching = brainstate.mixin.Batching(batch_size=batch_size)
-        ...         self.mode = brainstate.mixin.JointMode(training, batching)
-        ...
-        ...     def forward(self, x):
-        ...         if self.mode.has(brainstate.mixin.Training):
-        ...             x = self.apply_dropout(x)
-        ...
-        ...         if self.mode.has(brainstate.mixin.Batching):
-        ...             # Process in batches
-        ...             batch_size = self.mode.batch_size
-        ...             return self.batch_process(x, batch_size)
-        ...
-        ...         return self.process(x)
-        >>>
-        >>> model = NeuralNetwork()
-        >>> model.set_train_mode(batch_size=64)
-    """
-
-    def __init__(self, *modes: Mode):
-        # Validate that all arguments are Mode instances
-        for m_ in modes:
-            if not isinstance(m_, Mode):
-                raise TypeError(f'The supported type must be a tuple/list of Mode. But we got {m_}')
-
-        # Store the modes as a tuple
-        self.modes = tuple(modes)
-
-        # Store the types of the modes for quick lookup
-        self.types = set([m.__class__ for m in modes])
-
-    def __repr__(self):
-        """
-        String representation showing all combined modes.
-
-        Returns
-        -------
-        str
-            A string showing the joint mode and its components.
-        """
-        return f'{self.__class__.__name__}({", ".join([repr(m) for m in self.modes])})'
-
-    def has(self, mode: type):
-        """
-        Check whether any of the combined modes includes the desired type.
-
-        Parameters
-        ----------
-        mode : type
-            The mode type to check for.
-
-        Returns
-        -------
-        bool
-            True if any of the combined modes is or inherits from the specified type.
-
-        Examples
-        --------
-        .. code-block:: python
-
-            >>> import brainstate
-            >>>
-            >>> training = brainstate.mixin.Training()
-            >>> batching = brainstate.mixin.Batching(batch_size=16)
-            >>> joint = brainstate.mixin.JointMode(training, batching)
-            >>>
-            >>> assert joint.has(brainstate.mixin.Training)
-            >>> assert joint.has(brainstate.mixin.Batching)
-            >>> assert joint.has(brainstate.mixin.Mode)  # Base class
-        """
-        assert isinstance(mode, type), 'Must be a type.'
-        # Check if any of the combined mode types is a subclass of the target mode
-        return any([issubclass(cls, mode) for cls in self.types])
-
-    def is_a(self, cls: type):
-        """
-        Check whether the joint mode is exactly the desired combined type.
-
-        This is a complex check that verifies the joint mode matches a specific
-        combination of types.
-
-        Parameters
-        ----------
-        cls : type
-            The combined type to check against.
-
-        Returns
-        -------
-        bool
-            True if the joint mode exactly matches the specified type combination.
-        """
-        # Use JointTypes to create the expected type from our mode types
-        return brainstate.mixin.JointTypes(*tuple(self.types)) == cls
+    def __getitem__(self, item):
+        """Overwrite the slice access (`self['']`). """
+        if item in self.children:
+            return self.children[item]
+        else:
+            raise ValueError(f'Unknown item {item}, we only found {list(self.children.keys())}')
 
     def __getattr__(self, item):
-        """
-        Get attributes from the combined modes.
-
-        This method searches through all combined modes to find the requested
-        attribute, allowing transparent access to properties of any of the
-        combined modes.
-
-        Parameters
-        ----------
-        item : str
-            The attribute name to search for.
-
-        Returns
-        -------
-        Any
-            The attribute value from the first mode that has it.
-
-        Raises
-        ------
-        AttributeError
-            If the attribute is not found in any of the combined modes.
-
-        Examples
-        --------
-        .. code-block:: python
-
-            >>> import brainstate
-            >>>
-            >>> batching = brainstate.mixin.Batching(batch_size=32, batch_axis=1)
-            >>> training = brainstate.mixin.Training()
-            >>> joint = brainstate.mixin.JointMode(batching, training)
-            >>>
-            >>> # Access batching attributes directly
-            >>> print(joint.batch_size)  # 32
-            >>> print(joint.batch_axis)  # 1
-        """
-        # Don't interfere with accessing modes and types attributes
-        if item in ['modes', 'types']:
-            return super().__getattribute__(item)
-
-        # Search for the attribute in each combined mode
-        for m in self.modes:
-            if hasattr(m, item):
-                return getattr(m, item)
-
-        # If not found, fall back to default behavior (will raise AttributeError)
-        return super().__getattribute__(item)
-
-
-class Batching(Mode):
-    """
-    Mode indicating batched computation.
-
-    This mode specifies that computations should be performed on batches of data,
-    including information about the batch size and which axis represents the batch
-    dimension.
-
-    Parameters
-    ----------
-    batch_size : int, default 1
-        The size of each batch.
-    batch_axis : int, default 0
-        The axis along which batching occurs.
-
-    Attributes
-    ----------
-    batch_size : int
-        The number of samples in each batch.
-    batch_axis : int
-        The axis index representing the batch dimension.
-
-    Examples
-    --------
-    Basic batching configuration:
-
-    .. code-block:: python
-
-        >>> import brainstate
-        >>>
-        >>> # Create a batching mode
-        >>> batching = brainstate.mixin.Batching(batch_size=32, batch_axis=0)
-        >>> print(batching)  # Batching(in_size=32, axis=0)
-        >>>
-        >>> # Access batch parameters
-        >>> print(f"Processing {batching.batch_size} samples at once")
-        >>> print(f"Batch dimension is axis {batching.batch_axis}")
-
-    Using in a model:
-
-    .. code-block:: python
-
-        >>> import jax.numpy as jnp
-        >>>
-        >>> class BatchedModel:
-        ...     def __init__(self):
-        ...         self.mode = None
-        ...
-        ...     def set_batch_mode(self, batch_size, batch_axis=0):
-        ...         self.mode = brainstate.mixin.Batching(batch_size, batch_axis)
-        ...
-        ...     def process(self, x):
-        ...         if self.mode is not None and self.mode.has(brainstate.mixin.Batching):
-        ...             # Process in batches
-        ...             batch_size = self.mode.batch_size
-        ...             axis = self.mode.batch_axis
-        ...             return jnp.mean(x, axis=axis, keepdims=True)
-        ...         return x
-        >>>
-        >>> model = BatchedModel()
-        >>> model.set_batch_mode(batch_size=64)
-        >>>
-        >>> # Process batched data
-        >>> data = jnp.random.randn(64, 100)  # 64 samples, 100 features
-        >>> result = model.process(data)
-
-    Combining with other modes:
-
-    .. code-block:: python
-
-        >>> # Combine batching with training mode
-        >>> training = brainstate.mixin.Training()
-        >>> batching = brainstate.mixin.Batching(batch_size=128)
-        >>> combined = brainstate.mixin.JointMode(training, batching)
-        >>>
-        >>> # Use in a training loop
-        >>> def train_step(model, data, mode):
-        ...     if mode.has(brainstate.mixin.Batching):
-        ...         # Split data into batches
-        ...         batch_size = mode.batch_size
-        ...         # ... batched processing ...
-        ...     if mode.has(brainstate.mixin.Training):
-        ...         # Apply training-specific operations
-        ...         # ... training logic ...
-        ...     pass
-    """
-
-    def __init__(self, batch_size: int = 1, batch_axis: int = 0):
-        self.batch_size = batch_size
-        self.batch_axis = batch_axis
+        """Overwrite the dot access (`self.`). """
+        if item == 'children':
+            return super().__getattribute__('children')
+        else:
+            children = super().__getattribute__('children')
+            if item in children:
+                return children[item]
+            else:
+                return super().__getattribute__(item)
 
     def __repr__(self):
+        from brainpy.version2 import tools
+        cls_name = self.__class__.__name__
+        indent = ' ' * len(cls_name)
+        child_str = [tools.repr_context(repr(val), indent) for val in self.children.values()]
+        string = ", \n".join(child_str)
+        return f'{cls_name}({string})'
+
+    def __get_elem_name(self, elem):
+        bm = _get_bm()
+        if isinstance(elem, bm.BrainPyObject):
+            return elem.name
+        else:
+            from brainpy.version2.math.object_transform.base import get_unique_name
+            return get_unique_name('ContainerElem')
+
+    def format_elements(self, child_type: type, *children_as_tuple, **children_as_dict):
+        res = dict()
+
+        # add tuple-typed components
+        for module in children_as_tuple:
+            if isinstance(module, child_type):
+                res[self.__get_elem_name(module)] = module
+            elif isinstance(module, (list, tuple)):
+                for m in module:
+                    if not isinstance(m, child_type):
+                        raise ValueError(f'Should be instance of {child_type.__name__}. '
+                                         f'But we got {type(m)}')
+                    res[self.__get_elem_name(m)] = m
+            elif isinstance(module, dict):
+                for k, v in module.items():
+                    if not isinstance(v, child_type):
+                        raise ValueError(f'Should be instance of {child_type.__name__}. '
+                                         f'But we got {type(v)}')
+                    res[k] = v
+            else:
+                raise ValueError(f'Cannot parse sub-systems. They should be {child_type.__name__} '
+                                 f'or a list/tuple/dict of {child_type.__name__}.')
+        # add dict-typed components
+        for k, v in children_as_dict.items():
+            if not isinstance(v, child_type):
+                raise ValueError(f'Should be instance of {child_type.__name__}. '
+                                 f'But we got {type(v)}')
+            res[k] = v
+        return res
+
+    def add_elem(self, *elems, **elements):
+        """Add new elements.
+
+        >>> obj = Container()
+        >>> obj.add_elem(a=1.)
+
+        Args:
+          elements: children objects.
         """
-        String representation showing batch configuration.
+        self.children.update(self.format_elements(object, *elems, **elements))
 
-        Returns
-        -------
-        str
-            A string showing the batch size and axis.
+
+class TreeNode(MixIn):
+    """Tree node. """
+
+    master_type: type
+
+    def check_hierarchies(self, root, *leaves, **named_leaves):
+        global DynamicalSystem
+        if DynamicalSystem is None:
+            from brainpy.version2.dynsys import DynamicalSystem
+
+        for leaf in leaves:
+            if isinstance(leaf, DynamicalSystem):
+                self.check_hierarchy(root, leaf)
+            elif isinstance(leaf, (list, tuple)):
+                self.check_hierarchies(root, *leaf)
+            elif isinstance(leaf, dict):
+                self.check_hierarchies(root, **leaf)
+            else:
+                raise ValueError(f'Do not support {type(leaf)}.')
+        for leaf in named_leaves.values():
+            if not isinstance(leaf, DynamicalSystem):
+                raise ValueError(f'Do not support {type(leaf)}. Must be instance of {DynamicalSystem.__name__}')
+            self.check_hierarchy(root, leaf)
+
+    def check_hierarchy(self, root, leaf):
+        if hasattr(leaf, 'master_type'):
+            master_type = leaf.master_type
+        else:
+            raise ValueError('Child class should define "master_type" to '
+                             'specify the type of the root node. '
+                             f'But we did not found it in {leaf}')
+        if not issubclass(root, master_type):
+            raise TypeError(f'Type does not match. {leaf} requires a master with type '
+                            f'of {leaf.master_type}, but the master now is {root}.')
+
+
+class SupportInputProj(MixIn):
+    """The :py:class:`~.MixIn` that receives the input projections.
+
+    Note that the subclass should define a ``cur_inputs`` attribute. Otherwise,
+    the input function utilities cannot be used.
+
+    """
+    current_inputs: dict
+    delta_inputs: dict
+
+    def add_inp_fun(self, key: str, fun: Callable, label: Optional[str] = None, category: str = 'current'):
+        """Add an input function.
+
+        Args:
+          key: str. The dict key.
+          fun: Callable. The function to generate inputs.
+          label: str. The input label.
+          category: str. The input category, should be ``current`` (the current) or
+             ``delta`` (the delta synapse, indicating the delta function).
         """
-        return f'{self.__class__.__name__}(in_size={self.batch_size}, axis={self.batch_axis})'
+        if not callable(fun):
+            raise TypeError('Must be a function.')
+
+        key = self._input_label_repr(key, label)
+        if category == 'current':
+            if key in self.current_inputs:
+                raise ValueError(f'Key "{key}" has been defined and used.')
+            self.current_inputs[key] = fun
+        elif category == 'delta':
+            if key in self.delta_inputs:
+                raise ValueError(f'Key "{key}" has been defined and used.')
+            self.delta_inputs[key] = fun
+        else:
+            raise NotImplementedError(f'Unknown category: {category}. Only support "current" and "delta".')
+
+    def get_inp_fun(self, key: str):
+        """Get the input function.
+
+        Args:
+          key: str. The key.
+
+        Returns:
+          The input function which generates currents.
+        """
+        if key in self.current_inputs:
+            return self.current_inputs[key]
+        elif key in self.delta_inputs:
+            return self.delta_inputs[key]
+        else:
+            raise ValueError(f'Unknown key: {key}')
+
+    def sum_current_inputs(self, *args, init: Any = 0., label: Optional[str] = None, **kwargs):
+        """Summarize all current inputs by the defined input functions ``.current_inputs``.
+
+        Args:
+          *args: The arguments for input functions.
+          init: The initial input data.
+          label: str. The input label.
+          **kwargs: The arguments for input functions.
+
+        Returns:
+          The total currents.
+        """
+        if label is None:
+            for key, out in self.current_inputs.items():
+                init = init + out(*args, **kwargs)
+        else:
+            label_repr = self._input_label_start(label)
+            for key, out in self.current_inputs.items():
+                if key.startswith(label_repr):
+                    init = init + out(*args, **kwargs)
+        return init
+
+    def sum_delta_inputs(self, *args, init: Any = 0., label: Optional[str] = None, **kwargs):
+        """Summarize all delta inputs by the defined input functions ``.delta_inputs``.
+
+        Args:
+          *args: The arguments for input functions.
+          init: The initial input data.
+          label: str. The input label.
+          **kwargs: The arguments for input functions.
+
+        Returns:
+          The total currents.
+        """
+        if label is None:
+            for key, out in self.delta_inputs.items():
+                init = init + out(*args, **kwargs)
+        else:
+            label_repr = self._input_label_start(label)
+            for key, out in self.delta_inputs.items():
+                if key.startswith(label_repr):
+                    init = init + out(*args, **kwargs)
+        return init
+
+    @classmethod
+    def _input_label_start(cls, label: str):
+        # unify the input label repr.
+        return f'{label} // '
+
+    @classmethod
+    def _input_label_repr(cls, name: str, label: Optional[str] = None):
+        # unify the input label repr.
+        return name if label is None else (cls._input_label_start(label) + str(name))
+
+    # deprecated #
+    # ---------- #
+
+    @property
+    def cur_inputs(self):
+        return self.current_inputs
+
+    def sum_inputs(self, *args, **kwargs):
+        warnings.warn('Please use ".sum_current_inputs()" instead. ".sum_inputs()" will be removed.', UserWarning)
+        return self.sum_current_inputs(*args, **kwargs)
 
 
-class Training(Mode):
-    """
-    Mode indicating training computation.
+class SupportReturnInfo(MixIn):
+    """``MixIn`` to support the automatic delay in synaptic projection :py:class:`~.SynProj`."""
 
-    This mode specifies that the model is in training mode, which typically
-    enables behaviors like dropout, batch normalization in training mode,
-    gradient computation, etc.
+    def return_info(self):
+        raise NotImplementedError('Must implement the "return_info()" function.')
 
-    Examples
-    --------
-    Basic training mode:
 
-    .. code-block:: python
-
-        >>> import brainstate
-        >>>
-        >>> # Create training mode
-        >>> training = brainstate.mixin.Training()
-        >>> print(training)  # Training
-        >>>
-        >>> # Check mode
-        >>> assert training.is_a(brainstate.mixin.Training)
-        >>> assert training.has(brainstate.mixin.Mode)
-
-    Using in a model with dropout:
-
-    .. code-block:: python
-
-        >>> import brainstate
-        >>> import jax
-        >>> import jax.numpy as jnp
-        >>>
-        >>> class ModelWithDropout:
-        ...     def __init__(self, dropout_rate=0.5):
-        ...         self.dropout_rate = dropout_rate
-        ...         self.mode = None
-        ...
-        ...     def set_training(self, is_training=True):
-        ...         if is_training:
-        ...             self.mode = brainstate.mixin.Training()
-        ...         else:
-        ...             self.mode = brainstate.mixin.Mode()  # Evaluation mode
-        ...
-        ...     def forward(self, x, rng_key):
-        ...         # Apply dropout only during training
-        ...         if self.mode is not None and self.mode.has(brainstate.mixin.Training):
-        ...             keep_prob = 1.0 - self.dropout_rate
-        ...             mask = jax.random.bernoulli(rng_key, keep_prob, x.shape)
-        ...             x = jnp.where(mask, x / keep_prob, 0)
-        ...         return x
-        >>>
-        >>> model = ModelWithDropout()
-        >>>
-        >>> # Training mode
-        >>> model.set_training(True)
-        >>> key = jax.random.PRNGKey(0)
-        >>> x_train = jnp.ones((10, 20))
-        >>> out_train = model.forward(x_train, key)  # Dropout applied
-        >>>
-        >>> # Evaluation mode
-        >>> model.set_training(False)
-        >>> out_eval = model.forward(x_train, key)  # No dropout
-
-    Combining with batching:
-
-    .. code-block:: python
-
-        >>> # Create combined training and batching mode
-        >>> training = brainstate.mixin.Training()
-        >>> batching = brainstate.mixin.Batching(batch_size=32)
-        >>> mode = brainstate.mixin.JointMode(training, batching)
-        >>>
-        >>> # Use in training configuration
-        >>> class Trainer:
-        ...     def __init__(self, model, mode):
-        ...         self.model = model
-        ...         self.mode = mode
-        ...
-        ...     def train_epoch(self, data):
-        ...         if self.mode.has(brainstate.mixin.Training):
-        ...             # Enable training-specific behaviors
-        ...             self.model.set_training(True)
-        ...
-        ...         if self.mode.has(brainstate.mixin.Batching):
-        ...             # Process in batches
-        ...             batch_size = self.mode.batch_size
-        ...             # ... batched training loop ...
-        ...         pass
-    """
+class SupportAutoDelay(SupportReturnInfo):
     pass
+
+
+class SupportOnline(MixIn):
+    """:py:class:`~.MixIn` to support the online training methods.
+
+    .. versionadded:: 2.4.5
+    """
+
+    online_fit_by: Optional  # methods for online fitting
+
+    def online_init(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def online_fit(self, target, fit_record: Dict):
+        raise NotImplementedError
+
+
+class SupportOffline(MixIn):
+    """:py:class:`~.MixIn` to support the offline training methods.
+
+    .. versionadded:: 2.4.5
+    """
+
+    offline_fit_by: Optional  # methods for offline fitting
+
+    def offline_init(self, *args, **kwargs):
+        pass
+
+    def offline_fit(self, target, fit_record: Dict):
+        raise NotImplementedError
+
+
+class SupportSTDP(MixIn):
+    """Support synaptic plasticity by modifying the weights.
+    """
+
+    def stdp_update(self, *args, on_pre=None, onn_post=None, **kwargs):
+        raise NotImplementedError

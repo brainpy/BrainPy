@@ -14,6 +14,7 @@
 # limitations under the License.
 # ==============================================================================
 from brainpy import _errors as errors
+from brainpy import mixin
 # fundamental supporting modules
 from brainpy.version2 import check, tools
 #  Part: Math Foundation  #
@@ -33,7 +34,6 @@ from . import (
     encoding,  # encoding schema
     checkpoints,  # checkpoints
     check,  # error checking
-    mixin,  # mixin classes
     algorithms,  # online or offline training algorithms
 )
 from .math import BrainPyObject

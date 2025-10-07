@@ -16,11 +16,11 @@ import numbers
 from typing import Any
 from typing import Union, Optional
 
+from brainpy.mixin import SupportAutoDelay
 from brainpy.version2 import check, math as bm
 from brainpy.version2.context import share
 from brainpy.version2.dynsys import Dynamic
 from brainpy.version2.dynsys import Projection
-from brainpy.version2.mixin import SupportAutoDelay
 from brainpy.version2.types import Shape
 
 __all__ = [

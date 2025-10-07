@@ -18,18 +18,18 @@ from typing import Union, Callable
 import jax
 
 from brainpy.version2 import math as bm
+from brainpy.version2.check import is_initializer
 from brainpy.version2.context import share
 from brainpy.version2.dyn.base import NeuDyn
 from brainpy.version2.dyn.others.noise import OUProcess
 from brainpy.version2.initialize import (Initializer,
-                                     Uniform,
-                                     parameter,
-                                     variable,
-                                     variable_,
-                                     ZeroInit)
+                                         Uniform,
+                                         parameter,
+                                         variable,
+                                         variable_,
+                                         ZeroInit)
 from brainpy.version2.integrators.joint_eq import JointEq
 from brainpy.version2.integrators.ode.generic import odeint
-from brainpy.version2.check import is_initializer
 from brainpy.version2.types import Shape, ArrayType
 
 __all__ = [

@@ -12,6 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from .lif import *
-from .hh import *
 from .base import *
+from .hh import *
+from .lif import *

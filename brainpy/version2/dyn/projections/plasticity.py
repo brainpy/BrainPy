@@ -14,12 +14,12 @@
 # ==============================================================================
 from typing import Optional, Callable, Union
 
+from brainpy.mixin import (JointType, ParamDescriber, SupportAutoDelay,
+                           BindCondData, AlignPost, SupportSTDP)
 from brainpy.version2 import math as bm, check
 from brainpy.version2.delay import register_delay_by_return
 from brainpy.version2.dyn.synapses.abstract_models import Expon
 from brainpy.version2.dynsys import DynamicalSystem, Projection
-from brainpy.version2.mixin import (JointType, ParamDescriber, SupportAutoDelay,
-                                BindCondData, AlignPost, SupportSTDP)
 from brainpy.version2.types import ArrayType
 from .align_post import (align_post_add_bef_update, )
 from .align_pre import (align_pre2_add_bef_update, )

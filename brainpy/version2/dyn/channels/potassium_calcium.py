@@ -20,12 +20,12 @@ This module implements calcium-dependent potassium channels.
 from typing import Union, Callable, Optional
 
 import brainpy.version2.math as bm
+from brainpy.mixin import JointType
 from brainpy.version2.context import share
 from brainpy.version2.dyn.ions.calcium import Calcium
 from brainpy.version2.dyn.ions.potassium import Potassium
 from brainpy.version2.initialize import Initializer, parameter, variable
 from brainpy.version2.integrators.ode.generic import odeint
-from brainpy.version2.mixin import JointType
 from brainpy.version2.types import Shape, ArrayType
 from .calcium import CalciumChannel
 from .potassium import PotassiumChannel

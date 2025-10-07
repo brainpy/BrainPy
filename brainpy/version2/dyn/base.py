@@ -13,8 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+from brainpy.mixin import SupportAutoDelay, ParamDesc
 from brainpy.version2.dynsys import Dynamic
-from brainpy.version2.mixin import SupportAutoDelay, ParamDesc
 
 __all__ = [
     'NeuDyn', 'SynDyn', 'IonChaDyn',

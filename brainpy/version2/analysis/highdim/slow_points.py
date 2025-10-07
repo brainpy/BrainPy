@@ -25,6 +25,7 @@ import numpy as np
 from jax.scipy.optimize import minimize
 
 import brainpy.version2.math as bm
+from brainpy._errors import AnalyzerError, UnsupportedError
 from brainpy.version2 import optim, losses
 from brainpy.version2.analysis import utils, base, constants
 from brainpy.version2.context import share
@@ -32,7 +33,6 @@ from brainpy.version2.deprecations import _input_deprecate_msg
 from brainpy.version2.dynsys import DynamicalSystem
 from brainpy.version2.helpers import clear_input
 from brainpy.version2.runners import check_and_format_inputs, _f_ops
-from brainpy._errors import AnalyzerError, UnsupportedError
 from brainpy.version2.types import ArrayType
 
 __all__ = [

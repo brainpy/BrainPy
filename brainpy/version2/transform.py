@@ -20,10 +20,10 @@ import jax
 import jax.numpy as jnp
 
 from brainpy.version2 import tools, math as bm
+from brainpy.version2.check import is_float, is_integer
 from brainpy.version2.context import share
 from brainpy.version2.dynsys import DynamicalSystem
 from brainpy.version2.helpers import clear_input
-from brainpy.version2.check import is_float, is_integer
 from brainpy.version2.types import PyTree
 
 __all__ = [

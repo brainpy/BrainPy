@@ -15,6 +15,7 @@
 # ==============================================================================
 from typing import Union, Dict, Callable, Optional
 
+from brainpy.mixin import ParamDesc
 from brainpy.version2.connect import TwoEndConnector
 from brainpy.version2.dyn import synapses
 from brainpy.version2.dyn.base import NeuDyn
@@ -22,7 +23,6 @@ from brainpy.version2.dynold.synapses import _TwoEndConnAlignPre
 from brainpy.version2.dynold.synouts import CUBA
 from brainpy.version2.dynsys import Sequential
 from brainpy.version2.initialize import Initializer
-from brainpy.version2.mixin import ParamDesc
 from brainpy.version2.types import ArrayType
 
 __all__ = [

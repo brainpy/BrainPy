@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+from brainpy._errors import AnalyzerError, UnsupportedError
 from brainpy.version2.context import share
 from brainpy.version2.dynsys import DynamicalSystem
 from brainpy.version2.integrators.base import Integrator
@@ -23,7 +24,6 @@ from brainpy.version2.math.environment import get_float
 from brainpy.version2.math.interoperability import as_jax
 from brainpy.version2.math.object_transform import Variable
 from brainpy.version2.runners import DSRunner
-from brainpy._errors import AnalyzerError, UnsupportedError
 
 __all__ = [
     'model_transform',

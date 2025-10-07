@@ -17,11 +17,11 @@ from typing import Union
 
 import jax.numpy as jnp
 
+from brainpy.version2.check import is_float
 from brainpy.version2.context import share
 from brainpy.version2.dynold.synapses.base import _SynSTP
 from brainpy.version2.initialize import variable
 from brainpy.version2.integrators import odeint, JointEq
-from brainpy.version2.check import is_float
 from brainpy.version2.types import ArrayType
 
 __all__ = [

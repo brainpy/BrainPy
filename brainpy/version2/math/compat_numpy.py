@@ -14,8 +14,8 @@
 # limitations under the License.
 # ==============================================================================
 import jax
-import numpy as np
 import jax.numpy as jnp
+import numpy as np
 from jax.tree_util import tree_flatten, tree_unflatten, tree_map
 
 from ._utils import _compatible_with_brainpy_array, _as_jax_array_

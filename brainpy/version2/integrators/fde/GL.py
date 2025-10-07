@@ -22,9 +22,9 @@ from typing import Dict, Union, Callable, Any
 import jax
 
 import brainpy.version2.math as bm
+from brainpy._errors import UnsupportedError
 from brainpy.version2.integrators.constants import DT
 from brainpy.version2.integrators.utils import check_inits, format_args
-from brainpy._errors import UnsupportedError
 from .base import FDEIntegrator
 from .generic import register_fde_integrator
 

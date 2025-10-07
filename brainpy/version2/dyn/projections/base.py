@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+from brainpy.mixin import ReturnInfo
 from brainpy.version2 import math as bm
-from brainpy.version2.mixin import ReturnInfo
 
 
 def _get_return(return_info):

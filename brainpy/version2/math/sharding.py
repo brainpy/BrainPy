@@ -21,7 +21,7 @@ import jax
 import numpy as np
 from jax.sharding import PartitionSpec, Mesh, NamedSharding, Sharding
 
-from .ndarray import Array, ShardedArray, Array
+from .ndarray import ShardedArray, Array
 
 __all__ = [
     'device_mesh',

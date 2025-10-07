@@ -22,13 +22,13 @@ import tqdm.auto
 from jax.tree_util import tree_map
 
 import brainstate.environ
+from brainpy.mixin import SupportOnline
 from brainpy.version2 import math as bm, tools
+from brainpy.version2.algorithms.online import get, OnlineAlgorithm, RLS
 from brainpy.version2.context import share
 from brainpy.version2.dynsys import DynamicalSystem
 from brainpy.version2.helpers import clear_input
-from brainpy.version2.mixin import SupportOnline
 from brainpy.version2.runners import _call_fun_with_share
-from brainpy.version2.algorithms.online import get, OnlineAlgorithm, RLS
 from brainpy.version2.types import ArrayType, Output
 from ._utils import format_ys
 from .base import DSTrainer

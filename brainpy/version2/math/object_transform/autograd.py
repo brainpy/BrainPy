@@ -16,9 +16,8 @@
 from typing import Union, Callable, Dict, Sequence, Optional
 
 import brainstate.transform
-
-from .variables import Variable
 from ._utils import warp_to_no_state_input_output
+from .variables import Variable
 
 __all__ = [
     'grad',  # gradient of scalar function

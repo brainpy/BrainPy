@@ -20,9 +20,9 @@ import jax.numpy as jnp
 from jax import vmap
 
 import brainpy.version2.math as bm
+from brainpy.version2.check import is_sequence
 from brainpy.version2.dynsys import Projection
 from brainpy.version2.initialize import Initializer
-from brainpy.version2.check import is_sequence
 from brainpy.version2.types import ArrayType
 
 __all__ = [

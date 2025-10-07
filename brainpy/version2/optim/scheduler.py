@@ -16,14 +16,14 @@
 import warnings
 from typing import Sequence, Union
 
-import brainstate
 import jax
 import jax.numpy as jnp
 
 import brainpy.version2.math as bm
+import brainstate
+from brainpy._errors import MathError
 from brainpy.version2 import check
 from brainpy.version2.math.object_transform.base import BrainPyObject
-from brainpy._errors import MathError
 
 
 # learning rate schedules #

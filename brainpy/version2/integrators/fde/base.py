@@ -18,10 +18,10 @@ from typing import Union, Callable, Dict
 import jax.numpy as jnp
 
 import brainpy.version2.math as bm
+from brainpy._errors import UnsupportedError
+from brainpy.version2.check import is_integer
 from brainpy.version2.integrators.base import Integrator
 from brainpy.version2.integrators.utils import get_args
-from brainpy.version2.check import is_integer
-from brainpy._errors import UnsupportedError
 
 __all__ = [
     'FDEIntegrator'

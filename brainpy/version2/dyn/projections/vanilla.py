@@ -14,9 +14,9 @@
 # ==============================================================================
 from typing import Optional
 
+from brainpy.mixin import (JointType, BindCondData)
 from brainpy.version2 import math as bm, check
 from brainpy.version2.dynsys import DynamicalSystem, Projection
-from brainpy.version2.mixin import (JointType, BindCondData)
 
 __all__ = [
     'VanillaProj',

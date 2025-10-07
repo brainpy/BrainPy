@@ -18,17 +18,17 @@ from typing import Union, Callable, Sequence, Optional, Tuple
 import jax.numpy as jnp
 
 import brainpy.version2.math as bm
+from brainpy.version2.check import (is_integer,
+                                    is_initializer)
 from brainpy.version2.dnn.base import Layer
 from brainpy.version2.dnn.conv import _GeneralConv
-from brainpy.version2.check import (is_integer,
-                           is_initializer)
 from brainpy.version2.initialize import (XavierNormal,
-                                ZeroInit,
-                                Orthogonal,
-                                parameter,
-                                variable,
-                                variable_,
-                                Initializer)
+                                         ZeroInit,
+                                         Orthogonal,
+                                         parameter,
+                                         variable,
+                                         variable_,
+                                         Initializer)
 from brainpy.version2.math import activations
 from brainpy.version2.types import ArrayType
 

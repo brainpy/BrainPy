@@ -18,12 +18,12 @@ from typing import Union, Dict, Callable, Optional
 from jax import vmap
 
 import brainpy.version2.math as bm
+from brainpy.version2.check import is_float
 from brainpy.version2.connect import TwoEndConnector, All2All, One2One
 from brainpy.version2.context import share
 from brainpy.version2.dynold.experimental.base import SynConnNS, SynOutNS, SynSTPNS
 from brainpy.version2.initialize import Initializer, variable_
 from brainpy.version2.integrators import odeint, JointEq
-from brainpy.version2.check import is_float
 from brainpy.version2.types import ArrayType
 
 

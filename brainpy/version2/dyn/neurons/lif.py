@@ -18,12 +18,12 @@ from typing import Union, Callable, Optional, Any, Sequence
 from jax.lax import stop_gradient
 
 import brainpy.version2.math as bm
+from brainpy.version2.check import is_initializer
 from brainpy.version2.context import share
 from brainpy.version2.dyn._docs import ref_doc, lif_doc, pneu_doc, dpneu_doc, ltc_doc, if_doc
 from brainpy.version2.dyn.neurons.base import GradNeuDyn
 from brainpy.version2.initialize import ZeroInit, OneInit, noise as init_noise
 from brainpy.version2.integrators import odeint, sdeint, JointEq
-from brainpy.version2.check import is_initializer
 from brainpy.version2.types import Shape, ArrayType, Sharding
 
 __all__ = [

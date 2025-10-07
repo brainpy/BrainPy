@@ -25,13 +25,13 @@ import numpy as np
 from jax.tree_util import tree_map, tree_flatten
 
 import brainstate.environ
+from brainpy._errors import RunningError
 from brainpy.version2 import math as bm, tools
 from brainpy.version2.context import share
 from brainpy.version2.deprecations import _input_deprecate_msg
 from brainpy.version2.dynsys import DynamicalSystem
 from brainpy.version2.helpers import clear_input
 from brainpy.version2.running.runner import Runner
-from brainpy._errors import RunningError
 from brainpy.version2.types import Output, Monitor
 
 __all__ = [

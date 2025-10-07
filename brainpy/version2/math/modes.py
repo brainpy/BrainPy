@@ -13,7 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from brainpy import mixin
+
+
+import brainstate
 
 __all__ = [
     'Mode',
@@ -26,7 +28,7 @@ __all__ = [
 ]
 
 
-class Mode(mixin.Mode):
+class Mode(brainstate.mixin.Mode):
     """Base class for computation Mode
     """
 

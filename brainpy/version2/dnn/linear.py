@@ -13,22 +13,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-import jax
-import jax.numpy as jnp
 import numbers
-import numpy as np
 from typing import Dict, Optional, Union, Callable
 
+import jax
+import jax.numpy as jnp
+import numpy as np
 from brainevent._csr_impl_plasticity import csr_on_pre, csr2csc_on_post
 from brainevent._dense_impl_plasticity import dense_on_pre, dense_on_post
-from brainpy.version2 import math as bm
+
+from brainpy._errors import MathError
+from brainpy.mixin import SupportOnline, SupportOffline, SupportSTDP
 from brainpy.version2 import connect, initialize as init
-from brainpy.version2.context import share
-from brainpy.version2.dnn.base import Layer
-from brainpy.version2.mixin import SupportOnline, SupportOffline, SupportSTDP
+from brainpy.version2 import math as bm
 from brainpy.version2.check import is_initializer
 from brainpy.version2.connect import csr2csc
-from brainpy._errors import MathError
+from brainpy.version2.context import share
+from brainpy.version2.dnn.base import Layer
 from brainpy.version2.initialize import XavierNormal, ZeroInit, Initializer, parameter
 from brainpy.version2.types import ArrayType, Sharding
 

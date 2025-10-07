@@ -40,8 +40,9 @@ Details in the following.
 #    the index update is the same way with the numpy
 #
 
-import brainstate
 import braintools
+
+import brainstate
 
 random = brainstate.random
 surrogate = braintools.surrogate

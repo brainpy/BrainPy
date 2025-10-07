@@ -31,8 +31,8 @@ import jax.numpy as jnp
 import jax.scipy
 import numpy as np
 
-from .ndarray import Array
 from brainstate.random import uniform
+from .ndarray import Array
 
 __all__ = [
     'celu',

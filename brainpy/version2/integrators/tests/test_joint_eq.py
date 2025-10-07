@@ -16,8 +16,8 @@
 import unittest
 
 import brainpy.version2.math as bm
-from brainpy.version2.integrators.joint_eq import _get_args, JointEq
 from brainpy._errors import DiffEqError
+from brainpy.version2.integrators.joint_eq import _get_args, JointEq
 
 
 class TestGetArgs(unittest.TestCase):

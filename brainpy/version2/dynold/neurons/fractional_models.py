@@ -18,13 +18,13 @@ from typing import Union, Sequence, Callable
 import jax.numpy as jnp
 
 import brainpy.version2.math as bm
+from brainpy.version2.check import is_float, is_integer, is_initializer
 from brainpy.version2.context import share
 from brainpy.version2.dyn.base import NeuDyn
 from brainpy.version2.initialize import ZeroInit, OneInit, Initializer, parameter
 from brainpy.version2.integrators.fde import CaputoL1Schema
 from brainpy.version2.integrators.fde import GLShortMemory
 from brainpy.version2.integrators.joint_eq import JointEq
-from brainpy.version2.check import is_float, is_integer, is_initializer
 from brainpy.version2.types import Shape, ArrayType
 
 __all__ = [

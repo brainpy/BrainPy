@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from brainpy.version2.deprecations import deprecation_getattr2
 
 from functools import wraps, partial
 from typing import Union, Sequence, Dict, Callable, Tuple, Type, Optional, Any

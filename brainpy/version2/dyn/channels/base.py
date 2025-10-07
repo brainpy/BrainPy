@@ -13,9 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+from brainpy.mixin import TreeNode
 from brainpy.version2.dyn.base import IonChaDyn
 from brainpy.version2.dyn.neurons.hh import HHTypedNeuron
-from brainpy.version2.mixin import TreeNode
 
 __all__ = [
     'IonChannel',

@@ -18,17 +18,17 @@ from typing import Union, Callable
 from jax.lax import stop_gradient
 
 import brainpy.version2.math as bm
+from brainpy.version2.check import is_initializer, is_callable, is_subclass
 from brainpy.version2.context import share
 from brainpy.version2.dyn.base import NeuDyn
 from brainpy.version2.dyn.neurons import lif
 from brainpy.version2.initialize import (ZeroInit,
-                                     OneInit,
-                                     Initializer,
-                                     parameter,
-                                     variable_,
-                                     noise as init_noise)
+                                         OneInit,
+                                         Initializer,
+                                         parameter,
+                                         variable_,
+                                         noise as init_noise)
 from brainpy.version2.integrators import sdeint, odeint, JointEq
-from brainpy.version2.check import is_initializer, is_callable, is_subclass
 from brainpy.version2.types import Shape, ArrayType
 
 __all__ = [

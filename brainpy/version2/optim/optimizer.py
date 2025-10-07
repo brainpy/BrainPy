@@ -20,9 +20,9 @@ import jax.numpy as jnp
 from jax.lax import cond
 
 import brainpy.version2.math as bm
+from brainpy._errors import MathError
 from brainpy.version2 import check
 from brainpy.version2.math.object_transform.base import BrainPyObject, ArrayCollector
-from brainpy._errors import MathError
 from .scheduler import make_schedule, Scheduler
 
 __all__ = [

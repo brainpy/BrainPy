@@ -14,10 +14,10 @@
 # ==============================================================================
 from typing import Optional, Union
 
+from brainpy.mixin import (JointType, SupportAutoDelay)
 from brainpy.version2 import math as bm, check
 from brainpy.version2.delay import (delay_identifier, register_delay_by_return)
 from brainpy.version2.dynsys import DynamicalSystem, Projection
-from brainpy.version2.mixin import (JointType, SupportAutoDelay)
 
 __all__ = [
     'HalfProjDelta', 'FullProjDelta',

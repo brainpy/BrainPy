@@ -15,12 +15,12 @@
 # ==============================================================================
 from typing import Dict, Callable, Union
 
+from brainpy._errors import DiffEqError, CodeError
 from brainpy.version2 import math as bm
+from brainpy.version2.check import is_dict_data
 from brainpy.version2.integrators import constants, utils
 from brainpy.version2.integrators.base import Integrator
 from brainpy.version2.integrators.constants import DT
-from brainpy.version2.check import is_dict_data
-from brainpy._errors import DiffEqError, CodeError
 
 __all__ = [
     'ODEIntegrator',

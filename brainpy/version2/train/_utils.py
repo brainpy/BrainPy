@@ -16,8 +16,8 @@
 import jax.numpy as jnp
 
 import brainpy.version2.math as bm
-from brainpy.version2.dynsys import DynamicalSystem
 from brainpy.version2.check import is_dict_data
+from brainpy.version2.dynsys import DynamicalSystem
 
 __all__ = [
     'format_ys'
