@@ -25,7 +25,6 @@ build:
           echo "Building standard brainpy documentation"
           mkdir -p docs_build
           cp -r docs/* docs_build/
-        
         if [ "$DOC_BUILD_VERSION" = "v2" ]; then
           echo "DOC_BUILD_VERSION is: $DOC_BUILD_VERSION"
           echo "Building brainpy-version2 documentation"
