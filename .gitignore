@@ -233,3 +233,6 @@ cython_debug/
 /docs/_static/logos/
 /docs/_build/
 /docs/changelog.md
+/docs_version3/_build/
+/docs_version3/_static/logos/
+/docs_version3/changelog.md

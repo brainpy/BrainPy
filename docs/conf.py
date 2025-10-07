@@ -16,19 +16,29 @@ import shutil
 import sys
 
 
-print(os.environ['CURRENT_VERSION'])
 
+build_version = os.environ.get('CURRENT_VERSION', 'v3')
+if build_version == 'v2':
+    shutil.copytree(
+        os.path.join(os.path.dirname(__file__), '../docs_version2'),
+        os.path.join(os.path.dirname(__file__), ),
+        dirs_exist_ok=True
+    )
+else:
+    shutil.copytree(
+        os.path.join(os.path.dirname(__file__), '../docs_version3'),
+        os.path.join(os.path.dirname(__file__), ),
+    )
 
 sys.path.insert(0, os.path.abspath('./'))
 sys.path.insert(0, os.path.abspath('../'))
-sys.path.insert(0, r'D:\codes\projects\brainstate')
 
 import brainpy
+
 shutil.copytree('../images/', './_static/logos/', dirs_exist_ok=True)
 shutil.copyfile('../changelog.md', './changelog.md')
 shutil.rmtree('./generated', ignore_errors=True)
 shutil.rmtree('./_build', ignore_errors=True)
-
 
 # -- Project information -----------------------------------------------------
 
@@ -37,7 +47,6 @@ copyright = '2020-, BrainPy'
 author = 'BrainPy Team'
 
 from highlight_test_lexer import fix_ipython2_lexer_in_notebooks
-
 fix_ipython2_lexer_in_notebooks(os.path.dirname(os.path.abspath(__file__)))
 
 # The full version, including alpha/beta/rc tags
@@ -92,12 +101,21 @@ myst_enable_extensions = ["dollarmath", "amsmath", "deflist", "colon_fence"]
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # href with no underline and white bold text color
-announcement = """
-<a href="https://brainpy-v2.readthedocs.io" style="text-decoration: none; color: white;">
-  This site covers the new BrainPy 3.0 API. 
-  <span style="color: lightgray;">[Click here for the classical <b>BrainPy 2.0</b> API]</span>
-</a>
-"""
+
+if build_version == 'v2':
+    announcement = """
+    <a href="https://brainpy-v2.readthedocs.io" style="text-decoration: none; color: white;">
+      This site covers the new BrainPy 3.0 API. 
+      <span style="color: lightgray;">[Click here for the classical <b>BrainPy 2.0</b> API]</span>
+    </a>
+    """
+else:
+    announcement = """
+    <a href="https://brainpy-v2.readthedocs.io" style="text-decoration: none; color: white;">
+      This site covers the new BrainPy 3.0 API. 
+      <span style="color: lightgray;">[Click here for the classical <b>BrainPy 2.0</b> API]</span>
+    </a>
+    """
 
 html_theme_options = {
     'repository_url': 'https://github.com/brainpy/BrainPy',

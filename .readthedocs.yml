@@ -9,26 +9,10 @@ build:
   os: "ubuntu-24.04"
   tools:
     python: "3.13"
-  jobs:
-    post_checkout:
-      # Copy the appropriate conf.py based on git branch/tag
-      - |
-        echo "Building documentation for version: $CURRENT_VERSION"
-
-        # Check if this is a v2 version (latest, stable, or tags starting with v2)
-        if [ "$CURRENT_VERSION" == "v2" ]; then
-          echo "Building brainpy-version2 documentation"
-          mkdir -p docs_build
-          cp -r docs_version2/* docs_build/
-        else
-          echo "Building standard brainpy documentation"
-          mkdir -p docs_build
-          cp -r docs/* docs_build/
-        fi
 
 # Build documentation using the copied conf.py
 sphinx:
-  configuration: docs_build/conf.py
+  configuration: docs/conf.py
 
 # Optionally set the version of Python and requirements required to build your docs
 python:
