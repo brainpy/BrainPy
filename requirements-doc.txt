@@ -15,3 +15,4 @@ sphinx-copybutton>=0.5.0
 sphinx-remove-toctrees
 jupyter-sphinx>=0.3.2
 sphinx-design
+sphinx_math_dollar

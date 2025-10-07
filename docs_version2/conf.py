@@ -12,8 +12,8 @@
 #
 
 import os
-import sys
 import shutil
+import sys
 
 sys.path.insert(0, os.path.abspath('./'))
 sys.path.insert(0, os.path.abspath('../'))
@@ -40,14 +40,7 @@ os.makedirs('apis/auto/', exist_ok=True)
 # auto_generater.generate_mixin_docs()
 # sys.exit()
 
-changelogs = [
-  ('../brainpy-changelog.md', 'apis/auto/brainpy-changelog.md'),
-  ('../brainpylib-changelog.md', 'apis/auto/brainpylib-changelog.md'),
-]
-for source, dest in changelogs:
-  if os.path.exists(dest):
-    os.remove(dest)
-  shutil.copyfile(source, dest)
+shutil.copytree('../images/', './_static/logos/', dirs_exist_ok=True)
 
 # -- Project information -----------------------------------------------------
 
@@ -64,18 +57,18 @@ release = brainpy.__version__
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-  'sphinx.ext.autodoc',
-  'sphinx.ext.autosummary',
-  'sphinx.ext.intersphinx',
-  'sphinx.ext.mathjax',
-  'sphinx.ext.napoleon',
-  'sphinx.ext.viewcode',
-  'sphinx_autodoc_typehints',
-  'myst_nb',
-  'matplotlib.sphinxext.plot_directive',
-  'sphinx_thebe',
-  'sphinx_design'
-  # 'sphinx-mathjax-offline',
+    'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.mathjax',
+    'sphinx.ext.napoleon',
+    'sphinx.ext.viewcode',
+    'sphinx_autodoc_typehints',
+    'myst_nb',
+    'matplotlib.sphinxext.plot_directive',
+    'sphinx_thebe',
+    'sphinx_design'
+    # 'sphinx-mathjax-offline',
 ]
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -83,7 +76,6 @@ extensions = [
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 source_suffix = ['.rst', '.ipynb', '.md']
-
 
 # source_suffix = '.rst'
 autosummary_generate = True
@@ -101,33 +93,43 @@ nitpick_ignore = [
 ]
 
 suppress_warnings = ["myst.domains", "ref.ref"]
-
 numfig = True
-
-myst_enable_extensions = [
-    "dollarmath",
-    "amsmath",
-    "deflist",
-    "colon_fence",
-    # "html_admonition",
-    # "html_image",
-    # "smartquotes",
-    # "replacements",
-    # "linkify",
-    # "substitution",
-]
+myst_enable_extensions = ["dollarmath", "amsmath", "deflist", "colon_fence"]
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
+# href with no underline and white bold text color
+announcement = """
+<a href="https://brainpy.readthedocs.io" style="text-decoration: none; color: white;">
+  This site covers the old BrainPy 2.0 API. <span style="color: lightgray;">[Explore the new <b>BrainPy 3.0</b> API ✨]</span>
+</a>
+"""
+
+html_theme_options = {
+    'repository_url': 'https://github.com/brainpy/BrainPy',
+    'use_repository_button': True,  # add a 'link to repository' button
+    'use_issues_button': False,  # add an 'Open an Issue' button
+    'path_to_docs': 'docs',  # used to compute the path to launch notebooks in colab
+    'launch_buttons': {
+        'colab_url': 'https://colab.research.google.com/',
+    },
+    'prev_next_buttons_location': None,
+    'show_navbar_depth': 1,
+    'announcement': announcement,
+    'logo_only': True,
+    'show_toc_level': 2,
+}
+
 html_theme = "sphinx_book_theme"
-html_logo = "_static/logo.png"
+html_logo = "_static/logos/logo.png"
 html_title = "BrainPy documentation"
 html_copy_source = True
 html_sourcelink_suffix = ""
-html_favicon = "_static/logo-square.png"
+html_favicon = "_static/logos/logo-square.png"
 html_last_updated_fmt = ""
+html_css_files = ['css/theme.css']
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -137,12 +139,6 @@ jupyter_execute_notebooks = "off"
 thebe_config = {
     "repository_url": "https://github.com/binder-examples/jupyter-stacks-datascience",
     "repository_branch": "master",
-}
-
-
-html_theme_options = {
-    'logo_only': True,
-    'show_toc_level': 2,
 }
 
 # -- Options for myst ----------------------------------------------

@@ -1,7 +1,21 @@
 # -*- coding: utf-8 -*-
-
+# Copyright 2025 BrainX Ecosystem Limited. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
 from typing import Union, Dict, Callable, Optional
 
+from brainpy.mixin import ParamDesc
 from brainpy.version2.connect import TwoEndConnector
 from brainpy.version2.dyn import synapses
 from brainpy.version2.dyn.base import NeuDyn
@@ -9,7 +23,6 @@ from brainpy.version2.dynold.synapses import _TwoEndConnAlignPre
 from brainpy.version2.dynold.synouts import CUBA
 from brainpy.version2.dynsys import Sequential
 from brainpy.version2.initialize import Initializer
-from brainpy.version2.mixin import ParamDesc
 from brainpy.version2.types import ArrayType
 
 __all__ = [

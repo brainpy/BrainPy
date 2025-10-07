@@ -1,21 +1,34 @@
 # -*- coding: utf-8 -*-
-
+# Copyright 2025 BrainX Ecosystem Limited. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
 from typing import Union, Callable, Sequence, Optional, Tuple
 
 import jax.numpy as jnp
 
 import brainpy.version2.math as bm
+from brainpy.version2.check import (is_integer,
+                                    is_initializer)
 from brainpy.version2.dnn.base import Layer
 from brainpy.version2.dnn.conv import _GeneralConv
-from brainpy.version2.check import (is_integer,
-                           is_initializer)
 from brainpy.version2.initialize import (XavierNormal,
-                                ZeroInit,
-                                Orthogonal,
-                                parameter,
-                                variable,
-                                variable_,
-                                Initializer)
+                                         ZeroInit,
+                                         Orthogonal,
+                                         parameter,
+                                         variable,
+                                         variable_,
+                                         Initializer)
 from brainpy.version2.math import activations
 from brainpy.version2.types import ArrayType
 

@@ -1,4 +1,4 @@
-# Copyright 2024 BDP Ecosystem Limited. All Rights Reserved.
+# Copyright 2024 BrainX Ecosystem Limited. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,18 +18,20 @@
 
 from typing import Optional, Callable
 
-from brainstate.typing import Size, ArrayLike
-import brainstate
 import braintools
 import brainunit as u
+
+import brainstate
+from brainstate.typing import Size, ArrayLike
 from ._base import Synapse
+from .mixin import AlignPost
 
 __all__ = [
-     'Expon', 'DualExpon',
+    'Expon', 'DualExpon',
 ]
 
 
-class Expon(Synapse, brainstate.mixin.AlignPost):
+class Expon(Synapse, AlignPost):
     r"""
     Exponential decay synapse model.
 
@@ -97,7 +99,7 @@ class Expon(Synapse, brainstate.mixin.AlignPost):
         return self.g.value
 
 
-class DualExpon(Synapse, brainstate.mixin.AlignPost):
+class DualExpon(Synapse, AlignPost):
     r"""
     Dual exponential synapse model.
 

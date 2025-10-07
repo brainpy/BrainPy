@@ -6,11 +6,29 @@ general-purpose Brain Dynamics Programming (BDP).
 
 
 
-
-
-
 .. _BrainPy: https://github.com/brainpy/BrainPy
 
+
+
+.. note::
+
+    From September 2025, BrainPy has been upgraded to version 3.x.
+    To compatible apis within version 2.x. Please change your code:
+
+    .. code-block:: python
+
+       # Old version (v2.x)
+       import brainpy as bp
+       import brainpy.math as bm
+
+    to the new version:
+
+
+    .. code-block:: python
+
+       # New version (v3.x)
+       import brainpy.version2 as bp
+       import brainpy.version2.math as bm
 
 
 
@@ -26,11 +44,13 @@ Installation
 
           pip install -U brainpy[cpu]
 
-    .. tab-item:: GPU (CUDA 12)
+    .. tab-item:: GPU
 
        .. code-block:: bash
 
           pip install -U brainpy[cuda12]
+
+          pip install -U brainpy[cuda13]
 
     .. tab-item:: TPU
 
@@ -42,13 +62,7 @@ Installation
 
        .. code-block:: bash
 
-          pip install -U BrainX[cpu]
-
-          # or
-          pip install -U BrainX[cuda12]
-
-          # or
-          pip install -U BrainX[tpu]
+          pip install -U BrainX
 
 
 
@@ -143,6 +157,7 @@ Learn more
    :maxdepth: 1
    :caption: Quickstart
 
+   quickstart/installation.rst
    quickstart/simulation
    quickstart/training
    quickstart/analysis
@@ -160,5 +175,5 @@ Learn more
    advanced_tutorials.rst
    FAQ.rst
    api.rst
-   apis/auto/brainpy-changelog.md
-   apis/auto/brainpylib-changelog.md
+   brainpy-changelog.md
+   brainpylib-changelog.md

@@ -1,4 +1,4 @@
-# Copyright 2024 BDP Ecosystem Limited. All Rights Reserved.
+# Copyright 2024 BrainX Ecosystem Limited. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,16 +15,18 @@
 
 # -*- coding: utf-8 -*-
 
-import brainstate
 import brainunit as u
 import jax.numpy as jnp
+
+import brainstate
+from .mixin import BindCondData
 
 __all__ = [
     'SynOut', 'COBA', 'CUBA', 'MgBlock',
 ]
 
 
-class SynOut(brainstate.nn.Module, brainstate.mixin.BindCondData):
+class SynOut(brainstate.nn.Module, BindCondData):
     """
     Base class for synaptic outputs.
 
@@ -41,7 +43,7 @@ class SynOut(brainstate.nn.Module, brainstate.mixin.BindCondData):
         if self._conductance is None:
             raise ValueError(
                 f'Please first pack conductance data at the current step using '
-                f'".{brainstate.mixin.BindCondData.bind_cond.__name__}(data)". {self}'
+                f'".{BindCondData.bind_cond.__name__}(data)". {self}'
             )
         ret = self.update(self._conductance, *args, **kwargs)
         return ret

@@ -17,12 +17,13 @@ from typing import Callable, Union
 from typing import Optional
 
 import brainevent
+
 import brainstate
 from brainstate._state import State
-from brainstate.mixin import BindCondData, JointTypes, ParamDescriber, AlignPost
+from brainstate.mixin import JointTypes, ParamDescriber
 from brainstate.nn._dynamics import maybe_init_prefetch
-
 from ._synouts import SynOut
+from .mixin import BindCondData, AlignPost
 
 if brainstate.__version__ < '0.2.0':
     from brainstate.util.others import get_unique_name
@@ -31,11 +32,9 @@ else:
 
 __all__ = [
     'Projection',
-
     'AlignPostProj',
     'DeltaProj',
     'CurrentProj',
-
     'align_pre_projection',
     'align_post_projection',
 ]
@@ -60,9 +59,9 @@ class Projection(brainstate.nn.Module):
 
     Parameters
     ----------
-    *args : Any
+    *args
         Arguments passed to the parent Module class.
-    **kwargs : Any
+    **kwargs
         Keyword arguments passed to the parent Module class.
 
     Raises
@@ -285,7 +284,7 @@ class DeltaProj(Projection):
 
     Parameters
     ----------
-    *prefetch : State or callable
+    *prefetch
         Optional prefetch modules to process input before communication.
     comm : callable
         Communication model that determines how signals are transmitted.
@@ -360,7 +359,7 @@ class CurrentProj(Projection):
 
     Parameters
     ----------
-    *prefetch : State or callable
+    *prefetch
         Optional prefetch modules to process input before communication.
         The last element must be an instance of Prefetch or PrefetchDelayAt if any are provided.
     comm : callable
@@ -398,7 +397,8 @@ class CurrentProj(Projection):
         # check prefetch
         self.prefetch = prefetch
         if len(self.prefetch) > 0 and not isinstance(
-            prefetch[-1], (brainstate.nn.Prefetch, brainstate.nn.PrefetchDelayAt)):
+            prefetch[-1], (brainstate.nn.Prefetch, brainstate.nn.PrefetchDelayAt)
+        ):
             raise TypeError(
                 f'The last element of prefetch should be an instance '
                 f'of {brainstate.nn.Prefetch} or {brainstate.nn.PrefetchDelayAt}, '

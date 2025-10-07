@@ -1,5 +1,18 @@
 # -*- coding: utf-8 -*-
-
+# Copyright 2025 BrainX Ecosystem Limited. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
 import inspect
 import math
 import time
@@ -12,6 +25,7 @@ import numpy as np
 from jax.scipy.optimize import minimize
 
 import brainpy.version2.math as bm
+from brainpy._errors import AnalyzerError, UnsupportedError
 from brainpy.version2 import optim, losses
 from brainpy.version2.analysis import utils, base, constants
 from brainpy.version2.context import share
@@ -19,7 +33,6 @@ from brainpy.version2.deprecations import _input_deprecate_msg
 from brainpy.version2.dynsys import DynamicalSystem
 from brainpy.version2.helpers import clear_input
 from brainpy.version2.runners import check_and_format_inputs, _f_ops
-from brainpy._errors import AnalyzerError, UnsupportedError
 from brainpy.version2.types import ArrayType
 
 __all__ = [

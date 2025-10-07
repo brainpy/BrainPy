@@ -229,3 +229,7 @@ cython_debug/
 /bugs/
 /dev/
 /.claude/
+/docs_version2/_static/logos/
+/docs/_static/logos/
+/docs/_build/
+/docs/changelog.md

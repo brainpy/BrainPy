@@ -1,25 +1,32 @@
 # -*- coding: utf-8 -*-
-
-import numbers
+# Copyright 2025 BrainX Ecosystem Limited. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
 import warnings
 from dataclasses import dataclass
 from typing import Union, Dict, Callable, Sequence, Optional, Any
 
 import jax
 
-import brainstate.mixin
-from brainpy.version2 import math as bm, tools
-from brainpy.version2.math.object_transform.naming import get_unique_name
-from brainpy.version2.types import ArrayType
+import brainstate
 
-DynamicalSystem = None
-delay_identifier, init_delay_by_return = None, None
+bm, delay_identifier, init_delay_by_return, DynamicalSystem = None, None, None, None
 
 __all__ = [
     'MixIn',
     'ParamDesc',
     'ParamDescriber',
-    'DelayRegister',
     'AlignPost',
     'Container',
     'TreeNode',
@@ -35,9 +42,173 @@ __all__ = [
 MixIn = brainstate.mixin.Mixin
 ParamDesc = brainstate.mixin.ParamDesc
 ParamDescriber = brainstate.mixin.ParamDescriber
-AlignPost = brainstate.mixin.AlignPost
-BindCondData = brainstate.mixin.BindCondData
 JointType = brainstate.mixin.JointTypes
+
+
+def _get_bm():
+    global bm
+    if bm is None:
+        from brainpy.version2 import math
+        bm = math
+    return bm
+
+
+class AlignPost(brainstate.mixin.Mixin):
+    """
+    Mixin for aligning post-synaptic inputs.
+
+    This mixin provides an interface for components that need to receive and
+    process post-synaptic inputs, such as synaptic connections or neural
+    populations. The ``align_post_input_add`` method should be implemented
+    to handle the accumulation of external currents or inputs.
+
+    Notes
+    -----
+    Classes that inherit from this mixin must implement the
+    ``align_post_input_add`` method.
+
+    Examples
+    --------
+    Implementing a synapse with post-synaptic alignment:
+
+    .. code-block:: python
+
+        >>> import brainstate
+        >>> import jax.numpy as jnp
+        >>>
+        >>> class Synapse(brainstate.mixin.AlignPost):
+        ...     def __init__(self, weight):
+        ...         self.weight = weight
+        ...         self.post_current = brainstate.State(0.0)
+        ...
+        ...     def align_post_input_add(self, current):
+        ...         # Accumulate the weighted current into post-synaptic target
+        ...         self.post_current.value += current * self.weight
+        >>>
+        >>> # Usage
+        >>> synapse = Synapse(weight=0.5)
+        >>> synapse.align_post_input_add(10.0)
+        >>> print(synapse.post_current.value)  # Output: 5.0
+
+    Using with neural populations:
+
+    .. code-block:: python
+
+        >>> class NeuronGroup(brainstate.mixin.AlignPost):
+        ...     def __init__(self, size):
+        ...         self.size = size
+        ...         self.input_current = brainstate.State(jnp.zeros(size))
+        ...
+        ...     def align_post_input_add(self, current):
+        ...         # Add external current to neurons
+        ...         self.input_current.value = self.input_current.value + current
+        >>>
+        >>> neurons = NeuronGroup(100)
+        >>> external_input = jnp.ones(100) * 0.5
+        >>> neurons.align_post_input_add(external_input)
+    """
+
+    def align_post_input_add(self, *args, **kwargs):
+        """
+        Add external inputs to the post-synaptic component.
+
+        Parameters
+        ----------
+        *args
+            Positional arguments for the input.
+        **kwargs
+            Keyword arguments for the input.
+
+        Raises
+        ------
+        NotImplementedError
+            If the method is not implemented by the subclass.
+        """
+        raise NotImplementedError
+
+
+class BindCondData(brainstate.mixin.Mixin):
+    """
+    Mixin for binding temporary conductance data.
+
+    This mixin provides an interface for temporarily storing conductance data,
+    which is useful in synaptic models where conductance values need to be
+    passed between computation steps without being part of the permanent state.
+
+    Attributes
+    ----------
+    _conductance : Any, optional
+        Temporarily bound conductance data.
+
+    Examples
+    --------
+    Using conductance binding in a synapse:
+
+    .. code-block:: python
+
+        >>> import brainstate
+        >>> import jax.numpy as jnp
+        >>>
+        >>> class ConductanceBasedSynapse(brainstate.mixin.BindCondData):
+        ...     def __init__(self):
+        ...         self._conductance = None
+        ...
+        ...     def compute(self, pre_spike):
+        ...         if pre_spike:
+        ...             # Bind conductance data temporarily
+        ...             self.bind_cond(0.5)
+        ...
+        ...         # Use conductance if available
+        ...         if self._conductance is not None:
+        ...             current = self._conductance * (0.0 - (-70.0))
+        ...             # Clear after use
+        ...             self.unbind_cond()
+        ...             return current
+        ...         return 0.0
+        >>>
+        >>> synapse = ConductanceBasedSynapse()
+        >>> current = synapse.compute(pre_spike=True)
+
+    Managing conductance in a network:
+
+    .. code-block:: python
+
+        >>> class SynapticConnection(brainstate.mixin.BindCondData):
+        ...     def __init__(self, g_max):
+        ...         self.g_max = g_max
+        ...         self._conductance = None
+        ...
+        ...     def prepare_conductance(self, activation):
+        ...         # Bind conductance based on activation
+        ...         g = self.g_max * activation
+        ...         self.bind_cond(g)
+        ...
+        ...     def apply_conductance(self, voltage):
+        ...         if self._conductance is not None:
+        ...             current = self._conductance * voltage
+        ...             self.unbind_cond()
+        ...             return current
+        ...         return 0.0
+    """
+    # Attribute to store temporary conductance data
+    _conductance: Optional
+
+    def bind_cond(self, conductance):
+        """
+        Bind conductance data temporarily.
+
+        Parameters
+        ----------
+        conductance : Any
+            The conductance data to bind.
+        """
+        self._conductance = conductance
+
+    def unbind_cond(self):
+        """
+        Unbind (clear) the conductance data.
+        """
+        self._conductance = None
 
 
 def _get_delay_tool():
@@ -47,20 +218,15 @@ def _get_delay_tool():
     return delay_identifier, init_delay_by_return
 
 
-def _get_dynsys():
-    global DynamicalSystem
-    if DynamicalSystem is None: from brainpy.version2.dynsys import DynamicalSystem
-    return DynamicalSystem
-
-
 @dataclass
 class ReturnInfo:
     size: Sequence[int]
     axis_names: Optional[Sequence[str]] = None
-    batch_or_mode: Optional[Union[int, bm.Mode]] = None
-    data: Union[Callable, bm.Array, jax.Array] = bm.zeros
+    batch_or_mode: Optional[Union[int, brainstate.mixin.Mode]] = None
+    data: Union[Callable, jax.Array] = jax.numpy.zeros
 
     def get_data(self):
+        bm = _get_bm()
         if isinstance(self.data, Callable):
             if isinstance(self.batch_or_mode, int):
                 size = (self.batch_or_mode,) + tuple(self.size)
@@ -81,7 +247,7 @@ class ReturnInfo:
 class Container(MixIn):
     """Container :py:class:`~.MixIn` which wrap a group of objects.
     """
-    children: bm.node_dict
+    children: dict()
 
     def __getitem__(self, item):
         """Overwrite the slice access (`self['']`). """
@@ -102,6 +268,7 @@ class Container(MixIn):
                 return super().__getattribute__(item)
 
     def __repr__(self):
+        from brainpy.version2 import tools
         cls_name = self.__class__.__name__
         indent = ' ' * len(cls_name)
         child_str = [tools.repr_context(repr(val), indent) for val in self.children.values()]
@@ -109,9 +276,11 @@ class Container(MixIn):
         return f'{cls_name}({string})'
 
     def __get_elem_name(self, elem):
+        bm = _get_bm()
         if isinstance(elem, bm.BrainPyObject):
             return elem.name
         else:
+            from brainpy.version2.math.object_transform.base import get_unique_name
             return get_unique_name('ContainerElem')
 
     def format_elements(self, child_type: type, *children_as_tuple, **children_as_dict):
@@ -192,97 +361,6 @@ class TreeNode(MixIn):
                             f'of {leaf.master_type}, but the master now is {root}.')
 
 
-class DelayRegister(MixIn):
-
-    def register_delay(
-        self,
-        identifier: str,
-        delay_step: Optional[Union[int, ArrayType, Callable]],
-        delay_target: bm.Variable,
-        initial_delay_data: Union[Callable, ArrayType, numbers.Number] = None,
-    ):
-        """Register delay variable.
-
-        Args:
-          identifier: str. The delay access name.
-          delay_target: The target variable for delay.
-          delay_step: The delay time step.
-          initial_delay_data: The initializer for the delay data.
-
-        Returns:
-          delay_pos: The position of the delay.
-        """
-        _delay_identifier, _init_delay_by_return = _get_delay_tool()
-        DynamicalSystem = _get_dynsys()
-        assert isinstance(self, DynamicalSystem), f'self must be an instance of {DynamicalSystem.__name__}'
-        _delay_identifier = _delay_identifier + identifier
-        if not self.has_aft_update(_delay_identifier):
-            self.add_aft_update(_delay_identifier, _init_delay_by_return(delay_target, initial_delay_data))
-        delay_cls = self.get_aft_update(_delay_identifier)
-        name = get_unique_name('delay')
-        delay_cls.register_entry(name, delay_step)
-        return name
-
-    def get_delay_data(
-        self,
-        identifier: str,
-        delay_pos: str,
-        *indices: Union[int, slice, bm.Array, jax.Array],
-    ):
-        """Get delay data according to the provided delay steps.
-
-        Parameters::
-
-        identifier: str
-          The delay variable name.
-        delay_pos: str
-          The delay length.
-        indices: optional, int, slice, ArrayType
-          The indices of the delay.
-
-        Returns::
-
-        delay_data: ArrayType
-          The delay data at the given time.
-        """
-        _delay_identifier, _init_delay_by_return = _get_delay_tool()
-        _delay_identifier = _delay_identifier + identifier
-        delay_cls = self.get_aft_update(_delay_identifier)
-        return delay_cls.at(delay_pos, *indices)
-
-    def update_local_delays(self, nodes: Union[Sequence, Dict] = None):
-        """Update local delay variables.
-
-        This function should be called after updating neuron groups or delay sources.
-        For example, in a network model,
-
-
-        Parameters::
-
-        nodes: sequence, dict
-          The nodes to update their delay variables.
-        """
-        warnings.warn('.update_local_delays() has been removed since brainpy>=2.4.6',
-                      DeprecationWarning)
-
-    def reset_local_delays(self, nodes: Union[Sequence, Dict] = None):
-        """Reset local delay variables.
-
-        Parameters::
-
-        nodes: sequence, dict
-          The nodes to Reset their delay variables.
-        """
-        warnings.warn('.reset_local_delays() has been removed since brainpy>=2.4.6',
-                      DeprecationWarning)
-
-    def get_delay_var(self, name):
-        _delay_identifier, _init_delay_by_return = _get_delay_tool()
-        _delay_identifier = _delay_identifier + name
-        delay_cls = self.get_aft_update(_delay_identifier)
-        return delay_cls
-
-
 class SupportInputProj(MixIn):
     """The :py:class:`~.MixIn` that receives the input projections.
 
@@ -290,8 +368,8 @@ class SupportInputProj(MixIn):
     the input function utilities cannot be used.
 
     """
-    current_inputs: bm.node_dict
-    delta_inputs: bm.node_dict
+    current_inputs: dict
+    delta_inputs: dict
 
     def add_inp_fun(self, key: str, fun: Callable, label: Optional[str] = None, category: str = 'current'):
         """Add an input function.
@@ -403,7 +481,7 @@ class SupportInputProj(MixIn):
 class SupportReturnInfo(MixIn):
     """``MixIn`` to support the automatic delay in synaptic projection :py:class:`~.SynProj`."""
 
-    def return_info(self) -> Union[bm.Variable, ReturnInfo]:
+    def return_info(self):
         raise NotImplementedError('Must implement the "return_info()" function.')
 
 
@@ -422,7 +500,7 @@ class SupportOnline(MixIn):
     def online_init(self, *args, **kwargs):
         raise NotImplementedError
 
-    def online_fit(self, target: ArrayType, fit_record: Dict[str, ArrayType]):
+    def online_fit(self, target, fit_record: Dict):
         raise NotImplementedError
 
 
@@ -437,7 +515,7 @@ class SupportOffline(MixIn):
     def offline_init(self, *args, **kwargs):
         pass
 
-    def offline_fit(self, target: ArrayType, fit_record: Dict[str, ArrayType]):
+    def offline_fit(self, target, fit_record: Dict):
         raise NotImplementedError
 
 

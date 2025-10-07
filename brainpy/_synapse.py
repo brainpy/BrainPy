@@ -1,4 +1,4 @@
-# Copyright 2024 BDP Ecosystem Limited. All Rights Reserved.
+# Copyright 2024 BrainX Ecosystem Limited. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,16 +18,16 @@
 
 from typing import Optional, Callable
 
-from brainstate.typing import Size, ArrayLike
-import brainstate
 import braintools
 import brainunit as u
+
+import brainstate
+from brainstate.typing import Size, ArrayLike
 from ._base import Synapse
 
 __all__ = [
-     'Alpha', 'AMPA', 'GABAa',
+    'Alpha', 'AMPA', 'GABAa',
 ]
-
 
 
 class Alpha(Synapse):
@@ -122,6 +122,7 @@ class AMPA(Synapse):
     $$
 
     where:
+
     - $g$ represents the fraction of receptors in the open state
     - $\alpha$ is the binding rate constant [ms^-1 mM^-1]
     - $\beta$ is the unbinding rate constant [ms^-1]

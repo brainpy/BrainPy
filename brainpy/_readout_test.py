@@ -1,4 +1,4 @@
-# Copyright 2024 BDP Ecosystem Limited. All Rights Reserved.
+# Copyright 2024 BrainX Ecosystem Limited. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,12 +16,12 @@
 
 import unittest
 
+import braintools
+import brainunit as u
 import jax.numpy as jnp
 
-import brainunit as u
-import brainstate
-import braintools
 import brainpy
+import brainstate
 
 
 class TestReadoutModels(unittest.TestCase):

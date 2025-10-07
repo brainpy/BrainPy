@@ -1,5 +1,18 @@
 # -*- coding: utf-8 -*-
-
+# Copyright 2025 BrainX Ecosystem Limited. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
 import time
 from collections.abc import Iterable
 from typing import Union, Dict, Callable, Sequence, Optional
@@ -12,13 +25,13 @@ from tqdm import tqdm
 import brainpy.version2.losses as losses
 import brainpy.version2.math as bm
 import brainstate.environ
+from brainpy._errors import UnsupportedError, NoLongerSupportError
 from brainpy.version2 import optim
 from brainpy.version2 import tools
 from brainpy.version2.context import share
 from brainpy.version2.dynsys import DynamicalSystem
 from brainpy.version2.helpers import clear_input
 from brainpy.version2.running import constants as c
-from brainpy._errors import UnsupportedError, NoLongerSupportError
 from brainpy.version2.types import ArrayType, Output
 from ._utils import msg
 from .base import DSTrainer

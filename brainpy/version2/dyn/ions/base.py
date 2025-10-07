@@ -1,14 +1,26 @@
 # -*- coding: utf-8 -*-
-
+# Copyright 2025 BrainX Ecosystem Limited. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
 from typing import Union, Optional, Dict, Sequence, Callable
 
-from brainstate.mixin import _JointGenericAlias
-
 import brainpy.version2.math as bm
+from brainpy.mixin import Container, TreeNode
 from brainpy.version2.dyn.base import IonChaDyn
 from brainpy.version2.dyn.neurons.hh import HHTypedNeuron
-from brainpy.version2.mixin import Container, TreeNode
 from brainpy.version2.types import Shape
+from brainstate.mixin import _JointGenericAlias
 
 __all__ = [
     'MixIons',
@@ -77,7 +89,7 @@ class MixIons(IonChaDyn, Container, TreeNode):
             node.reset_state(V, *infos, batch_size)
 
     def check_hierarchy(self, roots, leaf):
-        # 'master_type' should be a brainpy.version2.mixin.JointType
+        # 'master_type' should be a brainpy.mixin.JointType
         self._check_master_type(leaf)
         for cls in leaf.master_type.__args__:
             if not any([issubclass(root, cls) for root in roots]):
@@ -117,7 +129,7 @@ class MixIons(IonChaDyn, Container, TreeNode):
     def _check_master_type(self, leaf):
         if not isinstance(leaf.master_type, _JointGenericAlias):
             raise TypeError(f'{self.__class__.__name__} requires leaf nodes that have the master_type of '
-                            f'"brainpy.version2.mixin.JointType". However, we got {leaf.master_type}')
+                            f'"brainpy.mixin.JointType". However, we got {leaf.master_type}')
 
 
 def mix_ions(*ions) -> MixIons:

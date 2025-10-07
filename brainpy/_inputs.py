@@ -1,4 +1,4 @@
-# Copyright 2024 BDP Ecosystem Limited. All Rights Reserved.
+# Copyright 2024 BrainX Ecosystem Limited. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,9 +21,8 @@ import jax
 import numpy as np
 
 import brainstate
-from brainstate.typing import ArrayLike, Size, DTypeLike
 from brainpy._misc import set_module_as
-
+from brainstate.typing import ArrayLike, Size, DTypeLike
 
 __all__ = [
     'SpikeTime',

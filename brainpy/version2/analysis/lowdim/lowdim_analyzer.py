@@ -1,5 +1,18 @@
 # -*- coding: utf-8 -*-
-
+# Copyright 2025 BrainX Ecosystem Limited. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
 import warnings
 from functools import partial
 
@@ -257,7 +270,7 @@ class Num1DAnalyzer(LowDimAnalyzer):
 
     @property
     def F_fx(self):
-        """Make the standard function call of :math:`f_x (*\mathrm{vars}, *\mathrm{pars})`.
+        r"""Make the standard function call of :math:`f_x (*\mathrm{vars}, *\mathrm{pars})`.
 
         This function has been transformed into the standard call.
         For instance, if the user has the ``target_vars=("v1", "v2")`` and
@@ -899,7 +912,8 @@ class Num2DAnalyzer(Num1DAnalyzer):
     def _get_fixed_points(self, candidates, *args, tol_aux=1e-7,
                           tol_unique=1e-2, tol_opt_candidate=None,
                           num_segment=1):
-        """Get the fixed points according to the initial ``candidates`` and the parameter setting ``args``.
+        r"""
+        Get the fixed points according to the initial ``candidates`` and the parameter setting ``args``.
 
         "candidates" and "args" can be obtained through:
 

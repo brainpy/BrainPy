@@ -16,6 +16,7 @@
 __version__ = "3.0.0"
 __version_info__ = (3, 0, 0)
 
+from . import mixin
 from . import version2
 from ._base import *
 from ._base import __all__ as base_all
@@ -40,7 +41,7 @@ from ._synaptic_projection import __all__ as synproj_all
 from ._synouts import *
 from ._synouts import __all__ as synout_all
 
-__main__ = ['version2'] + errors_all + inputs_all + neuron_all + readout_all + stp_all + synapse_all
+__main__ = ['version2', 'mixin'] + errors_all + inputs_all + neuron_all + readout_all + stp_all + synapse_all
 __main__ = __main__ + synout_all + base_all + exp_all + proj_all + synproj_all
 del errors_all, inputs_all, neuron_all, readout_all, stp_all, synapse_all, synout_all, base_all
 del exp_all, proj_all, synproj_all
@@ -81,7 +82,7 @@ import sys as _sys
 _deprecated_modules = [
     'math', 'check', 'tools', 'connect', 'initialize', 'init', 'conn',
     'optim', 'losses', 'measure', 'inputs', 'encoding', 'checkpoints',
-    'mixin', 'algorithms', 'integrators', 'ode', 'sde', 'fde',
+    'algorithms', 'integrators', 'ode', 'sde', 'fde',
     'dnn', 'layers', 'dyn', 'running', 'train', 'analysis',
     'channels', 'neurons', 'rates', 'synapses', 'synouts', 'synplast',
     'visualization', 'visualize', 'types', 'modes', 'context',
@@ -96,4 +97,3 @@ for _mod_name in _deprecated_modules:
 del _sys, _mod_name, _deprecated_modules
 
 version2.__version__ = __version__
-

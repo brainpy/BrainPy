@@ -1,5 +1,18 @@
 # -*- coding: utf-8 -*-
-
+# Copyright 2025 BrainX Ecosystem Limited. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
 """
 This module provides numerical methods for integrating Caputo fractional derivative equations.
 
@@ -11,10 +24,10 @@ import jax
 from scipy.special import gamma, rgamma
 
 import brainpy.version2.math as bm
+from brainpy._errors import UnsupportedError
 from brainpy.version2 import check
 from brainpy.version2.integrators.constants import DT
 from brainpy.version2.integrators.utils import check_inits, format_args
-from brainpy._errors import UnsupportedError
 from brainpy.version2.types import ArrayType
 from .base import FDEIntegrator
 from .generic import register_fde_integrator

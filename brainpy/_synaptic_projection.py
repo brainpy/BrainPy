@@ -17,12 +17,11 @@
 
 from typing import Callable, Union, Tuple
 
+import braintools
 import brainunit as u
 
-import braintools
 import brainstate
 from brainstate.typing import ArrayLike
-
 from ._projection import Projection
 
 __all__ = [
@@ -248,14 +247,14 @@ class AsymmetryGapJunction(Projection):
 
     Examples
     --------
-    >>> import brainstate
+    >>> import brainpy
     >>> import brainunit as u
     >>> import numpy as np
     >>>
     >>> # Create two neuron populations
     >>> n_neurons = 100
-    >>> pre_pop = brainstate.nn.LIF(n_neurons, V_rest=-70*u.mV, V_threshold=-50*u.mV)
-    >>> post_pop = brainstate.nn.LIF(n_neurons, V_rest=-70*u.mV, V_threshold=-50*u.mV)
+    >>> pre_pop = brainpy.LIF(n_neurons, V_rest=-70*u.mV, V_threshold=-50*u.mV)
+    >>> post_pop = brainpy.LIF(n_neurons, V_rest=-70*u.mV, V_threshold=-50*u.mV)
     >>> pre_pop.init_state()
     >>> post_pop.init_state()
     >>>
@@ -263,7 +262,7 @@ class AsymmetryGapJunction(Projection):
     >>> weights = np.ones((n_neurons, 2)) * u.nS
     >>> weights[:, 0] *= 2.0  # Double weight in pre->post direction
     >>>
-    >>> gap_junction = brainstate.nn.AsymmetryGapJunction(
+    >>> gap_junction = brainpy.AsymmetryGapJunction(
     ...     pre=pre_pop,
     ...     pre_state='V',
     ...     post=post_pop,

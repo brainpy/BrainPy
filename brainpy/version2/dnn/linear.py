@@ -1,22 +1,35 @@
 # -*- coding: utf-8 -*-
-
+# Copyright 2025 BrainX Ecosystem Limited. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
+import numbers
+from typing import Dict, Optional, Union, Callable
 
 import jax
 import jax.numpy as jnp
-import numbers
 import numpy as np
-from typing import Dict, Optional, Union, Callable
-
 from brainevent._csr_impl_plasticity import csr_on_pre, csr2csc_on_post
 from brainevent._dense_impl_plasticity import dense_on_pre, dense_on_post
-from brainpy.version2 import math as bm
+
+from brainpy._errors import MathError
+from brainpy.mixin import SupportOnline, SupportOffline, SupportSTDP
 from brainpy.version2 import connect, initialize as init
-from brainpy.version2.context import share
-from brainpy.version2.dnn.base import Layer
-from brainpy.version2.mixin import SupportOnline, SupportOffline, SupportSTDP
+from brainpy.version2 import math as bm
 from brainpy.version2.check import is_initializer
 from brainpy.version2.connect import csr2csc
-from brainpy._errors import MathError
+from brainpy.version2.context import share
+from brainpy.version2.dnn.base import Layer
 from brainpy.version2.initialize import XavierNormal, ZeroInit, Initializer, parameter
 from brainpy.version2.types import ArrayType, Sharding
 

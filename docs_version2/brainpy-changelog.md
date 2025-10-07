@@ -5,7 +5,7 @@
 ## brainpy 3.0.0
 
 
-### Version 3.0.0
+See [brainpy version 3.0 changelog](https://brainpy.readthedocs.io/changelog.html).
 
 
 

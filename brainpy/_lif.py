@@ -1,4 +1,4 @@
-# Copyright 2024 BDP Ecosystem Limited. All Rights Reserved.
+# Copyright 2024 BrainX Ecosystem Limited. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,16 +17,16 @@
 
 from typing import Callable
 
-import brainstate
+import braintools
 import brainunit as u
 import jax
-from brainstate.typing import ArrayLike, Size
 
-import braintools
+import brainstate
+from brainstate.typing import ArrayLike, Size
 from ._base import Neuron
 
 __all__ = [
-     'IF', 'LIF', 'LIFRef', 'ALIF',
+    'IF', 'LIF', 'LIFRef', 'ALIF',
 ]
 
 

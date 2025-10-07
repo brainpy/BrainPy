@@ -1,4 +1,4 @@
-# Copyright 2024 BDP Ecosystem Limited. All Rights Reserved.
+# Copyright 2024 BrainX Ecosystem Limited. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,11 +19,11 @@
 import numbers
 from typing import Callable
 
+import braintools
 import brainunit as u
 import jax
 
 import brainstate
-import braintools
 from brainstate.typing import Size, ArrayLike
 from ._base import Neuron
 

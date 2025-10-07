@@ -1,4 +1,4 @@
-# Copyright 2025 BDP Ecosystem Limited. All Rights Reserved.
+# Copyright 2025 BrainX Ecosystem Limited. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,10 +17,10 @@
 
 from typing import Optional
 
+import braintools
 import brainunit as u
 
 import brainstate
-import braintools
 from brainstate.typing import ArrayLike, Size
 from ._base import Synapse
 
@@ -209,7 +209,6 @@ class STD(Synapse):
         self,
         in_size: Size,
         name: Optional[str] = None,
-        # synapse parameters
         tau: ArrayLike = 200. * u.ms,
         U: ArrayLike = 0.07,
     ):
@@ -220,7 +219,9 @@ class STD(Synapse):
         self.U = braintools.init.param(U, self.varshape)
 
     def init_state(self, batch_size: int = None, **kwargs):
-        self.x = brainstate.HiddenState(braintools.init.param(braintools.init.Constant(1.), self.varshape, batch_size))
+        self.x = brainstate.HiddenState(
+            braintools.init.param(braintools.init.Constant(1.), self.varshape, batch_size)
+        )
 
     def reset_state(self, batch_size: int = None, **kwargs):
         self.x.value = braintools.init.param(braintools.init.Constant(1.), self.varshape, batch_size)
