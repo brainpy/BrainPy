@@ -11,15 +11,17 @@ build:
     python: "3.13"
   jobs:
     post_checkout:
-      # Copy the appropriate conf.py based on project name
+      # Copy the appropriate conf.py based on git branch/tag
       - |
-        if [ "$DOC_BUILD_VERSION" = "v2" ]; then
-          echo "DOC_BUILD_VERSION is: $DOC_BUILD_VERSION"
+        CURRENT_VERSION="${READTHEDOCS_VERSION_NAME}"
+        echo "Building documentation for version: $CURRENT_VERSION"
+
+        # Check if this is a v2 version (branch/tag starts with v2 or contains version2)
+        if [[ "$CURRENT_VERSION" == v2* ]] || [[ "$CURRENT_VERSION" == *version2* ]]; then
           echo "Building brainpy-version2 documentation"
           mkdir -p docs_build
           cp -r docs_version2/* docs_build/
         else
-          echo "DOC_BUILD_VERSION is: $DOC_BUILD_VERSION"
           echo "Building standard brainpy documentation"
           mkdir -p docs_build
           cp -r docs/* docs_build/
