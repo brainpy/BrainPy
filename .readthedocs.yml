@@ -16,7 +16,7 @@ build:
         echo "Building documentation for version: $CURRENT_VERSION"
 
         # Check if this is a v2 version (latest, stable, or tags starting with v2)
-        if [[ "$CURRENT_VERSION" == "v2" ]]; then
+        if [ "$CURRENT_VERSION" == "v2" ]; then
           echo "Building brainpy-version2 documentation"
           mkdir -p docs_build
           cp -r docs_version2/* docs_build/
