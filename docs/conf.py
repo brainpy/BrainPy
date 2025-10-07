@@ -51,8 +51,6 @@ import brainpy
 
 shutil.copytree('../images/', './_static/logos/', dirs_exist_ok=True)
 shutil.copyfile('../changelog.md', './changelog.md')
-shutil.rmtree('./generated', ignore_errors=True)
-shutil.rmtree('./_build', ignore_errors=True)
 
 # -- Project information -----------------------------------------------------
 
@@ -119,9 +117,8 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 if build_version == 'v2':
     announcement = """
-    <a href="https://brainpy-v2.readthedocs.io" style="text-decoration: none; color: white;">
-      This site covers the new BrainPy 3.0 API. 
-      <span style="color: lightgray;">[Click here for the classical <b>BrainPy 2.0</b> API]</span>
+    <a href="https://brainpy.readthedocs.io" style="text-decoration: none; color: white;">
+      This site covers the old BrainPy 2.0 API. <span style="color: lightgray;">[Explore the new <b>BrainPy 3.0</b> API ✨]</span>
     </a>
     """
 else:
