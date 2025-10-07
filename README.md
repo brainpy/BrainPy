@@ -1,5 +1,5 @@
 <p align="center">
-  	<img alt="Header image of BrainPy - brain dynamics programming in Python." src="https://raw.githubusercontent.com/brainpy/BrainPy/master/images/logo.png" width=80%>
+  	<img alt="Header image of BrainPy - brain dynamics programming in Python." src="https://raw.githubusercontent.com/brainpy/BrainPy/master/images/logo-banner.png" width=80%>
 </p> 
 
 
@@ -16,8 +16,9 @@
 
 BrainPy is a flexible, efficient, and extensible framework for computational neuroscience and brain-inspired computation based on the Just-In-Time (JIT) compilation. It provides an integrative ecosystem for brain dynamics programming, including brain dynamics **building**, **simulation**, **training**, **analysis**, etc. 
 
-- **Website (documentation and APIs)**: https://brainpy.readthedocs.io/
 - **Source**: https://github.com/brainpy/BrainPy
+- **Documentation**: https://brainpy.readthedocs.io/
+- **Documentation**: https://brainpy-v2.readthedocs.io/
 - **Bug reports**: https://github.com/brainpy/BrainPy/issues
 - **Ecosystem**: https://brainmodeling.readthedocs.io/
 

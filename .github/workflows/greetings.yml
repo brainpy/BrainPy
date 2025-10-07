@@ -18,7 +18,7 @@ jobs:
         uses: actions/first-interaction@v3
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-          issue-message: >
+          issue_message: >
             👋 Welcome to BrainPy! Thank you for opening your first issue.
 
 
@@ -36,7 +36,7 @@ jobs:
 
 
             Happy coding! 🧠✨
-          pr-message: >
+          pr_message: >
             🎉 Congratulations on opening your first pull request in BrainPy! Thank you for
             your contribution!
 
