@@ -47,6 +47,10 @@ JointType = brainstate.mixin.JointTypes
 
 def _get_bm():
     global bm
+    if bm is None:
+        from brainpy.version2 import math
+        bm = math
+    return bm
 
 
 class AlignPost(brainstate.mixin.Mixin):
