@@ -28,7 +28,7 @@ build:
 
 # Build documentation using the copied conf.py
 sphinx:
-  configuration: docs_version2/conf.py
+  configuration: docs_build/conf.py
 
 # Optionally set the version of Python and requirements required to build your docs
 python:
