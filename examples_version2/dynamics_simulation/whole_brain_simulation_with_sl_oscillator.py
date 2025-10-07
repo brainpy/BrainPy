@@ -30,7 +30,7 @@ class Network(bp.DynSysGroup):
         # ConnectomeDB of the Human Connectome Project (HCP)
         # from the following link:
         # - https://share.weiyun.com/wkPpARKy
-        hcp = np.load('../../tests/simulation/data/hcp.npz')
+        hcp = np.load('../../tests_version2/simulation/data/hcp.npz')
         conn_mat = bm.asarray(hcp['Cmat'])
         bm.fill_diagonal(conn_mat, 0)
         gc = 0.6  # global coupling strength

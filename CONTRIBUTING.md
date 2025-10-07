@@ -114,12 +114,12 @@ Branch naming conventions:
 
 Run the test suite:
 ```bash
-pytest tests/
+pytest tests_version2/
 ```
 
 Run specific tests:
 ```bash
-pytest tests/test_specific.py -v
+pytest tests_version2/test_specific.py -v
 ```
 
 ### 4. Commit Your Changes
@@ -203,7 +203,7 @@ def simulate_network(network, duration, dt=0.1):
 
 Aim for high test coverage on new code:
 ```bash
-pytest --cov=brainpy tests/
+pytest --cov=brainpy tests_version2/
 ```
 
 ## Documentation

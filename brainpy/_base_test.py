@@ -13,20 +13,6 @@
 # limitations under the License.
 # ==============================================================================
 
-"""
-Comprehensive tests for the Neuron and Synapse base classes in _base.py.
-
-This module tests:
-- Neuron base class functionality and abstract interface
-- Synapse base class functionality and abstract interface
-- Proper initialization and parameter handling
-- State management (init_state, reset_state)
-- Surrogate gradient function integration
-- Reset mechanisms (soft/hard)
-- Custom implementations
-- Edge cases and error handling
-"""
-
 import unittest
 
 import braintools
