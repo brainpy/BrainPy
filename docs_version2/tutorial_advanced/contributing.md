@@ -71,21 +71,21 @@ Follow these steps to contribute code:
    the repository:
 
    ```bash
-   pytest -n auto tests/
+   pytest -n auto tests_version2/
    ```
 
    BrainPy's test suite is quite large, so if you know the specific test file that covers your
    changes, you can limit the tests to that; for example:
 
    ```bash
-   pytest -n auto brainpy/_src/tests/test_mixin.py
+   pytest -n auto brainpy/_src/tests_version2/test_mixin.py
    ```
 
    You can narrow the tests further by using the `pytest -k` flag to match particular test
    names:
 
    ```bash
-   pytest -n auto brainpy/_src/tests/test_mixin.py -k testLogSumExp
+   pytest -n auto brainpy/_src/tests_version2/test_mixin.py -k testLogSumExp
    ```
 
    BrainPy also offers more fine-grained control over which particular tests are run;

@@ -236,7 +236,7 @@ class EinsumTest(jtu.JaxTestCase):
         s = 'ij,ij,jk->ik'
         self._check(s, x, y, z)
 
-    # these tests are based on https://github.com/dask/dask/pull/3412/files
+    # these tests_version2 are based on https://github.com/dask/dask/pull/3412/files
     @parameterized.named_parameters(
         {"testcase_name": "_{}_dtype={}".format(einstr, dtype.__name__), "einstr": einstr,
          "dtype": dtype}

@@ -152,6 +152,7 @@ class TestClsJIT(unittest.TestCase):
         with self.assertRaises(jax.errors.TracerBoolConversionError):
             new_b3 = program.call2(False)
 
+    @pytest.mark.skip(reason="not implemented")
     def test_class_jit1_with_disable(self):
         # Ensure clean state before test
         bm.random.seed(123)

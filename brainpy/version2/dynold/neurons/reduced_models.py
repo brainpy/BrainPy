@@ -1083,7 +1083,7 @@ class HindmarshRose(NeuDyn):
             x = 0. if x is None else x
         V, y, z = self.integral(self.V.value, self.y.value, self.z.value, t, x, dt=dt)
         if isinstance(self.mode, bm.TrainingMode):
-            self.spike.value = self.spike_fun(V - self.V_th, self.V - self.V_th)
+            self.spike.value = self.spike_fun(V - self.V_th) * self.spike_fun(self.V - self.V_th)
         else:
             self.spike.value = bm.logical_and(V >= self.V_th, self.V < self.V_th)
         self.V.value = V

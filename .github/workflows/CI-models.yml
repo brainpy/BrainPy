@@ -37,7 +37,7 @@ jobs:
           pip install -e .
       - name: Test with pytest
         run: |
-          pytest tests/
+          pytest tests_version2/
 
   test_macos:
     runs-on: macos-latest
@@ -59,7 +59,7 @@ jobs:
           pip install -e .
       - name: Test with pytest
         run: |
-          pytest tests/
+          pytest tests_version2/
 
   test_windows:
     runs-on: windows-latest
@@ -81,4 +81,4 @@ jobs:
           pip install -e .
       - name: Test with pytest
         run: |
-          pytest tests/
+          pytest tests_version2/

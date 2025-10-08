@@ -337,7 +337,7 @@ JAX_COMPOUND_OP_RECORDS = [
     # TODO(phawkins): np.unwrap does not correctly promote its default period
     # argument under NumPy 1.21 for bfloat16 inputs. It works fine if we
     # explicitly pass a bfloat16 value that does not need promition. We should
-    # probably add a custom test harness for unwrap that tests the period
+    # probably add a custom test harness for unwrap that tests_version2 the period
     # argument anyway.
     op_record("unwrap", 1, [t for t in float_dtypes if t != dtypes.bfloat16],
               nonempty_nonscalar_array_shapes,
@@ -539,7 +539,7 @@ def _promote_like_jnp(fun, inexact=False):
     """Decorator that promotes the arguments of `fun` to `jnp.result_type(*args)`.
 
   jnp and np have different type promotion semantics; this decorator allows
-  tests make an np reference implementation act more like an jnp
+  tests_version2 make an np reference implementation act more like an jnp
   implementation.
   """
     _promote = _promote_dtypes_inexact if inexact else _promote_dtypes
@@ -3056,7 +3056,7 @@ class LaxBackedNumpyTests(jtu.JaxTestCase):
         for left in [None, 0]
         for right in [None, 1]
         for dtype in default_dtypes
-        # following types lack precision for meaningful tests
+        # following types lack precision for meaningful tests_version2
         if dtype not in [np.int8, np.int16, np.float16, jnp.bfloat16]
     ))
     def testInterp(self, shape, dtype, period, left, right):
@@ -3562,7 +3562,7 @@ class LaxBackedNumpyTests(jtu.JaxTestCase):
         for shape in [(5,), (5, 5)]
         for dtype in default_dtypes
         # We only test explicit integer-valued bin edges because in other cases
-        # rounding errors lead to flaky tests.
+        # rounding errors lead to flaky tests_version2.
         for bins in [np.arange(-5, 6), np.array([-5, 0, 3])]
         for density in [True, False]
         for weights in [True, False]
@@ -5108,7 +5108,7 @@ class LaxBackedNumpyTests(jtu.JaxTestCase):
     @jtu.ignore_warning(category=UserWarning,
                         message="Explicitly requested dtype.*")
     def testArange(self):
-        # test cases inspired by dask tests at
+        # test cases inspired by dask tests_version2 at
         # https://github.com/dask/dask/blob/main/dask/array/tests/test_creation.py#L92
         np_arange = jtu.with_jax_dtype_defaults(np.arange)
         self.assertAllClose(bm.arange(77).value,
@@ -5777,7 +5777,7 @@ class LaxBackedNumpyTests(jtu.JaxTestCase):
             FLAGS.jax_numpy_rank_promotion = prev_flag
 
     def testStackArrayArgument(self):
-        # tests https://github.com/google/jax/issues/1271
+        # tests_version2 https://github.com/google/jax/issues/1271
         @jax.jit
         def foo(x):
             return bm.stack(x)
@@ -6050,7 +6050,7 @@ class LaxBackedNumpyTests(jtu.JaxTestCase):
         self.assertArraysEqual(expected, actual)
 
 
-# Most grad tests are at the lax level (see lax_test.py), but we add some here
+# Most grad tests_version2 are at the lax level (see lax_test.py), but we add some here
 # as needed for e.g. particular compound ops of interest.
 
 GradTestSpec = collections.namedtuple(
@@ -6126,7 +6126,7 @@ class NumpyGradTests(jtu.JaxTestCase):
                     atol={np.float32: 3e-3})
 
     def testSincGradArrayInput(self):
-        # tests for a bug almost introduced in #5077
+        # tests_version2 for a bug almost introduced in #5077
         jax.grad(lambda x: bm.sinc(x).sum())(jnp.arange(10.))  # doesn't crash
 
     def testTakeAlongAxisIssue1521(self):
