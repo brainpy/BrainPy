@@ -15,6 +15,7 @@
 # ==============================================================================
 import unittest
 
+import brainstate.environ
 import jax.tree_util
 
 import brainpy.version2 as bp
@@ -181,6 +182,9 @@ class TestNodeDict(unittest.TestCase):
 
 
 class TestVarList(unittest.TestCase):
+    def setUp(self):
+        brainstate.environ.set(precision=32)
+
     def test_ListVar_1(self):
         bm.random.seed()
 

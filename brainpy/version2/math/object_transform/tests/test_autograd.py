@@ -1027,7 +1027,7 @@ class TestDebug(parameterized.TestCase):
 
         def f(b):
             print(a.value)
-            return a + b + a.random()
+            return a.value + b + a.random()
 
         f = bm.vector_grad(f, argnums=0)
         f(1.)

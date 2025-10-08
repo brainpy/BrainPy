@@ -56,7 +56,7 @@ def section_input(values, durations, dt=None, return_length=False):
 
     current_and_duration
     """
-    with brainstate.environ.context(dt=dt or brainstate.environ.get_dt()):
+    with brainstate.environ.context(dt=brainstate.environ.get_dt() if dt is None else dt):
         return braintools.input.section(values, durations, return_length=return_length)
 
 
@@ -85,7 +85,7 @@ def constant_input(I_and_duration, dt=None):
     current_and_duration : tuple
         (The formatted current, total duration)
     """
-    with brainstate.environ.context(dt=dt or brainstate.environ.get_dt()):
+    with brainstate.environ.context(dt=brainstate.environ.get_dt() if dt is None else dt):
         return braintools.input.constant(I_and_duration)
 
 
@@ -133,7 +133,7 @@ def spike_input(sp_times, sp_lens, sp_sizes, duration, dt=None):
     current : bm.ndarray
         The formatted input current.
     """
-    with brainstate.environ.context(dt=dt or brainstate.environ.get_dt()):
+    with brainstate.environ.context(dt=brainstate.environ.get_dt() if dt is None else dt):
         return braintools.input.spike(sp_times, sp_lens, sp_sizes, duration)
 
 
@@ -172,7 +172,7 @@ def ramp_input(c_start, c_end, duration, t_start=0, t_end=None, dt=None):
     current : bm.ndarray
       The formatted current
     """
-    with brainstate.environ.context(dt=dt or brainstate.environ.get_dt()):
+    with brainstate.environ.context(dt=brainstate.environ.get_dt() if dt is None else dt):
         return braintools.input.ramp(c_start, c_end, duration, t_start, t_end)
 
 
@@ -207,7 +207,7 @@ def wiener_process(duration, dt=None, n=1, t_start=0., t_end=None, seed=None):
     seed: int
       The noise seed.
     """
-    with brainstate.environ.context(dt=dt or brainstate.environ.get_dt()):
+    with brainstate.environ.context(dt=brainstate.environ.get_dt() if dt is None else dt):
         return braintools.input.wiener_process(duration, sigma=1.0, n=n, t_start=t_start, t_end=t_end, seed=seed)
 
 
@@ -239,7 +239,7 @@ def ou_process(mean, sigma, tau, duration, dt=None, n=1, t_start=0., t_end=None,
     seed: optional, int
       The random seed.
     """
-    with brainstate.environ.context(dt=dt or brainstate.environ.get_dt()):
+    with brainstate.environ.context(dt=brainstate.environ.get_dt() if dt is None else dt):
         return braintools.input.ou_process(mean, sigma, tau, duration, n=n, t_start=t_start, t_end=t_end, seed=seed)
 
 
@@ -264,7 +264,7 @@ def sinusoidal_input(amplitude, frequency, duration, dt=None, t_start=0., t_end=
       Whether the sinusoid oscillates around 0 (False), or
       has a positive DC bias, thus non-negative (True).
     """
-    with brainstate.environ.context(dt=dt or brainstate.environ.get_dt()):
+    with brainstate.environ.context(dt=brainstate.environ.get_dt() if dt is None else dt):
         return braintools.input.sinusoidal(amplitude, frequency, duration, t_start=t_start, t_end=t_end, bias=bias)
 
 
@@ -289,5 +289,5 @@ def square_input(amplitude, frequency, duration, dt=None, bias=False, t_start=0.
       Whether the sinusoid oscillates around 0 (False), or
       has a positive DC bias, thus non-negative (True).
     """
-    with brainstate.environ.context(dt=dt or brainstate.environ.get_dt()):
+    with brainstate.environ.context(dt=brainstate.environ.get_dt() if dt is None else dt):
         return braintools.input.square(amplitude, frequency, duration, t_start=t_start, t_end=t_end, duty_cycle=0.5, bias=bias)

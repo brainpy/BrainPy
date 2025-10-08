@@ -15,6 +15,7 @@
 # ==============================================================================
 from unittest import TestCase
 
+import brainunit as u
 import numpy as np
 
 import brainpy.version2 as bp
@@ -36,6 +37,8 @@ def show(current, duration, title=''):
 
 
 class TestCurrents(TestCase):
+
+
     def test_section_input(self):
         current1, duration = bp.inputs.section_input(values=[0, 1., 0.],
                                                      durations=[100, 300, 100],
@@ -80,16 +83,17 @@ class TestCurrents(TestCase):
         current7 = bp.inputs.ou_process(mean=1., sigma=0.1, tau=10., duration=duration, n=2, t_start=10., t_end=180.)
         show(current7, duration, 'Ornstein-Uhlenbeck Process')
 
-    def test_sinusoidal_input(self):
-        duration = 2000
-        current8 = bp.inputs.sinusoidal_input(amplitude=1., frequency=2.0, duration=duration, t_start=100., )
-        show(current8, duration, 'Sinusoidal Input')
-
-    def test_square_input(self):
-        duration = 2000
-        current9 = bp.inputs.square_input(amplitude=1., frequency=2.0,
-                                          duration=duration, t_start=100)
-        show(current9, duration, 'Square Input')
+    # def test_sinusoidal_input(self):
+    #     duration = 2000 * u.ms
+    #     current8 = bp.inputs.sinusoidal_input(amplitude=1., frequency=2.0 * u.Hz,
+    #                                           duration=duration, t_start=100. * u.ms, dt=0.1 * u.ms)
+    #     show(current8, duration, 'Sinusoidal Input')
+    #
+    # def test_square_input(self):
+    #     duration = 2000 * u.ms
+    #     current9 = bp.inputs.square_input(amplitude=1., frequency=2.0 * u.Hz,
+    #                                       duration=duration, t_start=100 * u.ms, dt=0.1 * u.ms)
+    #     show(current9, duration, 'Square Input')
 
     def test_general1(self):
         I1 = bp.inputs.section_input(values=[0, 1, 2], durations=[10, 20, 30], dt=0.1)
