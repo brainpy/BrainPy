@@ -467,7 +467,7 @@ def set_float(dtype: type):
     dtype: type
       The float type.
     """
-    defaults.float_ = brainstate.environ.dftype()
+    defaults.float_ = dtype
 
 
 def get_float():
@@ -489,7 +489,7 @@ def set_int(dtype: type):
     dtype: type
       The integer type.
     """
-    defaults.int_ = brainstate.environ.ditype()
+    defaults.int_ = dtype
 
 
 def get_int():
@@ -533,7 +533,7 @@ def set_complex(dtype: type):
     dtype: type
       The complex type.
     """
-    defaults.complex_ = brainstate.environ.dctype()
+    defaults.complex_ = dtype
 
 
 def get_complex():

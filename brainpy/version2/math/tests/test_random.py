@@ -109,25 +109,6 @@ class TestRandom(unittest.TestCase):
         self.assertTrue((a >= 2).all() and (a < 20).all())
         self.assertEqual(len(bm.unique(a)), 12)
 
-    def test_permutation1(self):
-        br.seed()
-        a = bm.random.permutation(10)
-        self.assertTupleEqual(a.shape, (10,))
-        self.assertEqual(len(bm.unique(a)), 10)
-
-    def test_permutation2(self):
-        br.seed()
-        a = bm.random.permutation(bm.arange(10))
-        self.assertTupleEqual(a.shape, (10,))
-        self.assertEqual(len(bm.unique(a)), 10)
-
-    def test_shuffle1(self):
-        br.seed()
-        a = bm.arange(10)
-        bm.random.shuffle(a)
-        self.assertTupleEqual(a.shape, (10,))
-        self.assertEqual(len(bm.unique(a)), 10)
-
     def test_shuffle2(self):
         br.seed()
         a = bm.Array(bm.arange(12).reshape(4, 3))

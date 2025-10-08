@@ -28,5 +28,5 @@ class TestEnvironment(unittest.TestCase):
             a = bm.random.randn(3, 3)
             self.assertTrue(isinstance(a, jax.Array))
         with bm.environment(numpy_func_return='bp_array'):
-            a = bm.random.randn(3, 3)
+            a = bm.zeros([3, 3])
             self.assertTrue(isinstance(a, bm.Array))

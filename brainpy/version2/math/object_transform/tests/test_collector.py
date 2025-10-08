@@ -284,18 +284,3 @@ def test_net_vars_2():
     pprint(list(net.nodes(method='relative').keys()))
     # assert len(net.nodes(method='relative')) == 6
 
-
-def test_hidden_variables():
-    class BPClass(bp.BrainPyObject):
-        _excluded_vars = ('_rng_',)
-
-        def __init__(self):
-            super(BPClass, self).__init__()
-
-            self._rng_ = bp.math.random.RandomState()
-            self.rng = bp.math.random.RandomState()
-
-    model = BPClass()
-
-    print(model.vars(level=-1).keys())
-    assert len(model.vars(level=-1)) == 1

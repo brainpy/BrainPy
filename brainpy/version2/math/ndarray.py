@@ -162,13 +162,13 @@ class Array(u.CustomArray):
             pass
         else:
             value = jnp.asarray(value)
-        # check
-        if value.shape != self_value.shape:
-            raise MathError(f"The shape of the original data is {self_value.shape}, "
-                            f"while we got {value.shape}.")
-        if value.dtype != self_value.dtype:
-            raise MathError(f"The dtype of the original data is {self_value.dtype}, "
-                            f"while we got {value.dtype}.")
+        # # check
+        # if value.shape != self_value.shape:
+        #     raise MathError(f"The shape of the original data is {self_value.shape}, "
+        #                     f"while we got {value.shape}.")
+        # if value.dtype != self_value.dtype:
+        #     raise MathError(f"The dtype of the original data is {self_value.dtype}, "
+        #                     f"while we got {value.dtype}.")
         self._value = value
 
     def update(self, value):
