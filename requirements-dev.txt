@@ -5,8 +5,6 @@ msgpack
 tqdm
 pathos
 numba
-brainstate
-braintools>=0.1.0
 setuptools
 
 
