@@ -124,7 +124,7 @@ Using Pickle (Simple)
    class SimpleNet(brainstate.nn.Module):
        def __init__(self, n_neurons=100):
            super().__init__()
-           self.lif = bp.LIF(n_neurons, V_rest=-65*u.mV, V_th=-50*u.mV, tau=10*u.ms)
+           self.lif = brainpy.state.LIF(n_neurons, V_rest=-65*u.mV, V_th=-50*u.mV, tau=10*u.ms)
            self.fc = brainstate.nn.Linear(n_neurons, 10)
 
        def update(self, x):
@@ -492,7 +492,7 @@ Save hyperparameters to recreate model.
                config['n_input'],
                config['n_hidden']
            )
-           self.hidden = bp.LIF(
+           self.hidden = brainpy.state.LIF(
                config['n_hidden'],
                V_rest=config['V_rest'],
                V_th=config['V_th'],

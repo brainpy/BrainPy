@@ -32,7 +32,7 @@ JIT Compilation
        return net(inp)
 
    # Fast (with JIT)
-   @brainstate.compile.jit
+   @brainstate.transform.jit
    def fast_step(net, inp):
        return net(inp)
 
@@ -98,7 +98,7 @@ GPU Usage
    print(jax.devices())  # Check for GPU
 
    # BrainPy automatically uses GPU
-   net = bp.LIF(10000, ...)
+   net = brainpy.state.LIF(10000, ...)
    # Runs on GPU if available
 
 **See:** :doc:`gpu-tpu-usage` for details
@@ -160,20 +160,20 @@ Optimize Network Architecture
 .. code-block:: python
 
    # Complex (slow but realistic)
-   neuron = bp.HH(1000, ...)  # Hodgkin-Huxley
+   neuron = brainpy.state.HH(1000, ...)  # Hodgkin-Huxley
 
    # Simple (fast)
-   neuron = bp.LIF(1000, ...)  # Leaky Integrate-and-Fire
+   neuron = brainpy.state.LIF(1000, ...)  # Leaky Integrate-and-Fire
 
 **2. Use CUBA instead of COBA when possible:**
 
 .. code-block:: python
 
    # Slower (conductance-based)
-   out = bp.COBA.desc(E=0*u.mV)
+   out = brainpy.state.COBA.desc(E=0*u.mV)
 
    # Faster (current-based)
-   out = bp.CUBA.desc()
+   out = brainpy.state.CUBA.desc()
 
 **3. Reduce connectivity:**
 
@@ -214,7 +214,7 @@ Performance Checklist
 
 .. code-block:: python
 
-   ✅ JIT compiled (@brainstate.compile.jit)
+   ✅ JIT compiled (@brainstate.transform.jit)
    ✅ Sparse connectivity (EventFixedProb with prob < 0.1)
    ✅ Batched (batch_size ≥ 32 on GPU)
    ✅ GPU enabled (check jax.devices())
@@ -257,17 +257,17 @@ Complete Optimization Example
            super().__init__()
 
            # Simple neuron model
-           self.neurons = bp.LIF(n_neurons, V_rest=-65*u.mV, V_th=-50*u.mV, tau=10*u.ms)
+           self.neurons = brainpy.state.LIF(n_neurons, V_rest=-65*u.mV, V_th=-50*u.mV, tau=10*u.ms)
 
            # Sparse connectivity
-           self.recurrent = bp.AlignPostProj(
+           self.recurrent = brainpy.state.AlignPostProj(
                comm=brainstate.nn.EventFixedProb(
                    n_neurons, n_neurons,
                    prob=0.01,  # Sparse!
                    weight=0.5*u.mS
                ),
-               syn=bp.Expon.desc(n_neurons, tau=5*u.ms),
-               out=bp.CUBA.desc(),  # Simple output
+               syn=brainpy.state.Expon.desc(n_neurons, tau=5*u.ms),
+               out=brainpy.state.CUBA.desc(),  # Simple output
                post=self.neurons
            )
 
@@ -282,7 +282,7 @@ Complete Optimization Example
    brainstate.nn.init_all_states(net, batch_size=64)  # Batched
 
    # JIT compile
-   @brainstate.compile.jit
+   @brainstate.transform.jit
    def simulate_step(net, inp):
        return net(inp)
 

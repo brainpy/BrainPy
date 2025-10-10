@@ -3,7 +3,7 @@ Examples Gallery
 
 Welcome to the BrainPy 3.0 examples gallery! Here you'll find complete, runnable examples demonstrating various aspects of computational neuroscience modeling.
 
-All examples are available in the `examples_version3/ <https://github.com/brainpy/BrainPy/tree/master/examples_version3>`_ directory of the BrainPy repository.
+All examples are available in the `examples_state/ <https://github.com/brainpy/BrainPy/tree/master/examples_state>`_ directory of the BrainPy repository.
 
 Classical Network Models
 -------------------------
@@ -25,7 +25,7 @@ Implements the classic excitatory-inhibitory balanced network showing chaotic dy
     - Balanced excitation and inhibition
     - Asynchronous irregular firing
 
-:download:`Download <../../examples_version3/102_EI_net_1996.py>`
+:download:`Download <../../examples_state/102_EI_net_1996.py>`
 
 **Key Concepts**: E-I balance, network dynamics, sparse connectivity
 
@@ -46,7 +46,7 @@ Conductance-based synaptic integration in balanced networks.
     - More biologically realistic
     - Stable asynchronous activity
 
-:download:`Download <../../examples_version3/103_COBA_2005.py>`
+:download:`Download <../../examples_state/103_COBA_2005.py>`
 
 **Key Concepts**: COBA synapses, conductance-based models, reversal potentials
 
@@ -66,9 +66,9 @@ Current-based synaptic integration (simpler, faster variant).
     - Faster computation
     - Widely used for large-scale simulations
 
-:download:`Download <../../examples_version3/104_CUBA_2005.py>`
+:download:`Download <../../examples_state/104_CUBA_2005.py>`
 
-**Alternative**: `104_CUBA_2005_version2.py <../../examples_version3/104_CUBA_2005_version2.py>`_ - Different parameterization
+**Alternative**: `104_CUBA_2005_version2.py <../../examples_state/104_CUBA_2005_version2.py>`_ - Different parameterization
 
 **Key Concepts**: CUBA synapses, current-based models
 
@@ -89,7 +89,7 @@ More detailed neuron model with sodium and potassium channels.
     - Biophysically detailed
     - Computationally intensive
 
-:download:`Download <../../examples_version3/106_COBA_HH_2007.py>`
+:download:`Download <../../examples_state/106_COBA_HH_2007.py>`
 
 **Key Concepts**: Hodgkin-Huxley model, ion channels, biophysical detail
 
@@ -111,7 +111,7 @@ Interneuron network generating gamma oscillations (30-80 Hz).
     - Physiologically relevant frequency
     - Network oscillations
 
-:download:`Download <../../examples_version3/107_gamma_oscillation_1996.py>`
+:download:`Download <../../examples_state/107_gamma_oscillation_1996.py>`
 
 **Key Concepts**: Gamma oscillations, network synchrony, inhibitory networks
 
@@ -132,7 +132,7 @@ Demonstrates reliable spike sequence propagation.
     - Wave propagation
     - Temporal coding
 
-:download:`Download <../../examples_version3/108_synfire_chains_199.py>`
+:download:`Download <../../examples_state/108_synfire_chains_199.py>`
 
 **Key Concepts**: Synfire chains, feedforward networks, spike timing
 
@@ -153,7 +153,7 @@ High-frequency oscillations (>100 Hz) in inhibitory networks.
     - Inhibitory synchrony
     - Pathological rhythms
 
-:download:`Download <../../examples_version3/109_fast_global_oscillation.py>`
+:download:`Download <../../examples_state/109_fast_global_oscillation.py>`
 
 **Key Concepts**: Fast oscillations, gap junctions, pathological rhythms
 
@@ -171,7 +171,7 @@ Series of models exploring different gamma generation mechanisms:
     - Asynchronous firing
     - No clear rhythm
 
-:download:`Download <../../examples_version3/110_Susin_Destexhe_2021_gamma_oscillation_AI.py>`
+:download:`Download <../../examples_state/110_Susin_Destexhe_2021_gamma_oscillation_AI.py>`
 
 ---
 
@@ -184,7 +184,7 @@ Series of models exploring different gamma generation mechanisms:
     - High-frequency gamma
     - Interneuron synchrony
 
-:download:`Download <../../examples_version3/111_Susin_Destexhe_2021_gamma_oscillation_CHING.py>`
+:download:`Download <../../examples_state/111_Susin_Destexhe_2021_gamma_oscillation_CHING.py>`
 
 ---
 
@@ -197,7 +197,7 @@ Series of models exploring different gamma generation mechanisms:
     - Gamma through inhibition
     - Fast synaptic kinetics
 
-:download:`Download <../../examples_version3/112_Susin_Destexhe_2021_gamma_oscillation_ING.py>`
+:download:`Download <../../examples_state/112_Susin_Destexhe_2021_gamma_oscillation_ING.py>`
 
 ---
 
@@ -210,9 +210,9 @@ Series of models exploring different gamma generation mechanisms:
     - Most common mechanism
     - Excitatory-inhibitory interaction
 
-:download:`Download <../../examples_version3/113_Susin_Destexhe_2021_gamma_oscillation_PING.py>`
+:download:`Download <../../examples_state/113_Susin_Destexhe_2021_gamma_oscillation_PING.py>`
 
-**Combined**: `Susin_Destexhe_2021_gamma_oscillation.py <../../examples_version3/Susin_Destexhe_2021_gamma_oscillation.py>`_ - All mechanisms
+**Combined**: `Susin_Destexhe_2021_gamma_oscillation.py <../../examples_state/Susin_Destexhe_2021_gamma_oscillation.py>`_ - All mechanisms
 
 **Key Concepts**: Gamma mechanisms, network states, oscillation generation
 
@@ -234,7 +234,7 @@ Trains a simple spiking network using surrogate gradients.
     - Simple classification task
     - Gradient-based learning
 
-:download:`Download <../../examples_version3/200_surrogate_grad_lif.py>`
+:download:`Download <../../examples_state/200_surrogate_grad_lif.py>`
 
 **Key Concepts**: Surrogate gradients, SNN training, backpropagation through time
 
@@ -255,7 +255,7 @@ Trains a spiking network on Fashion-MNIST dataset.
     - Spike-based processing
     - Real-world classification
 
-:download:`Download <../../examples_version3/201_surrogate_grad_lif_fashion_mnist.py>`
+:download:`Download <../../examples_state/201_surrogate_grad_lif_fashion_mnist.py>`
 
 **Key Concepts**: Image classification, multi-layer SNNs, practical applications
 
@@ -276,7 +276,7 @@ Uses readout layer for classification.
     - Spike counting
     - Classification from spike rates
 
-:download:`Download <../../examples_version3/202_mnist_lif_readout.py>`
+:download:`Download <../../examples_state/202_mnist_lif_readout.py>`
 
 **Key Concepts**: Readout layers, spike-based classification, MNIST
 
@@ -336,14 +336,14 @@ All examples can be run directly:
     cd BrainPy
 
     # Run an example
-    python examples_version3/102_EI_net_1996.py
+    python examples_state/102_EI_net_1996.py
 
 Or in Jupyter:
 
 .. code-block:: python
 
     # In Jupyter notebook
-    %run examples_version3/102_EI_net_1996.py
+    %run examples_state/102_EI_net_1996.py
 
 Requirements
 ~~~~~~~~~~~~
@@ -397,7 +397,7 @@ Contributing Examples
 We welcome new examples! To contribute:
 
 1. Fork the BrainPy repository
-2. Add your example to ``examples_version3/``
+2. Add your example to ``examples_state/``
 3. Follow naming convention: ``NNN_descriptive_name.py``
 4. Include documentation at the top
 5. Submit a pull request
@@ -442,7 +442,7 @@ Browse All Examples
 
 View all examples on GitHub:
 
-`BrainPy Examples (Version 3.0) <https://github.com/brainpy/BrainPy/tree/master/examples_version3>`_
+`BrainPy Examples (Version 3.0) <https://github.com/brainpy/BrainPy/tree/master/examples_state>`_
 
 For more extensive examples and notebooks:
 

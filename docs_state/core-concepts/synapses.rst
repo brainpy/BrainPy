@@ -1,7 +1,8 @@
 Synapses
 ========
 
-Synapses model the temporal dynamics of neural connections in BrainPy 3.0. This document explains how synapses work, what models are available, and how to use them effectively.
+Synapses model the temporal dynamics of neural connections in ``brainpy.state``. This document explains
+how synapses work, what models are available, and how to use them effectively.
 
 Overview
 --------
@@ -34,13 +35,13 @@ Synapses are typically created as part of projections:
     import brainunit as u
 
     # Create synapse descriptor
-    syn = brainpy.Expon.desc(
+    syn = brainpy.state.Expon.desc(
         size=100,           # Number of synapses
         tau=5. * u.ms       # Time constant
     )
 
     # Use in projection
-    projection = brainpy.AlignPostProj(
+    projection = brainpy.state.AlignPostProj(
         comm=...,
         syn=syn,            # Synapse here
         out=...,
@@ -89,7 +90,7 @@ When spike arrives: :math:`g \\leftarrow g + 1`
 
 .. code-block:: python
 
-    syn = brainpy.Expon.desc(
+    syn = brainpy.state.Expon.desc(
         size=100,
         tau=5. * u.ms,
         g_initializer=braintools.init.Constant(0. * u.mS)
@@ -146,7 +147,7 @@ When spike arrives: :math:`h \\leftarrow h + 1`
 
 .. code-block:: python
 
-    syn = brainpy.Alpha.desc(
+    syn = brainpy.state.Alpha.desc(
         size=100,
         tau=5. * u.ms,
         g_initializer=braintools.init.Constant(0. * u.mS)
@@ -189,7 +190,7 @@ Similar to Alpha, but with parameters tuned for AMPA receptors.
 
 .. code-block:: python
 
-    syn = brainpy.AMPA.desc(
+    syn = brainpy.state.AMPA.desc(
         size=100,
         tau=2. * u.ms,  # Fast AMPA kinetics
         g_initializer=braintools.init.Constant(0. * u.mS)
@@ -220,7 +221,7 @@ Similar to Alpha, but with parameters tuned for GABAa receptors.
 
 .. code-block:: python
 
-    syn = brainpy.GABAa.desc(
+    syn = brainpy.state.GABAa.desc(
         size=100,
         tau=10. * u.ms,  # Slower GABAa kinetics
         g_initializer=braintools.init.Constant(0. * u.mS)
@@ -249,10 +250,10 @@ BrainPy synapses use a descriptor pattern:
 .. code-block:: python
 
     # Create descriptor (not yet instantiated)
-    syn_desc = brainpy.Expon.desc(size=100, tau=5*u.ms)
+    syn_desc = brainpy.state.Expon.desc(size=100, tau=5*u.ms)
 
     # Instantiated within projection
-    projection = brainpy.AlignPostProj(..., syn=syn_desc, ...)
+    projection = brainpy.state.AlignPostProj(..., syn=syn_desc, ...)
 
     # Access instantiated synapse
     actual_synapse = projection.syn
@@ -271,9 +272,9 @@ Accessing Synaptic State
 .. code-block:: python
 
     # Within projection
-    projection = brainpy.AlignPostProj(
+    projection = brainpy.state.AlignPostProj(
         comm=...,
-        syn=brainpy.Expon.desc(100, tau=5*u.ms),
+        syn=brainpy.state.Expon.desc(100, tau=5*u.ms),
         out=...,
         post=neurons
     )
@@ -301,10 +302,10 @@ Comparing Different Models
     brainstate.environ.set(dt=0.1 * u.ms)
 
     # Create different synapses
-    expon = brainpy.Expon(100, tau=5*u.ms)
-    alpha = brainpy.Alpha(100, tau=5*u.ms)
-    ampa = brainpy.AMPA(100, tau=2*u.ms)
-    gaba = brainpy.GABAa(100, tau=10*u.ms)
+    expon = brainpy.state.Expon(100, tau=5*u.ms)
+    alpha = brainpy.state.Alpha(100, tau=5*u.ms)
+    ampa = brainpy.state.AMPA(100, tau=2*u.ms)
+    gaba = brainpy.state.GABAa(100, tau=10*u.ms)
 
     # Initialize
     for syn in [expon, alpha, ampa, gaba]:
@@ -361,16 +362,16 @@ Complete Example
     import brainunit as u
 
     # Create neurons
-    pre_neurons = brainpy.LIF(80, V_th=-50*u.mV, tau=10*u.ms)
-    post_neurons = brainpy.LIF(100, V_th=-50*u.mV, tau=10*u.ms)
+    pre_neurons = brainpy.state.LIF(80, V_th=-50*u.mV, tau=10*u.ms)
+    post_neurons = brainpy.state.LIF(100, V_th=-50*u.mV, tau=10*u.ms)
 
     # Create projection with exponential synapse
-    projection = brainpy.AlignPostProj(
+    projection = brainpy.state.AlignPostProj(
         comm=brainstate.nn.EventFixedProb(
             80, 100, prob=0.1, weight=0.5*u.mS
         ),
-        syn=brainpy.Expon.desc(100, tau=5*u.ms),
-        out=brainpy.CUBA.desc(),
+        syn=brainpy.state.Expon.desc(100, tau=5*u.ms),
+        out=brainpy.state.CUBA.desc(),
         post=post_neurons
     )
 
@@ -407,15 +408,15 @@ Synapses can be combined with short-term plasticity (STP):
 .. code-block:: python
 
     # Create projection with STP
-    projection = brainpy.AlignPostProj(
+    projection = brainpy.state.AlignPostProj(
         comm=brainstate.nn.EventFixedProb(80, 100, prob=0.1, weight=0.5*u.mS),
-        syn=brainpy.STP.desc(
-            brainpy.Expon.desc(100, tau=5*u.ms),  # Underlying synapse
+        syn=brainpy.state.STP.desc(
+            brainpy.state.Expon.desc(100, tau=5*u.ms),  # Underlying synapse
             tau_f=200*u.ms,   # Facilitation time constant
             tau_d=150*u.ms,   # Depression time constant
             U=0.2             # Utilization of synaptic efficacy
         ),
-        out=brainpy.CUBA.desc(),
+        out=brainpy.state.CUBA.desc(),
         post=post_neurons
     )
 
@@ -432,7 +433,7 @@ You can create custom synapse models by inheriting from ``Synapse``:
 .. code-block:: python
 
     import brainstate
-    from brainpy._base import Synapse
+    from brainpy.state import Synapse
 
     class MyCustomSynapse(Synapse):
         def __init__(self, size, tau1, tau2, **kwargs):
@@ -475,7 +476,7 @@ Usage:
     )
 
     # Use in projection
-    projection = brainpy.AlignPostProj(..., syn=syn_desc, ...)
+    projection = brainpy.state.AlignPostProj(..., syn=syn_desc, ...)
 
 Choosing the Right Synapse
 ---------------------------
@@ -557,17 +558,17 @@ Optimization Tips
    .. code-block:: python
 
        # Good: Single projection with 1000 synapses
-       proj = brainpy.AlignPostProj(..., syn=brainpy.Expon.desc(1000, ...))
+       proj = brainpy.state.AlignPostProj(..., syn=brainpy.state.Expon.desc(1000, ...))
 
        # Bad: 1000 separate projections
-       projs = [brainpy.AlignPostProj(..., syn=brainpy.Expon.desc(1, ...))
+       projs = [brainpy.state.AlignPostProj(..., syn=brainpy.state.Expon.desc(1, ...))
                 for _ in range(1000)]
 
 3. **JIT compilation**: Always use for simulations
 
    .. code-block:: python
 
-       @brainstate.compile.jit
+       @brainstate.transform.jit
        def step():
            projection(spikes)
            neurons(0*u.nA)
@@ -581,18 +582,18 @@ Excitatory-Inhibitory Balance
 .. code-block:: python
 
     # Excitatory projection (fast)
-    E_proj = brainpy.AlignPostProj(
+    E_proj = brainpy.state.AlignPostProj(
         comm=...,
-        syn=brainpy.Expon.desc(post_size, tau=2*u.ms),
-        out=brainpy.CUBA.desc(),
+        syn=brainpy.state.Expon.desc(post_size, tau=2*u.ms),
+        out=brainpy.state.CUBA.desc(),
         post=neurons
     )
 
     # Inhibitory projection (slow)
-    I_proj = brainpy.AlignPostProj(
+    I_proj = brainpy.state.AlignPostProj(
         comm=...,
-        syn=brainpy.Expon.desc(post_size, tau=10*u.ms),
-        out=brainpy.CUBA.desc(),
+        syn=brainpy.state.Expon.desc(post_size, tau=10*u.ms),
+        out=brainpy.state.CUBA.desc(),
         post=neurons
     )
 
@@ -602,24 +603,24 @@ Multiple Receptor Types
 .. code-block:: python
 
     # AMPA (fast excitatory)
-    ampa_proj = brainpy.AlignPostProj(
-        ..., syn=brainpy.AMPA.desc(size, tau=2*u.ms), ...
+    ampa_proj = brainpy.state.AlignPostProj(
+        ..., syn=brainpy.state.AMPA.desc(size, tau=2*u.ms), ...
     )
 
     # NMDA (slow excitatory) - custom
-    nmda_proj = brainpy.AlignPostProj(
+    nmda_proj = brainpy.state.AlignPostProj(
         ..., syn=CustomNMDA.desc(size, tau=100*u.ms), ...
     )
 
     # GABAa (fast inhibitory)
-    gaba_proj = brainpy.AlignPostProj(
-        ..., syn=brainpy.GABAa.desc(size, tau=10*u.ms), ...
+    gaba_proj = brainpy.state.AlignPostProj(
+        ..., syn=brainpy.state.GABAa.desc(size, tau=10*u.ms), ...
     )
 
 Summary
 -------
 
-Synapses in BrainPy 3.0:
+Synapses in ``brainpy.state``:
 
 ✅ **Multiple models**: Expon, Alpha, AMPA, GABAa
 

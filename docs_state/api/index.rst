@@ -54,16 +54,16 @@ Neurons
 
 .. code-block:: python
 
-   import brainpy.state_based as brainpy
+   import brainpy
 
    # Leaky Integrate-and-Fire
-   brainpy.LIF(size, V_rest, V_th, V_reset, tau, R, ...)
+   brainpy.state.LIF(size, V_rest, V_th, V_reset, tau, R, ...)
 
    # Adaptive LIF
-   brainpy.ALIF(size, V_rest, V_th, V_reset, tau, tau_w, a, b, ...)
+   brainpy.state.ALIF(size, V_rest, V_th, V_reset, tau, tau_w, a, b, ...)
 
    # Izhikevich
-   brainpy.Izhikevich(size, a, b, c, d, ...)
+   brainpy.state.Izhikevich(size, a, b, c, d, ...)
 
 Synapses
 ~~~~~~~~
@@ -71,16 +71,16 @@ Synapses
 .. code-block:: python
 
    # Exponential
-   brainpy.Expon.desc(size, tau)
+   brainpy.state.Expon.desc(size, tau)
 
    # Alpha
-   brainpy.Alpha.desc(size, tau)
+   brainpy.state.Alpha.desc(size, tau)
 
    # AMPA receptor
-   brainpy.AMPA.desc(size, tau)
+   brainpy.state.AMPA.desc(size, tau)
 
    # GABA_a receptor
-   brainpy.GABAa.desc(size, tau)
+   brainpy.state.GABAa.desc(size, tau)
 
 Projections
 ~~~~~~~~~~~
@@ -88,10 +88,10 @@ Projections
 .. code-block:: python
 
    # Standard projection
-   brainpy.AlignPostProj(
+   brainpy.state.AlignPostProj(
        comm=brainstate.nn.EventFixedProb(n_pre, n_post, prob, weight),
-       syn=brainpy.Expon.desc(n_post, tau),
-       out=brainpy.COBA.desc(E),
+       syn=brainpy.state.Expon.desc(n_post, tau),
+       out=brainpy.state.COBA.desc(E),
        post=post_neurons
    )
 
@@ -152,8 +152,8 @@ BrainPy uses a clear import hierarchy:
    import braintools                 # Training utilities
 
    # Neurons and synapses
-   neuron = brainpy.LIF(100, ...)
-   synapse = brainpy.Expon.desc(100, tau=5*u.ms)
+   neuron = brainpy.state.LIF(100, ...)
+   synapse = brainpy.state.Expon.desc(100, tau=5*u.ms)
 
    # State management
    state = brainstate.ShortTermState(...)
