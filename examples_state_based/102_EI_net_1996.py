@@ -39,7 +39,7 @@
 import brainunit as u
 import matplotlib.pyplot as plt
 
-import brainpy.experimental as brainpy
+import brainpy.state_based as brainpy
 import brainstate
 import braintools
 

@@ -36,7 +36,7 @@ if build_version == 'v2':
     )
 else:
     shutil.copytree(
-        os.path.join(os.path.dirname(__file__), '../docs_experimental'),
+        os.path.join(os.path.dirname(__file__), '../docs_state_based'),
         os.path.join(os.path.dirname(__file__)),
         dirs_exist_ok=True
     )

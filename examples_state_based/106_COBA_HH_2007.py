@@ -24,7 +24,7 @@ import brainunit as u
 import matplotlib.pyplot as plt
 import numpy as np
 
-import brainpy
+import brainpy.state_based as brainpy
 import brainstate
 
 # brainstate.environ.set(precision='bf16')

@@ -29,7 +29,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from datasets import load_dataset
 
-import brainpy
+import brainpy.state_based as brainpy
 import brainstate
 import braintools
 

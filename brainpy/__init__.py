@@ -13,6 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+
+__version__ = "3.0.1"
+__version_info__ = (3, 0, 1)
+
+
 from brainpy import _errors as errors
 from brainpy import mixin
 # fundamental supporting modules
@@ -126,7 +131,6 @@ from brainpy import (
     neurons,  # neuron groups
     synapses,  # synapses
     rates,  # rate models
-    experimental,
     synouts,  # synaptic output
     synplast,  # synaptic plasticity
 )
@@ -175,7 +179,7 @@ if __name__ == '__main__':
     analysis
     visualize
     train
-    channels, neurons, synapses, rates, experimental, synouts, synplast
+    channels, neurons, synapses, rates, state_based, synouts, synplast
     modes
     Base
     ArrayCollector, Collector, errors
