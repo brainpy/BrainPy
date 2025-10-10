@@ -27,7 +27,7 @@ for item in os.listdir('.'):
         except Exception as e:
             print(f"Error deleting {item}: {e}")
 
-build_version = os.environ.get('CURRENT_VERSION', 'v')
+build_version = os.environ.get('CURRENT_VERSION', 'v2')
 if build_version == 'v2':
     shutil.copytree(
         os.path.join(os.path.dirname(__file__), '../docs_classic'),
