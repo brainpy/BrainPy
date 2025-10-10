@@ -6,7 +6,7 @@ Quickstart
    :hidden:
    :maxdepth: 1
 
-   quickstart/installation.rst
-   quickstart/5min-tutorial.ipynb
-   quickstart/concepts-overview.rst
+   installation.rst
+   5min-tutorial.ipynb
+   concepts-overview.rst
 
