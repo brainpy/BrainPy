@@ -1,8 +1,8 @@
-``brainpy.version2.math.sharding``: Parallelization Support
+``brainpy.math.sharding``: Parallelization Support
 ==================================================
 
-.. currentmodule:: brainpy.version2.math.sharding
-.. automodule:: brainpy.version2.math.sharding
+.. currentmodule:: brainpy.math.sharding
+.. automodule:: brainpy.math.sharding
 
 
 .. autosummary::

@@ -1,8 +1,8 @@
-``brainpy.version2.analysis`` module
+``brainpy.analysis`` module
 ====================================
 
-.. currentmodule:: brainpy.version2.analysis
-.. automodule:: brainpy.version2.analysis
+.. currentmodule:: brainpy.analysis
+.. automodule:: brainpy.analysis
 
 .. contents::
    :local:

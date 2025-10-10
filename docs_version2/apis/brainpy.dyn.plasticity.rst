@@ -1,8 +1,8 @@
 Synaptic Plasticity
 ===================
 
-.. currentmodule:: brainpy.version2.dyn
-.. automodule:: brainpy.version2.dyn
+.. currentmodule:: brainpy.dyn
+.. automodule:: brainpy.dyn
 
 .. autosummary::
    :toctree: generated/

@@ -1,8 +1,8 @@
 Neuron Dynamics
 ===============
 
-.. currentmodule:: brainpy.version2.dyn
-.. automodule:: brainpy.version2.dyn
+.. currentmodule:: brainpy.dyn
+.. automodule:: brainpy.dyn
 
 Neuronal dynamics refers to the diverse temporal activity patterns exhibited by neurons related to how they process and transmit information. Key aspects include:
 

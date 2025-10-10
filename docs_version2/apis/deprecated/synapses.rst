@@ -1,15 +1,15 @@
-``brainpy.version2.synapses`` module
+``brainpy.synapses`` module
 ====================================
 
-.. currentmodule:: brainpy.version2.synapses
-.. automodule:: brainpy.version2.synapses
+.. currentmodule:: brainpy.synapses
+.. automodule:: brainpy.synapses
 
 
 
-From ``brainpy>=2.4.3``, most of models in ``brainpy.version2.synapses`` have been reimplemented
-with ``brainpy.version2.dyn`` module.
+From ``brainpy>=2.4.3``, most of models in ``brainpy.synapses`` have been reimplemented
+with ``brainpy.dyn`` module.
 
-However, ``brainpy.version2.synapses`` is still independent from ``brainpy.version2.dyn`` module.
+However, ``brainpy.synapses`` is still independent from ``brainpy.dyn`` module.
 
 
 Synaptic Dynamics

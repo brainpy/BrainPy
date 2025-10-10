@@ -1,8 +1,8 @@
-``brainpy.version2.initialize`` module
+``brainpy.initialize`` module
 ======================================
 
-.. currentmodule:: brainpy.version2.initialize
-.. automodule:: brainpy.version2.initialize
+.. currentmodule:: brainpy.initialize
+.. automodule:: brainpy.initialize
 
 .. contents::
    :local:

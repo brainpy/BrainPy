@@ -1,8 +1,8 @@
-``brainpy.version2.math.event``: Event-driven Operators
+``brainpy.math.event``: Event-driven Operators
 =======================================================
 
-.. currentmodule:: brainpy.version2.math.event
-.. automodule:: brainpy.version2.math.event
+.. currentmodule:: brainpy.math.event
+.. automodule:: brainpy.math.event
 
 .. autosummary::
    :toctree: generated/

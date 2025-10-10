@@ -1,8 +1,8 @@
-``brainpy.version2.math.random``: Random Number Generations
+``brainpy.math.random``: Random Number Generations
 ===========================================================
 
-.. currentmodule:: brainpy.version2.math.random
-.. automodule:: brainpy.version2.math.random
+.. currentmodule:: brainpy.math.random
+.. automodule:: brainpy.math.random
 
 
 

@@ -1,8 +1,8 @@
-``brainpy.version2.connect`` module
+``brainpy.connect`` module
 ===================================
 
-.. currentmodule:: brainpy.version2.connect
-.. automodule:: brainpy.version2.connect
+.. currentmodule:: brainpy.connect
+.. automodule:: brainpy.connect
 
 .. contents::
    :local:

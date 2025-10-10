@@ -1,4 +1,4 @@
-``brainpy.version2.dyn`` module
+``brainpy.dyn`` module
 ===============================
 
 

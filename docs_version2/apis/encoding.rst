@@ -1,8 +1,8 @@
-``brainpy.version2.encoding`` module
+``brainpy.encoding`` module
 ====================================
 
-.. currentmodule:: brainpy.version2.encoding
-.. automodule:: brainpy.version2.encoding
+.. currentmodule:: brainpy.encoding
+.. automodule:: brainpy.encoding
 
 .. autosummary::
    :toctree: generated/

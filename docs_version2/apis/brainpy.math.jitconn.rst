@@ -1,8 +1,8 @@
-``brainpy.version2.math.jitconn``: Just-In-Time Connectivity Operators
+``brainpy.math.jitconn``: Just-In-Time Connectivity Operators
 =====================================================================
 
-.. currentmodule:: brainpy.version2.math.jitconn
-.. automodule:: brainpy.version2.math.jitconn
+.. currentmodule:: brainpy.math.jitconn
+.. automodule:: brainpy.math.jitconn
 
 .. autosummary::
    :toctree: generated/
