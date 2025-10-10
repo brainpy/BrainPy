@@ -4,15 +4,15 @@
 
 **Release Date:** October 2025
 
-This is a major release with significant architectural changes and improvements. BrainPy 3.0.0 introduces a new API design while maintaining backward compatibility through the `brainpy.version2` module.
+This is a major release with significant architectural changes and improvements. BrainPy 3.0.0 introduces a new API design while maintaining backward compatibility through the `brainpy` module.
 
 ### Major Changes
 
 #### Architecture Reorganization
-- **BREAKING CHANGE**: All existing BrainPy 2.x functionality has been moved to `brainpy.version2` module
-  - Users can migrate existing code by replacing `import brainpy` with `import brainpy.version2 as brainpy`
-  - The old `brainpy._src` module structure has been completely reorganized into `brainpy.version2`
-  - All submodules (math, dyn, dnn, etc.) are now under `brainpy.version2.*`
+- **BREAKING CHANGE**: All existing BrainPy 2.x functionality has been moved to `brainpy` module
+  - Users can migrate existing code by replacing `import brainpy` with `import brainpy as brainpy`
+  - The old `brainpy._src` module structure has been completely reorganized into `brainpy`
+  - All submodules (math, dyn, dnn, etc.) are now under `brainpy.*`
 
 #### New Core API (brainpy.*)
 - Introduced simplified, streamlined API in the main `brainpy` namespace
@@ -179,13 +179,13 @@ This is a major release with significant architectural changes and improvements.
 
 For users upgrading from BrainPy 2.6.x:
 
-1. **Keep using BrainPy 2.x API**: Replace imports with `brainpy.version2`
+1. **Keep using BrainPy 2.x API**: Replace imports with `brainpy`
    ```python
    # Old code (BrainPy 2.x)
    import brainpy as bp
 
    # New code (BrainPy 3.0 with backward compatibility)
-   import brainpy.version2 as bp
+   import brainpy as bp
    ```
 
 2. **Adopt new BrainPy 3.0 API**: Explore the simplified API in the main `brainpy` namespace for new projects
@@ -195,7 +195,7 @@ For users upgrading from BrainPy 2.6.x:
 4. **Review breaking changes**: Check if your code uses any of the reorganized internal modules
 
 ### Notes
-- This release maintains backward compatibility through `brainpy.version2`
+- This release maintains backward compatibility through `brainpy`
 - The new API in the main `brainpy` namespace represents the future direction of the library
 - Documentation for both versions is available on Read the Docs
 

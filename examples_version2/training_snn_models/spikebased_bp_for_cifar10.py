@@ -24,8 +24,8 @@ from jax.lax import stop_gradient
 import torch.utils.data
 from torchvision import datasets, transforms
 
-import brainpy.version2 as bp
-import brainpy.version2.math as bm
+import brainpy as bp
+import brainpy.math as bm
 
 # bm.disable_gpu_memory_preallocation()
 bm.set_environment(bm.TrainingMode())

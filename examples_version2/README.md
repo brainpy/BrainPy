@@ -11,8 +11,8 @@ These examples showcase BrainPy 2.x functionality including dynamics simulation,
 **As of September 2025, BrainPy has been upgraded to version 3.x.** To use these examples with BrainPy 3.x, update your imports:
 
 ```python
-import brainpy.version2 as bp
-import brainpy.version2.math as bm
+import brainpy as bp
+import brainpy.math as bm
 ```
 
 ## Example Categories
@@ -77,7 +77,7 @@ For version 3.x with 2.x compatibility:
 
 ```bash
 pip install -U brainpy[cpu]
-# Then use: import brainpy.version2 as bp
+# Then use: import brainpy as bp
 ```
 
 ## Usage

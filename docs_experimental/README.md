@@ -78,8 +78,8 @@ If you're migrating from BrainPy 2.x, the API has changed significantly. See the
 To use legacy 2.x APIs in version 3.x:
 
 ```python
-import brainpy.version2 as bp
-import brainpy.version2.math as bm
+import brainpy as bp
+import brainpy.math as bm
 ```
 
 ## Running Notebooks

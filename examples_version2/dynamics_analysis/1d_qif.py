@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-import brainpy.version2 as bp
+import brainpy as bp
 
 bp.math.enable_x64()  # important!
 
