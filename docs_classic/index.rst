@@ -113,11 +113,10 @@ Learn more
          :class-card: sd-text-black sd-bg-light
          :link: https://brainmodeling.readthedocs.io
 
-
    .. grid-item::
       :columns: 6 6 6 4
 
-      .. card:: :material-regular:`settings;2em` ``brainpy.state`` module
+      .. card:: :material-regular:`data_exploration;2em` ``brainpy.state`` APIs
          :class-card: sd-text-black sd-bg-light
          :link: https://brainpy-state.readthedocs.io/
 
