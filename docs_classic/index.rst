@@ -148,5 +148,6 @@ Learn more
    advanced_tutorials.rst
    FAQ.rst
    api.rst
+   changelog.md
    brainpy-changelog.md
    brainpylib-changelog.md

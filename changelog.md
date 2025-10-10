@@ -1,5 +1,85 @@
 # Changelog
 
+## Version 3.0.1
+
+**Release Date:** October 2025
+
+This is a patch release focusing on documentation improvements and module structure cleanup following the 3.0.0 release.
+
+### Major Changes
+
+#### Module Renaming
+- **BREAKING CHANGE**: Renamed `brainpy.state_based` module to `brainpy.state`
+  - All functionality previously in `brainpy.state_based` is now accessible via `brainpy.state`
+  - Users should update imports from `brainpy.state_based` to `brainpy.state`
+  - This change provides a cleaner, more intuitive API structure
+
+#### Code Structure Cleanup
+- **Removed `brainpy.version2` module**: All BrainPy 2.x functionality has been consolidated
+  - The `version2` namespace has been removed from the codebase
+  - All version2 functionality is now directly accessible through the main `brainpy` module
+  - Version-specific imports are no longer needed
+
+### Documentation
+
+#### Documentation Reorganization
+- Renamed `docs_version2` to `docs_classic` for BrainPy 2.x documentation
+- Renamed `docs_state_based` to `docs_state` for BrainPy 3.x documentation
+- Renamed `examples_version2` to `examples_classic` for consistency
+- Renamed `examples_state_based` to `examples_state` for clarity
+
+#### Documentation Updates
+- Updated all documentation references to use `brainpy.state` instead of `brainpy.state_based` (#791, #790)
+- Updated API documentation structure for improved clarity
+- Simplified API reference pages by removing redundant content
+- Updated card links and descriptions for `brainpy.state` APIs
+- Improved quickstart tutorial (5min-tutorial.ipynb) with clearer examples
+- Updated core concepts documentation to reflect new module structure
+- Enhanced tutorials with corrected module references
+- Updated all example files to use new module structure
+
+#### Examples Updates
+- Updated simulation examples (EI networks, COBA, CUBA models) to use new API
+- Updated training examples (surrogate gradient training, MNIST models) with correct imports
+- Updated gamma oscillation examples with proper module references
+
+### Bug Fixes
+
+#### Testing
+- Removed redundant test for abstract Neuron class that was causing conflicts (d06bb47f)
+
+### Migration Guide
+
+For users upgrading from BrainPy 3.0.0:
+
+1. **Update module imports**: Replace `brainpy.state_based` with `brainpy.state`
+   ```python
+
+   # New code (BrainPy 3.0.1)
+   from brainpy.state import LIF, Expon
+   ```
+
+2. **Remove version2 references**: If you were using `brainpy.version2`, migrate to the main `brainpy` module
+   ```python
+   # Old code (not recommended)
+   import brainpy.version2 as bp
+
+   # New code
+   import brainpy as bp
+   ```
+
+3. **Update documentation references**: If you're linking to documentation, use the new paths:
+   - Classic docs: `docs_classic/` (formerly `docs_version2/`)
+   - State-based docs: `docs_state/` (formerly `docs_state_based/`)
+
+### Notes
+- This release maintains full backward compatibility with BrainPy 3.0.0 except for the module naming changes
+- The `brainpy.state_based` to `brainpy.state` rename provides a cleaner API and better reflects the module's purpose
+- Documentation is now better organized with clear separation between classic (2.x) and state-based (3.x) APIs
+
+
+
+
 ## Version 3.0.0
 
 **Release Date:** October 2025
