@@ -4,7 +4,7 @@
 # Documentation
 documentation:
   - changed-files:
-    - any-glob-to-any-file: ['docs_version2_version2/**/*', 'docs_version2/**/*', '**/*.md', '**/*.rst']
+    - any-glob-to-any-file: ['docs_version2_version2/**/*', 'docs_classic/**/*', '**/*.md', '**/*.rst']
 
 # CI/CD
 ci-cd:

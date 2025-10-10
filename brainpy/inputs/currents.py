@@ -21,9 +21,12 @@ import brainstate
 
 __all__ = [
     'section_input',
-    'constant_input', 'constant_current',
-    'spike_input', 'spike_current',
-    'ramp_input', 'ramp_current',
+    'constant_input',
+    'constant_current',
+    'spike_input',
+    'spike_current',
+    'ramp_input',
+    'ramp_current',
     'wiener_process',
     'ou_process',
     'sinusoidal_input',
