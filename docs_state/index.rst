@@ -4,6 +4,14 @@
 `brainpy.state` provides a new ``State``-based programming paradigm for building and simulating spiking neural networks.
 
 
+Compared to ``brainpy.dyn``, ``brainpy.state`` provides:
+
+  - A more intuitive and flexible way to define and manage the state of neural network components (neurons, synapses, etc.).
+
+  - Improved performance and scalability for large-scale simulations.
+
+  - Seamless integration with `BrainX <https://brainmodeling.readthedocs.io>`_ ecosystem.
+
 
 .. note::
 

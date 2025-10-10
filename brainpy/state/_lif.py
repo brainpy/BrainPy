@@ -74,12 +74,12 @@ class IF(Neuron):
 
     Examples
     --------
-    >>> import brainpy.state as brainpy
+    >>> import brainpy
     >>> import brainstate
     >>> import brainunit as u
     >>>
     >>> # Create an IF neuron layer with 10 neurons
-    >>> if_neuron = brainpy.IF(10, tau=8*u.ms, V_th=1.2*u.mV)
+    >>> if_neuron = brainpy.state.IF(10, tau=8*u.ms, V_th=1.2*u.mV)
     >>>
     >>> # Initialize the state
     >>> if_neuron.init_state(batch_size=1)
@@ -89,7 +89,7 @@ class IF(Neuron):
     >>>
     >>> # Create a network with IF neurons
     >>> network = brainstate.nn.Sequential([
-    ...     brainpy.IF(100, tau=5.0*u.ms),
+    ...     brainpy.state.IF(100, tau=5.0*u.ms),
     ...     brainstate.nn.Linear(100, 10)
     ... ])
 
