@@ -23,9 +23,6 @@ BrainPy is a flexible, efficient, and extensible framework for computational neu
 - **Ecosystem**: https://brainmodeling.readthedocs.io/
 
 
-``BrainPy>=3.0.0`` is rewritten based on [brainstate](https://github.com/chaobrain/brainstate) since August 2025, please learn [brainstate documentation](https://brainstate.readthedocs.io/) for the latest updates. 
-
-
 ## Installation
 
 BrainPy is based on Python (>=3.10) and can be installed on Linux (Ubuntu 16.04 or later), macOS (10.12 or later), and Windows platforms. 

@@ -30,13 +30,13 @@ for item in os.listdir('.'):
 build_version = os.environ.get('CURRENT_VERSION', 'v2')
 if build_version == 'v2':
     shutil.copytree(
-        os.path.join(os.path.dirname(__file__), '../docs_version2'),
+        os.path.join(os.path.dirname(__file__), '../docs_classic'),
         os.path.join(os.path.dirname(__file__)),
         dirs_exist_ok=True
     )
 else:
     shutil.copytree(
-        os.path.join(os.path.dirname(__file__), '../docs_state_based'),
+        os.path.join(os.path.dirname(__file__), '../docs_state'),
         os.path.join(os.path.dirname(__file__)),
         dirs_exist_ok=True
     )

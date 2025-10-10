@@ -142,7 +142,7 @@ from brainpy.math.object_transform.collectors import (
     ArrayCollector as ArrayCollector,
     Collector as Collector,
 )
-
+from brainpy import state
 
 from brainpy.deprecations import deprecation_getattr
 
@@ -151,6 +151,7 @@ optimizers = optim
 
 
 if __name__ == '__main__':
+    state
     connect
     initialize,  # weight initialization
     optim,  # gradient descent optimizers
