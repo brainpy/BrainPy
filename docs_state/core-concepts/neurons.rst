@@ -1,12 +1,12 @@
 Neurons
 =======
 
-Neurons are the fundamental computational units in BrainPy 3.0. This document explains how neurons work, what models are available, and how to use and create them.
+Neurons are the fundamental computational units in ``brainpy.state``. This document explains how neurons work, what models are available, and how to use and create them.
 
 Overview
 --------
 
-In BrainPy 3.0, neurons model the dynamics of neural populations. Each neuron model:
+In ``brainpy.state``, neurons model the dynamics of neural populations. Each neuron model:
 
 - Maintains **membrane potential** (voltage)
 - Integrates **input currents**
@@ -27,7 +27,7 @@ Creating Neurons
     import brainunit as u
 
     # Create a population of 100 LIF neurons
-    neurons = brainpy.LIF(
+    neurons = brainpy.state.LIF(
         size=100,
         V_rest=-65. * u.mV,
         V_th=-50. * u.mV,
@@ -85,7 +85,7 @@ The simplest spiking neuron model.
 
 .. code-block:: python
 
-    neuron = brainpy.IF(
+    neuron = brainpy.state.IF(
         size=100,
         V_rest=0. * u.mV,
         V_th=1. * u.mV,
@@ -126,7 +126,7 @@ The most commonly used spiking neuron model.
 
 .. code-block:: python
 
-    neuron = brainpy.LIF(
+    neuron = brainpy.state.LIF(
         size=100,
         V_rest=-65. * u.mV,
         V_th=-50. * u.mV,
@@ -171,7 +171,7 @@ Same as LIF, but after spiking:
 
 .. code-block:: python
 
-    neuron = brainpy.LIFRef(
+    neuron = brainpy.state.LIFRef(
         size=100,
         V_rest=-65. * u.mV,
         V_th=-50. * u.mV,
@@ -216,7 +216,7 @@ When spike occurs: :math:`w \\leftarrow w + \\beta`
 
 .. code-block:: python
 
-    neuron = brainpy.ALIF(
+    neuron = brainpy.state.ALIF(
         size=100,
         V_rest=-65. * u.mV,
         V_th=-50. * u.mV,
@@ -260,7 +260,7 @@ Subtract threshold from membrane potential:
 
 .. code-block:: python
 
-    neuron = brainpy.LIF(..., spk_reset='soft')
+    neuron = brainpy.state.LIF(..., spk_reset='soft')
 
 **Properties:**
 
@@ -279,7 +279,7 @@ Reset to fixed potential:
 
 .. code-block:: python
 
-    neuron = brainpy.LIF(..., spk_reset='hard')
+    neuron = brainpy.state.LIF(..., spk_reset='hard')
 
 **Properties:**
 
@@ -302,7 +302,7 @@ For training spiking neural networks, use surrogate gradients:
 
     import braintools
 
-    neuron = brainpy.LIF(
+    neuron = brainpy.state.LIF(
         size=100,
         ...,
         spk_fun=braintools.surrogate.ReluGrad()
@@ -330,19 +330,19 @@ Different ways to initialize membrane potential:
     import braintools
 
     # Constant initialization
-    neuron = brainpy.LIF(
+    neuron = brainpy.state.LIF(
         size=100,
         V_initializer=braintools.init.Constant(-65., unit=u.mV)
     )
 
     # Normal distribution
-    neuron = brainpy.LIF(
+    neuron = brainpy.state.LIF(
         size=100,
         V_initializer=braintools.init.Normal(-65., 5., unit=u.mV)
     )
 
     # Uniform distribution
-    neuron = brainpy.LIF(
+    neuron = brainpy.state.LIF(
         size=100,
         V_initializer=braintools.init.Uniform(-70., -60., unit=u.mV)
     )
@@ -385,7 +385,7 @@ Here's a complete example simulating a LIF neuron:
 
 .. code-block:: python
 
-    import brainpy as bp
+    import brainpy
     import brainstate
     import brainunit as u
     import matplotlib.pyplot as plt
@@ -394,7 +394,7 @@ Here's a complete example simulating a LIF neuron:
     brainstate.environ.set(dt=0.1 * u.ms)
 
     # Create neuron
-    neuron = brainpy.LIF(
+    neuron = brainpy.state.LIF(
         size=1,
         V_rest=-65. * u.mV,
         V_th=-50. * u.mV,
@@ -447,7 +447,7 @@ You can create custom neuron models by inheriting from ``Neuron``:
 .. code-block:: python
 
     import brainstate
-    from brainpy._base import Neuron
+    from brainpy.state import Neuron
 
     class MyNeuron(Neuron):
         def __init__(self, size, tau, V_th, **kwargs):
@@ -503,7 +503,7 @@ Performance Tips
 
    .. code-block:: python
 
-       @brainstate.compile.jit
+       @brainstate.transform.jit
        def simulate_step(input):
            neuron(input)
            return neuron.V.value
@@ -538,7 +538,7 @@ Neurons encoding information in firing rate:
 
 .. code-block:: python
 
-    neuron = brainpy.LIF(100, tau=10*u.ms, spk_reset='soft')
+    neuron = brainpy.state.LIF(100, tau=10*u.ms, spk_reset='soft')
     # Use soft reset for higher firing rates
 
 Temporal Coding
@@ -548,7 +548,7 @@ Neurons encoding information in spike timing:
 
 .. code-block:: python
 
-    neuron = brainpy.LIFRef(
+    neuron = brainpy.state.LIFRef(
         100,
         tau=10*u.ms,
         tau_ref=2*u.ms,
@@ -563,7 +563,7 @@ Neurons with bursting behavior:
 
 .. code-block:: python
 
-    neuron = brainpy.ALIF(
+    neuron = brainpy.state.ALIF(
         100,
         tau=10*u.ms,
         tau_w=200*u.ms,
@@ -575,7 +575,7 @@ Neurons with bursting behavior:
 Summary
 -------
 
-Neurons in BrainPy 3.0:
+Neurons in ``brainpy.state``:
 
 ✅ **Multiple models**: IF, LIF, LIFRef, ALIF
 

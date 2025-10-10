@@ -22,11 +22,11 @@ Quick Start
 
 .. code-block:: python
 
-   import brainpy as bp
+   import brainpy
    import brainstate
 
    # This automatically runs on GPU if available
-   net = bp.LIF(10000, V_rest=-65*u.mV, V_th=-50*u.mV, tau=10*u.ms)
+   net = brainpy.state.LIF(10000, V_rest=-65*u.mV, V_th=-50*u.mV, tau=10*u.ms)
    brainstate.nn.init_all_states(net)
 
    for _ in range(1000):
@@ -116,7 +116,7 @@ Automatic Placement
    import brainstate
 
    # Automatically uses GPU if available
-   net = bp.LIF(1000, ...)
+   net = brainpy.state.LIF(1000, ...)
    brainstate.nn.init_all_states(net)
 
    # All operations run on GPU
@@ -133,13 +133,13 @@ Force computation on specific device:
 
    # Run on specific GPU
    with jax.default_device(jax.devices('gpu')[0]):
-       net = bp.LIF(1000, ...)
+       net = brainpy.state.LIF(1000, ...)
        brainstate.nn.init_all_states(net)
        result = net(input_data)
 
    # Run on CPU
    with jax.default_device(jax.devices('cpu')[0]):
-       net_cpu = bp.LIF(1000, ...)
+       net_cpu = brainpy.state.LIF(1000, ...)
        brainstate.nn.init_all_states(net_cpu)
        result_cpu = net_cpu(input_data)
 
@@ -149,7 +149,7 @@ Check Data Location
 .. code-block:: python
 
    # Check where data lives
-   neuron = bp.LIF(100, ...)
+   neuron = brainpy.state.LIF(100, ...)
    brainstate.nn.init_all_states(neuron)
 
    print("Voltage device:", neuron.V.value.device())
@@ -167,7 +167,7 @@ Use JIT Compilation
 
    import brainstate
 
-   net = bp.LIF(10000, ...)
+   net = brainpy.state.LIF(10000, ...)
    brainstate.nn.init_all_states(net)
 
    # WITHOUT JIT (slow on GPU)
@@ -175,7 +175,7 @@ Use JIT Compilation
        net(input_data)  # Many small kernel launches
 
    # WITH JIT (fast on GPU)
-   @brainstate.compile.jit
+   @brainstate.transform.jit
    def simulate_step(net, inp):
        return net(inp)
 
@@ -196,11 +196,11 @@ Batch Operations
 .. code-block:: python
 
    # Single trial (underutilizes GPU)
-   net = bp.LIF(1000, ...)
+   net = brainpy.state.LIF(1000, ...)
    brainstate.nn.init_all_states(net)  # Shape: (1000,)
 
    # Multiple trials in parallel (efficient GPU usage)
-   net_batched = bp.LIF(1000, ...)
+   net_batched = brainpy.state.LIF(1000, ...)
    brainstate.nn.init_all_states(net_batched, batch_size=64)  # Shape: (64, 1000)
 
    # GPU processes all 64 trials simultaneously
@@ -253,7 +253,7 @@ Minimize Data Transfer
        # CPU-GPU transfer dominates time!
 
    # GOOD: Keep data on GPU
-   @brainstate.compile.jit
+   @brainstate.transform.jit
    def simulate_step(net, key):
        inp = brainstate.random.uniform(key, (1000,)) * 2.0  # Generated on GPU
        return net(inp)  # Stays on GPU
@@ -270,23 +270,23 @@ Use Sparse Operations
 .. code-block:: python
 
    # Dense (memory intensive on GPU)
-   dense_proj = bp.AlignPostProj(
+   dense_proj = brainpy.state.AlignPostProj(
        comm=brainstate.nn.Linear(10000, 10000),  # 400MB just for weights!
-       syn=bp.Expon.desc(10000, tau=5*u.ms),
-       out=bp.CUBA.desc(),
+       syn=brainpy.state.Expon.desc(10000, tau=5*u.ms),
+       out=brainpy.state.CUBA.desc(),
        post=post_neurons
    )
 
    # Sparse (memory efficient)
-   sparse_proj = bp.AlignPostProj(
+   sparse_proj = brainpy.state.AlignPostProj(
        comm=brainstate.nn.EventFixedProb(
            pre_size=10000,
            post_size=10000,
            prob=0.01,  # 1% connectivity
            weight=0.5*u.mS
        ),  # Only 4MB for weights!
-       syn=bp.Expon.desc(10000, tau=5*u.ms),
-       out=bp.CUBA.desc(),
+       syn=brainpy.state.Expon.desc(10000, tau=5*u.ms),
+       out=brainpy.state.CUBA.desc(),
        post=post_neurons
    )
 
@@ -309,7 +309,7 @@ Data Parallelism
    # Split work across GPUs
    def run_on_gpu(gpu_id, n_trials):
        with jax.default_device(gpus[gpu_id]):
-           net = bp.LIF(1000, ...)
+           net = brainpy.state.LIF(1000, ...)
            brainstate.nn.init_all_states(net, batch_size=n_trials)
 
            results = []
@@ -340,7 +340,7 @@ Using JAX pmap
    import jax.numpy as jnp
 
    # Create model
-   net = bp.LIF(1000, ...)
+   net = brainpy.state.LIF(1000, ...)
 
    @pmap
    def parallel_simulate(inputs):
@@ -387,11 +387,11 @@ Optimal TPU Usage
    # Large batches for TPU
    batch_size = 256  # TPUs like large batches
 
-   net = bp.LIF(1000, ...)
+   net = brainpy.state.LIF(1000, ...)
    brainstate.nn.init_all_states(net, batch_size=batch_size)
 
    # JIT is essential
-   @brainstate.compile.jit
+   @brainstate.transform.jit
    def train_step(net, inputs, labels):
        # Dense operations work well
        # Avoid sparse operations on TPU
@@ -448,10 +448,10 @@ Measure Speedup
 
        with jax.default_device(device):
            # Create network
-           net = bp.LIF(n_neurons, V_rest=-65*u.mV, V_th=-50*u.mV, tau=10*u.ms)
+           net = brainpy.state.LIF(n_neurons, V_rest=-65*u.mV, V_th=-50*u.mV, tau=10*u.ms)
            brainstate.nn.init_all_states(net)
 
-           @brainstate.compile.jit
+           @brainstate.transform.jit
            def step(net, inp):
                return net(inp)
 
@@ -626,7 +626,7 @@ Issue: Slow First Run
 
 .. code-block:: python
 
-   @brainstate.compile.jit
+   @brainstate.transform.jit
    def step(net, inp):
        return net(inp)
 
@@ -729,14 +729,14 @@ Example: Complete GPU Workflow
        def __init__(self, n_exc=8000, n_inh=2000):
            super().__init__()
 
-           self.E = bp.LIF(n_exc, V_rest=-65*u.mV, V_th=-50*u.mV, tau=15*u.ms)
-           self.I = bp.LIF(n_inh, V_rest=-65*u.mV, V_th=-50*u.mV, tau=10*u.ms)
+           self.E = brainpy.state.LIF(n_exc, V_rest=-65*u.mV, V_th=-50*u.mV, tau=15*u.ms)
+           self.I = brainpy.state.LIF(n_inh, V_rest=-65*u.mV, V_th=-50*u.mV, tau=10*u.ms)
 
            # Sparse connectivity (GPU efficient)
-           self.E2E = bp.AlignPostProj(
+           self.E2E = brainpy.state.AlignPostProj(
                comm=brainstate.nn.EventFixedProb(n_exc, n_exc, prob=0.02, weight=0.5*u.mS),
-               syn=bp.Expon.desc(n_exc, tau=5*u.ms),
-               out=bp.CUBA.desc(),
+               syn=brainpy.state.Expon.desc(n_exc, tau=5*u.ms),
+               out=brainpy.state.CUBA.desc(),
                post=self.E
            )
            # ... more projections
@@ -759,7 +759,7 @@ Example: Complete GPU Workflow
    brainstate.nn.init_all_states(net, batch_size=batch_size)
 
    # 4. JIT compile
-   @brainstate.compile.jit
+   @brainstate.transform.jit
    def simulate_step(net, inp_e, inp_i):
        return net(inp_e, inp_i)
 
@@ -808,7 +808,7 @@ Summary
    print(jax.devices())
 
    # JIT for GPU
-   @brainstate.compile.jit
+   @brainstate.transform.jit
    def step(net, inp):
        return net(inp)
 

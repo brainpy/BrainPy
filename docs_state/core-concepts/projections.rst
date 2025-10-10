@@ -1,9 +1,11 @@
 Projections: Connecting Neural Populations
 ==========================================
 
-Projections are BrainPy's mechanism for connecting neural populations. They implement the **Communication-Synapse-Output (Comm-Syn-Out)** architecture, which separates connectivity, synaptic dynamics, and output computation into modular components.
+Projections are ``brainpy.state`` 's mechanism for connecting neural populations.
+They implement the **Communication-Synapse-Output (Comm-Syn-Out)** architecture,
+which separates connectivity, synaptic dynamics, and output computation into modular components.
 
-This guide provides a comprehensive understanding of projections in BrainPy 3.0.
+This guide provides a comprehensive understanding of projections in ``brainpy.state``.
 
 .. contents:: Table of Contents
    :local:
@@ -78,7 +80,7 @@ All neurons potentially connected (though weights may be zero).
 
 .. code-block:: python
 
-   import brainpy as bp
+   import brainpy
    import brainstate
    import brainunit as u
 
@@ -207,7 +209,7 @@ Single exponential decay (most common).
 .. code-block:: python
 
    # Exponential synapse with 5ms time constant
-   syn = bp.Expon.desc(
+   syn = brainpy.state.Expon.desc(
        size=100,           # Postsynaptic population size
        tau=5.0 * u.ms      # Decay time constant
    )
@@ -238,7 +240,7 @@ Dual exponential with rise and decay.
 .. code-block:: python
 
    # Alpha synapse
-   syn = bp.Alpha.desc(
+   syn = brainpy.state.Alpha.desc(
        size=100,
        tau=10.0 * u.ms     # Characteristic time
    )
@@ -267,7 +269,7 @@ Voltage-dependent NMDA receptors.
 .. code-block:: python
 
    # NMDA receptor
-   syn = bp.NMDA.desc(
+   syn = brainpy.state.NMDA.desc(
        size=100,
        tau_decay=100.0 * u.ms,    # Slow decay
        tau_rise=2.0 * u.ms,       # Fast rise
@@ -291,7 +293,7 @@ Fast glutamatergic transmission.
 .. code-block:: python
 
    # AMPA receptor (fast excitation)
-   syn = bp.AMPA.desc(
+   syn = brainpy.state.AMPA.desc(
        size=100,
        tau=2.0 * u.ms      # Fast decay (~2ms)
    )
@@ -308,7 +310,7 @@ Inhibitory transmission.
 .. code-block:: python
 
    # GABAa receptor (fast inhibition)
-   syn = bp.GABAa.desc(
+   syn = brainpy.state.GABAa.desc(
        size=100,
        tau=6.0 * u.ms      # ~6ms decay
    )
@@ -318,7 +320,7 @@ Inhibitory transmission.
 .. code-block:: python
 
    # GABAb receptor (slow inhibition)
-   syn = bp.GABAb.desc(
+   syn = brainpy.state.GABAb.desc(
        size=100,
        tau_decay=150.0 * u.ms,    # Very slow
        tau_rise=3.5 * u.ms
@@ -335,7 +337,7 @@ Create custom synaptic dynamics by subclassing ``Synapse``.
 
 .. code-block:: python
 
-   class DoubleExpSynapse(bp.Synapse):
+   class DoubleExpSynapse(brainpy.state.Synapse):
        """Custom synapse with two time constants."""
 
        def __init__(self, size, tau_fast=2*u.ms, tau_slow=10*u.ms, **kwargs):
@@ -386,7 +388,7 @@ Synaptic conductance directly becomes current.
 .. code-block:: python
 
    # Current-based output
-   out = bp.CUBA.desc()
+   out = brainpy.state.CUBA.desc()
 
 **Characteristics:**
 
@@ -415,10 +417,10 @@ Synaptic conductance with reversal potential.
 .. code-block:: python
 
    # Excitatory conductance-based
-   out_exc = bp.COBA.desc(E=0.0 * u.mV)
+   out_exc = brainpy.state.COBA.desc(E=0.0 * u.mV)
 
    # Inhibitory conductance-based
-   out_inh = bp.COBA.desc(E=-80.0 * u.mV)
+   out_inh = brainpy.state.COBA.desc(E=-80.0 * u.mV)
 
 **Characteristics:**
 
@@ -439,7 +441,7 @@ Voltage-dependent magnesium block for NMDA.
 .. code-block:: python
 
    # NMDA with Mg²⁺ block
-   out_nmda = bp.MgBlock.desc(
+   out_nmda = brainpy.state.MgBlock.desc(
        E=0.0 * u.mV,
        cc_Mg=1.2 * u.mM,
        alpha=0.062 / u.mV,
@@ -461,22 +463,22 @@ Example 1: Simple Feedforward
    import brainunit as u
 
    # Create populations
-   pre = bp.LIF(100, V_rest=-65*u.mV, V_th=-50*u.mV, tau=10*u.ms)
-   post = bp.LIF(50, V_rest=-65*u.mV, V_th=-50*u.mV, tau=10*u.ms)
+   pre = brainpy.state.LIF(100, V_rest=-65*u.mV, V_th=-50*u.mV, tau=10*u.ms)
+   post = brainpy.state.LIF(50, V_rest=-65*u.mV, V_th=-50*u.mV, tau=10*u.ms)
 
    # Create projection: 100 → 50 neurons
-   proj = bp.AlignPostProj(
+   proj = brainpy.state.AlignPostProj(
        comm=brainstate.nn.EventFixedProb(
            pre_size=100,
            post_size=50,
            prob=0.1,              # 10% connectivity
            weight=0.5 * u.mS
        ),
-       syn=bp.Expon.desc(
+       syn=brainpy.state.Expon.desc(
            size=50,               # Postsynaptic size
            tau=5.0 * u.ms
        ),
-       out=bp.CUBA.desc(),
+       out=brainpy.state.CUBA.desc(),
        post=post                  # Postsynaptic population
    )
 
@@ -507,38 +509,38 @@ Example 2: Excitatory-Inhibitory Network
            super().__init__()
 
            # Populations
-           self.E = bp.LIF(n_exc, V_rest=-65*u.mV, V_th=-50*u.mV, tau=15*u.ms)
-           self.I = bp.LIF(n_inh, V_rest=-65*u.mV, V_th=-50*u.mV, tau=10*u.ms)
+           self.E = brainpy.state.LIF(n_exc, V_rest=-65*u.mV, V_th=-50*u.mV, tau=15*u.ms)
+           self.I = brainpy.state.LIF(n_inh, V_rest=-65*u.mV, V_th=-50*u.mV, tau=10*u.ms)
 
            # E → E projection (AMPA, excitatory)
-           self.E2E = bp.AlignPostProj(
+           self.E2E = brainpy.state.AlignPostProj(
                comm=brainstate.nn.EventFixedProb(n_exc, n_exc, prob=0.02, weight=0.6*u.mS),
-               syn=bp.AMPA.desc(n_exc, tau=2.0*u.ms),
-               out=bp.COBA.desc(E=0.0*u.mV),
+               syn=brainpy.state.AMPA.desc(n_exc, tau=2.0*u.ms),
+               out=brainpy.state.COBA.desc(E=0.0*u.mV),
                post=self.E
            )
 
            # E → I projection (AMPA, excitatory)
-           self.E2I = bp.AlignPostProj(
+           self.E2I = brainpy.state.AlignPostProj(
                comm=brainstate.nn.EventFixedProb(n_exc, n_inh, prob=0.02, weight=0.6*u.mS),
-               syn=bp.AMPA.desc(n_inh, tau=2.0*u.ms),
-               out=bp.COBA.desc(E=0.0*u.mV),
+               syn=brainpy.state.AMPA.desc(n_inh, tau=2.0*u.ms),
+               out=brainpy.state.COBA.desc(E=0.0*u.mV),
                post=self.I
            )
 
            # I → E projection (GABAa, inhibitory)
-           self.I2E = bp.AlignPostProj(
+           self.I2E = brainpy.state.AlignPostProj(
                comm=brainstate.nn.EventFixedProb(n_inh, n_exc, prob=0.02, weight=6.7*u.mS),
-               syn=bp.GABAa.desc(n_exc, tau=6.0*u.ms),
-               out=bp.COBA.desc(E=-80.0*u.mV),
+               syn=brainpy.state.GABAa.desc(n_exc, tau=6.0*u.ms),
+               out=brainpy.state.COBA.desc(E=-80.0*u.mV),
                post=self.E
            )
 
            # I → I projection (GABAa, inhibitory)
-           self.I2I = bp.AlignPostProj(
+           self.I2I = brainpy.state.AlignPostProj(
                comm=brainstate.nn.EventFixedProb(n_inh, n_inh, prob=0.02, weight=6.7*u.mS),
-               syn=bp.GABAa.desc(n_inh, tau=6.0*u.ms),
-               out=bp.COBA.desc(E=-80.0*u.mV),
+               syn=brainpy.state.GABAa.desc(n_inh, tau=6.0*u.ms),
+               out=brainpy.state.COBA.desc(E=-80.0*u.mV),
                post=self.I
            )
 
@@ -572,21 +574,21 @@ Combine AMPA (fast) and NMDA (slow) for realistic excitation.
        def __init__(self, n_pre=100, n_post=100):
            super().__init__()
 
-           self.post = bp.LIF(n_post, V_rest=-65*u.mV, V_th=-50*u.mV, tau=10*u.ms)
+           self.post = brainpy.state.LIF(n_post, V_rest=-65*u.mV, V_th=-50*u.mV, tau=10*u.ms)
 
            # Fast AMPA component
-           self.ampa_proj = bp.AlignPostProj(
+           self.ampa_proj = brainpy.state.AlignPostProj(
                comm=brainstate.nn.EventFixedProb(n_pre, n_post, prob=0.1, weight=0.3*u.mS),
-               syn=bp.AMPA.desc(n_post, tau=2.0*u.ms),
-               out=bp.COBA.desc(E=0.0*u.mV),
+               syn=brainpy.state.AMPA.desc(n_post, tau=2.0*u.ms),
+               out=brainpy.state.COBA.desc(E=0.0*u.mV),
                post=self.post
            )
 
            # Slow NMDA component
-           self.nmda_proj = bp.AlignPostProj(
+           self.nmda_proj = brainpy.state.AlignPostProj(
                comm=brainstate.nn.EventFixedProb(n_pre, n_post, prob=0.1, weight=0.3*u.mS),
-               syn=bp.NMDA.desc(n_post, tau_decay=100.0*u.ms, tau_rise=2.0*u.ms),
-               out=bp.MgBlock.desc(E=0.0*u.mV, cc_Mg=1.2*u.mM),
+               syn=brainpy.state.NMDA.desc(n_post, tau_decay=100.0*u.ms, tau_rise=2.0*u.ms),
+               out=brainpy.state.MgBlock.desc(E=0.0*u.mV, cc_Mg=1.2*u.mM),
                post=self.post
            )
 
@@ -611,10 +613,10 @@ Add synaptic delays to projections.
 .. code-block:: python
 
    # Projection with 5ms synaptic delay
-   proj_delayed = bp.AlignPostProj(
+   proj_delayed = brainpy.state.AlignPostProj(
        comm=brainstate.nn.EventFixedProb(100, 100, prob=0.1, weight=0.5*u.mS),
-       syn=bp.Expon.desc(100, tau=5.0*u.ms),
-       out=bp.CUBA.desc(),
+       syn=brainpy.state.Expon.desc(100, tau=5.0*u.ms),
+       out=brainpy.state.CUBA.desc(),
        post=post_neurons,
        delay=5.0 * u.ms  # Synaptic delay
    )
@@ -662,10 +664,10 @@ Combine with plasticity (see :doc:`../tutorials/advanced/06-synaptic-plasticity`
                jnp.ones((n_pre, n_post)) * 0.5 * u.mS
            )
 
-           self.proj = bp.AlignPostProj(
+           self.proj = brainpy.state.AlignPostProj(
                comm=CustomComm(self.weights),  # Use learnable weights
-               syn=bp.Expon.desc(n_post, tau=5.0*u.ms),
-               out=bp.CUBA.desc(),
+               syn=brainpy.state.Expon.desc(n_post, tau=5.0*u.ms),
+               out=brainpy.state.CUBA.desc(),
                post=post_neurons
            )
 
@@ -730,7 +732,7 @@ Performance Tips
 
 1. **Sparse over Dense:** Use sparse connectivity for large networks
 2. **Batch initialization:** Initialize all modules together
-3. **JIT compile:** Wrap simulation loop with ``@brainstate.compile.jit``
+3. **JIT compile:** Wrap simulation loop with ``@brainstate.transform.jit``
 4. **Appropriate precision:** Use float32 unless high precision needed
 5. **Minimize communication:** Group projections with same connectivity
 
@@ -744,8 +746,8 @@ Neurons are either excitatory OR inhibitory (not both).
 .. code-block:: python
 
    # Separate excitatory and inhibitory populations
-   E = bp.LIF(800, ...)  # Excitatory
-   I = bp.LIF(200, ...)  # Inhibitory
+   E = brainpy.state.LIF(800, ...)  # Excitatory
+   I = brainpy.state.LIF(200, ...)  # Inhibitory
 
    # E always excitatory (E=0mV)
    # I always inhibitory (E=-80mV)
@@ -771,10 +773,10 @@ Self-connections for persistent activity.
 .. code-block:: python
 
    # Excitatory recurrence (working memory)
-   E2E = bp.AlignPostProj(
+   E2E = brainpy.state.AlignPostProj(
        comm=brainstate.nn.EventFixedProb(n_exc, n_exc, prob=0.02, weight=0.5*u.mS),
-       syn=bp.Expon.desc(n_exc, tau=5*u.ms),
-       out=bp.COBA.desc(E=0*u.mV),
+       syn=brainpy.state.Expon.desc(n_exc, tau=5*u.ms),
+       out=brainpy.state.COBA.desc(E=0*u.mV),
        post=E
    )
 
@@ -823,8 +825,8 @@ Issue: Network silent or exploding
    w_inh = 5.0 * u.mS  # Strong inhibition
 
    # Proper reversal potentials
-   out_exc = bp.COBA.desc(E=0.0 * u.mV)
-   out_inh = bp.COBA.desc(E=-80.0 * u.mV)
+   out_exc = brainpy.state.COBA.desc(E=0.0 * u.mV)
+   out_inh = brainpy.state.COBA.desc(E=-80.0 * u.mV)
 
 Issue: Slow simulation
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -839,7 +841,7 @@ Issue: Slow simulation
 .. code-block:: python
 
    # Fast configuration
-   @brainstate.compile.jit
+   @brainstate.transform.jit
    def simulate_step(net, inp):
        return net(inp)
 
@@ -879,10 +881,10 @@ Summary
 .. code-block:: python
 
    # Standard projection template
-   proj = bp.AlignPostProj(
+   proj = brainpy.state.AlignPostProj(
        comm=brainstate.nn.EventFixedProb(n_pre, n_post, prob=0.1, weight=0.5*u.mS),
-       syn=bp.Expon.desc(n_post, tau=5.0*u.ms),
-       out=bp.COBA.desc(E=0.0*u.mV),
+       syn=brainpy.state.Expon.desc(n_post, tau=5.0*u.ms),
+       out=brainpy.state.COBA.desc(E=0.0*u.mV),
        post=post_neurons
    )
 

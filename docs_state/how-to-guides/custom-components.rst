@@ -14,12 +14,12 @@ Quick Start
 
 .. code-block:: python
 
-   import brainpy as bp
+   import brainpy
    import brainstate
    import brainunit as u
    import jax.numpy as jnp
 
-   class CustomNeuron(bp.Neuron):
+   class CustomNeuron(brainpy.state.Neuron):
        def __init__(self, size, **kwargs):
            super().__init__(size, **kwargs)
 
@@ -68,7 +68,7 @@ Example 1: Adaptive LIF
 
 .. code-block:: python
 
-   class AdaptiveLIF(bp.Neuron):
+   class AdaptiveLIF(brainpy.state.Neuron):
        """LIF neuron with adaptation current."""
 
        def __init__(self, size, tau=10*u.ms, tau_w=100*u.ms,
@@ -126,7 +126,7 @@ Example 2: Izhikevich Neuron
 
 .. code-block:: python
 
-   class Izhikevich(bp.Neuron):
+   class Izhikevich(brainpy.state.Neuron):
        """Izhikevich neuron model."""
 
        def __init__(self, size, a=0.02, b=0.2, c=-65*u.mV, d=8*u.mV, **kwargs):
@@ -176,7 +176,7 @@ Example: Biexponential Synapse
 
 .. code-block:: python
 
-   class BiexponentialSynapse(bp.Synapse):
+   class BiexponentialSynapse(brainpy.state.Synapse):
        """Synapse with separate rise and decay."""
 
        def __init__(self, size, tau_rise=1*u.ms, tau_decay=5*u.ms, **kwargs):
@@ -211,7 +211,7 @@ Example: NMDA Synapse
 
 .. code-block:: python
 
-   class NMDASynapse(bp.Synapse):
+   class NMDASynapse(brainpy.state.Synapse):
        """NMDA receptor with voltage dependence."""
 
        def __init__(self, size, tau=100*u.ms, a=0.5/u.mM, Mg=1.0*u.mM, **kwargs):
@@ -314,7 +314,7 @@ Example: Liquid State Machine
            )
 
            # Reservoir (fixed random recurrent network)
-           self.reservoir = bp.LIF(n_reservoir, V_rest=-65*u.mV, V_th=-50*u.mV, tau=10*u.ms)
+           self.reservoir = brainpy.state.LIF(n_reservoir, V_rest=-65*u.mV, V_th=-50*u.mV, tau=10*u.ms)
 
            # Fixed random recurrent weights
            w_reservoir = brainstate.random.randn(n_reservoir, n_reservoir) * 0.01
@@ -322,7 +322,7 @@ Example: Liquid State Machine
            self.reservoir_weights = w_reservoir * mask  # Not a ParamState (fixed)
 
            # Readout (trainable)
-           self.readout = bp.Readout(n_reservoir, n_output)
+           self.readout = brainpy.state.Readout(n_reservoir, n_output)
 
        def update(self, x):
            # Input to reservoir
@@ -384,8 +384,8 @@ Best Practices
 --------------
 
 ✅ **Inherit from base classes**
-   - ``bp.Neuron`` for neurons
-   - ``bp.Synapse`` for synapses
+   - ``brainpy.state.Neuron`` for neurons
+   - ``brainpy.state.Synapse`` for synapses
    - ``brainstate.nn.Module`` for general components
 
 ✅ **Use ShortTermState for dynamics**
@@ -449,11 +449,11 @@ Complete Example
 .. code-block:: python
 
    # Custom components
-   class MyNeuron(bp.Neuron):
+   class MyNeuron(brainpy.state.Neuron):
        # ... (see examples above)
        pass
 
-   class MySynapse(bp.Synapse):
+   class MySynapse(brainpy.state.Synapse):
        # ... (see examples above)
        pass
 
@@ -465,10 +465,10 @@ Complete Example
            self.pre = MyNeuron(size=100)
            self.post = MyNeuron(size=50)
 
-           self.projection = bp.AlignPostProj(
+           self.projection = brainpy.state.AlignPostProj(
                comm=brainstate.nn.EventFixedProb(100, 50, prob=0.1, weight=0.5*u.mS),
                syn=MySynapse.desc(50),  # Use custom synapse
-               out=bp.CUBA.desc(),
+               out=brainpy.state.CUBA.desc(),
                post=self.post
            )
 
@@ -493,7 +493,7 @@ Summary
 
 .. code-block:: python
 
-   ✅ Inherit from bp.Neuron, bp.Synapse, or brainstate.nn.Module
+   ✅ Inherit from brainpy.state.Neuron, brainpy.state.Synapse, or brainstate.nn.Module
    ✅ Define __init__ with parameters
    ✅ Create states (ShortTermState or ParamState)
    ✅ Implement reset_state(batch_size=None)

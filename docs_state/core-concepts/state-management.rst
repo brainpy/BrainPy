@@ -1,7 +1,9 @@
-State Management: The Foundation of BrainPy 3.0
-===============================================
+State Management: The Foundation of ``brainpy.state``
+=====================================================
 
-State management is the core architectural change in BrainPy 3.0. Understanding states is essential for using BrainPy effectively. This guide provides comprehensive coverage of the state system built on ``brainstate``.
+State management is the core architectural change in ``brainpy.state``. Understanding states is
+essential for using BrainPy effectively. This guide provides comprehensive coverage of the state
+system built on ``brainstate``.
 
 .. contents:: Table of Contents
    :local:
@@ -21,7 +23,7 @@ What is State?
 - Learnable weights
 - Temporary buffers
 
-**Key insight:** BrainPy 3.0 makes states **explicit** rather than implicit. Every stateful variable is declared and tracked.
+**Key insight:** ``brainpy.state`` makes states **explicit** rather than implicit. Every stateful variable is declared and tracked.
 
 Why Explicit State Management?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -33,7 +35,7 @@ Why Explicit State Management?
 - Unclear initialization procedures
 - Conflicts with JAX functional programming
 
-**Benefits of explicit state (BrainPy 3.0):**
+**Benefits of explicit state (``brainpy.state``):**
 
 ✅ Clear variable lifecycle
 
@@ -308,11 +310,11 @@ For custom initialization, override ``reset_state()``.
 Initializers for Parameters
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Use ``brainstate.init`` for parameter initialization.
+Use ``braintools.init`` for parameter initialization.
 
 .. code-block:: python
 
-   import brainstate.init as init
+   import braintools.init as init
 
    class Network(brainstate.nn.Module):
        def __init__(self, in_size, out_size):

@@ -45,11 +45,11 @@ Issue 1: No Spikes / Silent Network
 
 .. code-block:: python
 
-   import brainpy as bp
+   import brainpy
    import brainstate
    import brainunit as u
 
-   neuron = bp.LIF(100, V_rest=-65*u.mV, V_th=-50*u.mV, tau=10*u.ms)
+   neuron = brainpy.state.LIF(100, V_rest=-65*u.mV, V_th=-50*u.mV, tau=10*u.ms)
    brainstate.nn.init_all_states(neuron)
 
    # Check 1: Is input being provided?
@@ -90,24 +90,24 @@ Issue 1: No Spikes / Silent Network
    .. code-block:: python
 
       # Check threshold
-      neuron = bp.LIF(100, V_th=-40*u.mV, ...)  # Harder to spike
-      neuron = bp.LIF(100, V_th=-50*u.mV, ...)  # Easier to spike
+      neuron = brainpy.state.LIF(100, V_th=-40*u.mV, ...)  # Harder to spike
+      neuron = brainpy.state.LIF(100, V_th=-50*u.mV, ...)  # Easier to spike
 
 3. **Time constant too large:**
 
    .. code-block:: python
 
       # Slow integration
-      neuron = bp.LIF(100, tau=100*u.ms, ...)  # Very slow
+      neuron = brainpy.state.LIF(100, tau=100*u.ms, ...)  # Very slow
 
       # Faster
-      neuron = bp.LIF(100, tau=10*u.ms, ...)  # Normal speed
+      neuron = brainpy.state.LIF(100, tau=10*u.ms, ...)  # Normal speed
 
 4. **Missing initialization:**
 
    .. code-block:: python
 
-      neuron = bp.LIF(100, ...)
+      neuron = brainpy.state.LIF(100, ...)
       # MUST initialize!
       brainstate.nn.init_all_states(neuron)
 
@@ -163,8 +163,8 @@ Issue 2: Runaway Activity / Explosion
       class BalancedNetwork(brainstate.nn.Module):
           def __init__(self):
               super().__init__()
-              self.E = bp.LIF(800, ...)
-              self.I = bp.LIF(200, ...)
+              self.E = brainpy.state.LIF(800, ...)
+              self.I = brainpy.state.LIF(200, ...)
 
               self.E2E = ...  # Excitatory recurrence
               self.I2E = ...  # MUST have inhibition!
@@ -184,11 +184,11 @@ Issue 2: Runaway Activity / Explosion
    .. code-block:: python
 
       # WRONG: Inhibition with excitatory reversal
-      out_inh = bp.COBA.desc(E=0*u.mV)  # Should be negative!
+      out_inh = brainpy.state.COBA.desc(E=0*u.mV)  # Should be negative!
 
       # CORRECT
-      out_exc = bp.COBA.desc(E=0*u.mV)    # Excitation
-      out_inh = bp.COBA.desc(E=-80*u.mV)  # Inhibition
+      out_exc = brainpy.state.COBA.desc(E=0*u.mV)    # Excitation
+      out_inh = brainpy.state.COBA.desc(E=-80*u.mV)  # Inhibition
 
 Issue 3: Spikes Not Propagating
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -204,13 +204,13 @@ Issue 3: Spikes Not Propagating
 .. code-block:: python
 
    # Create simple network
-   pre = bp.LIF(10, V_rest=-65*u.mV, V_th=-50*u.mV, tau=10*u.ms)
-   post = bp.LIF(10, V_rest=-65*u.mV, V_th=-50*u.mV, tau=10*u.ms)
+   pre = brainpy.state.LIF(10, V_rest=-65*u.mV, V_th=-50*u.mV, tau=10*u.ms)
+   post = brainpy.state.LIF(10, V_rest=-65*u.mV, V_th=-50*u.mV, tau=10*u.ms)
 
-   proj = bp.AlignPostProj(
+   proj = brainpy.state.AlignPostProj(
        comm=brainstate.nn.EventFixedProb(10, 10, prob=0.5, weight=2.0*u.mS),
-       syn=bp.Expon.desc(10, tau=5*u.ms),
-       out=bp.CUBA.desc(),
+       syn=brainpy.state.Expon.desc(10, tau=5*u.ms),
+       out=brainpy.state.CUBA.desc(),
        post=post
    )
 
@@ -281,10 +281,10 @@ Issue 3: Spikes Not Propagating
    .. code-block:: python
 
       # Wrong target
-      proj = bp.AlignPostProj(..., post=wrong_population)
+      proj = brainpy.state.AlignPostProj(..., post=wrong_population)
 
       # Correct target
-      proj = bp.AlignPostProj(..., post=correct_population)
+      proj = brainpy.state.AlignPostProj(..., post=correct_population)
 
 Issue 4: Shape Mismatch Errors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -342,7 +342,7 @@ Print State Values
 .. code-block:: python
 
    # Inspect neuron states
-   neuron = bp.LIF(10, ...)
+   neuron = brainpy.state.LIF(10, ...)
    brainstate.nn.init_all_states(neuron)
 
    print("Membrane potentials:", neuron.V.value)
@@ -407,10 +407,10 @@ Check Connectivity
 .. code-block:: python
 
    # For sparse projections
-   proj = bp.AlignPostProj(
+   proj = brainpy.state.AlignPostProj(
        comm=brainstate.nn.EventFixedProb(100, 50, prob=0.1, weight=0.5*u.mS),
-       syn=bp.Expon.desc(50, tau=5*u.ms),
-       out=bp.CUBA.desc(),
+       syn=brainpy.state.Expon.desc(50, tau=5*u.ms),
+       out=brainpy.state.CUBA.desc(),
        post=post_neurons
    )
 
@@ -545,7 +545,7 @@ Assertion Checks
 
        def __init__(self, n_neurons=100):
            super().__init__()
-           self.neurons = bp.LIF(n_neurons, ...)
+           self.neurons = brainpy.state.LIF(n_neurons, ...)
 
        def update(self, inp):
            # Pre-checks
@@ -570,7 +570,7 @@ Unit Testing
 
    def test_neuron_spikes():
        """Test that neuron spikes with strong input."""
-       neuron = bp.LIF(1, V_rest=-65*u.mV, V_th=-50*u.mV, tau=10*u.ms)
+       neuron = brainpy.state.LIF(1, V_rest=-65*u.mV, V_th=-50*u.mV, tau=10*u.ms)
        brainstate.nn.init_all_states(neuron)
 
        # Strong constant input should cause spiking
@@ -588,13 +588,13 @@ Unit Testing
 
    def test_projection():
        """Test that projection propagates spikes."""
-       pre = bp.LIF(10, V_rest=-65*u.mV, V_th=-50*u.mV, tau=10*u.ms)
-       post = bp.LIF(10, V_rest=-65*u.mV, V_th=-50*u.mV, tau=10*u.ms)
+       pre = brainpy.state.LIF(10, V_rest=-65*u.mV, V_th=-50*u.mV, tau=10*u.ms)
+       post = brainpy.state.LIF(10, V_rest=-65*u.mV, V_th=-50*u.mV, tau=10*u.ms)
 
-       proj = bp.AlignPostProj(
+       proj = brainpy.state.AlignPostProj(
            comm=brainstate.nn.EventFixedProb(10, 10, prob=1.0, weight=5.0*u.mS),  # 100% connectivity
-           syn=bp.Expon.desc(10, tau=5*u.ms),
-           out=bp.CUBA.desc(),
+           syn=brainpy.state.Expon.desc(10, tau=5*u.ms),
+           out=brainpy.state.CUBA.desc(),
            post=post
        )
 

@@ -1,12 +1,12 @@
 Architecture Overview
 ====================
 
-BrainPy 3.0 represents a complete architectural redesign built on top of the ``brainstate`` framework. This document explains the design principles and architectural components that make BrainPy 3.0 powerful and flexible.
+``brainpy.state`` represents a complete architectural redesign built on top of the ``brainstate`` framework. This document explains the design principles and architectural components that make BrainPy 3.0 powerful and flexible.
 
 Design Philosophy
 -----------------
 
-BrainPy 3.0 is built around several core principles:
+``brainpy.state``  is built around several core principles:
 
 **State-Based Programming**
    All dynamical variables are managed as explicit states, enabling automatic differentiation, efficient compilation, and clear data flow.
@@ -81,7 +81,7 @@ State Management System
 The Foundation: brainstate.State
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Everything in BrainPy 3.0 revolves around **states**:
+Everything in ``brainpy.state``  revolves around **states**:
 
 .. code-block:: python
 
@@ -286,15 +286,15 @@ Projections connect populations using a three-stage architecture:
 
    .. code-block:: python
 
-       out = brainpy.CUBA.desc()  # Current-based
+       out = brainpy.state.CUBA.desc()  # Current-based
        # or
-       out = brainpy.COBA.desc()  # Conductance-based
+       out = brainpy.state.COBA.desc()  # Conductance-based
 
 **Complete Projection**
 
 .. code-block:: python
 
-    projection = brainpy.AlignPostProj(
+    projection = brainpy.state.AlignPostProj(
         comm=comm,
         syn=syn,
         out=out,
@@ -340,7 +340,7 @@ Functions are compiled for performance:
 
 .. code-block:: python
 
-    @brainstate.compile.jit
+    @brainstate.transform.jit
     def simulate_step(input):
         return network.update(input)
 
@@ -384,7 +384,7 @@ Physical Units System
 Integration with brainunit
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-BrainPy 3.0 integrates ``brainunit`` for scientific accuracy:
+``brainpy.state`` integrates ``brainunit`` for scientific accuracy:
 
 .. code-block:: python
 
@@ -396,7 +396,7 @@ BrainPy 3.0 integrates ``brainunit`` for scientific accuracy:
     current = 5 * u.nA
 
     # Units are checked automatically
-    neuron = brainpy.LIF(100, tau=tau, V_th=threshold)
+    neuron = brainpy.state.LIF(100, tau=tau, V_th=threshold)
 
 Benefits:
 
@@ -424,7 +424,7 @@ Unit Operations
 Ecosystem Integration
 ---------------------
 
-BrainPy 3.0 integrates tightly with its ecosystem:
+``brainpy.state`` integrates tightly with its ecosystem:
 
 braintools
 ~~~~~~~~~~
@@ -474,7 +474,7 @@ Core framework (used automatically):
     class Net(brainstate.nn.Module): ...
 
     # Compilation
-    @brainstate.compile.jit
+    @brainstate.transform.jit
     def fn(): ...
 
     # Transformations
@@ -483,7 +483,7 @@ Core framework (used automatically):
 Data Flow Example
 -----------------
 
-Here's how data flows through a typical BrainPy 3.0 simulation:
+Here's how data flows through a typical ``brainpy.state`` simulation:
 
 .. code-block:: python
 
@@ -491,12 +491,12 @@ Here's how data flows through a typical BrainPy 3.0 simulation:
     class EINetwork(brainstate.nn.Module):
         def __init__(self):
             super().__init__()
-            self.E = brainpy.LIF(800)  # States: V, spike
-            self.I = brainpy.LIF(200)  # States: V, spike
-            self.E2E = brainpy.AlignPostProj(...)  # States: g (in synapse)
-            self.E2I = brainpy.AlignPostProj(...)
-            self.I2E = brainpy.AlignPostProj(...)
-            self.I2I = brainpy.AlignPostProj(...)
+            self.E = brainpy.state.LIF(800)  # States: V, spike
+            self.I = brainpy.state.LIF(200)  # States: V, spike
+            self.E2E = brainpy.state.AlignPostProj(...)  # States: g (in synapse)
+            self.E2I = brainpy.state.AlignPostProj(...)
+            self.I2E = brainpy.state.AlignPostProj(...)
+            self.I2I = brainpy.state.AlignPostProj(...)
 
         def update(self, input):
             # Get spikes from last time step
@@ -520,7 +520,7 @@ Here's how data flows through a typical BrainPy 3.0 simulation:
     brainstate.nn.init_all_states(net)
 
     # 3. Compile
-    @brainstate.compile.jit
+    @brainstate.transform.jit
     def step(input):
         return net.update(input)
 
@@ -584,7 +584,7 @@ Hardware Acceleration
 Summary
 -------
 
-BrainPy 3.0's architecture provides:
+``brainpy.state`` 's architecture provides:
 
 ✅ **Clear Abstractions**: Neurons, synapses, and projections with well-defined roles
 
