@@ -16,12 +16,12 @@
 
 import unittest
 
+import brainstate
 import braintools
 import brainunit as u
 import jax.numpy as jnp
 
-import brainpy
-import brainstate
+import brainpy.state_based as brainpy
 
 
 class TestReadoutModels(unittest.TestCase):

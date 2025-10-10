@@ -15,11 +15,11 @@
 
 # -*- coding: utf-8 -*-
 
+import brainstate
 import brainunit as u
 import jax.numpy as jnp
 
-import brainstate
-from .mixin import BindCondData
+from brainpy.mixin import BindCondData
 
 __all__ = [
     'SynOut', 'COBA', 'CUBA', 'MgBlock',

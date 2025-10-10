@@ -20,7 +20,7 @@ import brainunit as u
 import jax.numpy as jnp
 import numpy as np
 
-import brainpy
+import brainpy.state_based as brainpy
 
 
 class TestSynOutModels(unittest.TestCase):

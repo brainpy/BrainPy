@@ -17,18 +17,14 @@ from typing import Callable, Union
 from typing import Optional
 
 import brainevent
-
 import brainstate
 from brainstate._state import State
 from brainstate.mixin import JointTypes, ParamDescriber
 from brainstate.nn._dynamics import maybe_init_prefetch
-from ._synouts import SynOut
-from .mixin import BindCondData, AlignPost
+from brainstate.util import get_unique_name
 
-if brainstate.__version__ < '0.2.0':
-    from brainstate.util.others import get_unique_name
-else:
-    from brainstate.util import get_unique_name
+from brainpy.mixin import BindCondData, AlignPost
+from ._synouts import SynOut
 
 __all__ = [
     'Projection',

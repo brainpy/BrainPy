@@ -15,9 +15,8 @@
 
 from typing import Callable, Optional
 
-import braintools
-
 import brainstate
+import braintools
 
 __all__ = [
     'Neuron', 'Synapse',
@@ -315,7 +314,7 @@ class Synapse(brainstate.nn.Dynamics):
 
     .. code-block:: python
 
-        >>> import brainpy
+        >>> import brainpy.state_based as brainpy
         >>> import brainstate
         >>> import brainunit as u
         >>> import braintools
@@ -344,7 +343,7 @@ class Synapse(brainstate.nn.Dynamics):
 
     .. code-block:: python
 
-        >>> import brainpy
+        >>> import brainpy.state_based as brainpy
         >>> import brainstate
         >>> import brainunit as u
         >>> import jax
@@ -369,7 +368,7 @@ class Synapse(brainstate.nn.Dynamics):
 
     .. code-block:: python
 
-        >>> import brainpy
+        >>> import brainpy.state_based as brainpy
         >>> import brainstate
         >>> import brainunit as u
         >>>
@@ -410,7 +409,7 @@ class Synapse(brainstate.nn.Dynamics):
 
     .. code-block:: python
 
-        >>> import brainpy
+        >>> import brainpy.state_based as brainpy
         >>> import brainstate
         >>> import brainunit as u
         >>>

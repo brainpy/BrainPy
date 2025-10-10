@@ -17,11 +17,11 @@
 
 from typing import Callable, Union, Tuple
 
+import brainstate
 import braintools
 import brainunit as u
-
-import brainstate
 from brainstate.typing import ArrayLike
+
 from ._projection import Projection
 
 __all__ = [
@@ -247,7 +247,7 @@ class AsymmetryGapJunction(Projection):
 
     Examples
     --------
-    >>> import brainpy
+    >>> import brainpy.state_based as brainpy
     >>> import brainunit as u
     >>> import numpy as np
     >>>

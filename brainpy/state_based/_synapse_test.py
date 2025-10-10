@@ -16,12 +16,12 @@
 
 import unittest
 
+import brainstate
 import brainunit as u
 import jax.numpy as jnp
 import pytest
 
-import brainstate
-from brainpy import Expon, STP, STD
+from brainpy.state_based import Expon, STP, STD
 
 
 class TestSynapse(unittest.TestCase):

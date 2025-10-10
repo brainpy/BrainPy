@@ -17,12 +17,12 @@
 
 from typing import Callable
 
+import brainstate
 import braintools
 import brainunit as u
 import jax
-
-import brainstate
 from brainstate.typing import ArrayLike, Size
+
 from ._base import Neuron
 
 __all__ = [
@@ -74,7 +74,7 @@ class IF(Neuron):
 
     Examples
     --------
-    >>> import brainpy
+    >>> import brainpy.state_based as brainpy
     >>> import brainstate
     >>> import brainunit as u
     >>>
@@ -207,7 +207,7 @@ class LIF(Neuron):
 
     Examples
     --------
-    >>> import brainpy
+    >>> import brainpy.state_based as brainpy
     >>> import brainstate
     >>> import brainunit as u
     >>>
@@ -344,7 +344,7 @@ class LIFRef(Neuron):
 
     Examples
     --------
-    >>> import brainpy
+    >>> import brainpy.state_based as brainpy
     >>> import brainstate
     >>> import brainunit as u
     >>>
@@ -512,7 +512,7 @@ class ALIF(Neuron):
 
     Examples
     --------
-    >>> import brainpy
+    >>> import brainpy.state_based as brainpy
     >>> import brainstate
     >>> import brainunit as u
     >>>

@@ -15,14 +15,14 @@
 
 from typing import Union, Optional, Sequence, Callable
 
+import brainstate
 import braintools
 import brainunit as u
 import jax
 import numpy as np
-
-import brainstate
-from brainpy._misc import set_module_as
 from brainstate.typing import ArrayLike, Size, DTypeLike
+
+from ._misc import set_module_as
 
 __all__ = [
     'SpikeTime',

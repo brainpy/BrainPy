@@ -19,12 +19,12 @@
 import numbers
 from typing import Callable
 
+import brainstate
 import braintools
 import brainunit as u
 import jax
-
-import brainstate
 from brainstate.typing import Size, ArrayLike
+
 from ._base import Neuron
 
 __all__ = [

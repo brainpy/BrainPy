@@ -18,13 +18,13 @@
 
 from typing import Optional, Callable
 
+import brainstate
 import braintools
 import brainunit as u
-
-import brainstate
 from brainstate.typing import Size, ArrayLike
+
+from brainpy.mixin import AlignPost
 from ._base import Synapse
-from .mixin import AlignPost
 
 __all__ = [
     'Expon', 'DualExpon',

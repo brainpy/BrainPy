@@ -18,11 +18,11 @@
 
 from typing import Optional, Callable
 
+import brainstate
 import braintools
 import brainunit as u
-
-import brainstate
 from brainstate.typing import Size, ArrayLike
+
 from ._base import Synapse
 
 __all__ = [

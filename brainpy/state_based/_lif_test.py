@@ -18,12 +18,12 @@
 
 import unittest
 
+import brainstate
 import brainunit as u
 import jax
 import jax.numpy as jnp
 
-import brainstate
-from brainpy import IF, LIF, ALIF
+from brainpy.state_based import IF, LIF, ALIF
 
 
 class TestNeuron(unittest.TestCase):
