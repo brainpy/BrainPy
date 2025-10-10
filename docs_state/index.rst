@@ -135,55 +135,13 @@ See also the ecosystem
 .. toctree::
    :hidden:
    :maxdepth: 1
-   :caption: Quickstart
-
-   quickstart/installation.rst
-   quickstart/5min-tutorial.ipynb
-   quickstart/concepts-overview.rst
-
-
-.. toctree::
-   :hidden:
-   :maxdepth: 2
-   :caption: Core Concepts
-
-   core-concepts/architecture.rst
-   core-concepts/neurons.rst
-   core-concepts/synapses.rst
-   core-concepts/projections.rst
-   core-concepts/state-management.rst
-
-
-.. toctree::
-   :hidden:
-   :maxdepth: 2
    :caption: Tutorials
 
+   quickstart/index.rst
+   core-concepts/index.rst
    tutorials/index.rst
-
-
-.. toctree::
-   :hidden:
-   :maxdepth: 2
-   :caption: How-to Guides
-
    how-to-guides/index.rst
-
-
-.. toctree::
-   :hidden:
-   :maxdepth: 2
-   :caption: Examples
-
    examples/gallery.rst
-
-
-.. toctree::
-   :hidden:
-   :maxdepth: 2
-   :caption: Migration
-
-   migration/migration-guide.rst
 
 
 .. toctree::
