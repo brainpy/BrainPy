@@ -2,8 +2,8 @@ import brainpy_datasets as bp_data
 import matplotlib.pyplot as plt
 import numpy as np
 
-import brainpy.version2 as bp
-import brainpy.version2.math as bm
+import brainpy as bp
+import brainpy.math as bm
 
 # data
 ds = bp_data.cognitive.RatePerceptualDecisionMaking(

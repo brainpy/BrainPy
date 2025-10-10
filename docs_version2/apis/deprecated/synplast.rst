@@ -1,8 +1,8 @@
-``brainpy.version2.synplast`` module
+``brainpy.synplast`` module
 ====================================
 
-.. currentmodule:: brainpy.version2.synplast
-.. automodule:: brainpy.version2.synplast
+.. currentmodule:: brainpy.synplast
+.. automodule:: brainpy.synplast
 
 .. autosummary::
    :toctree: generated/

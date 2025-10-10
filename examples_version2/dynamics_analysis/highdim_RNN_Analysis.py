@@ -5,8 +5,8 @@ Implementation of the paper:
   A primer[J]. Neuron, 2020, 107(6): 1048-1070.
 """
 
-import brainpy.version2 as bp
-import brainpy.version2.math as bm
+import brainpy as bp
+import brainpy.math as bm
 
 bp.math.set_platform('cpu')
 

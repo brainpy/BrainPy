@@ -27,7 +27,7 @@ for item in os.listdir('.'):
         except Exception as e:
             print(f"Error deleting {item}: {e}")
 
-build_version = os.environ.get('CURRENT_VERSION', 'v3')
+build_version = os.environ.get('CURRENT_VERSION', 'v2')
 if build_version == 'v2':
     shutil.copytree(
         os.path.join(os.path.dirname(__file__), '../docs_version2'),
@@ -36,14 +36,14 @@ if build_version == 'v2':
     )
 else:
     shutil.copytree(
-        os.path.join(os.path.dirname(__file__), '../docs_version3'),
+        os.path.join(os.path.dirname(__file__), '../docs_state_based'),
         os.path.join(os.path.dirname(__file__)),
         dirs_exist_ok=True
     )
 
 sys.path.insert(0, os.path.abspath('./'))
 sys.path.insert(0, os.path.abspath('../'))
-
+os.makedirs('./_static', exist_ok=True)
 shutil.copytree('../images/', './_static/logos/', dirs_exist_ok=True)
 shutil.copyfile('../changelog.md', './changelog.md')
 
@@ -109,36 +109,6 @@ myst_enable_extensions = ["dollarmath", "amsmath", "deflist", "colon_fence"]
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
-# href with no underline and white bold text color
-
-if build_version == 'v2':
-    announcement = """
-    <a href="https://brainpy.readthedocs.io" style="text-decoration: none; color: white;">
-      This site covers the old BrainPy 2.0 API. <span style="color: lightgray;">[Explore the new <b>BrainPy 3.0</b> API ✨]</span>
-    </a>
-    """
-else:
-    announcement = """
-    <a href="https://brainpy-v2.readthedocs.io" style="text-decoration: none; color: white;">
-      This site covers the new BrainPy 3.0 API. 
-      <span style="color: lightgray;">[Click here for the classical <b>BrainPy 2.0</b> API]</span>
-    </a>
-    """
-
-html_theme_options = {
-    'repository_url': 'https://github.com/brainpy/BrainPy',
-    'use_repository_button': True,  # add a 'link to repository' button
-    'use_issues_button': False,  # add an 'Open an Issue' button
-    'path_to_docs': 'docs',  # used to compute the path to launch notebooks in colab
-    'launch_buttons': {
-        'colab_url': 'https://colab.research.google.com/',
-    },
-    'prev_next_buttons_location': None,
-    'show_navbar_depth': 1,
-    'announcement': announcement,
-    'logo_only': True,
-    'show_toc_level': 2,
-}
 
 html_theme = "sphinx_book_theme"
 html_logo = "_static/logos/logo.png"

@@ -5,8 +5,8 @@ import brainpy_datasets as bd
 import jax.numpy as jnp
 from tqdm import tqdm
 
-import brainpy.version2 as bp
-import brainpy.version2.math as bm
+import brainpy as bp
+import brainpy.math as bm
 
 traindata = bd.vision.MNIST(root='./data', split='train', download=True)
 testdata = bd.vision.MNIST(root='./data', split='test', download=True)

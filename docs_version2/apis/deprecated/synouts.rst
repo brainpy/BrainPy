@@ -1,8 +1,8 @@
-``brainpy.version2.synouts`` module
+``brainpy.synouts`` module
 ===================================
 
-.. currentmodule:: brainpy.version2.synouts
-.. automodule:: brainpy.version2.synouts
+.. currentmodule:: brainpy.synouts
+.. automodule:: brainpy.synouts
 
 
 .. autosummary::

@@ -17,8 +17,8 @@
 BrainPy is a flexible, efficient, and extensible framework for computational neuroscience and brain-inspired computation based on the Just-In-Time (JIT) compilation. It provides an integrative ecosystem for brain dynamics programming, including brain dynamics **building**, **simulation**, **training**, **analysis**, etc. 
 
 - **Source**: https://github.com/brainpy/BrainPy
-- **Documentation (brainpy v3.0)**: https://brainpy.readthedocs.io/
-- **Documentation (brainpy v2.0)**: https://brainpy-v2.readthedocs.io/
+- **Documentation**: https://brainpy.readthedocs.io/
+- **Documentation (state-based)**: https://brainpy-state.readthedocs.io/
 - **Bug reports**: https://github.com/brainpy/BrainPy/issues
 - **Ecosystem**: https://brainmodeling.readthedocs.io/
 

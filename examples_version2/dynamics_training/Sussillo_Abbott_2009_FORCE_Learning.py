@@ -10,8 +10,8 @@
 #   Neuron 63, no. 4 (2009): 544-557.
 
 # %%
-import brainpy.version2 as bp
-import brainpy.version2.math as bm
+import brainpy as bp
+import brainpy.math as bm
 
 bm.set_platform('cpu')
 

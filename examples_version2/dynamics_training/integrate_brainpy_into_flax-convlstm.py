@@ -8,8 +8,8 @@ from flax import linen as nn
 from flax.metrics import tensorboard
 from flax.training import train_state
 
-import brainpy.version2 as bp
-import brainpy.version2.math as bm
+import brainpy as bp
+import brainpy.math as bm
 
 bm.set(mode=bm.training_mode, dt=1.)
 

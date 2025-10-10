@@ -48,7 +48,7 @@ JointType = brainstate.mixin.JointTypes
 def _get_bm():
     global bm
     if bm is None:
-        from brainpy.version2 import math
+        from brainpy import math
         bm = math
     return bm
 
@@ -213,8 +213,8 @@ class BindCondData(brainstate.mixin.Mixin):
 
 def _get_delay_tool():
     global delay_identifier, init_delay_by_return
-    if init_delay_by_return is None: from brainpy.version2.delay import init_delay_by_return
-    if delay_identifier is None: from brainpy.version2.delay import delay_identifier
+    if init_delay_by_return is None: from brainpy.delay import init_delay_by_return
+    if delay_identifier is None: from brainpy.delay import delay_identifier
     return delay_identifier, init_delay_by_return
 
 
@@ -268,7 +268,7 @@ class Container(MixIn):
                 return super().__getattribute__(item)
 
     def __repr__(self):
-        from brainpy.version2 import tools
+        from brainpy import tools
         cls_name = self.__class__.__name__
         indent = ' ' * len(cls_name)
         child_str = [tools.repr_context(repr(val), indent) for val in self.children.values()]
@@ -280,7 +280,7 @@ class Container(MixIn):
         if isinstance(elem, bm.BrainPyObject):
             return elem.name
         else:
-            from brainpy.version2.math.object_transform.base import get_unique_name
+            from brainpy.math.object_transform.base import get_unique_name
             return get_unique_name('ContainerElem')
 
     def format_elements(self, child_type: type, *children_as_tuple, **children_as_dict):
@@ -333,7 +333,7 @@ class TreeNode(MixIn):
     def check_hierarchies(self, root, *leaves, **named_leaves):
         global DynamicalSystem
         if DynamicalSystem is None:
-            from brainpy.version2.dynsys import DynamicalSystem
+            from brainpy.dynsys import DynamicalSystem
 
         for leaf in leaves:
             if isinstance(leaf, DynamicalSystem):

@@ -18,8 +18,8 @@ import brainpy as bp
 import brainpy.math as bm
 
 # Using v2.x API in BrainPy 3.x
-import brainpy.version2 as bp
-import brainpy.version2.math as bm
+import brainpy as bp
+import brainpy.math as bm
 ```
 
 ## Documentation Contents

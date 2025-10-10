@@ -301,8 +301,8 @@ def _generate_comparison_rst(numpy_mod, brainpy_mod, jax_mod, klass=None, header
     '',
     '**Summary**\n',
     '- Number of NumPy functions: {}\n'.format(len(np_funcs)),
-    '- Number of functions covered by ``brainpy.version2.math``: {}\n'.format(len(bm_funcs & np_funcs)),
-    '- Number of functions unique in ``brainpy.version2.math``: {}\n'.format(len(bm_funcs - np_funcs)),
+    '- Number of functions covered by ``brainpy.math``: {}\n'.format(len(bm_funcs & np_funcs)),
+    '- Number of functions unique in ``brainpy.math``: {}\n'.format(len(bm_funcs - np_funcs)),
     '- Number of functions covered by ``jax.numpy``: {}\n'.format(len(jax_funcs & np_funcs)),
   ]
   return buf
@@ -310,7 +310,7 @@ def _generate_comparison_rst(numpy_mod, brainpy_mod, jax_mod, klass=None, header
 
 def _section(header, numpy_mod, brainpy_mod, jax_mod, klass=None, is_jax=False):
   buf = [header, '-' * len(header), '', ]
-  header2 = 'NumPy, brainpy.version2.math, jax.numpy'
+  header2 = 'NumPy, brainpy.math, jax.numpy'
   buf += _generate_comparison_rst(numpy_mod, brainpy_mod, jax_mod, klass=klass, header=header2, is_jax=is_jax)
   buf += ['']
   return buf
@@ -318,7 +318,7 @@ def _section(header, numpy_mod, brainpy_mod, jax_mod, klass=None, is_jax=False):
 
 def generate_analysis_docs():
   _write_subsections(
-    module_name='brainpy.version2.analysis',
+    module_name='brainpy.analysis',
     filename='apis/auto/analysis.rst',
     subsections={
       'Low-dimensional Analyzers': ['PhasePlane1D',
@@ -334,8 +334,8 @@ def generate_analysis_docs():
 
 def generate_connect_docs():
   _write_subsections_v2(
-    'brainpy.version2.connect',
-    'brainpy.version2.connect',
+    'brainpy.connect',
+    'brainpy.connect',
     'apis/auto/connect.rst',
     subsections={
       'base': 'Base Connection Classes and Tools',
@@ -348,8 +348,8 @@ def generate_connect_docs():
 
 def generate_channels_docs():
   _write_subsections_v2(
-    'brainpy.version2.channels',
-    'brainpy.version2.channels',
+    'brainpy.channels',
+    'brainpy.channels',
     'apis/auto/channels.rst',
     subsections={
       'base': 'Basic Channel Classes',
@@ -364,15 +364,15 @@ def generate_channels_docs():
 
 
 def generate_encoding_docs():
-  _write_module(module_name='brainpy.version2.encoding',
+  _write_module(module_name='brainpy.encoding',
                 filename='apis/auto/encoding.rst',
-                header='``brainpy.version2.encoding`` module')
+                header='``brainpy.encoding`` module')
 
 
 def generate_initialize_docs():
   _write_subsections_v2(
-    'brainpy.version2.initialize',
-    'brainpy.version2.initialize',
+    'brainpy.initialize',
+    'brainpy.initialize',
     'apis/auto/initialize.rst',
     subsections={
       'base': 'Basic Initialization Classes',
@@ -384,21 +384,21 @@ def generate_initialize_docs():
 
 
 def generate_inputs_docs():
-  _write_module(module_name='brainpy.version2.inputs',
+  _write_module(module_name='brainpy.inputs',
                 filename='apis/auto/inputs.rst',
-                header='``brainpy.version2.inputs`` module')
+                header='``brainpy.inputs`` module')
 
 
 def generate_mixin_docs():
-  _write_module(module_name='brainpy.version2.mixin',
+  _write_module(module_name='brainpy.mixin',
                 filename='apis/auto/mixin.rst',
-                header='``brainpy.version2.mixin`` module')
+                header='``brainpy.mixin`` module')
 
 
 def generate_dnn_docs():
   _write_subsections_v2(
-    'brainpy.version2.dnn',
-    'brainpy.version2.dnn',
+    'brainpy.dnn',
+    'brainpy.dnn',
     'apis/auto/dnn.rst',
     subsections={
       'activations': 'Non-linear Activations',
@@ -414,8 +414,8 @@ def generate_dnn_docs():
 
 def generate_dyn_docs():
   _write_subsections_v2(
-    'brainpy.version2.dyn',
-    'brainpy.version2.dyn',
+    'brainpy.dyn',
+    'brainpy.dyn',
     'apis/auto/dyn.rst',
     subsections={
       'base': 'Base Classes',
@@ -433,8 +433,8 @@ def generate_dyn_docs():
 
 def generate_losses_docs():
   _write_subsections_v2(
-    'brainpy.version2.losses',
-    'brainpy.version2.losses',
+    'brainpy.losses',
+    'brainpy.losses',
     'apis/auto/losses.rst',
     subsections={
       'comparison': 'Comparison',
@@ -444,15 +444,15 @@ def generate_losses_docs():
 
 
 def generate_measure_docs():
-  _write_module(module_name='brainpy.version2.measure',
+  _write_module(module_name='brainpy.measure',
                 filename='apis/auto/measure.rst',
-                header='``brainpy.version2.measure`` module')
+                header='``brainpy.measure`` module')
 
 
 def generate_neurons_docs():
   _write_subsections_v2(
-    'brainpy.version2.neurons',
-    'brainpy.version2.neurons',
+    'brainpy.neurons',
+    'brainpy.neurons',
     'apis/auto/neurons.rst',
     subsections={
       'biological_models': 'Biological Models',
@@ -466,8 +466,8 @@ def generate_neurons_docs():
 
 def generate_optim_docs():
   _write_subsections_v2(
-    'brainpy.version2.optim',
-    'brainpy.version2.optim',
+    'brainpy.optim',
+    'brainpy.optim',
     'apis/auto/optim.rst',
     subsections={
       'optimizer': 'Optimizers',
@@ -477,35 +477,35 @@ def generate_optim_docs():
 
 
 def generate_rates_docs():
-  _write_module(module_name='brainpy.version2.rates',
+  _write_module(module_name='brainpy.rates',
                 filename='apis/auto/rates.rst',
-                header='``brainpy.version2.rates`` module')
+                header='``brainpy.rates`` module')
 
 
 def generate_running_docs():
-  _write_module(module_name='brainpy.version2.running',
+  _write_module(module_name='brainpy.running',
                 filename='apis/auto/running.rst',
-                header='``brainpy.version2.running`` module')
+                header='``brainpy.running`` module')
 
 
 def generate_synapses_docs():
-  _write_module(module_name='brainpy.version2.synapses',
+  _write_module(module_name='brainpy.synapses',
                 filename='apis/auto/synapses.rst',
-                header='``brainpy.version2.synapses`` module')
+                header='``brainpy.synapses`` module')
 
-  _write_module(module_name='brainpy.version2.synouts',
+  _write_module(module_name='brainpy.synouts',
                 filename='apis/auto/synouts.rst',
-                header='``brainpy.version2.synouts`` module')
+                header='``brainpy.synouts`` module')
 
-  _write_module(module_name='brainpy.version2.synplast',
+  _write_module(module_name='brainpy.synplast',
                 filename='apis/auto/synplast.rst',
-                header='``brainpy.version2.synplast`` module')
+                header='``brainpy.synplast`` module')
 
 
 def generate_brainpy_docs():
   _write_subsections(
     module_name='brainpy',
-    filename='apis/auto/brainpy.version2.rst',
+    filename='apis/auto/brainpy.rst',
     subsections={
       'Numerical Differential Integration': ['Integrator',
                                              'JointEq',
@@ -535,8 +535,8 @@ def generate_brainpy_docs():
 
 def generate_integrators_doc():
   _write_subsections_v3(
-    'brainpy.version2.integrators',
-    'brainpy.version2.integrators',
+    'brainpy.integrators',
+    'brainpy.integrators',
     'apis/auto/integrators.rst',
     subsections={
       'ode': {'header': 'ODE integrators',
@@ -562,27 +562,27 @@ def generate_integrators_doc():
 
 def generate_math_docs():
   _write_subsections_v4(
-    'brainpy.version2.math',
+    'brainpy.math',
     'apis/auto/math.rst',
     subsections={
-      'object_base': ('Objects and Variables', 'brainpy.version2.math'),
-      'object_transform': ('Object-oriented Transformations', 'brainpy.version2.math'),
-      'environment': ('Environment Settings', 'brainpy.version2.math'),
-      # 'compat_numpy': ('Dense Operators with NumPy Syntax', 'brainpy.version2.math'),
-      # 'compat_pytorch': ('Dense Operators with PyTorch Syntax', 'brainpy.version2.math'),
-      # 'compat_tensorflow': ('Dense Operators with TensorFlow Syntax', 'brainpy.version2.math'),
-      'interoperability': ('Array Interoperability', 'brainpy.version2.math'),
-      'pre_syn_post': ('Operators for Pre-Syn-Post Conversion', 'brainpy.version2.math'),
-      'activations': ('Activation Functions', 'brainpy.version2.math'),
-      'delayvars': ('Delay Variables', 'brainpy.version2.math'),
-      'modes': ('Computing Modes', 'brainpy.version2.math'),
-      'sparse': ('``brainpy.version2.math.sparse`` module: Sparse Operators', 'brainpy.version2.math.sparse'),
-      'event': ('``brainpy.version2.math.event`` module: Event-driven Operators', 'brainpy.version2.math.event'),
-      'jitconn': ('``brainpy.version2.math.jitconn`` module: Just-In-Time Connectivity Operators', 'brainpy.version2.math.jitconn'),
-      'surrogate': ('``brainpy.version2.math.surrogate`` module: Surrogate Gradient Functions', 'brainpy.version2.math.surrogate'),
-      'random': ('``brainpy.version2.math.random`` module: Random Number Generations', 'brainpy.version2.math.random'),
-      'linalg': ('``brainpy.version2.math.linalg`` module: Linear algebra', 'brainpy.version2.math.linalg'),
-      'fft': ('``brainpy.version2.math.fft`` module: Discrete Fourier Transform', 'brainpy.version2.math.fft'),
+      'object_base': ('Objects and Variables', 'brainpy.math'),
+      'object_transform': ('Object-oriented Transformations', 'brainpy.math'),
+      'environment': ('Environment Settings', 'brainpy.math'),
+      # 'compat_numpy': ('Dense Operators with NumPy Syntax', 'brainpy.math'),
+      # 'compat_pytorch': ('Dense Operators with PyTorch Syntax', 'brainpy.math'),
+      # 'compat_tensorflow': ('Dense Operators with TensorFlow Syntax', 'brainpy.math'),
+      'interoperability': ('Array Interoperability', 'brainpy.math'),
+      'pre_syn_post': ('Operators for Pre-Syn-Post Conversion', 'brainpy.math'),
+      'activations': ('Activation Functions', 'brainpy.math'),
+      'delayvars': ('Delay Variables', 'brainpy.math'),
+      'modes': ('Computing Modes', 'brainpy.math'),
+      'sparse': ('``brainpy.math.sparse`` module: Sparse Operators', 'brainpy.math.sparse'),
+      'event': ('``brainpy.math.event`` module: Event-driven Operators', 'brainpy.math.event'),
+      'jitconn': ('``brainpy.math.jitconn`` module: Just-In-Time Connectivity Operators', 'brainpy.math.jitconn'),
+      'surrogate': ('``brainpy.math.surrogate`` module: Surrogate Gradient Functions', 'brainpy.math.surrogate'),
+      'random': ('``brainpy.math.random`` module: Random Number Generations', 'brainpy.math.random'),
+      'linalg': ('``brainpy.math.linalg`` module: Linear algebra', 'brainpy.math.linalg'),
+      'fft': ('``brainpy.math.fft`` module: Discrete Fourier Transform', 'brainpy.math.fft'),
     }
   )
 
@@ -595,8 +595,8 @@ def generate_algorithm_docs(path='apis/auto/algorithms/'):
     ('online', 'Online Training Algorithms'),
     ('utils', 'Training Algorithm Utilities'),
   ]
-  _write_submodules(module_name='brainpy.version2.algorithms',
+  _write_submodules(module_name='brainpy.algorithms',
                     filename=os.path.join(path, 'algorithms.rst'),
-                    header='``brainpy.version2.algorithms`` module',
+                    header='``brainpy.algorithms`` module',
                     submodule_names=[k[0] for k in module_and_name],
                     section_names=[k[1] for k in module_and_name])
