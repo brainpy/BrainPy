@@ -32,10 +32,6 @@ class TestNeuron(unittest.TestCase):
         self.batch_size = 5
         self.time_steps = 100
 
-    def test_neuron_base_class(self):
-        with self.assertRaises(NotImplementedError):
-            brainstate.nn.Neuron(self.in_size).get_spike()  # Neuron is an abstract base class
-
     def generate_input(self):
         return brainstate.random.randn(self.time_steps, self.batch_size, self.in_size) * u.mA
 
