@@ -27,7 +27,7 @@ for item in os.listdir('.'):
         except Exception as e:
             print(f"Error deleting {item}: {e}")
 
-build_version = os.environ.get('CURRENT_VERSION', 'v3')
+build_version = os.environ.get('CURRENT_VERSION', 'v2')
 if build_version == 'v2':
     shutil.copytree(
         os.path.join(os.path.dirname(__file__), '../docs_version2'),
@@ -36,7 +36,7 @@ if build_version == 'v2':
     )
 else:
     shutil.copytree(
-        os.path.join(os.path.dirname(__file__), '../docs_version3'),
+        os.path.join(os.path.dirname(__file__), '../docs_experimental'),
         os.path.join(os.path.dirname(__file__)),
         dirs_exist_ok=True
     )
