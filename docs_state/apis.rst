@@ -3,8 +3,8 @@ API Reference
 
 This page provides a comprehensive reference for all BrainPy APIs.
 
-.. currentmodule:: brainpy.state_based
-.. automodule:: brainpy.state_based
+.. currentmodule:: brainpy.state
+.. automodule:: brainpy.state
 
 
 

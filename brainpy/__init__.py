@@ -180,7 +180,6 @@ if __name__ == '__main__':
     analysis
     visualize
     train
-    channels, neurons, synapses, rates, state_based, synouts, synplast
-    modes
+    channels, neurons, synapses, rates, synouts, synplast
     Base
     ArrayCollector, Collector, errors

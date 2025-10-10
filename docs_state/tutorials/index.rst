@@ -1,7 +1,7 @@
 Tutorials
 =========
 
-Welcome to the BrainPy 3.0 tutorials! These step-by-step guides will help you master computational neuroscience modeling with BrainPy.
+Welcome to the ``brainpy.state`` tutorials! These step-by-step guides will help you master computational neuroscience modeling with BrainPy.
 
 Learning Path
 -------------
@@ -15,7 +15,7 @@ We recommend following the tutorials in order:
 Basic Tutorials
 ---------------
 
-Start here to learn the fundamentals of BrainPy 3.0.
+Start here to learn the fundamentals of ``brainpy.state``.
 
 Tutorial 1: LIF Neuron Basics
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -256,7 +256,7 @@ Before starting the tutorials, ensure you have:
 
 ✅ Python 3.10 or later
 
-✅ BrainPy 3.0 installed (see :doc:`../quickstart/installation`)
+✅ ``brainpy.state`` installed (see :doc:`../quickstart/installation`)
 
 ✅ Basic Python knowledge (functions, classes, NumPy)
 
