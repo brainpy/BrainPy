@@ -9,29 +9,6 @@ general-purpose Brain Dynamics Programming (BDP).
 .. _BrainPy: https://github.com/brainpy/BrainPy
 
 
-
-.. note::
-
-    From September 2025, BrainPy has been upgraded to version 3.x.
-    To compatible apis within version 2.x. Please change your code:
-
-    .. code-block:: python
-
-       # Old version (v2.x)
-       import brainpy as bp
-       import brainpy.math as bm
-
-    to the new version:
-
-
-    .. code-block:: python
-
-       # New version (v3.x)
-       import brainpy.version2 as bp
-       import brainpy.version2.math as bm
-
-
-
 ----
 
 Installation
@@ -127,7 +104,7 @@ Learn more
 
       .. card:: :material-regular:`settings;2em` Examples
          :class-card: sd-text-black sd-bg-light
-         :link: https://brainpy-v2.readthedocs.io/projects/examples/
+         :link: https://brainpy-examples.readthedocs.io
 
    .. grid-item::
       :columns: 6 6 6 4
@@ -141,10 +118,6 @@ Learn more
    BrainPy is still an experimental research project.
    APIs may be changed over time. Please always keeps
    in mind what BrainPy version you are using.
-
-
-.. note::
-   ``BrainPy>=3.0.0`` is rewritten based on `brainstate <https://github.com/chaobrain/brainstate>`_ since August 2025.
 
 
 
