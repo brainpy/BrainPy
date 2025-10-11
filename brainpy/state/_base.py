@@ -13,17 +13,414 @@
 # limitations under the License.
 # ==============================================================================
 
-from typing import Callable, Optional
+
+from typing import Any, Union, TypeVar, Callable, Optional
 
 import brainstate
 import braintools
+import numpy as np
+from brainstate.mixin import ParamDescriber
+from brainstate.typing import ArrayLike, Size
+
+T = TypeVar('T')
 
 __all__ = [
-    'Neuron', 'Synapse',
+    'Dynamics', 'Neuron', 'Synapse',
 ]
 
 
-class Neuron(brainstate.nn.Dynamics):
+def _input_label_start(label: str):
+    # unify the input label repr.
+    return f'{label} // '
+
+
+def _input_label_repr(name: str, label: Optional[str] = None):
+    # unify the input label repr.
+    return name if label is None else (_input_label_start(label) + str(name))
+
+
+class Dynamics(brainstate.nn.Dynamics):
+    def __init__(self, in_size: Size, name: Optional[str] = None):
+        # initialize
+        super().__init__(name=name, in_size=in_size)
+
+        # current inputs
+        self._current_inputs = None
+
+        # delta inputs
+        self._delta_inputs = None
+
+    @property
+    def current_inputs(self):
+        """
+        Get the dictionary of current inputs registered with this dynamics model.
+
+        Current inputs represent direct input currents that flow into the model.
+
+        Returns
+        -------
+        dict or None
+            A dictionary mapping keys to current input functions or values,
+            or None if no current inputs have been registered.
+
+        See Also
+        --------
+        add_current_input : Register a new current input
+        sum_current_inputs : Apply and sum all current inputs
+        delta_inputs : Dictionary of instantaneous change inputs
+        """
+        return self._current_inputs
+
+    @property
+    def delta_inputs(self):
+        """
+        Get the dictionary of delta inputs registered with this dynamics model.
+
+        Delta inputs represent instantaneous changes to state variables (dX/dt).
+
+        Returns
+        -------
+        dict or None
+            A dictionary mapping keys to delta input functions or values,
+            or None if no delta inputs have been registered.
+
+        See Also
+        --------
+        add_delta_input : Register a new delta input
+        sum_delta_inputs : Apply and sum all delta inputs
+        current_inputs : Dictionary of direct current inputs
+        """
+        return self._delta_inputs
+
+    def add_current_input(
+        self,
+        key: str,
+        inp: Union[Callable, ArrayLike],
+        label: Optional[str] = None
+    ):
+        """
+        Add a current input function or array to the dynamics model.
+
+        Current inputs represent direct input currents that can be accessed during
+        model updates through the `sum_current_inputs()` method.
+
+        Parameters
+        ----------
+        key : str
+            Unique identifier for this current input. Used to retrieve or reference
+            the input later.
+        inp : Union[Callable, ArrayLike]
+            The input data or function that generates input data.
+            - If callable: Will be called during updates with arguments passed to `sum_current_inputs()`
+            - If array-like: Will be applied once and then automatically removed from available inputs
+        label : Optional[str], default=None
+            Optional grouping label for the input. When provided, allows selective
+            processing of inputs by label in `sum_current_inputs()`.
+
+        Raises
+        ------
+        ValueError
+            If the key has already been used for a different current input.
+
+        Notes
+        -----
+        - Inputs with the same label can be processed together using the `label`
+          parameter in `sum_current_inputs()`.
+        - Non-callable inputs are consumed when used (removed after first use).
+        - Callable inputs persist and can be called repeatedly.
+
+        See Also
+        --------
+        sum_current_inputs : Sum all current inputs matching a given label
+        add_delta_input : Add a delta input function or array
+        """
+        key = _input_label_repr(key, label)
+        if self._current_inputs is None:
+            self._current_inputs = dict()
+        if key in self._current_inputs:
+            if id(self._current_inputs[key]) != id(inp):
+                raise ValueError(f'Key "{key}" has been defined and used in the current inputs of {self}.')
+        self._current_inputs[key] = inp
+
+    def add_delta_input(
+        self,
+        key: str,
+        inp: Union[Callable, ArrayLike],
+        label: Optional[str] = None
+    ):
+        """
+        Add a delta input function or array to the dynamics model.
+
+        Delta inputs represent instantaneous changes to the model state (i.e., dX/dt contributions).
+        This method registers a function or array that provides delta inputs which will be
+        accessible during model updates through the `sum_delta_inputs()` method.
+
+        Parameters
+        ----------
+        key : str
+            Unique identifier for this delta input. Used to retrieve or reference
+            the input later.
+        inp : Union[Callable, ArrayLike]
+            The input data or function that generates input data.
+            - If callable: Will be called during updates with arguments passed to `sum_delta_inputs()`
+            - If array-like: Will be applied once and then automatically removed from available inputs
+        label : Optional[str], default=None
+            Optional grouping label for the input. When provided, allows selective
+            processing of inputs by label in `sum_delta_inputs()`.
+
+        Raises
+        ------
+        ValueError
+            If the key has already been used for a different delta input.
+
+        Notes
+        -----
+        - Inputs with the same label can be processed together using the `label`
+          parameter in `sum_delta_inputs()`.
+        - Non-callable inputs are consumed when used (removed after first use).
+        - Callable inputs persist and can be called repeatedly.
+
+        See Also
+        --------
+        sum_delta_inputs : Sum all delta inputs matching a given label
+        add_current_input : Add a current input function or array
+        """
+        key = _input_label_repr(key, label)
+        if self._delta_inputs is None:
+            self._delta_inputs = dict()
+        if key in self._delta_inputs:
+            if id(self._delta_inputs[key]) != id(inp):
+                raise ValueError(f'Key "{key}" has been defined and used.')
+        self._delta_inputs[key] = inp
+
+    def get_input(self, key: str):
+        """
+        Get a registered input function by its key.
+
+        Retrieves either a current input or a delta input function that was previously
+        registered with the given key. This method checks both current_inputs and
+        delta_inputs dictionaries for the specified key.
+
+        Parameters
+        ----------
+        key : str
+            The unique identifier used when the input function was registered.
+
+        Returns
+        -------
+        Callable or ArrayLike
+            The input function or array associated with the given key.
+
+        Raises
+        ------
+        ValueError
+            If no input function is found with the specified key in either
+            current_inputs or delta_inputs.
+
+        See Also
+        --------
+        add_current_input : Register a current input function
+        add_delta_input : Register a delta input function
+
+        Examples
+        --------
+        >>> model = Dynamics(10)
+        >>> model.add_current_input('stimulus', lambda t: np.sin(t))
+        >>> input_func = model.get_input('stimulus')
+        >>> input_func(0.5)  # Returns sin(0.5)
+        """
+        if self._current_inputs is not None and key in self._current_inputs:
+            return self._current_inputs[key]
+        elif self._delta_inputs is not None and key in self._delta_inputs:
+            return self._delta_inputs[key]
+        else:
+            raise ValueError(f'Input key {key} is not in current/delta inputs of the module {self}.')
+
+    def sum_current_inputs(
+        self,
+        init: Any,
+        *args,
+        label: Optional[str] = None,
+        **kwargs
+    ):
+        """
+        Summarize all current inputs by applying and summing all registered current input functions.
+
+        This method iterates through all registered current input functions (from `.current_inputs`)
+        and applies them to calculate the total input current for the dynamics model. It adds all results
+        to the initial value provided.
+
+        Parameters
+        ----------
+        init : Any
+            The initial value to which all current inputs will be added.
+        *args
+            Variable length argument list passed to each current input function.
+        label : Optional[str], default=None
+            If provided, only process current inputs with this label prefix.
+            When None, process all current inputs regardless of label.
+        **kwargs
+            Arbitrary keyword arguments passed to each current input function.
+
+        Returns
+        -------
+        Any
+            The initial value plus all applicable current inputs summed together.
+
+        Notes
+        -----
+        - Non-callable current inputs are applied once and then automatically removed from
+          the current_inputs dictionary.
+        - Callable current inputs remain registered for subsequent calls.
+        - When a label is provided, only current inputs with keys starting with that label
+          are applied.
+        """
+        if self._current_inputs is None:
+            return init
+        if label is None:
+            filter_fn = lambda k: True
+        else:
+            label_repr = _input_label_start(label)
+            filter_fn = lambda k: k.startswith(label_repr)
+        for key in tuple(self._current_inputs.keys()):
+            if filter_fn(key):
+                out = self._current_inputs[key]
+                if callable(out):
+                    try:
+                        init = init + out(*args, **kwargs)
+                    except Exception as e:
+                        raise ValueError(
+                            f'Error in current input value {key}: {out}\n'
+                            f'Error: {e}'
+                        ) from e
+                else:
+                    try:
+                        init = init + out
+                    except Exception as e:
+                        raise ValueError(
+                            f'Error in current input value {key}: {out}\n'
+                            f'Error: {e}'
+                        ) from e
+                    self._current_inputs.pop(key)
+        return init
+
+    def sum_delta_inputs(
+        self,
+        init: Any,
+        *args,
+        label: Optional[str] = None,
+        **kwargs
+    ):
+        """
+        Summarize all delta inputs by applying and summing all registered delta input functions.
+
+        This method iterates through all registered delta input functions (from `.delta_inputs`)
+        and applies them to calculate instantaneous changes to model states. It adds all results
+        to the initial value provided.
+
+        Parameters
+        ----------
+        init : Any
+            The initial value to which all delta inputs will be added.
+        *args
+            Variable length argument list passed to each delta input function.
+        label : Optional[str], default=None
+            If provided, only process delta inputs with this label prefix.
+            When None, process all delta inputs regardless of label.
+        **kwargs
+            Arbitrary keyword arguments passed to each delta input function.
+
+        Returns
+        -------
+        Any
+            The initial value plus all applicable delta inputs summed together.
+
+        Notes
+        -----
+        - Non-callable delta inputs are applied once and then automatically removed from
+          the delta_inputs dictionary.
+        - Callable delta inputs remain registered for subsequent calls.
+        - When a label is provided, only delta inputs with keys starting with that label
+          are applied.
+        """
+        if self._delta_inputs is None:
+            return init
+        if label is None:
+            filter_fn = lambda k: True
+        else:
+            label_repr = _input_label_start(label)
+            filter_fn = lambda k: k.startswith(label_repr)
+        for key in tuple(self._delta_inputs.keys()):
+            if filter_fn(key):
+                out = self._delta_inputs[key]
+                if callable(out):
+                    try:
+                        init = init + out(*args, **kwargs)
+                    except Exception as e:
+                        raise ValueError(
+                            f'Error in delta input function {key}: {out}\n'
+                            f'Error: {e}'
+                        ) from e
+                else:
+                    try:
+                        init = init + out
+                    except Exception as e:
+                        raise ValueError(
+                            f'Error in delta input value {key}: {out}\n'
+                            f'Error: {e}'
+                        ) from e
+                    self._delta_inputs.pop(key)
+        return init
+
+    def align_pre(self, dyn: Union[ParamDescriber[T], T]) -> T:
+        """
+        Registers a dynamics module to execute after this module.
+
+        This method establishes a sequential execution relationship where the specified
+        dynamics module will be called after this module completes its update. This
+        creates a feed-forward connection in the computational graph.
+
+        Parameters
+        ----------
+        dyn : Union[ParamDescriber[T], T]
+            The dynamics module to be executed after this module. Can be either:
+            - An instance of Dynamics
+            - A ParamDescriber that can instantiate a Dynamics object
+
+        Returns
+        -------
+        T
+            The dynamics module that was registered, allowing for method chaining.
+
+        Raises
+        ------
+        TypeError
+            If the input is not a Dynamics instance or a ParamDescriber that creates
+            a Dynamics instance.
+
+        Examples
+        --------
+        >>> import brainstate
+        >>> n1 = brainstate.nn.LIF(10)
+        >>> n1.align_pre(brainstate.nn.Expon.desc(n1.varshape))  # n2 will run after n1
+        """
+        if isinstance(dyn, Dynamics):
+            self._add_after_update(id(dyn), dyn)
+            return dyn
+        elif isinstance(dyn, ParamDescriber):
+            if not issubclass(dyn.cls, Dynamics):
+                raise TypeError(f'The input {dyn} should be an instance of {Dynamics}.')
+            if not self._has_after_update(dyn.identifier):
+                self._add_after_update(
+                    dyn.identifier,
+                    dyn() if ('in_size' in dyn.kwargs or len(dyn.args) > 0) else dyn(in_size=self.varshape)
+                )
+            return self._get_after_update(dyn.identifier)
+        else:
+            raise TypeError(f'The input {dyn} should be an instance of {Dynamics} or a delayed initializer.')
+
+
+class Neuron(Dynamics):
     r"""
     Base class for all spiking neuron models.
 
@@ -107,7 +504,7 @@ class Neuron(brainstate.nn.Dynamics):
         >>> import braintools
         >>> import brainpy
         >>>
-        >>> class SimpleNeuron(brainpy.Neuron):
+        >>> class SimpleNeuron(brainpy.state.Neuron):
         ...     def __init__(self, in_size, V_th=1.0*u.mV, **kwargs):
         ...         super().__init__(in_size, **kwargs)
         ...         self.V_th = V_th
@@ -145,7 +542,7 @@ class Neuron(brainstate.nn.Dynamics):
         >>> import brainunit as u
         >>>
         >>> # Create a LIF neuron layer
-        >>> neuron = brainpy.LIF(
+        >>> neuron = brainpy.state.LIF(
         ...     in_size=100,
         ...     tau=10*u.ms,
         ...     V_th=1.0*u.mV,
@@ -174,11 +571,11 @@ class Neuron(brainstate.nn.Dynamics):
         >>> class SpikingNet(brainstate.nn.Module):
         ...     def __init__(self):
         ...         super().__init__()
-        ...         self.layer1 = brainpy.LIF(784, tau=5*u.ms)
+        ...         self.layer1 = brainpy.state.LIF(784, tau=5*u.ms)
         ...         self.fc1 = brainstate.nn.Linear(784, 256)
-        ...         self.layer2 = brainpy.ALIF(256, tau=10*u.ms, tau_a=200*u.ms)
+        ...         self.layer2 = brainpy.state.ALIF(256, tau=10*u.ms, tau_a=200*u.ms)
         ...         self.fc2 = brainstate.nn.Linear(256, 10)
-        ...         self.layer3 = brainpy.LIF(10, tau=8*u.ms)
+        ...         self.layer3 = brainpy.state.LIF(10, tau=8*u.ms)
         ...
         ...     def __call__(self, x):
         ...         spikes1 = self.layer1.update(x)
@@ -239,7 +636,7 @@ class Neuron(brainstate.nn.Dynamics):
         raise NotImplementedError
 
 
-class Synapse(brainstate.nn.Dynamics):
+class Synapse(Dynamics):
     r"""
     Base class for synapse dynamics.
 
@@ -314,12 +711,12 @@ class Synapse(brainstate.nn.Dynamics):
 
     .. code-block:: python
 
-        >>> import brainpy.state as brainpy
+        >>> import brainpy
         >>> import brainstate
         >>> import brainunit as u
         >>> import braintools
         >>>
-        >>> class SimpleSynapse(brainpy.Synapse):
+        >>> class SimpleSynapse(brainpy.state.Synapse):
         ...     def __init__(self, in_size, tau=5.0*u.ms, **kwargs):
         ...         super().__init__(in_size, **kwargs)
         ...         self.tau = braintools.init.param(tau, self.varshape)
@@ -343,13 +740,13 @@ class Synapse(brainstate.nn.Dynamics):
 
     .. code-block:: python
 
-        >>> import brainpy.state as brainpy
+        >>> import brainpy
         >>> import brainstate
         >>> import brainunit as u
         >>> import jax
         >>>
         >>> # Create an exponential synapse
-        >>> synapse = brainpy.Expon(in_size=100, tau=8.0*u.ms)
+        >>> synapse = brainpy.state.Expon(in_size=100, tau=8.0*u.ms)
         >>>
         >>> # Initialize state
         >>> synapse.init_state(batch_size=32)
@@ -368,7 +765,7 @@ class Synapse(brainstate.nn.Dynamics):
 
     .. code-block:: python
 
-        >>> import brainpy.state as brainpy
+        >>> import brainpy
         >>> import brainstate
         >>> import brainunit as u
         >>>
@@ -376,18 +773,18 @@ class Synapse(brainstate.nn.Dynamics):
         ...     def __init__(self):
         ...         super().__init__()
         ...         # Input layer
-        ...         self.input_neurons = brainpy.LIF(784, tau=5*u.ms)
+        ...         self.input_neurons = brainpy.state.LIF(784, tau=5*u.ms)
         ...         # First hidden layer with synaptic filtering
         ...         self.fc1 = brainstate.nn.Linear(784, 256)
-        ...         self.syn1 = brainpy.Expon(256, tau=8*u.ms)
-        ...         self.hidden1 = brainpy.LIF(256, tau=10*u.ms)
+        ...         self.syn1 = brainpy.state.Expon(256, tau=8*u.ms)
+        ...         self.hidden1 = brainpy.state.LIF(256, tau=10*u.ms)
         ...         # Second hidden layer with AMPA synapse
         ...         self.fc2 = brainstate.nn.Linear(256, 128)
-        ...         self.syn2 = brainpy.AMPA(128)
-        ...         self.hidden2 = brainpy.LIF(128, tau=10*u.ms)
+        ...         self.syn2 = brainpy.state.AMPA(128)
+        ...         self.hidden2 = brainpy.state.LIF(128, tau=10*u.ms)
         ...         # Output layer
         ...         self.fc3 = brainstate.nn.Linear(128, 10)
-        ...         self.output_neurons = brainpy.LIF(10, tau=8*u.ms)
+        ...         self.output_neurons = brainpy.state.LIF(10, tau=8*u.ms)
         ...
         ...     def __call__(self, x):
         ...         # Input layer
@@ -409,7 +806,7 @@ class Synapse(brainstate.nn.Dynamics):
 
     .. code-block:: python
 
-        >>> import brainpy.state as brainpy
+        >>> import brainpy
         >>> import brainstate
         >>> import brainunit as u
         >>>
@@ -417,11 +814,11 @@ class Synapse(brainstate.nn.Dynamics):
         ...     def __init__(self, n_exc=800, n_inh=200):
         ...         super().__init__()
         ...         # Excitatory population
-        ...         self.exc_neurons = brainpy.LIF(n_exc, tau=10*u.ms)
-        ...         self.exc_syn = brainpy.AMPA(n_exc)
+        ...         self.exc_neurons = brainpy.state.LIF(n_exc, tau=10*u.ms)
+        ...         self.exc_syn = brainpy.state.AMPA(n_exc)
         ...         # Inhibitory population
-        ...         self.inh_neurons = brainpy.LIF(n_inh, tau=8*u.ms)
-        ...         self.inh_syn = brainpy.GABAa(n_inh)
+        ...         self.inh_neurons = brainpy.state.LIF(n_inh, tau=8*u.ms)
+        ...         self.inh_syn = brainpy.state.GABAa(n_inh)
         ...         # Connectivity
         ...         self.exc_to_exc = brainstate.nn.Linear(n_exc, n_exc)
         ...         self.exc_to_inh = brainstate.nn.Linear(n_exc, n_inh)
