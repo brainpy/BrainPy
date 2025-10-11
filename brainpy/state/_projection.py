@@ -24,6 +24,7 @@ from brainstate.nn._dynamics import maybe_init_prefetch
 from brainstate.util import get_unique_name
 
 from brainpy.mixin import BindCondData, AlignPost
+from ._base import Dynamics
 from ._synouts import SynOut
 
 __all__ = [
@@ -116,28 +117,28 @@ def get_post_repr(label, syn, out):
 def align_post_add_bef_update(
     syn_desc: ParamDescriber[AlignPost],
     out_desc: ParamDescriber[BindCondData],
-    post: brainstate.nn.Dynamics,
+    post: Dynamics,
     proj_name: str,
     label: str,
 ):
     # synapse and output initialization
     _post_repr = get_post_repr(label, syn_desc, out_desc)
-    if not post._has_before_update(_post_repr):
+    if not post.has_before_update(_post_repr):
         syn_cls = syn_desc()
         out_cls = out_desc()
 
         # synapse and output initialization
         post.add_current_input(proj_name, out_cls, label=label)
-        post._add_before_update(_post_repr, _AlignPost(syn_cls, out_cls))
-    syn = post._get_before_update(_post_repr).syn
-    out = post._get_before_update(_post_repr).out
+        post.add_before_update(_post_repr, _AlignPost(syn_cls, out_cls))
+    syn = post.get_before_update(_post_repr).syn
+    out = post.get_before_update(_post_repr).out
     return syn, out
 
 
 class _AlignPost(brainstate.nn.Module):
     def __init__(
         self,
-        syn: brainstate.nn.Dynamics,
+        syn: Dynamics,
         out: BindCondData
     ):
         super().__init__()
@@ -188,7 +189,7 @@ class AlignPostProj(Projection):
         comm: Callable,
         syn: Union[ParamDescriber[AlignPost], AlignPost],
         out: Union[ParamDescriber[SynOut], SynOut],
-        post: brainstate.nn.Dynamics,
+        post: Dynamics,
         label: Optional[str] = None,
     ):
         super().__init__(name=get_unique_name(self.__class__.__name__))
@@ -229,9 +230,9 @@ class AlignPostProj(Projection):
         self.merging = merging
 
         # checking post model
-        if not is_instance(post, brainstate.nn.Dynamics):
+        if not is_instance(post, Dynamics):
             raise TypeError(
-                f'The post should be an instance of {brainstate.nn.Dynamics}, but got {post}.'
+                f'The post should be an instance of {Dynamics}, but got {post}.'
             )
 
         if merging:
@@ -246,9 +247,9 @@ class AlignPostProj(Projection):
 
         # references
         self.comm = comm
-        self.syn: JointTypes[brainstate.nn.Dynamics, AlignPost] = syn
+        self.syn: JointTypes[Dynamics, AlignPost] = syn
         self.out: BindCondData = out
-        self.post: brainstate.nn.Dynamics = post
+        self.post: Dynamics = post
 
     @brainstate.nn.call_order(2)
     def init_state(self, *args, **kwargs):
@@ -308,7 +309,7 @@ class DeltaProj(Projection):
         self,
         *prefetch,
         comm: Callable,
-        post: brainstate.nn.Dynamics,
+        post: Dynamics,
         label=None,
     ):
         super().__init__(name=get_unique_name(self.__class__.__name__))
@@ -326,9 +327,9 @@ class DeltaProj(Projection):
         self.comm = comm
 
         # post model
-        if not isinstance(post, brainstate.nn.Dynamics):
+        if not isinstance(post, Dynamics):
             raise TypeError(
-                f'The post should be an instance of {brainstate.nn.Dynamics}, but got {post}.'
+                f'The post should be an instance of {Dynamics}, but got {post}.'
             )
         self.post = post
 
@@ -386,7 +387,7 @@ class CurrentProj(Projection):
         *prefetch,
         comm: Callable,
         out: SynOut,
-        post: brainstate.nn.Dynamics,
+        post: Dynamics,
     ):
         super().__init__(name=get_unique_name(self.__class__.__name__))
 
@@ -407,7 +408,7 @@ class CurrentProj(Projection):
         self.out = out
 
         # check post
-        if not isinstance(post, brainstate.nn.Dynamics):
+        if not isinstance(post, Dynamics):
             raise TypeError(f'The post should be a Dynamics, but got {post}.')
         self.post = post
         post.add_current_input(self.name, out)
@@ -442,11 +443,11 @@ class align_pre_projection(Projection):
     def __init__(
         self,
         *spike_generator,
-        syn: brainstate.nn.Dynamics,
+        syn: Dynamics,
         comm: Callable,
         out: SynOut,
-        post: brainstate.nn.Dynamics,
-        stp: brainstate.nn.Dynamics = None,
+        post: Dynamics,
+        stp: Dynamics = None,
     ):
         super().__init__()
 
@@ -492,8 +493,8 @@ class align_post_projection(Projection):
         comm: Callable,
         syn: Union[AlignPost, ParamDescriber[AlignPost]],
         out: Union[SynOut, ParamDescriber[SynOut]],
-        post: brainstate.nn.Dynamics,
-        stp: brainstate.nn.Dynamics = None,
+        post: Dynamics,
+        stp: Dynamics = None,
     ):
         super().__init__()
 
