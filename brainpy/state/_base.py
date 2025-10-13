@@ -407,17 +407,17 @@ class Dynamics(brainstate.nn.Dynamics):
         >>> n1.align_pre(brainstate.nn.Expon.desc(n1.varshape))  # n2 will run after n1
         """
         if isinstance(dyn, Dynamics):
-            self._add_after_update(id(dyn), dyn)
+            self.add_after_update(id(dyn), dyn)
             return dyn
         elif isinstance(dyn, ParamDescriber):
             if not issubclass(dyn.cls, Dynamics):
                 raise TypeError(f'The input {dyn} should be an instance of {Dynamics}.')
-            if not self._has_after_update(dyn.identifier):
-                self._add_after_update(
+            if not self.has_after_update(dyn.identifier):
+                self.add_after_update(
                     dyn.identifier,
                     dyn() if ('in_size' in dyn.kwargs or len(dyn.args) > 0) else dyn(in_size=self.varshape)
                 )
-            return self._get_after_update(dyn.identifier)
+            return self.get_after_update(dyn.identifier)
         else:
             raise TypeError(f'The input {dyn} should be an instance of {Dynamics} or a delayed initializer.')
 
