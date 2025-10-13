@@ -5,7 +5,8 @@ Synaptic dynamics models in BrainPy.
 
 .. currentmodule:: brainpy.state
 
-
+Simple Synapse Models
+---------------------
 
 .. autosummary::
     :toctree: generated/
@@ -15,6 +16,16 @@ Synaptic dynamics models in BrainPy.
     Expon
     DualExpon
     Alpha
+
+Biological Receptor Models
+---------------------------
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+    :template: classtemplate.rst
+
     AMPA
     GABAa
+    BioNMDA
 

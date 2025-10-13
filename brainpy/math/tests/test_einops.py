@@ -118,7 +118,7 @@ def test_rearrange_consistency_numpy():
 
 
 def test_rearrange_permutations_numpy():
-    # tests_version2 random permutation of axes against two independent numpy ways
+    # tests random permutation of axes against two independent numpy ways
     for n_axes in range(1, 10):
         input = numpy.arange(2 ** n_axes).reshape([2] * n_axes)
         permutation = numpy.random.permutation(n_axes)

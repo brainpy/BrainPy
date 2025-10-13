@@ -19,7 +19,7 @@ dependencies:
 # Tests
 tests:
   - changed-files:
-    - any-glob-to-any-file: ['tests_version2/**/*', '**/*test*.py']
+    - any-glob-to-any-file: ['tests/**/*', '**/*test*.py']
 
 # Examples
 examples:

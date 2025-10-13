@@ -51,7 +51,7 @@ class ParsedExpression:
         self.identifiers: Set[str] = set()
         # that's axes like 2, 3, 4 or 5. Axes with size 1 are exceptional and replaced with empty composition
         self.has_non_unitary_anonymous_axes: bool = False
-        # composition keeps structure of composite axes, see how different corner cases are handled in tests_version2
+        # composition keeps structure of composite axes, see how different corner cases are handled in tests
         self.composition: List[Union[List[str], str]] = []
         if '.' in expression:
             if '...' not in expression:
