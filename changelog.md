@@ -1,5 +1,110 @@
 # Changelog
 
+## Version 2.7.1
+
+**Release Date:** October 2025
+
+This is a feature release that introduces new neuron and synapse models in the state-based API (`brainpy.state`) and enhances the Dynamics base class with improved input handling.
+
+### Major Changes
+
+#### New Neuron Models (brainpy.state)
+- **LIF (Leaky Integrate-and-Fire) Variants**: Added comprehensive set of LIF neuron models
+  - `LIF`: Basic LIF neuron with exponential synaptic input
+  - `LifRef`: LIF with refractory period
+  - `ExpIF`: Exponential Integrate-and-Fire neuron
+  - `ExpIFRef`: ExpIF with refractory period
+  - `AdExIF`: Adaptive Exponential Integrate-and-Fire neuron
+  - `AdExIFRef`: AdExIF with refractory period
+  - `QuaIF`: Quadratic Integrate-and-Fire neuron
+  - `QuaIFRef`: QuaIF with refractory period
+  - `AdQuaIF`: Adaptive Quadratic Integrate-and-Fire neuron
+  - `AdQuaIFRef`: AdQuaIF with refractory period
+  - `GifRef`: Generalized Integrate-and-Fire with refractory period
+
+- **Izhikevich Neuron Models**: Added new Izhikevich neuron implementations
+  - `Izhikevich`: Basic Izhikevich neuron model
+  - `IzhikevichRef`: Izhikevich with refractory period
+
+- **Hodgkin-Huxley Model**: Added classic biophysical neuron model
+  - `HH`: Classic Hodgkin-Huxley model with Na+ and K+ channels
+
+#### New Synapse Models (brainpy.state)
+- **BioNMDA**: Biological NMDA receptor with second-order kinetics
+  - Implements two-state cascade dynamics (x and g variables)
+  - Slower rise time compared to AMPA (biologically realistic)
+  - Comprehensive documentation with mathematical formulation
+
+### Features
+
+#### Model Implementation
+- All new models use the brainstate ecosystem (HiddenState, ShortTermState, LongTermState)
+- Proper unit support with brainunit integration
+- Exponential Euler integration for numerical stability
+- Batch processing support across all models
+- Consistent API design following BrainPy v2.7+ architecture
+
+#### Dynamics Class Enhancements
+- Enhanced input handling capabilities in the Dynamics base class
+- Added new properties for better state management
+- Improved integration with brainstate framework
+- Refactored to use public methods instead of private counterparts for clarity
+
+#### Documentation
+- Added comprehensive Examples sections to all neuron classes in `_lif.py`
+- Each example includes:
+  - Import statements for required modules
+  - Basic usage with parameter specifications
+  - State initialization examples
+  - Update and spike generation examples
+  - Network integration with `brainstate.nn.Sequential`
+  - Notes highlighting key features
+- All 13 neuron classes in `_lif.py` now have complete documentation
+- Simplified documentation paths by removing 'core-concepts' and 'quickstart' prefixes in index.rst
+
+### Bug Fixes
+- Fixed import paths in `_base.py`: changed references from brainstate to brainpy for consistency (057b872d)
+- Fixed test suite issues (95ec2037)
+- Fixed test suite for proper unit handling in synapse models
+
+### Code Quality
+- Refactored module assignments to `brainpy.state` for consistency across files (06b2bf4d)
+- Refactored method calls in `_base.py`: replaced private methods with public counterparts (210426ab)
+
+### Testing
+- Added comprehensive test suites for all new neuron models
+- Added AMPA and GABAa synapse tests
+- Added tests for Izhikevich neuron variants
+- Added tests for Hodgkin-Huxley model
+- All tests passing with proper unit handling
+
+### Files Modified
+- `brainpy/__init__.py`: Updated version to 2.7.1
+- `brainpy/state/_base.py`: Enhanced Dynamics class with improved input handling (447 lines added)
+- `brainpy/state/_lif.py`: Added extensive LIF neuron variants (1862 lines total)
+- `brainpy/state/_izhikevich.py`: New file with Izhikevich models (407 lines)
+- `brainpy/state/_hh.py`: New file with Hodgkin-Huxley model (666 lines)
+- `brainpy/state/_synapse.py`: Added BioNMDA model (158 lines)
+- `brainpy/state/_projection.py`: Updated for consistency (43 lines modified)
+- `brainpy/state/__init__.py`: Updated exports for new models
+- Test files added: `_lif_test.py`, `_izhikevich_test.py`, `_hh_test.py`, `_synapse_test.py`, `_base_test.py`
+- Documentation updates in `docs_state/index.rst`
+
+### Removed
+- Removed outdated documentation notebooks from `docs_state/`:
+  - `checkpointing-en.ipynb` and `checkpointing-zh.ipynb`
+  - `snn_simulation-en.ipynb` and `snn_simulation-zh.ipynb`
+  - `snn_training-en.ipynb` and `snn_training-zh.ipynb`
+
+### Notes
+- This release significantly expands the `brainpy.state` module with biologically realistic neuron and synapse models
+- All new models are fully compatible with the brainstate ecosystem
+- Enhanced documentation provides clear usage examples for all models
+- The Dynamics class refactoring improves the foundation for future state-based model development
+
+
+
+
 ## Version 3.0.1
 
 **Release Date:** October 2025
