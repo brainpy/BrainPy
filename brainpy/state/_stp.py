@@ -97,7 +97,7 @@ class STP(Synapse):
     .. [2] Tsodyks, M., Pawelzik, K., & Markram, H. (1998). Neural networks with dynamic
            synapses. Neural computation, 10(4), 821-835.
     """
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,
@@ -203,7 +203,7 @@ class STD(Synapse):
            pyramidal neurons depends on neurotransmitter release probability.
            Proceedings of the National Academy of Sciences, 94(2), 719-723.
     """
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,

@@ -40,6 +40,8 @@ def _input_label_repr(name: str, label: Optional[str] = None):
 
 
 class Dynamics(brainstate.nn.Dynamics):
+    __module__ = 'brainpy.state'
+
     def __init__(self, in_size: Size, name: Optional[str] = None):
         # initialize
         super().__init__(name=name, in_size=in_size)
@@ -401,21 +403,21 @@ class Dynamics(brainstate.nn.Dynamics):
         Examples
         --------
         >>> import brainstate
-        >>> n1 = brainstate.nn.LIF(10)
-        >>> n1.align_pre(brainstate.nn.Expon.desc(n1.varshape))  # n2 will run after n1
+        >>> n1 = brainpy.state.LIF(10)
+        >>> n1.align_pre(brainpy.state.Expon.desc(n1.varshape))  # n2 will run after n1
         """
         if isinstance(dyn, Dynamics):
-            self._add_after_update(id(dyn), dyn)
+            self.add_after_update(id(dyn), dyn)
             return dyn
         elif isinstance(dyn, ParamDescriber):
             if not issubclass(dyn.cls, Dynamics):
                 raise TypeError(f'The input {dyn} should be an instance of {Dynamics}.')
-            if not self._has_after_update(dyn.identifier):
-                self._add_after_update(
+            if not self.has_after_update(dyn.identifier):
+                self.add_after_update(
                     dyn.identifier,
                     dyn() if ('in_size' in dyn.kwargs or len(dyn.args) > 0) else dyn(in_size=self.varshape)
                 )
-            return self._get_after_update(dyn.identifier)
+            return self.get_after_update(dyn.identifier)
         else:
             raise TypeError(f'The input {dyn} should be an instance of {Dynamics} or a delayed initializer.')
 
@@ -425,7 +427,7 @@ class Neuron(Dynamics):
     Base class for all spiking neuron models.
 
     This abstract class serves as the foundation for implementing various spiking neuron
-    models in the BrainPy framework. It extends the ``brainstate.nn.Dynamics`` class and
+    models in the BrainPy framework. It extends the ``brainpy.state.Dynamics`` class and
     provides common functionality for spike generation, membrane potential dynamics, and
     surrogate gradient handling required for training spiking neural networks.
 
@@ -595,7 +597,7 @@ class Neuron(Dynamics):
     .. [3] Gerstner, W., Kistler, W. M., Naud, R., & Paninski, L. (2014). Neuronal dynamics:
            From single neurons to networks and models of cognition. Cambridge University Press.
     """
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,
@@ -849,4 +851,4 @@ class Synapse(Dynamics):
     .. [3] Gerstner, W., Kistler, W. M., Naud, R., & Paninski, L. (2014). Neuronal dynamics:
            From single neurons to networks and models of cognition. Cambridge University Press.
     """
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'

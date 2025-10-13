@@ -71,7 +71,7 @@ class Projection(brainstate.nn.Module):
     Derived classes should implement specific projection behaviors, such as
     dense connectivity, sparse connectivity, or specific weight update rules.
     """
-    __module__ = 'brainstate.nn'
+    __module__ = 'brainpy.state'
 
     def update(self, *args, **kwargs):
         sub_nodes = tuple(self.nodes(allowed_hierarchy=(1, 1)).values())
@@ -181,7 +181,7 @@ class AlignPostProj(Projection):
     >>> exe_current = E(pop.get_spike())
 
     """
-    __module__ = 'brainstate.nn'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,
@@ -303,7 +303,7 @@ class DeltaProj(Projection):
     ... )
     >>> delta_input(1.0)  # Apply voltage increment directly
     """
-    __module__ = 'brainstate.nn'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,
@@ -380,7 +380,7 @@ class CurrentProj(Projection):
     ... )
     >>> current_input(0.2)  # Apply external current
     """
-    __module__ = 'brainstate.nn'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,
@@ -439,6 +439,7 @@ class align_pre_projection(Projection):
     short-term plasticity.
 
     """
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,
@@ -486,6 +487,7 @@ class align_post_projection(Projection):
     properties, synaptic outputs, post-synaptic dynamics, and short-term plasticity.
 
     """
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,

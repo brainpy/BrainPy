@@ -857,6 +857,10 @@ class ExpIF(ExpIFLTC):
            conductance-based synaptic drive." Physical Review E 76, no. 2 (2007): 021919.
     .. [5] https://en.wikipedia.org/wiki/Exponential_integrate-and-fire
 
+    .. seealso::
+
+       :class:`brainpy.state.ExpIF` provides the state-based formulation of this neuron.
+
     **Examples**
 
     There is a simple usage example::
@@ -977,6 +981,10 @@ class ExpIFRefLTC(ExpIFLTC):
            integrate-and-fire neurons to modulated current-based and
            conductance-based synaptic drive." Physical Review E 76, no. 2 (2007): 021919.
     .. [5] https://en.wikipedia.org/wiki/Exponential_integrate-and-fire
+
+    .. seealso::
+
+       :class:`brainpy.state.ExpIFRef` provides the state-based formulation of this neuron.
 
     **Examples**
 
@@ -1318,6 +1326,10 @@ class AdExIFLTC(GradNeuDyn):
            mechanisms determine the neuronal response to fluctuating
            inputs." Journal of Neuroscience 23.37 (2003): 11628-11640.
     .. [2] http://www.scholarpedia.org/article/Adaptive_exponential_integrate-and-fire_model
+
+    .. seealso::
+
+       :class:`brainpy.state.AdExIF` provides the state-based formulation of this model.
 
     **Examples**
 

@@ -22,6 +22,7 @@ import braintools
 import brainunit as u
 from brainstate.typing import ArrayLike
 
+from ._misc import set_module_as
 from ._projection import Projection
 
 __all__ = [
@@ -31,11 +32,11 @@ __all__ = [
 
 
 class align_pre_ltp(Projection):
-    pass
+    __module__ = 'brainpy.state'
 
 
 class align_post_ltp(Projection):
-    pass
+    __module__ = 'brainpy.state'
 
 
 def get_gap_junction_post_key(i: int):
@@ -81,6 +82,8 @@ class SymmetryGapJunction(Projection):
     --------
     AsymmetryGapJunction : For gap junctions with different conductances in each direction.
     """
+
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,
@@ -132,6 +135,7 @@ class SymmetryGapJunction(Projection):
         )
 
 
+@set_module_as('brainpy.state')
 def symmetry_gap_junction_projection(
     pre: brainstate.nn.Dynamics,
     pre_value: ArrayLike,
@@ -281,6 +285,7 @@ class AsymmetryGapJunction(Projection):
     --------
     SymmetryGapJunction : For gap junctions with identical conductance in both directions.
     """
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,
@@ -322,6 +327,7 @@ class AsymmetryGapJunction(Projection):
         )
 
 
+@set_module_as('brainpy.state')
 def asymmetry_gap_junction_projection(
     pre: brainstate.nn.Dynamics,
     pre_value: ArrayLike,
