@@ -1356,6 +1356,34 @@ class QuaIF(Neuron):
     V : HiddenState
         Membrane potential.
 
+    Examples
+    --------
+    >>> import brainpy
+    >>> import brainstate
+    >>> import brainunit as u
+    >>>
+    >>> # Create a QuaIF neuron layer with 10 neurons
+    >>> quaif = brainpy.state.QuaIF(10, tau=10*u.ms, V_th=-30*u.mV, V_c=-50*u.mV)
+    >>>
+    >>> # Initialize the state
+    >>> quaif.init_state(batch_size=1)
+    >>>
+    >>> # Apply an input current and update the neuron state
+    >>> spikes = quaif.update(x=2.5*u.mA)
+    >>>
+    >>> # Create a network with QuaIF neurons
+    >>> network = brainstate.nn.Sequential([
+    ...     brainpy.state.QuaIF(100, tau=10.0*u.ms),
+    ...     brainstate.nn.Linear(100, 10)
+    ... ])
+
+    Notes
+    -----
+    - The quadratic nonlinearity provides a more realistic spike initiation compared to LIF.
+    - The critical voltage V_c determines the onset of spike generation.
+    - When V approaches V_c, the quadratic term causes rapid acceleration toward threshold.
+    - This model can exhibit Type I excitability (continuous f-I curve).
+
     References
     ----------
     .. [1] P. E. Latham, B.J. Richmond, P. Nelson and S. Nirenberg
@@ -1478,6 +1506,36 @@ class AdQuaIF(Neuron):
         Membrane potential.
     w : HiddenState
         Adaptation current.
+
+    Examples
+    --------
+    >>> import brainpy
+    >>> import brainstate
+    >>> import brainunit as u
+    >>>
+    >>> # Create an AdQuaIF neuron layer with 10 neurons
+    >>> adquaif = brainpy.state.AdQuaIF(10, tau=10*u.ms, tau_w=100*u.ms,
+    ...                                 a=1.0*u.siemens, b=0.1*u.mA)
+    >>>
+    >>> # Initialize the state
+    >>> adquaif.init_state(batch_size=1)
+    >>>
+    >>> # Apply an input current and observe spike-frequency adaptation
+    >>> spikes = adquaif.update(x=3.0*u.mA)
+    >>>
+    >>> # Create a network with adaptive neurons
+    >>> network = brainstate.nn.Sequential([
+    ...     brainpy.state.AdQuaIF(100, tau=10.0*u.ms, tau_w=100.0*u.ms),
+    ...     brainstate.nn.Linear(100, 10)
+    ... ])
+
+    Notes
+    -----
+    - The adaptation current w provides negative feedback, reducing firing rate.
+    - Parameter 'a' controls subthreshold adaptation (coupling from V to w).
+    - Parameter 'b' controls spike-triggered adaptation (increment after spike).
+    - With appropriate parameters, can exhibit regular spiking, bursting, etc.
+    - The adaptation time constant tau_w determines adaptation speed.
 
     References
     ----------
@@ -1616,6 +1674,37 @@ class AdQuaIFRef(Neuron):
         Last spike time recorder.
     refractory : HiddenState
         Neuron refractory state (if ref_var=True).
+
+    Examples
+    --------
+    >>> import brainpy
+    >>> import brainstate
+    >>> import brainunit as u
+    >>>
+    >>> # Create an AdQuaIFRef neuron layer with refractory period
+    >>> adquaif_ref = brainpy.state.AdQuaIFRef(10, tau=10*u.ms, tau_w=100*u.ms,
+    ...                                        tau_ref=2.0*u.ms, ref_var=True)
+    >>>
+    >>> # Initialize the state
+    >>> adquaif_ref.init_state(batch_size=1)
+    >>>
+    >>> # Apply input and observe refractory behavior
+    >>> with brainstate.environ.context(dt=0.1*u.ms, t=0.0*u.ms):
+    ...     spikes = adquaif_ref.update(x=3.0*u.mA)
+    >>>
+    >>> # Create a network with refractory adaptive neurons
+    >>> network = brainstate.nn.Sequential([
+    ...     brainpy.state.AdQuaIFRef(100, tau=10.0*u.ms, tau_ref=2.0*u.ms),
+    ...     brainstate.nn.Linear(100, 10)
+    ... ])
+
+    Notes
+    -----
+    - Combines spike-frequency adaptation with absolute refractory period.
+    - During refractory period, neuron state is held at reset values.
+    - Set ref_var=True to track refractory state as a boolean variable.
+    - Refractory period prevents unrealistically high firing rates.
+    - More biologically realistic than AdQuaIF without refractory period.
     """
     __module__ = 'brainpy'
 
@@ -1809,6 +1898,37 @@ class Gif(Neuron):
     V_th : HiddenState
         Spiking threshold potential.
 
+    Examples
+    --------
+    >>> import brainpy
+    >>> import brainstate
+    >>> import brainunit as u
+    >>>
+    >>> # Create a Gif neuron layer with dynamic threshold
+    >>> gif = brainpy.state.Gif(10, tau=20*u.ms, k1=0.2/u.ms, k2=0.02/u.ms,
+    ...                         a=0.005/u.ms, b=0.01/u.ms)
+    >>>
+    >>> # Initialize the state
+    >>> gif.init_state(batch_size=1)
+    >>>
+    >>> # Apply input and observe diverse firing patterns
+    >>> spikes = gif.update(x=1.5*u.mA)
+    >>>
+    >>> # Create a network with Gif neurons
+    >>> network = brainstate.nn.Sequential([
+    ...     brainpy.state.Gif(100, tau=20.0*u.ms),
+    ...     brainstate.nn.Linear(100, 10)
+    ... ])
+
+    Notes
+    -----
+    - The Gif model uses internal currents (I1, I2) for complex dynamics.
+    - Dynamic threshold V_th adapts based on membrane potential and its own dynamics.
+    - Can reproduce diverse firing patterns: regular spiking, bursting, adaptation.
+    - Parameters a and b control threshold adaptation.
+    - Parameters k1, k2, R1, R2, A1, A2 control internal current dynamics.
+    - More flexible than simpler IF models for matching biological data.
+
     References
     ----------
     .. [1] Mihalaş, Ştefan, and Ernst Niebur. "A generalized linear
@@ -1998,6 +2118,38 @@ class GifRef(Neuron):
         Last spike time recorder.
     refractory : HiddenState
         Neuron refractory state (if ref_var=True).
+
+    Examples
+    --------
+    >>> import brainpy
+    >>> import brainstate
+    >>> import brainunit as u
+    >>>
+    >>> # Create a GifRef neuron layer with refractory period
+    >>> gif_ref = brainpy.state.GifRef(10, tau=20*u.ms, tau_ref=2.0*u.ms,
+    ...                                k1=0.2/u.ms, k2=0.02/u.ms, ref_var=True)
+    >>>
+    >>> # Initialize the state
+    >>> gif_ref.init_state(batch_size=1)
+    >>>
+    >>> # Apply input and observe refractory behavior
+    >>> with brainstate.environ.context(dt=0.1*u.ms, t=0.0*u.ms):
+    ...     spikes = gif_ref.update(x=1.5*u.mA)
+    >>>
+    >>> # Create a network with refractory Gif neurons
+    >>> network = brainstate.nn.Sequential([
+    ...     brainpy.state.GifRef(100, tau=20.0*u.ms, tau_ref=2.0*u.ms),
+    ...     brainstate.nn.Linear(100, 10)
+    ... ])
+
+    Notes
+    -----
+    - Combines Gif model's rich dynamics with absolute refractory period.
+    - During refractory period, all state variables are held at reset values.
+    - Set ref_var=True to track refractory state as a boolean variable.
+    - More biologically realistic than Gif without refractory mechanism.
+    - Can still exhibit diverse firing patterns: regular, bursting, adaptation.
+    - Refractory period prevents unrealistically high firing rates.
     """
     __module__ = 'brainpy'
 
