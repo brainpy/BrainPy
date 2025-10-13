@@ -60,7 +60,7 @@ class SpikeTime(brainstate.nn.Dynamics):
     name : str, optional
         The name of the dynamic system.
     """
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,
@@ -116,7 +116,7 @@ class PoissonSpike(brainstate.nn.Dynamics):
     """
     Poisson Neuron Group.
     """
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,
@@ -173,7 +173,7 @@ class PoissonEncoder(brainstate.nn.Dynamics):
     >>> import numpy as np
     >>>
     >>> # Create a Poisson encoder for 10 neurons
-    >>> encoder = brainpy.PoissonEncoder(10)
+    >>> encoder = brainpy.state.PoissonEncoder(10)
     >>>
     >>> # Generate spikes with varying firing rates
     >>> rates = np.array([10, 20, 30, 40, 50, 60, 70, 80, 90, 100]) * u.Hz
@@ -186,7 +186,7 @@ class PoissonEncoder(brainstate.nn.Dynamics):
     >>> spike_train = encoder.update(firing_rates)
     >>>
     >>> # Feed the spikes into a spiking neural network
-    >>> neuron_layer = brainpy.LIF(10)
+    >>> neuron_layer = brainpy.state.LIF(10)
     >>> neuron_layer.init_state(batch_size=1)
     >>> output_spikes = neuron_layer.update(spike_train)
 
@@ -203,7 +203,7 @@ class PoissonEncoder(brainstate.nn.Dynamics):
     - The independence of spike generation between time steps results in renewal process
       statistics without memory of previous spiking history.
     """
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,
@@ -278,11 +278,11 @@ class PoissonInput(brainstate.nn.Module):
     >>> import numpy as np
     >>>
     >>> # Create a neuron group with membrane potential
-    >>> neuron = brainpy.LIF(100)
+    >>> neuron = brainpy.state.LIF(100)
     >>> neuron.init_state(batch_size=1)
     >>>
     >>> # Add Poisson input to all neurons
-    >>> poisson_in = brainpy.PoissonInput(
+    >>> poisson_in = brainpy.state.PoissonInput(
     ...     target=neuron.V,
     ...     indices=None,
     ...     num_input=200,
@@ -292,7 +292,7 @@ class PoissonInput(brainstate.nn.Module):
     >>>
     >>> # Add Poisson input only to specific neurons
     >>> indices = np.array([0, 10, 20, 30])
-    >>> specific_input = brainpy.PoissonInput(
+    >>> specific_input = brainpy.state.PoissonInput(
     ...     target=neuron.V,
     ...     indices=indices,
     ...     num_input=50,
@@ -316,7 +316,7 @@ class PoissonInput(brainstate.nn.Module):
     - The update method internally calls the poisson_input function which handles the
       spike generation and target state updates.
     """
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,
@@ -348,7 +348,7 @@ class PoissonInput(brainstate.nn.Module):
         )
 
 
-@set_module_as('brainpy')
+@set_module_as('brainpy.state')
 def poisson_input(
     freq: u.Quantity[u.Hz],
     num_input: int,
@@ -421,7 +421,7 @@ def poisson_input(
     >>> V = brainstate.HiddenState(np.zeros(100) * u.mV)
     >>>
     >>> # Add Poisson input to all neurons at 50 Hz
-    >>> brainpy.poisson_input(
+    >>> brainpy.state.poisson_input(
     ...     freq=50 * u.Hz,
     ...     num_input=200,
     ...     weight=0.1 * u.mV,
@@ -430,7 +430,7 @@ def poisson_input(
     >>>
     >>> # Apply Poisson input only to a subset of neurons
     >>> indices = np.array([0, 10, 20, 30])
-    >>> brainpy.poisson_input(
+    >>> brainpy.state.poisson_input(
     ...     freq=100 * u.Hz,
     ...     num_input=50,
     ...     weight=0.2 * u.mV,
@@ -441,7 +441,7 @@ def poisson_input(
     >>> # Apply input with refractory mask
     >>> refractory = np.zeros(100, dtype=bool)
     >>> refractory[40:60] = True  # neurons 40-59 are in refractory period
-    >>> brainpy.poisson_input(
+    >>> brainpy.state.poisson_input(
     ...     freq=75 * u.Hz,
     ...     num_input=100,
     ...     weight=0.15 * u.mV,

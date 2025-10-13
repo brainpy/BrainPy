@@ -148,7 +148,7 @@ class TestNeuronBaseClass(unittest.TestCase):
     def test_neuron_module_attribute(self):
         """Test __module__ attribute is correctly set."""
         neuron = Neuron(in_size=self.in_size)
-        self.assertEqual(neuron.__module__, 'brainpy')
+        self.assertEqual(neuron.__module__, 'brainpy.state')
 
 
 class TestSynapseBaseClass(unittest.TestCase):
@@ -247,7 +247,7 @@ class TestSynapseBaseClass(unittest.TestCase):
     def test_synapse_module_attribute(self):
         """Test __module__ attribute is correctly set."""
         synapse = Synapse(in_size=self.in_size)
-        self.assertEqual(synapse.__module__, 'brainpy')
+        self.assertEqual(synapse.__module__, 'brainpy.state')
 
     def test_synapse_varshape_attribute(self):
         """Test varshape attribute is correctly set."""

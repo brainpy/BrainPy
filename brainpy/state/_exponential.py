@@ -71,7 +71,7 @@ class Expon(Synapse, AlignPost):
     where synaptic variables are aligned with post-synaptic neurons, enabling event-driven
     computation and more efficient handling of sparse connectivity patterns.
     """
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,
@@ -156,7 +156,7 @@ class DualExpon(Synapse, AlignPost):
     where synaptic variables are aligned with post-synaptic neurons, enabling event-driven
     computation and more efficient handling of sparse connectivity patterns.
     """
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,
