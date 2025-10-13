@@ -148,7 +148,7 @@ class HH(Neuron):
     .. [2] https://en.wikipedia.org/wiki/Hodgkin%E2%80%93Huxley_model
     """
 
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,
@@ -380,7 +380,7 @@ class MorrisLecar(Neuron):
     .. [3] https://en.wikipedia.org/wiki/Morris%E2%80%93Lecar_model
     """
 
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,
@@ -572,7 +572,7 @@ class WangBuzsakiHH(Neuron):
            neuroscience, 16(20), pp.6402-6413.
     """
 
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,

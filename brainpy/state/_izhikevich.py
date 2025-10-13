@@ -119,7 +119,7 @@ class Izhikevich(Neuron):
            IEEE transactions on neural networks, 15(5), 1063-1070.
     """
 
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,
@@ -302,7 +302,7 @@ class IzhikevichRef(Neuron):
            IEEE transactions on neural networks, 15(5), 1063-1070.
     """
 
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,

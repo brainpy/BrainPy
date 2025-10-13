@@ -33,7 +33,7 @@ class SynOut(brainstate.nn.Module, BindCondData):
     :py:class:`~.SynOut` is also subclass of :py:class:`~.ParamDesc` and :py:class:`~.BindCondData`.
     """
 
-    __module__ = 'brainstate.nn'
+    __module__ = 'brainpy.state'
 
     def __init__(self, ):
         super().__init__()
@@ -71,7 +71,7 @@ class COBA(SynOut):
     --------
     CUBA
     """
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(self, E: brainstate.typing.ArrayLike):
         super().__init__()
@@ -100,7 +100,7 @@ class CUBA(SynOut):
     --------
     COBA
     """
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(self, scale: brainstate.typing.ArrayLike = u.volt):
         super().__init__()
@@ -140,7 +140,7 @@ class MgBlock(SynOut):
     V_offset: ArrayLike
       The offset potential. Default 0. [mV]
     """
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,

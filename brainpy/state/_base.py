@@ -40,6 +40,8 @@ def _input_label_repr(name: str, label: Optional[str] = None):
 
 
 class Dynamics(brainstate.nn.Dynamics):
+    __module__ = 'brainpy.state'
+
     def __init__(self, in_size: Size, name: Optional[str] = None):
         # initialize
         super().__init__(name=name, in_size=in_size)
@@ -595,7 +597,7 @@ class Neuron(Dynamics):
     .. [3] Gerstner, W., Kistler, W. M., Naud, R., & Paninski, L. (2014). Neuronal dynamics:
            From single neurons to networks and models of cognition. Cambridge University Press.
     """
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,
@@ -849,4 +851,4 @@ class Synapse(Dynamics):
     .. [3] Gerstner, W., Kistler, W. M., Naud, R., & Paninski, L. (2014). Neuronal dynamics:
            From single neurons to networks and models of cognition. Cambridge University Press.
     """
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'

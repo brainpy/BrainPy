@@ -70,7 +70,7 @@ class Alpha(Synapse):
     This implementation uses an exponential Euler integration method.
     The output of this synapse is the conductance value.
     """
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,
@@ -176,7 +176,7 @@ class AMPA(Synapse):
            and implications for stimulus processing. Proceedings of the National Academy
            of Sciences, 109(45), 18553-18558.
     """
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,
@@ -289,7 +289,7 @@ class GABAa(AMPA):
            properties of neocortical pyramidal neurons in vivo. Journal of neurophysiology,
            81(4), 1531-1547.
     """
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,
@@ -411,7 +411,7 @@ class BioNMDA(Synapse):
            macroscopic conductances predicted by single-channel kinetics. Journal of Neuroscience,
            10(9), 3178-3182.
     """
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,

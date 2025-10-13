@@ -113,7 +113,7 @@ class IF(Neuron):
            I. Homogeneous synaptic input. Biological cybernetics, 95(1), 1-19.
     """
 
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,
@@ -237,7 +237,7 @@ class LIF(Neuron):
     .. [2] Burkitt, A. N. (2006). A review of the integrate-and-fire neuron model:
            I. Homogeneous synaptic input. Biological cybernetics, 95(1), 1-19.
     """
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,
@@ -380,7 +380,7 @@ class ExpIF(Neuron):
            conductance-based synaptic drive." Physical Review E 76, no. 2 (2007): 021919.
     .. [5] https://en.wikipedia.org/wiki/Exponential_integrate-and-fire
     """
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,
@@ -506,7 +506,7 @@ class ExpIFRef(Neuron):
     >>>         with brainstate.environ.context(t=t*0.1*u.ms):
     >>>             spikes = expif.update(x=inputs[t])
     """
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,
@@ -680,7 +680,7 @@ class AdExIF(Neuron):
 
        :class:`brainpy.dyn.AdExIF` for the dynamical-system counterpart.
     """
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,
@@ -863,7 +863,7 @@ class AdExIFRef(Neuron):
 
        :class:`brainpy.dyn.AdExIFRef` for the dynamical-system counterpart.
     """
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,
@@ -1072,7 +1072,7 @@ class LIFRef(Neuron):
     .. [3] Izhikevich, E. M. (2003). Simple model of spiking neurons. IEEE Transactions on
            neural networks, 14(6), 1569-1572.
     """
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,
@@ -1244,7 +1244,7 @@ class ALIF(Neuron):
            the adaptive exponential integrate-and-fire model. Biological cybernetics,
            99(4), 335-347.
     """
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,
@@ -1390,7 +1390,7 @@ class QuaIF(Neuron):
            (2000) Intrinsic dynamics in neuronal networks. I. Theory.
            J. Neurophysiology 83, pp. 808–827.
     """
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,
@@ -1545,7 +1545,7 @@ class AdQuaIF(Neuron):
            nonlinear integrate-and-fire neurons." SIAM Journal on Applied
            Mathematics 68, no. 4 (2008): 1045-1079.
     """
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,
@@ -1706,7 +1706,7 @@ class AdQuaIFRef(Neuron):
     - Refractory period prevents unrealistically high firing rates.
     - More biologically realistic than AdQuaIF without refractory period.
     """
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,
@@ -1939,7 +1939,7 @@ class Gif(Neuron):
            leaky integrate-and-fire models classify multiple neuron types."
            Nature communications 9, no. 1 (2018): 1-15.
     """
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,
@@ -2151,7 +2151,7 @@ class GifRef(Neuron):
     - Can still exhibit diverse firing patterns: regular, bursting, adaptation.
     - Refractory period prevents unrealistically high firing rates.
     """
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,

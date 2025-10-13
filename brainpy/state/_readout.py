@@ -74,7 +74,7 @@ class LeakyRateReadout(brainstate.nn.Module):
     r : HiddenState
         Hidden state representing the output values
     """
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,
@@ -160,7 +160,7 @@ class LeakySpikeReadout(Neuron):
         Synaptic weight matrix
     """
 
-    __module__ = 'brainpy'
+    __module__ = 'brainpy.state'
 
     def __init__(
         self,
