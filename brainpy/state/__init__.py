@@ -22,6 +22,10 @@ from ._inputs import *
 from ._inputs import __all__ as inputs_all
 from ._lif import *
 from ._lif import __all__ as neuron_all
+from ._izhikevich import *
+from ._izhikevich import __all__ as izh_all
+from ._hh import *
+from ._hh import __all__ as hh_all
 from ._projection import *
 from ._projection import __all__ as proj_all
 from ._readout import *
@@ -36,9 +40,9 @@ from ._synouts import *
 from ._synouts import __all__ as synout_all
 from .. import mixin
 
-__main__ = ['version2', 'mixin'] + inputs_all + neuron_all + readout_all + stp_all + synapse_all
+__main__ = ['version2', 'mixin'] + inputs_all + neuron_all + izh_all + hh_all + readout_all + stp_all + synapse_all
 __main__ = __main__ + synout_all + base_all + exp_all + proj_all + synproj_all
-del inputs_all, neuron_all, readout_all, stp_all, synapse_all, synout_all, base_all
+del inputs_all, neuron_all, izh_all, hh_all, readout_all, stp_all, synapse_all, synout_all, base_all
 del exp_all, proj_all, synproj_all
 
 if __name__ == '__main__':
