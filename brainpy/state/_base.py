@@ -403,8 +403,8 @@ class Dynamics(brainstate.nn.Dynamics):
         Examples
         --------
         >>> import brainstate
-        >>> n1 = brainstate.nn.LIF(10)
-        >>> n1.align_pre(brainstate.nn.Expon.desc(n1.varshape))  # n2 will run after n1
+        >>> n1 = brainpy.state.LIF(10)
+        >>> n1.align_pre(brainpy.state.Expon.desc(n1.varshape))  # n2 will run after n1
         """
         if isinstance(dyn, Dynamics):
             self.add_after_update(id(dyn), dyn)
@@ -427,7 +427,7 @@ class Neuron(Dynamics):
     Base class for all spiking neuron models.
 
     This abstract class serves as the foundation for implementing various spiking neuron
-    models in the BrainPy framework. It extends the ``brainstate.nn.Dynamics`` class and
+    models in the BrainPy framework. It extends the ``brainpy.state.Dynamics`` class and
     provides common functionality for spike generation, membrane potential dynamics, and
     surrogate gradient handling required for training spiking neural networks.
 
