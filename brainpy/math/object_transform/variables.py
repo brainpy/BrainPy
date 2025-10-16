@@ -14,17 +14,17 @@
 # ==============================================================================
 from typing import Optional, Any, Sequence
 
+import brainstate
 import jax
 import numpy as np
+from brainstate._state import record_state_value_read, record_state_value_write
 from jax import numpy as jnp
 from jax.dtypes import canonicalize_dtype
 from jax.tree_util import register_pytree_node_class
 
-import brainstate
 from brainpy._errors import MathError
 from brainpy.math.ndarray import Array
 from brainpy.math.sharding import BATCH_AXIS
-from brainstate._state import record_state_value_read, record_state_value_write
 
 __all__ = [
     'Variable',

@@ -30,14 +30,10 @@ from jax.tree_util import register_pytree_node_class
 from brainpy.math.defaults import defaults
 from brainpy.math.modes import Mode
 from brainpy.math.ndarray import (Array, )
-from brainpy.math.object_transform.collectors import (ArrayCollector, Collector)
-from brainpy.math.object_transform.naming import (
-    get_unique_name,
-    check_name_uniqueness
-)
+from brainpy.math.object_transform.collectors import ArrayCollector, Collector
+from brainpy.math.object_transform.naming import get_unique_name, check_name_uniqueness
 from brainpy.math.object_transform.variables import (
-    Variable, VariableView, TrainVar,
-    VarList, VarDict
+    Variable, VariableView, TrainVar, VarList, VarDict
 )
 from brainpy.math.sharding import BATCH_AXIS
 

@@ -117,7 +117,7 @@ Learn more
    .. grid-item::
       :columns: 6 6 6 4
 
-      .. card:: :material-regular:`data_exploration;2em` Classical APIs
+      .. card:: :material-regular:`data_exploration;2em` ``brainpy`` APIs
          :class-card: sd-text-black sd-bg-light
          :link: https://brainpy.readthedocs.io/
 
