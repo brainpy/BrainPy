@@ -96,13 +96,6 @@ Learn more
    .. grid-item::
       :columns: 6 6 6 4
 
-      .. card:: :material-regular:`swap_horiz;2em` Migration from 2.x
-         :class-card: sd-text-black sd-bg-light
-         :link: migration/migration-guide.html
-
-   .. grid-item::
-      :columns: 6 6 6 4
-
       .. card:: :material-regular:`settings;2em` Ecosystem
          :class-card: sd-text-black sd-bg-light
          :link: https://brainmodeling.readthedocs.io

@@ -32,7 +32,7 @@ from Susin_Destexhe_2021_gamma_oscillation import (
 )
 
 
-class INGNet(brainstate.nn.DynamicsGroup):
+class INGNet(brainstate.nn.Module):
     def __init__(self):
         super().__init__()
 
@@ -178,8 +178,7 @@ def simulate_ing_net():
         # simulation
         times = u.math.arange(0. * u.ms, duration, brainstate.environ.get_dt())
         indices = u.math.arange(0, len(times))
-        returns = brainstate.transform.for_loop(net.update, indices, times, varied_rates,
-                                                pbar=brainstate.transform.ProgressBar(100))
+        returns = brainstate.transform.for_loop(net.update, indices, times, varied_rates, pbar=1000)
 
         # visualization
         visualize_simulation_results(

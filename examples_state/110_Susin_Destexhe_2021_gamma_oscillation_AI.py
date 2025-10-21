@@ -73,7 +73,7 @@ def simulate_adex_neurons():
     plt.show()
 
 
-class AINet(brainstate.nn.DynamicsGroup):
+class AINet(brainstate.nn.Module):
     def __init__(self):
         super().__init__()
 
@@ -164,8 +164,7 @@ def simulate_ai_net():
         # simulation
         times = u.math.arange(0. * u.ms, duration, brainstate.environ.get_dt())
         indices = u.math.arange(0, len(times))
-        returns = brainstate.transform.for_loop(net.update, indices, times, varied_rates,
-                                                pbar=brainstate.transform.ProgressBar(100))
+        returns = brainstate.transform.for_loop(net.update, indices, times, varied_rates, pbar=4000)
 
         # # spike raster plot
         # spikes = returns['FS.spike']

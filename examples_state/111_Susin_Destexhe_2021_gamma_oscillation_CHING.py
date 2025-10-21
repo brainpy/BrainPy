@@ -31,7 +31,7 @@ from Susin_Destexhe_2021_gamma_oscillation import (
 )
 
 
-class CHINGNet(brainstate.nn.DynamicsGroup):
+class CHINGNet(brainstate.nn.Module):
     def __init__(self):
         super().__init__()
 

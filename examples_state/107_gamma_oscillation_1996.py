@@ -139,7 +139,7 @@ brainstate.nn.init_all_states(net)
 # simulation
 with brainstate.environ.context(dt=0.01 * u.ms):
     times = u.math.arange(0. * u.ms, 500. * u.ms, brainstate.environ.get_dt())
-    spikes, vs = brainstate.transform.for_loop(net.update, times, pbar=brainstate.transform.ProgressBar(10))
+    spikes, vs = brainstate.transform.for_loop(net.update, times, pbar=100)
 
 # visualization
 fig, gs = braintools.visualize.get_figure(1, 2, 4, 4)

@@ -434,15 +434,13 @@ Additional Resources
 **Core Concepts**
    For architectural understanding, see :doc:`../core-concepts/architecture`
 
-**Migration Guide**
-   For updating from 2.x, see :doc:`../migration/migration-guide`
 
 Browse All Examples
 -------------------
 
 View all examples on GitHub:
 
-`BrainPy Examples (Version 3.0) <https://github.com/brainpy/BrainPy/tree/master/examples_state>`_
+`BrainPy-State Examples <https://github.com/brainpy/BrainPy/tree/master/examples_state>`_
 
 For more extensive examples and notebooks:
 

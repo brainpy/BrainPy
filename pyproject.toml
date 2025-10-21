@@ -87,7 +87,18 @@ package-dir = {"" = "."}
 
 [tool.setuptools.packages.find]
 where = ["."]
-exclude = ["lib*", "docs", "tests", "docker*", "examples", "scripts", "images", "dist"]
+exclude = [
+    "lib*",
+    "dev*",
+    "docs*",
+    "tests*",
+    "docker*",
+    "examples*",
+    "scripts",
+    "images",
+    "dist*",
+    "bug*",
+]
 
 [tool.setuptools.dynamic]
 version = {attr = "brainpy.__version__"}

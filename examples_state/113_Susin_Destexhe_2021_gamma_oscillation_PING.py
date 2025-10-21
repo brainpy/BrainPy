@@ -32,7 +32,7 @@ from Susin_Destexhe_2021_gamma_oscillation import (
 )
 
 
-class PINGNet(brainstate.nn.DynamicsGroup):
+class PINGNet(brainstate.nn.Module):
     def __init__(self):
         super().__init__()
 

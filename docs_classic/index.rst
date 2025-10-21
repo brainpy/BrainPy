@@ -123,6 +123,14 @@ Learn more
 
 ----
 
+See also the ecosystem
+^^^^^^^^^^^^^^^^^^^^^^
+
+``brainpy`` is one part of our `brain simulation ecosystem <https://brainmodeling.readthedocs.io/>`_.
+
+
+----
+
 
 
 .. toctree::
