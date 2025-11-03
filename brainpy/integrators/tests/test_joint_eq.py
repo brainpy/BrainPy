@@ -135,37 +135,37 @@ class TestJointEqs(unittest.TestCase):
         # Split into: dx/dt = v, dv/dt = -k*x - c*v
         k = 1.0  # spring constant
         c = 0.1  # damping
-        
+
         def dx(x, t, v):
             """dx/dt = v"""
             return v
-        
+
         def dv(v, t, x):
             """dv/dt = -k*x - c*v"""
             return -k * x - c * v
-        
+
         # Create joint equation
         eq = JointEq(dx, dv)
-        
+
         # Test call
         result = eq(x=1.0, v=0.0, t=0.0)
         self.assertEqual(len(result), 2)
         self.assertEqual(result[0], 0.0)  # dx/dt = v = 0
         self.assertEqual(result[1], -k * 1.0)  # dv/dt = -k*x
-        
+
     def test_second_order_ode_wrong_signature(self):
         """Test that wrong signature gives helpful error message"""
         # WRONG: both x and v before t in dx function
         def dx_wrong(x, v, t):
             return v
-        
+
         def dv(v, t, x):
             return -x
-        
+
         # This should raise an error with helpful message
         with self.assertRaises(DiffEqError) as cm:
             JointEq(dx_wrong, dv)
-        
+
         # Check that error message is helpful
         error_msg = str(cm.exception)
         self.assertIn('state variable', error_msg.lower())
