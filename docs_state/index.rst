@@ -1,7 +1,7 @@
 ``brainpy.state`` documentation
 =====================================
 
-`brainpy.state` provides a new ``State``-based programming paradigm for building and simulating spiking neural networks.
+``brainpy.state`` provides a new ``state``-based programming paradigm for building and simulating spiking neural networks.
 
 
 Compared to ``brainpy.dyn``, ``brainpy.state`` provides:
@@ -14,7 +14,7 @@ Compared to ``brainpy.dyn``, ``brainpy.state`` provides:
 .. note::
 
    ``brainpy.state`` is written based on `brainstate <https://github.com/chaobrain/brainstate>`_.
-   This documentation is for the latest version 3.x.
+   This documentation is for the latest ``brainpy.state``.
 
 
 
@@ -70,7 +70,7 @@ Learn more
 
       .. card:: :material-regular:`library_books;2em` Core Concepts
          :class-card: sd-text-black sd-bg-light
-         :link: quickstart/concepts-overview.html
+         :link: quickstart/overview.html
 
    .. grid-item::
       :columns: 6 6 6 4
@@ -131,9 +131,7 @@ See also the ecosystem
    :caption: Tutorials
 
    quickstart/index.rst
-   core-concepts/index.rst
    tutorials/index.rst
-   how-to-guides/index.rst
    examples/gallery.rst
 
 

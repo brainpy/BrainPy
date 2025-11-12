@@ -40,10 +40,10 @@ Each concept builds upon the previous ones, so we recommend reading them in orde
    :hidden:
    :maxdepth: 1
 
-   architecture.rst
-   neurons.rst
-   synapses.rst
-   projections.rst
-   state-management.rst
+   architecture.ipynb
+   neurons.ipynb
+   synapses.ipynb
+   projections.ipynb
+   state-management.ipynb
 
 
