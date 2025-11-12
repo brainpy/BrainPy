@@ -1,10 +1,10 @@
 API Reference
 =============
 
-Complete API reference for BrainPy 3.0.
+Complete API reference for ``brainpy.state``
 
 .. note::
-   BrainPy 3.0 is built on top of `brainstate <https://brainstate.readthedocs.io/>`_,
+   ``brainpy.state`` is built on top of `brainstate <https://brainstate.readthedocs.io/>`_,
    `brainunit <https://brainunit.readthedocs.io/>`_, and `braintools <https://braintools.readthedocs.io/>`_.
 
 Organization
@@ -183,9 +183,6 @@ Readout Layers
    # Leaky spiking readout
    brainpy.state.LeakySpikeReadout(in_size=100, tau=5*u.ms, V_th=1*u.mV)
 
-Documentation Sections
-----------------------
-
 .. toctree::
    :maxdepth: 2
 
@@ -196,67 +193,3 @@ Documentation Sections
    stp
    readouts
    inputs
-
-Import Structure
-----------------
-
-BrainPy uses a clear import hierarchy:
-
-.. code-block:: python
-
-   import brainpy as bp              # Core BrainPy
-   import brainstate                 # State management and modules
-   import brainunit as u             # Physical units
-   import braintools                 # Training utilities
-
-   # Neurons and synapses
-   neuron = brainpy.state.LIF(100, ...)
-   synapse = brainpy.state.Expon.desc(100, tau=5*u.ms)
-
-   # State management
-   state = brainstate.ShortTermState(...)
-   brainstate.nn.init_all_states(net)
-
-   # Units
-   current = 2.0 * u.nA
-   voltage = -65 * u.mV
-   time = 10 * u.ms
-
-   # Training
-   optimizer = braintools.optim.Adam(lr=1e-3)
-   loss = braintools.metric.softmax_cross_entropy(...)
-
-Type Conventions
-----------------
-
-**States:**
-
-- ``ShortTermState`` - Temporary dynamics (V, g, spikes)
-- ``ParamState`` - Learnable parameters (weights, biases)
-- ``LongTermState`` - Persistent statistics
-
-**Units:**
-
-All physical quantities use ``brainunit``:
-
-- Voltage: ``u.mV``
-- Current: ``u.nA``, ``u.pA``
-- Time: ``u.ms``, ``u.second``
-- Conductance: ``u.mS``, ``u.nS``
-- Concentration: ``u.mM``
-
-**Shapes:**
-
-- Single trial: ``(n_neurons,)``
-- Batched: ``(batch_size, n_neurons)``
-- Connectivity: ``(n_pre, n_post)``
-
-See Also
---------
-
-**External Documentation:**
-
-- `BrainState Documentation <https://brainstate.readthedocs.io/>`_ - State management
-- `BrainUnit Documentation <https://brainunit.readthedocs.io/>`_ - Physical units
-- `BrainTools Documentation <https://braintools.readthedocs.io/>`_ - Training utilities
-- `JAX Documentation <https://jax.readthedocs.io/>`_ - Underlying computation

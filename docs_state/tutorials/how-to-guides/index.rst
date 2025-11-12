@@ -34,8 +34,8 @@ Practical guides for common tasks in BrainPy.
    :hidden:
    :maxdepth: 1
 
-   save-load-models.rst
-   gpu-tpu-usage.rst
-   debugging-networks.rst
-   performance-optimization.rst
-   custom-components.rst
+   save-load-models.ipynb
+   gpu-tpu-usage.ipynb
+   debugging-networks.ipynb
+   performance-optimization.ipynb
+   custom-components.ipynb

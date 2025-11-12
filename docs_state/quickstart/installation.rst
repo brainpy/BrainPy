@@ -159,7 +159,7 @@ Next Steps
 Now that you have BrainPy installed, you can:
 
 - Follow the :doc:`5-minute tutorial <5min-tutorial>` for a quick introduction
-- Read about :doc:`core concepts <concepts-overview>` to understand BrainPy's architecture
+- Read about :doc:`core concepts <core-concepts/index>` to understand BrainPy's architecture
 - Explore the :doc:`tutorials <../tutorials/index>` for detailed guides
 
 Using BrainPy with Binder
