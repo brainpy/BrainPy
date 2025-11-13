@@ -131,7 +131,6 @@ See also the ecosystem
    :caption: Tutorials
 
    quickstart/index.rst
-   tutorials/index.rst
    examples/gallery.rst
 
 
