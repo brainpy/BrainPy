@@ -112,7 +112,7 @@ Learn more
 
       .. card:: :material-regular:`data_exploration;2em` ``brainpy`` APIs
          :class-card: sd-text-black sd-bg-light
-         :link: https://brainpy.readthedocs.io/
+         :link: https://brainpy.readthedocs.io
 
 
 ----
