@@ -248,6 +248,7 @@ class LIF(Neuron):
         V_reset: ArrayLike = 0. * u.mV,
         V_rest: ArrayLike = 0. * u.mV,
         V_initializer: Callable = braintools.init.Constant(0. * u.mV),
+        noise: ArrayLike = None,
         spk_fun: Callable = braintools.surrogate.ReluGrad(),
         spk_reset: str = 'soft',
         name: str = None,
@@ -279,8 +280,8 @@ class LIF(Neuron):
         V_th = self.V_th if self.spk_reset == 'soft' else jax.lax.stop_gradient(last_v)
         V = last_v - (V_th - self.V_reset) * last_spk
         # membrane potential
-        dv = lambda v: (-v + self.V_rest + self.R * self.sum_current_inputs(x, v)) / self.tau
-        V = brainstate.nn.exp_euler_step(dv, V)
+        dv = lambda v, t: (-v + self.V_rest + self.R * self.sum_current_inputs(x, v)) / self.tau
+        V = braintools.quad.ode_expeuler_step(dv, V, None)
         V = self.sum_delta_inputs(V)
         self.V.value = V
         return self.get_spike(V)

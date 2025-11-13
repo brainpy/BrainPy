@@ -142,9 +142,6 @@ Series of models exploring different gamma generation mechanisms:
       - Excitatory-inhibitory interaction
 
 
-**Combined**: `Susin_Destexhe_2021_gamma_oscillation.py <https://github.com/brainpy/BrainPy/tree/master/examples_state/Susin_Destexhe_2021_gamma_oscillation.py>`_ - All mechanisms
-
-**Key Concepts**: Gamma mechanisms, network states, oscillation generation
 
 Spiking Neural Network Training
 --------------------------------

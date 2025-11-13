@@ -1,7 +1,7 @@
 API Reference
 =============
 
-Complete API reference for ``brainpy.state``
+Complete API reference for ``brainpy.state``.
 
 .. note::
    ``brainpy.state`` is built on top of `brainstate <https://brainstate.readthedocs.io/>`_,
@@ -49,10 +49,8 @@ The API is organized into the following categories:
 
       Spike and current generators (PoissonSpike, SpikeTime)
 
-Quick Reference
----------------
-
-**Most commonly used classes:**
+Example Reference
+-----------------
 
 Neurons
 ~~~~~~~
@@ -184,6 +182,7 @@ Readout Layers
    brainpy.state.LeakySpikeReadout(in_size=100, tau=5*u.ms, V_th=1*u.mV)
 
 .. toctree::
+   :hidden:
    :maxdepth: 2
 
    neurons

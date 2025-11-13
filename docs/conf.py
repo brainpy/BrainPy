@@ -28,6 +28,7 @@ for item in os.listdir('.'):
             print(f"Error deleting {item}: {e}")
 
 build_version = os.environ.get('CURRENT_VERSION', 'v2')
+build_version = os.environ.get('CURRENT_VERSION', 'v3')
 if build_version == 'v2':
     shutil.copytree(
         os.path.join(os.path.dirname(__file__), '../docs_classic'),

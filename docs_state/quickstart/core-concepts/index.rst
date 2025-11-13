@@ -19,7 +19,6 @@ The core concepts of ``brainpy.state`` include:
 - **Neurons**: Building blocks for neural computation, including different neuron models and their state representations
 - **Synapses**: Connections between neurons that transmit signals and implement learning rules
 - **Projections**: Network-level structures that organize and manage connections between populations of neurons
-- **State Management**: The powerful state handling system that enables efficient simulation and flexible model composition
 
 
 Why these concepts matter
@@ -44,6 +43,5 @@ Each concept builds upon the previous ones, so we recommend reading them in orde
    neurons.ipynb
    synapses.ipynb
    projections.ipynb
-   state-management.ipynb
 
 
