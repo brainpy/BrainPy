@@ -16,6 +16,7 @@
 import numbers
 from typing import Union, Sequence, Any, Dict, Callable, Optional
 
+import jax
 import jax.numpy as jnp
 
 import brainstate
@@ -205,10 +206,8 @@ def for_loop(
     operands: Any,
     reverse: bool = False,
     unroll: int = 1,
-    remat: bool = False,
     jit: Optional[bool] = None,
     progress_bar: bool = False,
-    unroll_kwargs: Optional[Dict] = None,
 ):
     """``for-loop`` control flow with :py:class:`~.Variable`.
 
@@ -266,10 +265,6 @@ def for_loop(
       If body function `body_func` receives multiple arguments,
       `operands` should be a tuple/list whose length is equal to the
       number of arguments.
-    remat: bool
-      Make ``fun`` recompute internal linearization points when differentiated.
-    jit: bool
-      Whether to just-in-time compile the function.
     reverse: bool
       Optional boolean specifying whether to run the scan iteration
       forward (the default) or in reverse, equivalent to reversing the leading
@@ -278,6 +273,8 @@ def for_loop(
       Optional positive int specifying, in the underlying operation of the
       scan primitive, how many scan iterations to unroll within a single
       iteration of a loop.
+    jit: bool
+      Whether to just-in-time compile the function. Set to ``False`` to disable JIT compilation.
     progress_bar: bool
       Whether we use the progress bar to report the running progress.
 
@@ -296,8 +293,6 @@ def for_loop(
       .. deprecated:: 2.4.0
          No longer need to provide ``child_objs``. This function is capable of automatically
          collecting the children objects used in the target ``func``.
-    unroll_kwargs: dict
-      The keyword arguments without unrolling.
 
     Returns::
     
@@ -306,11 +301,21 @@ def for_loop(
     """
     if not isinstance(operands, (tuple, list)):
         operands = (operands,)
-    return brainstate.transform.for_loop(
-        warp_to_no_state_input_output(body_fun),
-        *operands, reverse=reverse, unroll=unroll,
-        pbar=brainstate.transform.ProgressBar() if progress_bar else None,
-    )
+    
+    # Handle jit parameter
+    if jit is False:
+        with jax.disable_jit():
+            return brainstate.transform.for_loop(
+                warp_to_no_state_input_output(body_fun),
+                *operands, reverse=reverse, unroll=unroll,
+                pbar=brainstate.transform.ProgressBar() if progress_bar else None,
+            )
+    else:
+        return brainstate.transform.for_loop(
+            warp_to_no_state_input_output(body_fun),
+            *operands, reverse=reverse, unroll=unroll,
+            pbar=brainstate.transform.ProgressBar() if progress_bar else None,
+        )
 
 
 def scan(

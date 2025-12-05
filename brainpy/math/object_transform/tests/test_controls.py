@@ -77,6 +77,38 @@ class TestLoop(parameterized.TestCase):
         bm.for_loop(cls.step_run, indices)
         self.assertTrue(bm.allclose(cls.a, 10.))
 
+    def test_for_loop_jit_false(self):
+        """Test that jit=False disables JIT compilation"""
+        a = bm.Variable(bm.zeros(1))
+        call_count = {'count': 0}
+        
+        def body(x):
+            # This side effect should be visible when jit=False
+            call_count['count'] += 1
+            a.value += x
+            return a.value
+        
+        # Test with jit=False - should execute eagerly
+        a.value = bm.zeros(1)
+        call_count['count'] = 0
+        result = bm.for_loop(body, operands=bm.arange(3), jit=False)
+        # With jit=False, the function should be called 3 times
+        self.assertEqual(call_count['count'], 3)
+        self.assertTrue(bm.allclose(a.value, 3.))
+        
+    def test_for_loop_jit_default(self):
+        """Test that default behavior (jit=None) allows JIT compilation"""
+        a = bm.Variable(bm.zeros(1))
+        
+        def body(x):
+            a.value += x
+            return a.value
+        
+        # Test with default jit (None) - should work normally
+        result = bm.for_loop(body, operands=bm.arange(3))
+        self.assertTrue(bm.allclose(a.value, 3.))
+        self.assertTrue(bm.allclose(result, bm.array([[0.], [1.], [3.]])))
+
 
 class TestScan(unittest.TestCase):
     def test1(self):
