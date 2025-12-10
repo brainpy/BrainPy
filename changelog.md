@@ -65,6 +65,52 @@ None. All changes are backward compatible or involve previously non-functional p
 
 ---
 
+## Version 2.7.2
+
+**Release Date:** October 16, 2024
+
+This is a maintenance release that improves JAX compatibility and documentation.
+
+### Bug Fixes
+
+#### JAX Compatibility
+- **Updated**: Made compatible with JAX >= 0.8.0
+- **Fixed**: Updated imports and API usage for latest JAX versions
+- **Impact**: Ensures BrainPy works correctly with the latest JAX releases
+
+### Improvements
+
+#### Documentation
+- Updated documentation and CI configuration for better clarity
+- Standardized test paths across the project
+- Improved core concepts documentation
+- Enhanced LIF neuron dynamics documentation (#800)
+- Fixed documentation bugs
+
+#### Neural Network Classes
+- Refactored neural network classes for better maintainability
+- Updated progress bar parameters for simulations
+- Improved code organization and structure
+
+#### CI/CD
+- Updated GitHub Actions dependencies:
+  - `actions/download-artifact` from 5 to 6 (#796)
+  - `actions/upload-artifact` from 4 to 5 (#795)
+- Improved CI workflow reliability
+
+### Files Modified
+- Updated JAX compatibility layer
+- Documentation files in various modules
+- CI configuration files
+- Neural network class implementations
+
+### Notes
+- This release focuses on maintaining compatibility with the latest JAX ecosystem
+- No breaking changes introduced
+- All existing code should continue to work without modifications
+
+---
+
 ## Version 2.7.1
 
 **Release Date:** October 2025
