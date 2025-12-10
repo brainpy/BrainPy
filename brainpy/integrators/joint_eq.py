@@ -154,8 +154,18 @@ class JointEq(object):
             vars, _, _ = _get_args(eq)
             for var in vars:
                 if var in vars_in_eqs:
-                    raise DiffEqError(f'Variable "{var}" has been used, however we got a same '
-                                      f'variable name in {eq}. Please change another name.')
+                    raise DiffEqError(
+                        f'Variable "{var}" has been used, however we got a same '
+                        f'variable name in {eq}.\n\n'
+                        f'In JointEq, each state variable should appear as the first parameter '
+                        f'before "t" in exactly one derivative function. If "{var}" is a state '
+                        f'variable in another equation, it should be placed AFTER "t" in this '
+                        f'function as a dependency.\n\n'
+                        f'Correct signature pattern:\n'
+                        f'  def d{var}({var}, t, <dependencies>): ...  # {var} is the state variable\n'
+                        f'  def dOther(other, t, {var}): ...           # {var} is a dependency\n\n'
+                        f'Current function signature: {inspect.signature(eq)}'
+                    )
             vars_in_eqs.extend(vars)
             self.vars_in_eqs.append(vars)
 
