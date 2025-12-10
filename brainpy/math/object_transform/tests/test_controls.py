@@ -165,15 +165,38 @@ class TestLoop(parameterized.TestCase):
     def test_for_loop_jit_default(self):
         """Test that default behavior (jit=None) allows JIT compilation"""
         a = bm.Variable(bm.zeros(1))
-        
+
         def body(x):
             a.value += x
             return a.value
-        
+
         # Test with default jit (None) - should work normally
         result = bm.for_loop(body, operands=bm.arange(3))
         self.assertTrue(bm.allclose(a.value, 3.))
         self.assertTrue(bm.allclose(result, bm.array([[0.], [1.], [3.]])))
+
+    def test_for_loop_jit_false_zero_length(self):
+        """Test that jit=False handles zero-length inputs gracefully"""
+        a = bm.Variable(bm.zeros(1))
+
+        def body(x):
+            a.value += x
+            return a.value
+
+        # Test with zero-length input and jit=False
+        # Should automatically fall back to JIT mode and issue a warning
+        import warnings
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            result = bm.for_loop(body, operands=bm.arange(0), jit=False)
+            # Check that our specific warning was issued
+            zero_length_warnings = [warning for warning in w
+                                   if "zero-length input" in str(warning.message)]
+            self.assertGreaterEqual(len(zero_length_warnings), 1,
+                                   "Expected at least one zero-length input warning")
+
+        # Variable should not have changed
+        self.assertTrue(bm.allclose(a.value, 0.))
 
 
 class TestScan(unittest.TestCase):

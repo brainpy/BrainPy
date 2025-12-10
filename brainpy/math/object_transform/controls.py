@@ -367,7 +367,28 @@ def for_loop(
     pbar = _convert_progress_bar_to_pbar(progress_bar)
 
     # Handle jit parameter
+    # Note: JAX's scan doesn't support zero-length inputs in disable_jit mode.
+    # For zero-length inputs, we need to use JIT mode even when jit=False.
+    should_disable_jit = False
     if jit is False:
+        # Check if any operand has zero length
+        first_operand = operands[0]
+        is_zero_length = False
+        if hasattr(first_operand, 'shape') and len(first_operand.shape) > 0:
+            is_zero_length = (first_operand.shape[0] == 0)
+
+        if is_zero_length:
+            # Use JIT mode for zero-length inputs to avoid JAX limitation
+            import warnings
+            warnings.warn(
+                "for_loop with jit=False and zero-length input detected. "
+                "Using JIT mode to avoid JAX's disable_jit limitation with zero-length scans.",
+                UserWarning
+            )
+        else:
+            should_disable_jit = True
+
+    if should_disable_jit:
         with jax.disable_jit():
             return brainstate.transform.for_loop(
                 warp_to_no_state_input_output(body_fun),
