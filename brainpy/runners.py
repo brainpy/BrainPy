@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+import functools
 import inspect
 import time
 import warnings
@@ -662,8 +663,7 @@ class DSRunner(Runner):
             return outs, None
 
         else:
-            return bm.for_loop(self._step_func_predict,
+            return bm.for_loop(functools.partial(self._step_func_predict, shared_args=shared_args),
                                (indices, *inputs),
                                jit=self.jit['predict'],
-                               unroll_kwargs={'shared_args': shared_args},
                                progress_bar=self.progress_bar)
