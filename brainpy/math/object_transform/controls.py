@@ -32,6 +32,42 @@ __all__ = [
 ]
 
 
+def _convert_progress_bar_to_pbar(
+    progress_bar: Union[bool, brainstate.transform.ProgressBar, int, None]
+) -> Optional[brainstate.transform.ProgressBar]:
+  """Convert progress_bar parameter to brainstate pbar format.
+
+  Parameters
+  ----------
+  progress_bar : bool, ProgressBar, int, None
+    The progress_bar parameter value.
+
+  Returns
+  -------
+  pbar : ProgressBar or None
+    The converted ProgressBar instance or None.
+
+  Raises
+  ------
+  TypeError
+    If progress_bar is not a valid type.
+  """
+  if progress_bar is False or progress_bar is None:
+    return None
+  elif progress_bar is True:
+    return brainstate.transform.ProgressBar()
+  elif isinstance(progress_bar, int):
+    # Support brainstate convention: int means freq parameter
+    return brainstate.transform.ProgressBar(freq=progress_bar)
+  elif isinstance(progress_bar, brainstate.transform.ProgressBar):
+    return progress_bar
+  else:
+    raise TypeError(
+      f"progress_bar must be bool, int, or ProgressBar instance, "
+      f"got {type(progress_bar).__name__}"
+    )
+
+
 def cond(
     pred: bool,
     true_fun: Union[Callable, jnp.ndarray, Array, numbers.Number],
@@ -207,7 +243,7 @@ def for_loop(
     reverse: bool = False,
     unroll: int = 1,
     jit: Optional[bool] = None,
-    progress_bar: bool = False,
+    progress_bar: Union[bool, brainstate.transform.ProgressBar, int] = False,
 ):
     """``for-loop`` control flow with :py:class:`~.Variable`.
 
@@ -275,10 +311,35 @@ def for_loop(
       iteration of a loop.
     jit: bool
       Whether to just-in-time compile the function. Set to ``False`` to disable JIT compilation.
-    progress_bar: bool
-      Whether we use the progress bar to report the running progress.
+    progress_bar: bool, ProgressBar, int
+      Whether and how to display a progress bar during execution:
+
+      - ``False`` (default): No progress bar
+      - ``True``: Display progress bar with default settings
+      - ``ProgressBar`` instance: Display progress bar with custom settings
+      - ``int``: Display progress bar updating every N iterations (treated as freq parameter)
+
+      For advanced customization, create a :py:class:`brainpy.math.ProgressBar` instance:
+
+      >>> import brainpy.math as bm
+      >>> # Custom update frequency
+      >>> pbar = bm.ProgressBar(freq=10)
+      >>> result = bm.for_loop(body_fun, operands, progress_bar=pbar)
+      >>>
+      >>> # Custom description
+      >>> pbar = bm.ProgressBar(desc="Processing data")
+      >>> result = bm.for_loop(body_fun, operands, progress_bar=pbar)
+      >>>
+      >>> # Update exactly 20 times during execution
+      >>> pbar = bm.ProgressBar(count=20)
+      >>> result = bm.for_loop(body_fun, operands, progress_bar=pbar)
+      >>>
+      >>> # Integer shorthand (equivalent to ProgressBar(freq=10))
+      >>> result = bm.for_loop(body_fun, operands, progress_bar=10)
 
       .. versionadded:: 2.4.2
+      .. versionchanged:: 2.7.3
+         Now accepts ProgressBar instances and integers for advanced customization.
     dyn_vars: Variable, sequence of Variable, dict
       The instances of :py:class:`~.Variable`.
 
@@ -301,20 +362,23 @@ def for_loop(
     """
     if not isinstance(operands, (tuple, list)):
         operands = (operands,)
-    
+
+    # Convert progress_bar to pbar format
+    pbar = _convert_progress_bar_to_pbar(progress_bar)
+
     # Handle jit parameter
     if jit is False:
         with jax.disable_jit():
             return brainstate.transform.for_loop(
                 warp_to_no_state_input_output(body_fun),
                 *operands, reverse=reverse, unroll=unroll,
-                pbar=brainstate.transform.ProgressBar() if progress_bar else None,
+                pbar=pbar,
             )
     else:
         return brainstate.transform.for_loop(
             warp_to_no_state_input_output(body_fun),
             *operands, reverse=reverse, unroll=unroll,
-            pbar=brainstate.transform.ProgressBar() if progress_bar else None,
+            pbar=pbar,
         )
 
 
@@ -325,7 +389,7 @@ def scan(
     reverse: bool = False,
     unroll: int = 1,
     remat: bool = False,
-    progress_bar: bool = False,
+    progress_bar: Union[bool, brainstate.transform.ProgressBar, int] = False,
 ):
     """``scan`` control flow with :py:class:`~.Variable`.
 
@@ -364,23 +428,35 @@ def scan(
       Optional positive int specifying, in the underlying operation of the
       scan primitive, how many scan iterations to unroll within a single
       iteration of a loop.
-    progress_bar: bool
-      Whether we use the progress bar to report the running progress.
+    progress_bar: bool, ProgressBar, int
+      Whether and how to display a progress bar during execution:
+
+      - ``False`` (default): No progress bar
+      - ``True``: Display progress bar with default settings
+      - ``ProgressBar`` instance: Display progress bar with custom settings
+      - ``int``: Display progress bar updating every N iterations (treated as freq parameter)
+
+      See :py:func:`for_loop` for detailed examples of ProgressBar usage.
 
       .. versionadded:: 2.4.2
+      .. versionchanged:: 2.7.3
+         Now accepts ProgressBar instances and integers for advanced customization.
 
     Returns::
     
     outs: Any
       The stacked outputs of ``body_fun`` when scanned over the leading axis of the inputs.
     """
+    # Convert progress_bar to pbar format
+    pbar = _convert_progress_bar_to_pbar(progress_bar)
+
     return brainstate.transform.scan(
         warp_to_no_state_input_output(body_fun),
         init=init,
         xs=operands,
         reverse=reverse,
         unroll=unroll,
-        pbar=brainstate.transform.ProgressBar() if progress_bar else None,
+        pbar=pbar,
     )
 
 

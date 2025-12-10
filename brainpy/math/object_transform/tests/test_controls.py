@@ -63,6 +63,72 @@ class TestLoop(parameterized.TestCase):
         ys = bm.for_loop(lambda a: a, xs, progress_bar=True)
         self.assertTrue(bm.allclose(xs, ys))
 
+    def test_for_loop_progress_bar_custom(self):
+        """Test for_loop with custom ProgressBar instances"""
+        xs = bm.arange(100)
+
+        # Test 1: ProgressBar with custom frequency
+        pbar = bm.ProgressBar(freq=10)
+        ys = bm.for_loop(lambda a: a, xs, progress_bar=pbar)
+        self.assertTrue(bm.allclose(xs, ys))
+
+        # Test 2: ProgressBar with custom description
+        pbar = bm.ProgressBar(desc="Custom progress")
+        ys = bm.for_loop(lambda a: a, xs, progress_bar=pbar)
+        self.assertTrue(bm.allclose(xs, ys))
+
+        # Test 3: ProgressBar with count parameter
+        pbar = bm.ProgressBar(count=5)
+        ys = bm.for_loop(lambda a: a, xs, progress_bar=pbar)
+        self.assertTrue(bm.allclose(xs, ys))
+
+    def test_for_loop_progress_bar_int(self):
+        """Test for_loop with int as progress_bar (freq shorthand)"""
+        xs = bm.arange(50)
+
+        # Int should be treated as freq parameter
+        ys = bm.for_loop(lambda a: a, xs, progress_bar=10)
+        self.assertTrue(bm.allclose(xs, ys))
+
+    def test_for_loop_progress_bar_backward_compat(self):
+        """Ensure backward compatibility with bool parameter"""
+        xs = bm.arange(20)
+
+        # Test False (default)
+        ys = bm.for_loop(lambda a: a, xs, progress_bar=False)
+        self.assertTrue(bm.allclose(xs, ys))
+
+        # Test True
+        ys = bm.for_loop(lambda a: a, xs, progress_bar=True)
+        self.assertTrue(bm.allclose(xs, ys))
+
+    def test_for_loop_progress_bar_invalid_type(self):
+        """Test that invalid progress_bar types raise TypeError"""
+        xs = bm.arange(10)
+
+        # Should raise TypeError for string
+        with self.assertRaises(TypeError) as cm:
+            bm.for_loop(lambda a: a, xs, progress_bar="invalid")
+        self.assertIn("progress_bar must be bool, int, or ProgressBar", str(cm.exception))
+
+        # Should raise TypeError for dict
+        with self.assertRaises(TypeError) as cm:
+            bm.for_loop(lambda a: a, xs, progress_bar={})
+        self.assertIn("progress_bar must be bool, int, or ProgressBar", str(cm.exception))
+
+    def test_for_loop_progress_bar_with_jit_false(self):
+        """Test progress_bar works with jit=False"""
+        xs = bm.arange(20)
+
+        # Test with ProgressBar instance and jit=False
+        pbar = bm.ProgressBar(freq=5)
+        ys = bm.for_loop(lambda a: a, xs, progress_bar=pbar, jit=False)
+        self.assertTrue(bm.allclose(xs, ys))
+
+        # Test with bool and jit=False
+        ys = bm.for_loop(lambda a: a, xs, progress_bar=True, jit=False)
+        self.assertTrue(bm.allclose(xs, ys))
+
     def test_for_loop2(self):
         class MyClass(bp.DynamicalSystem):
             def __init__(self):
@@ -169,6 +235,64 @@ class TestScan(unittest.TestCase):
         result_init = 0
         with jax.disable_jit():
             final, result = bm.scan(cumsum, result_init, b)
+
+    def test_scan_progress_bar_custom(self):
+        """Test scan with custom ProgressBar instances"""
+        a = bm.Variable(1)
+
+        def f(carry, x):
+            carry += x
+            a.value += 1.
+            return carry, a.value
+
+        # Test with custom ProgressBar
+        pbar = bm.ProgressBar(freq=2)
+        carry, outs = bm.scan(f, bm.zeros(2), bm.arange(10), progress_bar=pbar)
+        self.assertTrue(bm.allclose(carry, 45.))
+        expected = bm.arange(1, 11).astype(outs.dtype)
+        expected = bm.expand_dims(expected, axis=-1)
+        self.assertTrue(bm.allclose(outs, expected))
+
+    def test_scan_progress_bar_int(self):
+        """Test scan with int as progress_bar (freq shorthand)"""
+        a = bm.Variable(1)
+
+        def f(carry, x):
+            carry += x
+            a.value += 1.
+            return carry, a.value
+
+        # Int should be treated as freq parameter
+        carry, outs = bm.scan(f, bm.zeros(2), bm.arange(10), progress_bar=5)
+        self.assertTrue(bm.allclose(carry, 45.))
+
+    def test_scan_progress_bar_backward_compat(self):
+        """Ensure backward compatibility with bool parameter"""
+        a = bm.Variable(1)
+
+        def f(carry, x):
+            carry += x
+            a.value += 1.
+            return carry, a.value
+
+        # Test with True
+        carry, outs = bm.scan(f, bm.zeros(2), bm.arange(10), progress_bar=True)
+        self.assertTrue(bm.allclose(carry, 45.))
+
+        # Test with False - reset variable properly
+        a.value = bm.asarray([1.])
+        carry, outs = bm.scan(f, bm.zeros(2), bm.arange(10), progress_bar=False)
+        self.assertTrue(bm.allclose(carry, 45.))
+
+    def test_scan_progress_bar_invalid_type(self):
+        """Test that invalid progress_bar types raise TypeError"""
+        def f(carry, x):
+            return carry + x, carry
+
+        # Should raise TypeError for invalid types
+        with self.assertRaises(TypeError) as cm:
+            bm.scan(f, 0, bm.arange(10), progress_bar=[1, 2, 3])
+        self.assertIn("progress_bar must be bool, int, or ProgressBar", str(cm.exception))
 
 
 class TestCond(unittest.TestCase):

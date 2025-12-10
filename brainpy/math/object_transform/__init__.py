@@ -29,6 +29,8 @@ The ``brainpy_object`` module for whole BrainPy ecosystem.
 Details please see the following.
 """
 
+from brainstate.transform import ProgressBar
+
 from .autograd import *
 from .base import *
 from .collectors import *
