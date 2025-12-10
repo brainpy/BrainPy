@@ -142,9 +142,20 @@ class LoopOverTime(DynamicalSystem):
         data_first_axis: str = 'T',
         name: str = None,
         jit: bool = True,
-        remat: bool = False,
+        remat: bool = False,  # Deprecated parameter, kept for backward compatibility
     ):
         super().__init__(name=name)
+
+        # Warn about deprecated remat parameter
+        if remat:
+            import warnings
+            warnings.warn(
+                "The 'remat' parameter is deprecated and no longer has any effect. "
+                "It will be removed in a future version.",
+                DeprecationWarning,
+                stacklevel=2
+            )
+
         assert data_first_axis in ['B', 'T']
         is_integer(i0, 'i0', allow_none=True)
         is_float(t0, 't0', allow_none=True)
@@ -162,7 +173,7 @@ class LoopOverTime(DynamicalSystem):
         self.i0 = None if i0 is None else bm.Variable(bm.as_jax(i0))
 
         self.jit = jit
-        self.remat = remat
+        # self.remat = remat  # Removed - no longer used
         self.shared_arg = shared_arg
         self.data_first_axis = data_first_axis
         self.target = target
@@ -279,8 +290,7 @@ class LoopOverTime(DynamicalSystem):
         xs = jax.tree.map(lambda x: x.value if isinstance(x, bm.Variable) else x, xs, is_leaf=lambda x: isinstance(x, bm.Variable))
         results = bm.for_loop(functools.partial(self._run, self.shared_arg),
                               (shared, xs),
-                              jit=self.jit,
-                              remat=self.remat)
+                              jit=self.jit)
         if self.i0 is not None:
             self.i0 += length[0]
         if self.t0 is not None:
