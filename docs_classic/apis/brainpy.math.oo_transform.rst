@@ -65,6 +65,7 @@ Object-oriented Transformations
    cls_jit
    to_object
    function
+   ProgressBar
 
 
 Helpers for Object-oriented Transformations
