@@ -1,5 +1,70 @@
 # Changelog
 
+## Version 2.7.3
+
+**Release Date:** December 2024
+
+This is a bug fix release that resolves critical issues with `bm.for_loop` and improves CI stability.
+
+### Bug Fixes
+
+#### `bm.for_loop` jit Parameter Fix
+- **Fixed**: The `jit` parameter in `bm.for_loop` was accepted but never used - passing `jit=False` had no effect
+- **Implementation**: When `jit=False`, the call is now properly wrapped in `jax.disable_jit()` context manager
+- **Impact**: Users can now debug code with `jit=False` to see actual values instead of JIT-compiled traces
+
+#### Zero-Length Scan Fix
+- **Fixed**: `ValueError: zero-length scan is not supported in disable_jit() mode` when using `jit=False` with zero-length inputs
+- **Implementation**: Automatically falls back to JIT mode for zero-length inputs with a warning
+- **Impact**: Prevents crashes when `DSRunner.run(duration)` results in 0 time steps (e.g., `duration=0.5, dt=1.0`)
+
+#### Progress Bar Enhancement
+- **Enhanced**: `progress_bar` parameter in `bm.for_loop()` and `bm.scan()` now supports advanced customization
+- **New Features**:
+  - Accept `ProgressBar` instances for fine-grained control (freq, desc, count parameters)
+  - Accept integers as shorthand for frequency (e.g., `progress_bar=10` means update every 10 iterations)
+  - Full backward compatibility with existing `progress_bar=True/False` usage
+- **Export**: Added `bm.ProgressBar` for easy access (`from brainpy.math import ProgressBar`)
+- **Impact**: Aligns with brainstate API and enables better progress tracking customization
+
+#### Parameter Cleanup
+- **Removed**: Unused parameters `remat` and `unroll_kwargs` from `bm.for_loop()`
+- **Backward Compatibility**: `remat` parameter kept in `LoopOverTime.__init__()` with deprecation warning
+- **Fixes**: Resolved TypeErrors in `DSRunner` and `LoopOverTime` that used these parameters
+
+#### CI Improvements
+- **Fixed**: TclError on Windows Python 3.13 CI due to missing Tcl/Tk configuration
+- **Implementation**: Set `MPLBACKEND=Agg` environment variable in GitHub Actions workflow
+- **Impact**: Matplotlib tests now run successfully on all platforms (Linux, macOS, Windows)
+
+### Code Quality
+- Added comprehensive test coverage for all fixes
+- Updated API documentation to reflect new functionality
+- All 38 tests in `test_controls.py` pass
+
+### Files Modified
+- `brainpy/__init__.py`: Updated version to 2.7.3
+- `brainpy/math/object_transform/controls.py`: Fixed jit handling, zero-length scan, progress_bar enhancement
+- `brainpy/math/object_transform/__init__.py`: Exported ProgressBar
+- `brainpy/runners.py`: Fixed unroll_kwargs usage with functools.partial
+- `brainpy/transform.py`: Added remat deprecation warning in LoopOverTime
+- `brainpy/math/object_transform/tests/test_controls.py`: Added 11 new test cases
+- `docs_classic/apis/brainpy.math.oo_transform.rst`: Added ProgressBar to documentation
+- `.github/workflows/CI.yml`: Added MPLBACKEND=Agg for all test jobs
+
+### Commits
+- `fa2f67c6`: Fix bm.for_loop jit parameter handling and remove unused parameters
+- `1c70d4ae`: Enhance progress_bar parameter to support ProgressBar instances
+- `100ddc17`: Fix runners.py to use functools.partial instead of removed unroll_kwargs
+- `dde8f99b`: Fix LoopOverTime to remove remat parameter from for_loop call
+- `6b410aa8`: Fix zero-length scan error when using jit=False
+- `2c838cac`: Set MPLBACKEND=Agg in CI to fix Tkinter issues on Windows
+
+### Breaking Changes
+None. All changes are backward compatible or involve previously non-functional parameters.
+
+---
+
 ## Version 2.7.1
 
 **Release Date:** October 2025
