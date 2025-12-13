@@ -41,6 +41,7 @@ dependencies = [
     "tqdm",
     "brainstate>=0.2.7",
     "brainunit",
+    "brainpy_state",
     "brainevent>=0.0.4",
     "braintools>=0.0.9",
 ]
