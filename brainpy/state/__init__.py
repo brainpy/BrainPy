@@ -13,33 +13,9 @@
 # limitations under the License.
 # ==============================================================================
 
+from brainpy_state import *
+from brainpy_state import __all__
 
-from ._base import *
-from ._base import __all__ as base_all
-from ._exponential import *
-from ._exponential import __all__ as exp_all
-from ._hh import *
-from ._hh import __all__ as hh_all
-from ._inputs import *
-from ._inputs import __all__ as inputs_all
-from ._izhikevich import *
-from ._izhikevich import __all__ as izh_all
-from ._lif import *
-from ._lif import __all__ as neuron_all
-from ._projection import *
-from ._projection import __all__ as proj_all
-from ._readout import *
-from ._readout import __all__ as readout_all
-from ._stp import *
-from ._stp import __all__ as stp_all
-from ._synapse import *
-from ._synapse import __all__ as synapse_all
-from ._synaptic_projection import *
-from ._synaptic_projection import __all__ as synproj_all
-from ._synouts import *
-from ._synouts import __all__ as synout_all
-
-__main__ = inputs_all + neuron_all + izh_all + hh_all + readout_all + stp_all + synapse_all
-__main__ = __main__ + synout_all + base_all + exp_all + proj_all + synproj_all
-del inputs_all, neuron_all, izh_all, hh_all, readout_all, stp_all, synapse_all, synout_all, base_all
-del exp_all, proj_all, synproj_all
+if __name__ == '__main__':
+    __all__
+    LIF

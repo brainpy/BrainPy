@@ -236,5 +236,5 @@ cython_debug/
 /docs_state/_build/
 /docs_state/_static/logos/
 /docs_state/changelog.md
-/examples_classic/dynamics_training/data/
+/examples/dynamics_training/data/
 /docs/
