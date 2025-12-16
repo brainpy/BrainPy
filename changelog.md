@@ -1,8 +1,61 @@
 # Changelog
 
+## Version 2.7.4
+
+**Release Date:** December 2025
+
+This release focuses on simplifying the project structure by removing the experimental `brainpy.state` module and consolidating documentation.
+
+### Major Changes
+
+#### Removed `brainpy.state` Module (#806)
+- **Removed**: The entire `brainpy.state` module has been deleted
+  - This includes all state-based neuron models (LIF variants, Izhikevich, HH)
+  - Removed synapse models, projections, readouts, and STP implementations
+  - Removed all associated test files
+- **Recommendation**: Users should use the [brainpy.state](https://github.com/chaobrain/brainpy.state) library directly for state-based neural network simulations
+
+
+#### Decouple the ``brainpy`` context with ``brainstate`` context
+
+- **Updated**: `brainpy.math.defaults` is totally decoupled with `brainstate` context management
+
+
+#### Documentation Consolidation (#806)
+- **Renamed**: `docs_classic/` → `docs/` (now the main documentation)
+- **Renamed**: `examples_classic/` → `examples/` (now the main examples)
+- **Removed**: `docs_state/` directory (state-based documentation)
+- **Removed**: `examples_state/` directory (state-based examples)
+
+### Dependencies
+
+#### Updated Dependencies (#807)
+- Simplified `pyproject.toml` configuration
+- Updated `requirements.txt`
+
+### CI/CD Improvements
+
+- **Updated**: `actions/upload-artifact` from 5 to 6 (#804)
+- **Updated**: `actions/download-artifact` from 6 to 7 (#805)
+
+### Files Modified
+- `brainpy/__init__.py`: Removed state module exports
+- `brainpy/context.py`: Simplified context management
+- `brainpy/math/defaults.py`: Updated default configurations
+- `docs/conf.py`: Updated documentation configuration
+- `pyproject.toml`: Simplified dependency configuration
+- `.github/workflows/Publish.yml`: Updated CI artifact actions
+
+### Breaking Changes
+- The `brainpy.state` module is no longer available. Users relying on this module should migrate to the standalone `brainstate` library.
+
+
+
+---
+
 ## Version 2.7.3
 
-**Release Date:** December 2024
+**Release Date:** December 2025
 
 This is a bug fix release that resolves critical issues with `bm.for_loop` and improves CI stability.
 
@@ -67,7 +120,7 @@ None. All changes are backward compatible or involve previously non-functional p
 
 ## Version 2.7.2
 
-**Release Date:** October 16, 2024
+**Release Date:** October 16, 2025
 
 This is a maintenance release that improves JAX compatibility and documentation.
 
