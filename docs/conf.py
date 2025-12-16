@@ -15,35 +15,34 @@ import os
 import shutil
 import sys
 
-keep_files = {'highlight_test_lexer.py', 'conf.py', 'make.bat', 'Makefile'}
-for item in os.listdir('.'):
-    if item not in keep_files:
-        path = os.path.join('.', item)
-        try:
-            if os.path.isfile(path):
-                os.remove(path)
-            elif os.path.isdir(path):
-                shutil.rmtree(path)
-        except Exception as e:
-            print(f"Error deleting {item}: {e}")
+# keep_files = {'highlight_test_lexer.py', 'conf.py', 'make.bat', 'Makefile'}
+# for item in os.listdir('../docs'):
+#     if item not in keep_files:
+#         path = os.path.join('../docs', item)
+#         try:
+#             if os.path.isfile(path):
+#                 os.remove(path)
+#             elif os.path.isdir(path):
+#                 shutil.rmtree(path)
+#         except Exception as e:
+#             print(f"Error deleting {item}: {e}")
+#
+# build_version = os.environ.get('CURRENT_VERSION', 'v2')
+# if build_version == 'v2':
+#     shutil.copytree(
+#         os.path.join(os.path.dirname(__file__), ''),
+#         os.path.join(os.path.dirname(__file__)),
+#         dirs_exist_ok=True
+#     )
+# else:
+#     shutil.copytree(
+#         os.path.join(os.path.dirname(__file__), '../docs_state'),
+#         os.path.join(os.path.dirname(__file__)),
+#         dirs_exist_ok=True
+#     )
 
-build_version = os.environ.get('CURRENT_VERSION', 'v2')
-if build_version == 'v2':
-    shutil.copytree(
-        os.path.join(os.path.dirname(__file__), '../docs_classic'),
-        os.path.join(os.path.dirname(__file__)),
-        dirs_exist_ok=True
-    )
-else:
-    shutil.copytree(
-        os.path.join(os.path.dirname(__file__), '../docs_state'),
-        os.path.join(os.path.dirname(__file__)),
-        dirs_exist_ok=True
-    )
-
-sys.path.insert(0, os.path.abspath('./'))
+sys.path.insert(0, os.path.abspath('../docs/'))
 sys.path.insert(0, os.path.abspath('../'))
-os.makedirs('./_static', exist_ok=True)
 shutil.copytree('../images/', './_static/logos/', dirs_exist_ok=True)
 shutil.copyfile('../changelog.md', './changelog.md')
 

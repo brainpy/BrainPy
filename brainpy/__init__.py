@@ -14,8 +14,8 @@
 # limitations under the License.
 # ==============================================================================
 
-__version__ = "2.7.3"
-__version_info__ = (2, 7, 3)
+__version__ = "2.7.4"
+__version_info__ = tuple(map(int, __version__.split(".")))
 
 
 from brainpy import _errors as errors
@@ -142,7 +142,6 @@ from brainpy.math.object_transform.collectors import (
     ArrayCollector as ArrayCollector,
     Collector as Collector,
 )
-from brainpy import state
 
 from brainpy.deprecations import deprecation_getattr
 
@@ -151,7 +150,6 @@ optimizers = optim
 
 
 if __name__ == '__main__':
-    state
     connect
     initialize,  # weight initialization
     optim,  # gradient descent optimizers

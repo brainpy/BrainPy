@@ -21,6 +21,7 @@ This context defines all shared data used in all modules in a computation.
 from typing import Any, Union
 
 import brainstate
+from brainpy.math.defaults import env
 from brainpy.tools.dicts import DotDict
 
 __all__ = [
@@ -40,14 +41,14 @@ class _ShareContext:
 
     @property
     def dt(self):
-        return brainstate.environ.get_dt()
+        return brainstate.environ.get_dt(env=env)
 
     @dt.setter
     def dt(self, dt):
         self.set_dt(dt)
 
     def set_dt(self, dt: Union[int, float]):
-        brainstate.environ.set(dt=dt)
+        brainstate.environ.set(dt=dt, env=env)
 
     def load(self, key, value: Any = None, desc: str = None):
         """Load the shared data by the ``key``.
@@ -57,7 +58,7 @@ class _ShareContext:
           value (Any): the default value when ``key`` is not defined in the shared.
           desc: (str): the description of the key.
         """
-        return brainstate.environ.get(key, value, desc)
+        return brainstate.environ.get(key, value, desc, env=env)
 
     def save(self, *args, **kwargs) -> None:
         """Save shared arguments in the global context."""
@@ -65,8 +66,8 @@ class _ShareContext:
         for i in range(0, len(args), 2):
             identifier = args[i]
             data = args[i + 1]
-            brainstate.environ.set(**{identifier: data})
-        brainstate.environ.set(**kwargs)
+            brainstate.environ.set(**{identifier: data}, env=env)
+        brainstate.environ.set(**kwargs, env=env)
 
     def __setitem__(self, key, value):
         """Enable setting the shared item by ``bp.share[key] = value``."""
@@ -78,7 +79,7 @@ class _ShareContext:
 
     def get_shargs(self) -> DotDict:
         """Get all shared arguments in the global context."""
-        return DotDict(brainstate.environ.all())
+        return DotDict(brainstate.environ.all(env=env))
 
 
 share = _ShareContext()
