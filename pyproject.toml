@@ -8,9 +8,9 @@ description = "BrainPy: Brain Dynamics Programming in Python"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
-    {name = "BrainPy Team", email = "chao.brain@qq.com"}
+    { name = "BrainPy Team", email = "chao.brain@qq.com" }
 ]
-license = {text = "GPL-3.0 license"}
+license = { text = "GPL-3.0 license" }
 classifiers = [
     "Natural Language :: English",
     "Operating System :: OS Independent",
@@ -43,6 +43,7 @@ dependencies = [
     "brainunit",
     "brainevent>=0.0.4",
     "braintools>=0.0.9",
+    'brainpy-state',
 ]
 
 dynamic = ['version']
@@ -54,37 +55,13 @@ dynamic = ['version']
 "Source Code" = "https://github.com/brainpy/BrainPy"
 
 [project.optional-dependencies]
-cpu = [
-    "jax[cpu]",
-    "brainstate",
-    "brainunit",
-    "brainevent",
-    "braintools",
-]
-cuda12 = [
-    "jax[cuda12]",
-    "brainstate",
-    "brainunit",
-    "brainevent",
-    "braintools",
-]
-cuda13 = [
-    "jax[cuda13]",
-    "brainstate",
-    "brainunit",
-    "brainevent",
-    "braintools",
-]
-tpu = [
-    "jax[tpu]",
-    "brainstate",
-    "brainunit",
-    "brainevent",
-    "braintools",
-]
+cpu = ["jax[cpu]"]
+cuda12 = ["jax[cuda12]"]
+cuda13 = ["jax[cuda13]"]
+tpu = ["jax[tpu]"]
 
 [tool.setuptools]
-package-dir = {"" = "."}
+package-dir = { "" = "." }
 
 [tool.setuptools.packages.find]
 where = ["."]
@@ -102,4 +79,4 @@ exclude = [
 ]
 
 [tool.setuptools.dynamic]
-version = {attr = "brainpy.__version__"}
+version = { attr = "brainpy.__version__" }
