@@ -228,7 +228,7 @@ class PoissonGroup(NeuDyn):
         self.reset_state(self.mode)
 
     def update(self):
-        spikes = bm.random.rand_like(self.spike) <= (self.freqs * share['dt'] / 1000.)
+        spikes = bm.random.rand_like(self.spike.value) <= (self.freqs * share['dt'] / 1000.)
         spikes = bm.asarray(spikes, dtype=self.spk_type)
         # import jax
         # jax.debug.print('PoissonGroup: freqs = {f}, spikes = {s}', f=self.freqs, s=spikes)
