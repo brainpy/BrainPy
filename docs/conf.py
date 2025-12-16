@@ -43,7 +43,6 @@ import sys
 
 sys.path.insert(0, os.path.abspath('../docs/'))
 sys.path.insert(0, os.path.abspath('../'))
-os.makedirs('../docs/_static', exist_ok=True)
 shutil.copytree('../images/', './_static/logos/', dirs_exist_ok=True)
 shutil.copyfile('../changelog.md', './changelog.md')
 
