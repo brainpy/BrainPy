@@ -14,7 +14,7 @@
 # limitations under the License.
 # ==============================================================================
 
-__version__ = "2.7.4"
+__version__ = "2.7.5"
 __version_info__ = tuple(map(int, __version__.split(".")))
 
 
@@ -146,6 +146,11 @@ from brainpy.math.object_transform.collectors import (
 from brainpy.deprecations import deprecation_getattr
 
 optimizers = optim
+
+try:
+    import brainpy.state as state
+except:
+    pass
 
 
 
