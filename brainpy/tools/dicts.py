@@ -16,9 +16,8 @@
 from typing import Union, Dict, Sequence
 
 import numpy as np
-from jax.tree_util import register_pytree_node
-
 from brainstate._compatible_import import safe_zip
+from jax.tree_util import register_pytree_node
 
 __all__ = [
     'DotDict',

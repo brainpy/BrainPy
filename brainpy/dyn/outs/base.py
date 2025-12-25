@@ -15,8 +15,8 @@
 from typing import Optional
 
 import brainpy.math as bm
-from brainpy.mixin import ParamDesc, BindCondData
 from brainpy.dynsys import DynamicalSystem
+from brainpy.mixin import ParamDesc, BindCondData
 
 __all__ = [
     'SynOut'

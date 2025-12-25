@@ -17,7 +17,6 @@ from typing import Any, Sequence
 from typing import Union, Callable, Optional
 
 import brainpy.math as bm
-from brainpy.mixin import Container, TreeNode
 from brainpy.check import is_initializer
 from brainpy.context import share
 from brainpy.dyn.base import NeuDyn, IonChaDyn
@@ -25,6 +24,7 @@ from brainpy.initialize import OneInit
 from brainpy.initialize import Uniform, variable_, noise as init_noise
 from brainpy.integrators import JointEq
 from brainpy.integrators import odeint, sdeint
+from brainpy.mixin import Container, TreeNode
 from brainpy.types import ArrayType
 from brainpy.types import Shape
 

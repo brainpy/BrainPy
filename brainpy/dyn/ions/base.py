@@ -15,12 +15,13 @@
 # ==============================================================================
 from typing import Union, Optional, Dict, Sequence, Callable
 
+from brainstate.mixin import _JointGenericAlias
+
 import brainpy.math as bm
-from brainpy.mixin import Container, TreeNode
 from brainpy.dyn.base import IonChaDyn
 from brainpy.dyn.neurons.hh import HHTypedNeuron
+from brainpy.mixin import Container, TreeNode
 from brainpy.types import Shape
-from brainstate.mixin import _JointGenericAlias
 
 __all__ = [
     'MixIons',

@@ -16,6 +16,7 @@
 from typing import Union, Callable, Dict, Sequence, Optional
 
 import brainstate.transform
+
 from ._utils import warp_to_no_state_input_output
 from .variables import Variable
 

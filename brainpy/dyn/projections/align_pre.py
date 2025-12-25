@@ -14,10 +14,10 @@
 # ==============================================================================
 from typing import Optional, Union
 
-from brainpy.mixin import (JointType, ParamDescriber, SupportAutoDelay, BindCondData)
 from brainpy import math as bm, check
 from brainpy.delay import (Delay, DelayAccess, init_delay_by_return, register_delay_by_return)
 from brainpy.dynsys import DynamicalSystem, Projection
+from brainpy.mixin import (JointType, ParamDescriber, SupportAutoDelay, BindCondData)
 from .utils import _get_return
 
 __all__ = [

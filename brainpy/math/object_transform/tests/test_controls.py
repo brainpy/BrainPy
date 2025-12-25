@@ -147,13 +147,13 @@ class TestLoop(parameterized.TestCase):
         """Test that jit=False disables JIT compilation"""
         a = bm.Variable(bm.zeros(1))
         call_count = {'count': 0}
-        
+
         def body(x):
             # This side effect should be visible when jit=False
             call_count['count'] += 1
             a.value += x
             return a.value
-        
+
         # Test with jit=False - should execute eagerly
         a.value = bm.zeros(1)
         call_count['count'] = 0
@@ -161,7 +161,7 @@ class TestLoop(parameterized.TestCase):
         # With jit=False, the function should be called 3 times
         self.assertEqual(call_count['count'], 3)
         self.assertTrue(bm.allclose(a.value, 3.))
-        
+
     def test_for_loop_jit_default(self):
         """Test that default behavior (jit=None) allows JIT compilation"""
         a = bm.Variable(bm.zeros(1))
@@ -191,9 +191,9 @@ class TestLoop(parameterized.TestCase):
             result = bm.for_loop(body, operands=bm.arange(0), jit=False)
             # Check that our specific warning was issued
             zero_length_warnings = [warning for warning in w
-                                   if "zero-length input" in str(warning.message)]
+                                    if "zero-length input" in str(warning.message)]
             self.assertGreaterEqual(len(zero_length_warnings), 1,
-                                   "Expected at least one zero-length input warning")
+                                    "Expected at least one zero-length input warning")
 
         # Variable should not have changed
         self.assertTrue(bm.allclose(a.value, 0.))
@@ -309,6 +309,7 @@ class TestScan(unittest.TestCase):
 
     def test_scan_progress_bar_invalid_type(self):
         """Test that invalid progress_bar types raise TypeError"""
+
         def f(carry, x):
             return carry + x, carry
 

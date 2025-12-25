@@ -16,9 +16,9 @@
 from functools import wraps
 from typing import Dict
 
+import brainstate
 import jax.tree
 
-import brainstate
 from .base import BrainPyObject, ArrayCollector
 
 __all__ = [

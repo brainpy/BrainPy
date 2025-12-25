@@ -5398,7 +5398,7 @@ class LaxBackedNumpyTests(jtu.JaxTestCase):
         np_mgrid = _indexer_with_default_outputs(np.mgrid)
         assertAllEqual = partial(self.assertAllClose, atol=0, rtol=0)
         assertAllEqual(np_mgrid[:4], bm.mgrid[:4])
-        assertAllEqual(np_mgrid[:4, ], bm.mgrid[:4, ])
+        assertAllEqual(np_mgrid[:4,], bm.mgrid[:4,])
         assertAllEqual(np_mgrid[:4], jax.jit(lambda: bm.mgrid[:4])())
         assertAllEqual(np_mgrid[:5, :5], bm.mgrid[:5, :5])
         assertAllEqual(np_mgrid[:3, :2], bm.mgrid[:3, :2])
@@ -5453,7 +5453,7 @@ class LaxBackedNumpyTests(jtu.JaxTestCase):
         self.assertArraysEqual(np_ogrid[:5], jax.jit(lambda: bm.ogrid[:5])())
         self.assertArraysEqual(np_ogrid[1:7:2], bm.ogrid[1:7:2])
         # List of arrays
-        assertListOfArraysEqual(np_ogrid[:5, ], bm.ogrid[:5, ])
+        assertListOfArraysEqual(np_ogrid[:5,], bm.ogrid[:5,])
         assertListOfArraysEqual(np_ogrid[0:5, 1:3], bm.ogrid[0:5, 1:3])
         assertListOfArraysEqual(np_ogrid[1:3:2, 2:9:3], bm.ogrid[1:3:2, 2:9:3])
         assertListOfArraysEqual(np_ogrid[:5, :9, :11], bm.ogrid[:5, :9, :11])

@@ -24,8 +24,8 @@ import numpy as np
 import tqdm.auto
 from jax.tree_util import tree_flatten
 
-from brainpy._errors import RunningError
 from brainpy import math as bm
+from brainpy._errors import RunningError
 from brainpy.math.object_transform.base import Collector
 from brainpy.running.runner import Runner
 from .base import Integrator

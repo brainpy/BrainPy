@@ -17,15 +17,15 @@ from typing import Union, Dict, Callable, Optional, Tuple
 
 import jax
 
-from brainpy._errors import UnsupportedError
-from brainpy.mixin import (ParamDesc, JointType, SupportAutoDelay, BindCondData, ReturnInfo)
 from brainpy import math as bm
+from brainpy._errors import UnsupportedError
 from brainpy.connect import TwoEndConnector, One2One, All2All
 from brainpy.dnn import linear
 from brainpy.dyn.base import NeuDyn
 from brainpy.dyn.projections.conn import SynConn
 from brainpy.dynsys import DynamicalSystem
 from brainpy.initialize import parameter
+from brainpy.mixin import (ParamDesc, JointType, SupportAutoDelay, BindCondData, ReturnInfo)
 from brainpy.types import ArrayType
 
 __all__ = [

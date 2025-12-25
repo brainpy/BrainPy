@@ -16,13 +16,13 @@
 import warnings
 from typing import Sequence, Union
 
+import brainstate
 import jax
 import jax.numpy as jnp
 
 import brainpy.math as bm
-import brainstate
-from brainpy._errors import MathError
 from brainpy import check
+from brainpy._errors import MathError
 from brainpy.math.object_transform.base import BrainPyObject
 
 

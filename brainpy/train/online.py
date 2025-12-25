@@ -16,18 +16,18 @@
 import functools
 from typing import Dict, Sequence, Union, Callable
 
+import brainstate.environ
 import jax
 import numpy as np
 import tqdm.auto
 from jax.tree_util import tree_map
 
-import brainstate.environ
-from brainpy.mixin import SupportOnline
 from brainpy import math as bm, tools
 from brainpy.algorithms.online import get, OnlineAlgorithm, RLS
 from brainpy.context import share
 from brainpy.dynsys import DynamicalSystem
 from brainpy.helpers import clear_input
+from brainpy.mixin import SupportOnline
 from brainpy.runners import _call_fun_with_share
 from brainpy.types import ArrayType, Output
 from ._utils import format_ys

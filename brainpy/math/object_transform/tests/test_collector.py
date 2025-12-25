@@ -283,4 +283,3 @@ def test_net_vars_2():
     print()
     pprint(list(net.nodes(method='relative').keys()))
     # assert len(net.nodes(method='relative')) == 6
-

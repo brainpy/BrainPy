@@ -14,11 +14,11 @@
 # ==============================================================================
 from typing import Optional, Callable, Union
 
-from brainpy.mixin import (JointType, ParamDescriber, SupportAutoDelay, BindCondData, AlignPost)
 from brainpy import math as bm, check
 from brainpy.delay import (delay_identifier,
-                                    register_delay_by_return)
+                           register_delay_by_return)
 from brainpy.dynsys import DynamicalSystem, Projection
+from brainpy.mixin import (JointType, ParamDescriber, SupportAutoDelay, BindCondData, AlignPost)
 
 __all__ = [
     'HalfProjAlignPostMg', 'FullProjAlignPostMg',

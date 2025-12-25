@@ -62,5 +62,3 @@ def csr_to_coo(
 
 
 csr_to_dense = csr_todense
-
-

@@ -15,7 +15,6 @@
 # ==============================================================================
 from unittest import TestCase
 
-import brainunit as u
 import numpy as np
 
 import brainpy as bp
@@ -37,7 +36,6 @@ def show(current, duration, title=''):
 
 
 class TestCurrents(TestCase):
-
 
     def test_section_input(self):
         current1, duration = bp.inputs.section_input(values=[0, 1., 0.],

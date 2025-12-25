@@ -14,7 +14,6 @@
 # ==============================================================================
 from typing import Union, Sequence, Callable, Optional
 
-from brainpy.mixin import AlignPost, ReturnInfo
 from brainpy import math as bm
 from brainpy.context import share
 from brainpy.dyn import _docs
@@ -22,6 +21,7 @@ from brainpy.dyn.base import SynDyn
 from brainpy.initialize import parameter
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode.generic import odeint
+from brainpy.mixin import AlignPost, ReturnInfo
 from brainpy.types import ArrayType
 
 __all__ = [

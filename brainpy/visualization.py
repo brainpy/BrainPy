@@ -22,4 +22,3 @@ animate_1D = braintools.visualize.animate_1D
 animate_2D = braintools.visualize.animate_2D
 remove_axis = braintools.visualize.remove_axis
 animator = braintools.visualize.animator
-

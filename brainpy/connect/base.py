@@ -20,8 +20,8 @@ from typing import Union, List, Tuple
 import jax.numpy as jnp
 import numpy as onp
 
-from brainpy._errors import ConnectorError
 from brainpy import tools, math as bm
+from brainpy._errors import ConnectorError
 
 __all__ = [
     # the connection types

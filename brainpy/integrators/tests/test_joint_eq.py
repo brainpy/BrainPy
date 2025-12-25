@@ -155,6 +155,7 @@ class TestJointEqs(unittest.TestCase):
 
     def test_second_order_ode_wrong_signature(self):
         """Test that wrong signature gives helpful error message"""
+
         # WRONG: both x and v before t in dx function
         def dx_wrong(x, v, t):
             return v

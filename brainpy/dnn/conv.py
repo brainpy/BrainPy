@@ -15,9 +15,9 @@
 # ==============================================================================
 from typing import Union, Tuple, Optional, Sequence, Callable
 
+import brainstate
 from jax import lax
 
-import brainstate
 from brainpy import math as bm, tools
 from brainpy.dnn.base import Layer
 from brainpy.initialize import Initializer, XavierNormal, ZeroInit, parameter

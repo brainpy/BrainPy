@@ -23,11 +23,11 @@ from brainpy.context import share
 from brainpy.dyn.base import NeuDyn
 from brainpy.dyn.neurons import lif
 from brainpy.initialize import (ZeroInit,
-                                         OneInit,
-                                         Initializer,
-                                         parameter,
-                                         variable_,
-                                         noise as init_noise)
+                                OneInit,
+                                Initializer,
+                                parameter,
+                                variable_,
+                                noise as init_noise)
 from brainpy.integrators import sdeint, odeint, JointEq
 from brainpy.types import Shape, ArrayType
 

@@ -25,8 +25,8 @@ import numpy as np
 from jax.scipy.optimize import minimize
 
 import brainpy.math as bm
-from brainpy._errors import AnalyzerError, UnsupportedError
 from brainpy import optim, losses
+from brainpy._errors import AnalyzerError, UnsupportedError
 from brainpy.analysis import utils, base, constants
 from brainpy.context import share
 from brainpy.deprecations import _input_deprecate_msg

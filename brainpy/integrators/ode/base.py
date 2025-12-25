@@ -15,8 +15,8 @@
 # ==============================================================================
 from typing import Dict, Callable, Union
 
-from brainpy._errors import DiffEqError, CodeError
 from brainpy import math as bm
+from brainpy._errors import DiffEqError, CodeError
 from brainpy.check import is_dict_data
 from brainpy.integrators import constants, utils
 from brainpy.integrators.base import Integrator
