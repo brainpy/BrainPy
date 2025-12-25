@@ -13,6 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 from brainpy.mixin import ReturnInfo
+import brainpy.math as bm
 
 
 def _get_return(return_info):

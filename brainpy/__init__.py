@@ -150,36 +150,3 @@ try:
     import brainpy.state as state
 except:
     pass
-
-if __name__ == '__main__':
-    connect
-    initialize,  # weight initialization
-    optim,  # gradient descent optimizers
-    losses,  # loss functions
-    measure,  # methods for data analysis
-    inputs,  # methods for generating input currents
-    encoding,  # encoding schema
-    checkpoints,  # checkpoints
-    check,  # error checking
-    mixin,  # mixin classes
-    algorithms,  # online or offline training algorithms
-    check, tools, errors, math
-    BrainPyObject,
-    integrators, ode, sde, fde
-    Integrator, JointEq, IntegratorRunner, odeint, sdeint, fdeint
-    DynamicalSystem, DynSysGroup, Sequential, Dynamic, Projection
-    receive_update_input, receive_update_output, not_receive_update_input, not_receive_update_output
-    VarDelay
-    dnn, layers, dyn
-    NeuGroup, NeuGroupNS
-    share
-    reset_level, reset_state, save_state, load_state, clear_input
-    DSRunner, LoopOverTime, running
-    DSTrainer, BPTT, BPFF, OnlineTrainer, ForceTrainer,
-    OfflineTrainer, RidgeTrainer
-    analysis
-    visualize
-    train
-    channels, neurons, synapses, rates, synouts, synplast
-    Base
-    ArrayCollector, Collector, errors
