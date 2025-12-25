@@ -25,6 +25,5 @@ from brainpy.dynold.synouts.ions import (
     MgBlock as MgBlock,
 )
 
-
 if __name__ == '__main__':
     COBA, CUBA, MgBlock

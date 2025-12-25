@@ -21,6 +21,7 @@ This context defines all shared data used in all modules in a computation.
 from typing import Any, Union
 
 import brainstate
+
 from brainpy.math.defaults import env
 from brainpy.tools.dicts import DotDict
 

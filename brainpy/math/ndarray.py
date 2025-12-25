@@ -232,7 +232,6 @@ class Array(u.CustomArray):
         return self
 
 
-
 setattr(Array, "__array_priority__", 100)
 
 JaxArray = Array

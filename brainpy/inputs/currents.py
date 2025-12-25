@@ -15,9 +15,9 @@
 # ==============================================================================
 import warnings
 
+import brainstate
 import braintools
 
-import brainstate
 import brainpy.math
 
 __all__ = [
@@ -294,4 +294,5 @@ def square_input(amplitude, frequency, duration, dt=None, bias=False, t_start=0.
       has a positive DC bias, thus non-negative (True).
     """
     with brainstate.environ.context(dt=brainpy.math.get_dt() if dt is None else dt):
-        return braintools.input.square(amplitude, frequency, duration, t_start=t_start, t_end=t_end, duty_cycle=0.5, bias=bias)
+        return braintools.input.square(amplitude, frequency, duration, t_start=t_start, t_end=t_end, duty_cycle=0.5,
+                                       bias=bias)

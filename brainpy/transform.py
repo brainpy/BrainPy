@@ -287,7 +287,8 @@ class LoopOverTime(DynamicalSystem):
                     shared['i'] = jnp.arange(0, length[0]) + self.i0.value
 
         assert not self.no_state
-        xs = jax.tree.map(lambda x: x.value if isinstance(x, bm.Variable) else x, xs, is_leaf=lambda x: isinstance(x, bm.Variable))
+        xs = jax.tree.map(lambda x: x.value if isinstance(x, bm.Variable) else x, xs,
+                          is_leaf=lambda x: isinstance(x, bm.Variable))
         results = bm.for_loop(functools.partial(self._run, self.shared_arg),
                               (shared, xs),
                               jit=self.jit)

@@ -22,4 +22,3 @@ from .interoperation_flax import *
 from .linear import *
 from .normalization import *
 from .pooling import *
-

@@ -17,8 +17,8 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
-from brainpy._errors import ConnectorError
 from brainpy import math as bm, tools
+from brainpy._errors import ConnectorError
 from .base import *
 
 __all__ = [

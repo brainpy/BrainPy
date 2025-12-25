@@ -39,3 +39,6 @@ from .function import *
 from .jit import *
 from .naming import *
 from .variables import *
+
+if __name__ == '__main__':
+    ProgressBar

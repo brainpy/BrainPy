@@ -14,12 +14,12 @@
 # limitations under the License.
 # ==============================================================================
 import numbers
-from typing import Union, Sequence, Any, Dict, Callable, Optional
+from typing import Union, Sequence, Any, Callable, Optional
 
+import brainstate
 import jax
 import jax.numpy as jnp
 
-import brainstate
 from brainpy.math.ndarray import Array
 from ._utils import warp_to_no_state_input_output
 
@@ -35,37 +35,37 @@ __all__ = [
 def _convert_progress_bar_to_pbar(
     progress_bar: Union[bool, brainstate.transform.ProgressBar, int, None]
 ) -> Optional[brainstate.transform.ProgressBar]:
-  """Convert progress_bar parameter to brainstate pbar format.
+    """Convert progress_bar parameter to brainstate pbar format.
 
-  Parameters
-  ----------
-  progress_bar : bool, ProgressBar, int, None
-    The progress_bar parameter value.
+    Parameters
+    ----------
+    progress_bar : bool, ProgressBar, int, None
+      The progress_bar parameter value.
 
-  Returns
-  -------
-  pbar : ProgressBar or None
-    The converted ProgressBar instance or None.
+    Returns
+    -------
+    pbar : ProgressBar or None
+      The converted ProgressBar instance or None.
 
-  Raises
-  ------
-  TypeError
-    If progress_bar is not a valid type.
-  """
-  if progress_bar is False or progress_bar is None:
-    return None
-  elif progress_bar is True:
-    return brainstate.transform.ProgressBar()
-  elif isinstance(progress_bar, int):
-    # Support brainstate convention: int means freq parameter
-    return brainstate.transform.ProgressBar(freq=progress_bar)
-  elif isinstance(progress_bar, brainstate.transform.ProgressBar):
-    return progress_bar
-  else:
-    raise TypeError(
-      f"progress_bar must be bool, int, or ProgressBar instance, "
-      f"got {type(progress_bar).__name__}"
-    )
+    Raises
+    ------
+    TypeError
+      If progress_bar is not a valid type.
+    """
+    if progress_bar is False or progress_bar is None:
+        return None
+    elif progress_bar is True:
+        return brainstate.transform.ProgressBar()
+    elif isinstance(progress_bar, int):
+        # Support brainstate convention: int means freq parameter
+        return brainstate.transform.ProgressBar(freq=progress_bar)
+    elif isinstance(progress_bar, brainstate.transform.ProgressBar):
+        return progress_bar
+    else:
+        raise TypeError(
+            f"progress_bar must be bool, int, or ProgressBar instance, "
+            f"got {type(progress_bar).__name__}"
+        )
 
 
 def cond(

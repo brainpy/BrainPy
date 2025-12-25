@@ -17,15 +17,14 @@
 __version__ = "2.7.5"
 __version_info__ = tuple(map(int, __version__.split(".")))
 
-
 from brainpy import _errors as errors
-from brainpy import mixin
 # fundamental supporting modules
 from brainpy import check, tools
 #  Part: Math Foundation  #
 # ----------------------- #
 # math foundation
 from brainpy import math
+from brainpy import mixin
 #  Part: Toolbox  #
 # --------------- #
 # modules of toolbox
@@ -109,11 +108,11 @@ from brainpy import (running as running)
 # ---------------- #
 from brainpy.train.base import (DSTrainer as DSTrainer, )
 from brainpy.train.back_propagation import (BPTT as BPTT,
-                                                     BPFF as BPFF, )
+                                            BPFF as BPFF, )
 from brainpy.train.online import (OnlineTrainer as OnlineTrainer,
-                                           ForceTrainer as ForceTrainer, )
+                                  ForceTrainer as ForceTrainer, )
 from brainpy.train.offline import (OfflineTrainer as OfflineTrainer,
-                                            RidgeTrainer as RidgeTrainer, )
+                                   RidgeTrainer as RidgeTrainer, )
 
 #  Part: Analysis  #
 # ---------------- #
@@ -151,8 +150,6 @@ try:
     import brainpy.state as state
 except:
     pass
-
-
 
 if __name__ == '__main__':
     connect

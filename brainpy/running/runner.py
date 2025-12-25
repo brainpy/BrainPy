@@ -19,8 +19,8 @@ from typing import Callable, Dict, Sequence, Union
 
 import numpy as np
 
-from brainpy._errors import MonitorError, RunningError
 from brainpy import math as bm, check
+from brainpy._errors import MonitorError, RunningError
 from brainpy.math.object_transform.base import BrainPyObject
 from brainpy.tools import DotDict
 from . import constants as C

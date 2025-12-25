@@ -17,9 +17,8 @@ import warnings
 from dataclasses import dataclass
 from typing import Union, Dict, Callable, Sequence, Optional, Any
 
-import jax
-
 import brainstate
+import jax
 
 bm, delay_identifier, init_delay_by_return, DynamicalSystem = None, None, None, None
 

@@ -20,8 +20,8 @@ from typing import Dict, Callable, Sequence
 
 import jax
 
-from brainpy._errors import UnsupportedError
 from brainpy import check
+from brainpy._errors import UnsupportedError
 from brainpy.math.ndarray import Array as Array
 
 __all__ = [

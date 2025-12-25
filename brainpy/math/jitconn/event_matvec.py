@@ -20,8 +20,8 @@ import jax
 import numpy as np
 
 from brainpy.math.jitconn.matvec import (mv_prob_homo,
-                                                  mv_prob_uniform,
-                                                  mv_prob_normal)
+                                         mv_prob_uniform,
+                                         mv_prob_normal)
 from brainpy.math.ndarray import Array as Array
 
 __all__ = [

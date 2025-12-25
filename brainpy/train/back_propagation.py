@@ -17,6 +17,7 @@ import time
 from collections.abc import Iterable
 from typing import Union, Dict, Callable, Sequence, Optional
 
+import brainstate.environ
 import jax.numpy as jnp
 import numpy as np
 from jax.tree_util import tree_map
@@ -24,10 +25,9 @@ from tqdm import tqdm
 
 import brainpy.losses as losses
 import brainpy.math as bm
-import brainstate.environ
-from brainpy._errors import UnsupportedError, NoLongerSupportError
 from brainpy import optim
 from brainpy import tools
+from brainpy._errors import UnsupportedError, NoLongerSupportError
 from brainpy.context import share
 from brainpy.dynsys import DynamicalSystem
 from brainpy.helpers import clear_input
@@ -381,7 +381,8 @@ class BPTrainer(DSTrainer):
                         if self.loss_has_aux:
                             test_epoch_metric['loss'].append(res[0])
                             if not isinstance(res[1], dict):
-                                raise TypeError(f'Auxiliary data in loss function should be a dict. But we got {type(res)}')
+                                raise TypeError(
+                                    f'Auxiliary data in loss function should be a dict. But we got {type(res)}')
                             for k, v in res[1].items():
                                 if k not in test_epoch_metric:
                                     test_epoch_metric[k] = []

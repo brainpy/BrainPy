@@ -22,13 +22,13 @@ from typing import Union, Dict, Callable, Sequence, Optional, Any
 import jax
 import numpy as np
 
-from brainpy._errors import NoImplementationError, UnsupportedError
-from brainpy.mixin import SupportAutoDelay, Container, SupportInputProj, _get_delay_tool, MixIn
 from brainpy import tools, math as bm
+from brainpy._errors import NoImplementationError, UnsupportedError
 from brainpy.context import share
 from brainpy.deprecations import _update_deprecate_msg
 from brainpy.initialize import parameter, variable_
 from brainpy.math.object_transform.naming import get_unique_name
+from brainpy.mixin import SupportAutoDelay, Container, SupportInputProj, _get_delay_tool, MixIn
 from brainpy.types import ArrayType, Shape
 
 __all__ = [

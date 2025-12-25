@@ -15,17 +15,17 @@
 # ==============================================================================
 from typing import Dict, Sequence, Union, Callable, Any
 
+import brainstate.environ
 import jax
 import numpy as np
 import tqdm.auto
 
 import brainpy.math as bm
-import brainstate.environ
-from brainpy.mixin import SupportOffline
 from brainpy import tools
 from brainpy.algorithms.offline import get, RidgeRegression, OfflineAlgorithm
 from brainpy.context import share
 from brainpy.dynsys import DynamicalSystem
+from brainpy.mixin import SupportOffline
 from brainpy.runners import _call_fun_with_share
 from brainpy.types import ArrayType, Output
 from ._utils import format_ys

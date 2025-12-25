@@ -71,7 +71,3 @@ def _compatible_with_brainpy_array(
     )
 
     return new_fun
-
-
-
-

@@ -19,18 +19,18 @@ from typing import Dict, Optional, Union, Callable
 import jax
 import jax.numpy as jnp
 import numpy as np
-from brainevent._csr_impl_plasticity import csr_on_pre, csr2csc_on_post
-from brainevent._dense_impl_plasticity import dense_on_pre, dense_on_post
+from brainevent import csr_on_pre, csr2csc_on_post
+from brainevent import dense_on_pre, dense_on_post
 
-from brainpy._errors import MathError
-from brainpy.mixin import SupportOnline, SupportOffline, SupportSTDP
 from brainpy import connect, initialize as init
 from brainpy import math as bm
+from brainpy._errors import MathError
 from brainpy.check import is_initializer
 from brainpy.connect import csr2csc
 from brainpy.context import share
 from brainpy.dnn.base import Layer
 from brainpy.initialize import XavierNormal, ZeroInit, Initializer, parameter
+from brainpy.mixin import SupportOnline, SupportOffline, SupportSTDP
 from brainpy.types import ArrayType, Sharding
 
 __all__ = [

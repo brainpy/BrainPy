@@ -20,12 +20,12 @@ The JIT compilation tools for JAX backend.
 
 """
 
-from typing import Callable, Union, Optional, Sequence, Any, Iterable
-
-import jax.tree
+from typing import Callable, Union, Sequence, Iterable
 
 import brainstate.transform
+import jax.tree
 from brainstate.typing import Missing
+
 from ._utils import warp_to_no_state_input_output
 
 __all__ = [
@@ -88,7 +88,6 @@ def jit(
     donate_argnums: Union[int, Sequence[int]] = (),
     inline: bool = False,
     keep_unused: bool = False,
-    abstracted_axes: Optional[Any] = None,
     # others
     **kwargs,
 ) -> Union[Callable, Callable[..., Callable]]:
@@ -150,7 +149,6 @@ def jit(
         static_argnames=static_argnames,
         inline=inline,
         keep_unused=keep_unused,
-        abstracted_axes=abstracted_axes,
         **kwargs
     )
 
@@ -164,7 +162,6 @@ def cls_jit(
     static_argnames: Union[str, Iterable[str], None] = None,
     inline: bool = False,
     keep_unused: bool = False,
-    abstracted_axes: Optional[Any] = None,
     **kwargs
 ) -> Callable:
     """Just-in-time compile a function and then the jitted function as the bound method for a class.
@@ -212,10 +209,9 @@ def cls_jit(
     return jit(
         func=func,
         static_argnums=static_argnums,
-               static_argnames=static_argnames,
-               inline=inline,
-               keep_unused=keep_unused,
-               abstracted_axes=abstracted_axes,
+        static_argnames=static_argnames,
+        inline=inline,
+        keep_unused=keep_unused,
         **kwargs
     )
 

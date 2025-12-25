@@ -23,11 +23,11 @@ from brainpy.context import share
 from brainpy.dyn.base import NeuDyn
 from brainpy.dyn.others.noise import OUProcess
 from brainpy.initialize import (Initializer,
-                                         Uniform,
-                                         parameter,
-                                         variable,
-                                         variable_,
-                                         ZeroInit)
+                                Uniform,
+                                parameter,
+                                variable,
+                                variable_,
+                                ZeroInit)
 from brainpy.integrators.joint_eq import JointEq
 from brainpy.integrators.ode.generic import odeint
 from brainpy.types import Shape, ArrayType

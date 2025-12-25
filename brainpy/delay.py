@@ -24,13 +24,13 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
-from brainpy.mixin import ParamDesc, ReturnInfo, JointType, SupportAutoDelay
 from brainpy import check, math as bm
 from brainpy.check import jit_error
 from brainpy.context import share
 from brainpy.dynsys import DynamicalSystem
 from brainpy.initialize import variable_
 from brainpy.math.delayvars import ROTATE_UPDATE, CONCAT_UPDATE
+from brainpy.mixin import ParamDesc, ReturnInfo, JointType, SupportAutoDelay
 
 __all__ = [
     'Delay',

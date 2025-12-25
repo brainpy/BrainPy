@@ -20,14 +20,14 @@ import warnings
 from collections.abc import Iterable
 from typing import Dict, Union, Sequence, Callable, Tuple, Optional, Any
 
+import brainstate.environ
 import jax
 import jax.numpy as jnp
 import numpy as np
 from jax.tree_util import tree_map, tree_flatten
 
-import brainstate.environ
-from brainpy._errors import RunningError
 from brainpy import math as bm, tools
+from brainpy._errors import RunningError
 from brainpy.context import share
 from brainpy.deprecations import _input_deprecate_msg
 from brainpy.dynsys import DynamicalSystem

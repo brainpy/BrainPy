@@ -647,4 +647,3 @@ def jit_error_checking_no_args(pred: bool, err: Exception):
     cond(remove_vmap(as_jax(pred)),
          lambda: jax.pure_callback(true_err_fun, None),
          lambda: None)
-

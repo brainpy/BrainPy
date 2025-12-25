@@ -19,16 +19,16 @@ import jax.numpy as jnp
 
 import brainpy.math as bm
 from brainpy.check import (is_integer,
-                                    is_initializer)
+                           is_initializer)
 from brainpy.dnn.base import Layer
 from brainpy.dnn.conv import _GeneralConv
 from brainpy.initialize import (XavierNormal,
-                                         ZeroInit,
-                                         Orthogonal,
-                                         parameter,
-                                         variable,
-                                         variable_,
-                                         Initializer)
+                                ZeroInit,
+                                Orthogonal,
+                                parameter,
+                                variable,
+                                variable_,
+                                Initializer)
 from brainpy.math import activations
 from brainpy.types import ArrayType
 

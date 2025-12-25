@@ -19,12 +19,12 @@ from typing import Union, Sequence, Any, Optional, Callable
 import jax
 import jax.numpy as jnp
 
-from brainpy.mixin import ReturnInfo
 from brainpy import math as bm
 from brainpy.context import share
 from brainpy.dyn.base import NeuDyn
 from brainpy.dyn.utils import get_spk_type
 from brainpy.initialize import parameter, variable_
+from brainpy.mixin import ReturnInfo
 from brainpy.types import Shape, ArrayType
 
 __all__ = [

@@ -30,8 +30,8 @@ import jax
 import jax.numpy as jnp
 import jax.scipy
 import numpy as np
-
 from brainstate.random import uniform
+
 from .ndarray import Array
 
 __all__ = [
@@ -69,6 +69,7 @@ __all__ = [
 ]
 
 tanh = u.math.tanh
+
 
 def get(activation):
     global_vars = globals()

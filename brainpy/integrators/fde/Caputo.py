@@ -24,8 +24,8 @@ import jax
 from scipy.special import gamma, rgamma
 
 import brainpy.math as bm
-from brainpy._errors import UnsupportedError
 from brainpy import check
+from brainpy._errors import UnsupportedError
 from brainpy.integrators.constants import DT
 from brainpy.integrators.utils import check_inits, format_args
 from brainpy.types import ArrayType

@@ -22,11 +22,11 @@ import sys
 import warnings
 from typing import Any, Callable, TypeVar, cast
 
+import brainstate.environ
 import jax
 from jax import config, numpy as jnp, devices
 from jax.lib import xla_bridge
 
-import brainstate.environ
 from . import modes
 from . import scales
 from .defaults import defaults
