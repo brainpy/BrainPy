@@ -3,6 +3,6 @@ brainunit
 brainevent>=0.0.4
 braintools>=0.1.0
 brainstate>=0.2.7
-brainpy-state
+brainpy_state>=0.0.2
 jax
 tqdm

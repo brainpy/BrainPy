@@ -146,7 +146,7 @@ from brainpy.deprecations import deprecation_getattr
 
 optimizers = optim
 
-try:
-    import brainpy.state as state
-except:
-    pass
+
+# New package
+from brainpy import state
+
