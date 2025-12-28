@@ -112,4 +112,4 @@ jobs:
         env:
           MPLBACKEND: Agg  # Use non-interactive backend for matplotlib
         run: |
-          pytest brainpy/
+          python -m pytest brainpy/
