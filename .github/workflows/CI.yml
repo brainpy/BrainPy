@@ -7,8 +7,11 @@ name: Continuous Integration
 on:
   push:
     branches:
-      - main
+      - '**'        # matches every branch
   pull_request:
+    branches:
+      - '**'        # matches every branch
+
 
 
 permissions:
