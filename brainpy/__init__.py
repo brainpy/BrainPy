@@ -14,7 +14,7 @@
 # limitations under the License.
 # ==============================================================================
 
-__version__ = "2.7.5"
+__version__ = "2.7.6"
 __version_info__ = tuple(map(int, __version__.split(".")))
 
 from brainpy import _errors as errors
