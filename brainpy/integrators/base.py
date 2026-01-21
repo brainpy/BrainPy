@@ -141,6 +141,10 @@ class Integrator(AbstractIntegrator):
         raise ValueError('Cannot set "state_delays" by users.')
 
     def _call_integral(self, *args, **kwargs):
+        kwargs = dict(kwargs)
+        t = kwargs.get('t', None)
+        kwargs['t'] = 0. if t is None else t
+
         if _during_compile:
             jaxpr, out_shapes = jax.make_jaxpr(self.integral, return_shape=True)(**kwargs)
             outs = jax.core.eval_jaxpr(jaxpr.jaxpr, jaxpr.consts, *jax.tree.leaves(kwargs))

@@ -178,8 +178,7 @@ class ExplicitRKIntegrator(ODEIntegrator):
 
     def build(self):
         # step stage
-        common.step(self.variables, C.DT,
-                    self.A, self.C, self.code_lines, self.parameters)
+        common.step(self.variables, C.DT, self.A, self.C, self.code_lines, self.parameters)
         # variable update
         return_args = common.update(self.variables, C.DT, self.B, self.code_lines)
         # returns
@@ -189,7 +188,8 @@ class ExplicitRKIntegrator(ODEIntegrator):
             code_scope={k: v for k, v in self.code_scope.items()},
             code_lines=self.code_lines,
             show_code=self.show_code,
-            func_name=self.func_name)
+            func_name=self.func_name
+        )
 
 
 class Euler(ExplicitRKIntegrator):
