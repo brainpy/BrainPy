@@ -1,5 +1,57 @@
 # Changelog
 
+## Version 2.7.6
+
+**Release Date:** January 21, 2026
+
+This is a maintenance release that enhances JAX compatibility and improves CI stability across platforms.
+
+### Bug Fixes
+
+#### JAX 0.9.0 Compatibility (#813)
+- **Fixed**: ODE integrator default time parameter handling
+  - Ensured `t` keyword argument defaults to 0 in `_call_integral` method
+  - Prevents errors when time parameter is not explicitly provided
+- **Updated**: Backend imports for compatibility with JAX >= 0.8.0
+  - Updated `brainpy.math.environment` module to handle JAX backend changes
+  - Improved compatibility layer for future JAX versions
+
+#### ODE Integrators
+- **Fixed**: Explicit Runge-Kutta methods formatting in build method
+- **Impact**: Ensures stable numerical integration across different JAX versions
+
+### Dependencies
+
+#### Updated Dependencies
+- **Updated**: `brainpy_state` from 0.0.1 to 0.0.3
+- **Enhanced**: README documentation with comprehensive module overview and installation instructions
+
+
+---
+
+## Version 2.7.5
+
+**Release Date:** December 25, 2025
+
+This release focuses on improving JAX compatibility and code quality through comprehensive refactoring.
+
+### Major Changes
+
+#### JAX Compatibility Enhancement (#809)
+- **Updated**: Refined JIT wrappers for compatibility with JAX >= 0.8.2
+  - Refactored JIT handling across 85 files
+  - Updated object transformation modules for new JAX behavior
+  - Improved JIT compilation stability and performance
+- **Added**: Initial `brainpy_state` module infrastructure
+  - Created new state management module with README documentation
+  - Set up module structure for future state-based functionality
+- **Updated**: JAX backend integration
+  - Modernized backend import patterns
+  - Enhanced compatibility with JAX's evolving API
+
+
+---
+
 ## Version 2.7.4
 
 **Release Date:** December 2025
@@ -19,35 +71,6 @@ This release focuses on simplifying the project structure by removing the experi
 #### Decouple the ``brainpy`` context with ``brainstate`` context
 
 - **Updated**: `brainpy.math.defaults` is totally decoupled with `brainstate` context management
-
-
-#### Documentation Consolidation (#806)
-- **Renamed**: `docs_classic/` → `docs/` (now the main documentation)
-- **Renamed**: `examples_classic/` → `examples/` (now the main examples)
-- **Removed**: `docs_state/` directory (state-based documentation)
-- **Removed**: `examples_state/` directory (state-based examples)
-
-### Dependencies
-
-#### Updated Dependencies (#807)
-- Simplified `pyproject.toml` configuration
-- Updated `requirements.txt`
-
-### CI/CD Improvements
-
-- **Updated**: `actions/upload-artifact` from 5 to 6 (#804)
-- **Updated**: `actions/download-artifact` from 6 to 7 (#805)
-
-### Files Modified
-- `brainpy/__init__.py`: Removed state module exports
-- `brainpy/context.py`: Simplified context management
-- `brainpy/math/defaults.py`: Updated default configurations
-- `docs/conf.py`: Updated documentation configuration
-- `pyproject.toml`: Simplified dependency configuration
-- `.github/workflows/Publish.yml`: Updated CI artifact actions
-
-### Breaking Changes
-- The `brainpy.state` module is no longer available. Users relying on this module should migrate to the standalone `brainstate` library.
 
 
 
@@ -85,37 +108,6 @@ This is a bug fix release that resolves critical issues with `bm.for_loop` and i
 - **Backward Compatibility**: `remat` parameter kept in `LoopOverTime.__init__()` with deprecation warning
 - **Fixes**: Resolved TypeErrors in `DSRunner` and `LoopOverTime` that used these parameters
 
-#### CI Improvements
-- **Fixed**: TclError on Windows Python 3.13 CI due to missing Tcl/Tk configuration
-- **Implementation**: Set `MPLBACKEND=Agg` environment variable in GitHub Actions workflow
-- **Impact**: Matplotlib tests now run successfully on all platforms (Linux, macOS, Windows)
-
-### Code Quality
-- Added comprehensive test coverage for all fixes
-- Updated API documentation to reflect new functionality
-- All 38 tests in `test_controls.py` pass
-
-### Files Modified
-- `brainpy/__init__.py`: Updated version to 2.7.3
-- `brainpy/math/object_transform/controls.py`: Fixed jit handling, zero-length scan, progress_bar enhancement
-- `brainpy/math/object_transform/__init__.py`: Exported ProgressBar
-- `brainpy/runners.py`: Fixed unroll_kwargs usage with functools.partial
-- `brainpy/transform.py`: Added remat deprecation warning in LoopOverTime
-- `brainpy/math/object_transform/tests/test_controls.py`: Added 11 new test cases
-- `docs_classic/apis/brainpy.math.oo_transform.rst`: Added ProgressBar to documentation
-- `.github/workflows/CI.yml`: Added MPLBACKEND=Agg for all test jobs
-
-### Commits
-- `fa2f67c6`: Fix bm.for_loop jit parameter handling and remove unused parameters
-- `1c70d4ae`: Enhance progress_bar parameter to support ProgressBar instances
-- `100ddc17`: Fix runners.py to use functools.partial instead of removed unroll_kwargs
-- `dde8f99b`: Fix LoopOverTime to remove remat parameter from for_loop call
-- `6b410aa8`: Fix zero-length scan error when using jit=False
-- `2c838cac`: Set MPLBACKEND=Agg in CI to fix Tkinter issues on Windows
-
-### Breaking Changes
-None. All changes are backward compatible or involve previously non-functional parameters.
-
 ---
 
 ## Version 2.7.2
@@ -145,22 +137,6 @@ This is a maintenance release that improves JAX compatibility and documentation.
 - Updated progress bar parameters for simulations
 - Improved code organization and structure
 
-#### CI/CD
-- Updated GitHub Actions dependencies:
-  - `actions/download-artifact` from 5 to 6 (#796)
-  - `actions/upload-artifact` from 4 to 5 (#795)
-- Improved CI workflow reliability
-
-### Files Modified
-- Updated JAX compatibility layer
-- Documentation files in various modules
-- CI configuration files
-- Neural network class implementations
-
-### Notes
-- This release focuses on maintaining compatibility with the latest JAX ecosystem
-- No breaking changes introduced
-- All existing code should continue to work without modifications
 
 ---
 
@@ -231,34 +207,6 @@ This is a feature release that introduces new neuron and synapse models in the s
 - Fixed test suite issues (95ec2037)
 - Fixed test suite for proper unit handling in synapse models
 
-### Code Quality
-- Refactored module assignments to `brainpy.state` for consistency across files (06b2bf4d)
-- Refactored method calls in `_base.py`: replaced private methods with public counterparts (210426ab)
-
-### Testing
-- Added comprehensive test suites for all new neuron models
-- Added AMPA and GABAa synapse tests
-- Added tests for Izhikevich neuron variants
-- Added tests for Hodgkin-Huxley model
-- All tests passing with proper unit handling
-
-### Files Modified
-- `brainpy/__init__.py`: Updated version to 2.7.1
-- `brainpy/state/_base.py`: Enhanced Dynamics class with improved input handling (447 lines added)
-- `brainpy/state/_lif.py`: Added extensive LIF neuron variants (1862 lines total)
-- `brainpy/state/_izhikevich.py`: New file with Izhikevich models (407 lines)
-- `brainpy/state/_hh.py`: New file with Hodgkin-Huxley model (666 lines)
-- `brainpy/state/_synapse.py`: Added BioNMDA model (158 lines)
-- `brainpy/state/_projection.py`: Updated for consistency (43 lines modified)
-- `brainpy/state/__init__.py`: Updated exports for new models
-- Test files added: `_lif_test.py`, `_izhikevich_test.py`, `_hh_test.py`, `_synapse_test.py`, `_base_test.py`
-- Documentation updates in `docs_state/index.rst`
-
-### Removed
-- Removed outdated documentation notebooks from `docs_state/`:
-  - `checkpointing-en.ipynb` and `checkpointing-zh.ipynb`
-  - `snn_simulation-en.ipynb` and `snn_simulation-zh.ipynb`
-  - `snn_training-en.ipynb` and `snn_training-zh.ipynb`
 
 ### Notes
 - This release significantly expands the `brainpy.state` module with biologically realistic neuron and synapse models
