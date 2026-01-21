@@ -25,7 +25,6 @@ from typing import Any, Callable, TypeVar, cast
 import brainstate.environ
 import jax
 from jax import config, numpy as jnp, devices
-from jax.lib import xla_bridge
 
 from . import modes
 from . import scales
@@ -733,8 +732,13 @@ def clear_buffer_memory(
       Clear name cache. Default is True.
 
     """
+    if jax.__version_info__ < (0, 8, 0):
+        from jax.lib.xla_bridge import get_backend
+    else:
+        from jax.extend.backend import get_backend
+
     if array:
-        for buf in xla_bridge.get_backend(platform).live_buffers():
+        for buf in get_backend(platform).live_buffers():
             buf.delete()
     if compilation:
         jax.clear_caches()
