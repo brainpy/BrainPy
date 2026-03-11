@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "brainpy"
 description = "BrainPy: Brain Dynamics Programming in Python"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 authors = [
     { name = "BrainPy Team", email = "chao.brain@qq.com" }
 ]
