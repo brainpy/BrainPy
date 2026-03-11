@@ -272,7 +272,7 @@ class ShardedArray(Array):
 
     @value.setter
     def value(self, value):
-        self_value = self._check_tracer()
+        self_value = self._value
 
         if isinstance(value, Array):
             value = value.value

@@ -116,6 +116,9 @@ def load_state(target: DynamicalSystem, state_dict: Dict, **kwargs):
     missing_keys = []
     unexpected_keys = []
     for name, node in nodes.items():
+        if name not in state_dict:
+            missing_keys.append(name)
+            continue
         r = node.load_state(state_dict[name], **kwargs)
         if r is not None:
             missing, unexpected = r

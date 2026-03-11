@@ -773,7 +773,7 @@ class NodeDict(dict):
                     self[k] = v
             elif isinstance(arg, tuple):
                 assert len(arg) == 2
-                self[arg[0]] = args[1]
+                self[arg[0]] = arg[1]
         for k, v in kwargs.items():
             self[k] = v
         return self
@@ -781,8 +781,8 @@ class NodeDict(dict):
     def __setitem__(self, key, value) -> 'NodeDict':
         if self.check_unique:
             exist = self.get(key, None)
-            if id(exist) != id(value):
-                raise KeyError(f'Duplicate usage of key "{key}". "{key}" has been used for {value}.')
+            if exist is not None and id(exist) != id(value):
+                raise KeyError(f'Duplicate usage of key "{key}". "{key}" has been used for {exist}.')
         super().__setitem__(key, value)
         return self
 

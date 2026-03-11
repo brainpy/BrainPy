@@ -6,11 +6,10 @@ build-backend = "setuptools.build_meta"
 name = "brainpy"
 description = "BrainPy: Brain Dynamics Programming in Python"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 authors = [
     { name = "BrainPy Team", email = "chao.brain@qq.com" }
 ]
-license = { text = "GPL-3.0 license" }
 classifiers = [
     "Natural Language :: English",
     "Operating System :: OS Independent",
@@ -39,7 +38,7 @@ dependencies = [
     "jax",
     "tqdm",
     "brainstate>=0.2.7",
-    "brainunit",
+    "brainunit>=0.2.0",
     "brainevent>=0.0.7",
     "braintools>=0.0.9",
     'brainpy_state>=0.0.3',

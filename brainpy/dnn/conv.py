@@ -179,7 +179,7 @@ class _GeneralConv(Layer):
         if self.mask is not None:
             try:
                 lax.broadcast_shapes(self.w.shape, self.mask.shape)
-            except:
+            except (ValueError, TypeError):
                 raise ValueError(f"Mask needs to have the same shape as weights. {self.mask.shape} != {self.w.shape}")
             w = w * self.mask
         y = lax.conv_general_dilated(lhs=bm.as_jax(x),
@@ -566,7 +566,7 @@ class _GeneralConvTranspose(Layer):
         if self.mask is not None:
             try:
                 lax.broadcast_shapes(self.w.shape, self.mask.shape)
-            except:
+            except (ValueError, TypeError):
                 raise ValueError(f"Mask needs to have the same shape as weights. {self.mask.shape} != {self.w.shape}")
             w = w * self.mask
         y = lax.conv_transpose(lhs=bm.as_jax(x),
