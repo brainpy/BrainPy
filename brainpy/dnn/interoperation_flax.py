@@ -26,7 +26,7 @@ from brainpy.dynsys import DynamicalSystem
 try:
     import flax  # noqa
     from flax.linen.recurrent import RNNCellBase
-except:
+except (ImportError, ModuleNotFoundError):
     flax = None
     RNNCellBase = object
 

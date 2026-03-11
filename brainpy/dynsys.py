@@ -966,11 +966,18 @@ def _slice_to_num(slice_: slice, length: int):
     step = slice_.step
     if step is None:
         step = 1
+    if step == 0:
+        raise ValueError("slice step cannot be zero")
     # number
     num = 0
-    while start < stop:
-        start += step
-        num += 1
+    if step > 0:
+        while start < stop:
+            start += step
+            num += 1
+    else:
+        while start > stop:
+            start += step
+            num += 1
     return num
 
 

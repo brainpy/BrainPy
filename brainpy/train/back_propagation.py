@@ -109,8 +109,8 @@ class BPTrainer(DSTrainer):
         '''
             )
         if seed is not None:
-            NoLongerSupportError('"seed" is no longer supported. '
-                                 'Please shuffle your data by yourself.')
+            raise NoLongerSupportError('"seed" is no longer supported. '
+                                       'Please shuffle your data by yourself.')
 
         # jit settings
         if isinstance(self._origin_jit, bool):
@@ -317,7 +317,7 @@ class BPTrainer(DSTrainer):
                         fit_t1 = time.time()
                         aux = {}
                         for k, v in fit_epoch_metric.items():
-                            aux[k] = jnp.mean(bm.as_jax(bm.asarray(v)))
+                            aux[k] = np.mean(np.asarray(v))
                             if k not in report_train_metric:
                                 report_train_metric[k] = []
                                 detailed_train_metric[k] = []
@@ -420,7 +420,7 @@ class BPTrainer(DSTrainer):
                         test_t1 = time.time()
                         aux = {}
                         for k, v in test_epoch_metric.items():
-                            aux[k] = jnp.mean(bm.as_jax(bm.asarray(v)))
+                            aux[k] = np.mean(np.asarray(v))
                             if k not in report_test_metric:
                                 report_test_metric[k] = []
                                 detailed_test_metric[k] = []

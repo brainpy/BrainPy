@@ -285,7 +285,7 @@ class DualExpon(SynDyn):
 
         # update synaptic variables
         self.g.value, self.h.value = self.integral(self.g.value, self.h.value, share['t'], dt=share['dt'])
-        self.h += self.a * x
+        self.h.value = self.h.value + self.a * x
         return self.g.value
 
     def return_info(self):
@@ -552,7 +552,7 @@ class Alpha(SynDyn):
     def update(self, x):
         # update synaptic variables
         self.g.value, self.h.value = self.integral(self.g.value, self.h.value, share['t'], dt=share['dt'])
-        self.h += x
+        self.h.value = self.h.value + x
         return self.g.value
 
     def return_info(self):
@@ -737,7 +737,7 @@ class NMDA(SynDyn):
         t = share.load('t')
         dt = share.load('dt')
         self.g.value, self.x.value = self.integral(self.g.value, self.x.value, t, dt=dt)
-        self.x += pre_spike
+        self.x.value = self.x.value + pre_spike
         return self.g.value
 
     def return_info(self):

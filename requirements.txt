@@ -1,8 +1,8 @@
-numpy
+numpy>=1.15
 brainunit
 brainevent>=0.0.7
-braintools>=0.1.0
+braintools>=0.0.9
 brainstate>=0.2.7
-brainpy_state>=0.0.2
+brainpy_state>=0.0.3
 jax
 tqdm

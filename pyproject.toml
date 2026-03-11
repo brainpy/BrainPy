@@ -10,7 +10,6 @@ requires-python = ">=3.11"
 authors = [
     { name = "BrainPy Team", email = "chao.brain@qq.com" }
 ]
-license = { text = "GPL-3.0 license" }
 classifiers = [
     "Natural Language :: English",
     "Operating System :: OS Independent",

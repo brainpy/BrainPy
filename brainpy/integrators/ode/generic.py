@@ -134,7 +134,7 @@ def set_default_odeint(method):
         raise ValueError(f'Unsupported ODE_INT numerical method: {method}.')
 
     global _DEFAULT_DDE_METHOD
-    _DEFAULT_ODE_METHOD = method
+    _DEFAULT_DDE_METHOD = method
 
 
 def get_default_odeint():

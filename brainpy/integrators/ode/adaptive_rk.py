@@ -67,6 +67,7 @@ More details please check [1]_ [2]_ [3]_.
 
 import jax.numpy as jnp
 
+from brainpy import _errors as errors
 from brainpy.integrators import constants as C, utils
 from brainpy.integrators.ode import common
 from brainpy.integrators.ode.base import ODEIntegrator
@@ -456,7 +457,7 @@ class BogackiShampine(AdaptiveRKIntegrator):
     A = [(),
          (0.5,),
          (0., 0.75),
-         ('2/9', '1/3', '4/0'), ]
+         ('2/9', '1/3', '4/9'), ]
     B1 = ['2/9', '1/3', '4/9', 0]
     B2 = ['7/24', 0.25, '1/3', 0.125]
     C = [0, 0.5, 0.75, 1]

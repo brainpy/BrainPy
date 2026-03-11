@@ -299,7 +299,7 @@ class LifLTC(GradNeuDyn):
             elif self.spk_reset == 'hard':
                 V += (self.V_reset - V) * spike
             else:
-                raise ValueError
+                raise ValueError(f"Unknown spk_reset mode: {self.spk_reset}. Must be 'soft' or 'hard'.")
 
         else:
             spike = V >= self.V_th
@@ -509,7 +509,7 @@ class LifRefLTC(LifLTC):
             elif self.spk_reset == 'hard':
                 V += (self.V_reset - V) * spike_no_grad
             else:
-                raise ValueError
+                raise ValueError(f"Unknown spk_reset mode: {self.spk_reset}. Must be 'soft' or 'hard'.")
             spike_ = spike_no_grad > 0.
             # will be used in other place, like Delta Synapse, so stop its gradient
             if self.ref_var:
@@ -785,7 +785,7 @@ class ExpIFLTC(GradNeuDyn):
             elif self.spk_reset == 'hard':
                 V += (self.V_reset - V) * spike
             else:
-                raise ValueError
+                raise ValueError(f"Unknown spk_reset mode: {self.spk_reset}. Must be 'soft' or 'hard'.")
 
         else:
             spike = V >= self.V_th
@@ -1142,7 +1142,7 @@ class ExpIFRefLTC(ExpIFLTC):
             elif self.spk_reset == 'hard':
                 V += (self.V_reset - V) * spike_no_grad
             else:
-                raise ValueError
+                raise ValueError(f"Unknown spk_reset mode: {self.spk_reset}. Must be 'soft' or 'hard'.")
             spike_ = spike_no_grad > 0.
             # will be used in other place, like Delta Synapse, so stop its gradient
             if self.ref_var:
@@ -1497,7 +1497,7 @@ class AdExIFLTC(GradNeuDyn):
             elif self.spk_reset == 'hard':
                 V += (self.V_reset - V) * spike
             else:
-                raise ValueError
+                raise ValueError(f"Unknown spk_reset mode: {self.spk_reset}. Must be 'soft' or 'hard'.")
             w += self.b * spike
 
         else:
@@ -1843,7 +1843,7 @@ class AdExIFRefLTC(AdExIFLTC):
             elif self.spk_reset == 'hard':
                 V += (self.V_reset - V) * spike_no_grad
             else:
-                raise ValueError
+                raise ValueError(f"Unknown spk_reset mode: {self.spk_reset}. Must be 'soft' or 'hard'.")
             w += self.b * spike_no_grad
             spike_ = spike_no_grad > 0.
             # will be used in other place, like Delta Synapse, so stop its gradient
@@ -2142,7 +2142,7 @@ class QuaIFLTC(GradNeuDyn):
             elif self.spk_reset == 'hard':
                 V += (self.V_reset - V) * spike
             else:
-                raise ValueError
+                raise ValueError(f"Unknown spk_reset mode: {self.spk_reset}. Must be 'soft' or 'hard'.")
 
         else:
             spike = V >= self.V_th
@@ -2431,7 +2431,7 @@ class QuaIFRefLTC(QuaIFLTC):
             elif self.spk_reset == 'hard':
                 V += (self.V_reset - V) * spike_no_grad
             else:
-                raise ValueError
+                raise ValueError(f"Unknown spk_reset mode: {self.spk_reset}. Must be 'soft' or 'hard'.")
             spike_ = spike_no_grad > 0.
             # will be used in other place, like Delta Synapse, so stop its gradient
             if self.ref_var:
@@ -2734,7 +2734,7 @@ class AdQuaIFLTC(GradNeuDyn):
             elif self.spk_reset == 'hard':
                 V += (self.V_reset - V) * spike
             else:
-                raise ValueError
+                raise ValueError(f"Unknown spk_reset mode: {self.spk_reset}. Must be 'soft' or 'hard'.")
             w += self.b * spike
 
         else:
@@ -3054,7 +3054,7 @@ class AdQuaIFRefLTC(AdQuaIFLTC):
             elif self.spk_reset == 'hard':
                 V += (self.V_reset - V) * spike_no_grad
             else:
-                raise ValueError
+                raise ValueError(f"Unknown spk_reset mode: {self.spk_reset}. Must be 'soft' or 'hard'.")
             w += self.b * spike_no_grad
             spike_ = spike_no_grad > 0.
             # will be used in other place, like Delta Synapse, so stop its gradient
@@ -3417,7 +3417,7 @@ class GifLTC(GradNeuDyn):
             elif self.spk_reset == 'hard':
                 V += (self.V_reset - V) * spike
             else:
-                raise ValueError
+                raise ValueError(f"Unknown spk_reset mode: {self.spk_reset}. Must be 'soft' or 'hard'.")
             I1 += spike * (self.R1 * I1 + self.A1 - I1)
             I2 += spike * (self.R2 * I2 + self.A2 - I2)
             V_th += (bm.maximum(self.V_th_reset, V_th) - V_th) * spike
@@ -3810,7 +3810,7 @@ class GifRefLTC(GifLTC):
             elif self.spk_reset == 'hard':
                 V += (self.V_reset - V) * spike_no_grad
             else:
-                raise ValueError
+                raise ValueError(f"Unknown spk_reset mode: {self.spk_reset}. Must be 'soft' or 'hard'.")
             I1 += spike * (self.R1 * I1 + self.A1 - I1)
             I2 += spike * (self.R2 * I2 + self.A2 - I2)
             V_th += (bm.maximum(self.V_th_reset, V_th) - V_th) * spike_no_grad

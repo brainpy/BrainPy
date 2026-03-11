@@ -109,7 +109,7 @@ class Variable(brainstate.State, Array):
             return self.size
         else:
             sizes = self.size
-            return sizes[:self.batch_size] + sizes[self.batch_axis + 1:]
+            return sizes[:self.batch_axis] + sizes[self.batch_axis + 1:]
 
     @property
     def batch_axis(self) -> Optional[int]:
@@ -390,7 +390,7 @@ class VarDict(dict):
                     self[k] = v
             elif isinstance(arg, tuple):
                 assert len(arg) == 2
-                self[arg[0]] = args[1]
+                self[arg[0]] = arg[1]
         for k, v in kwargs.items():
             self[k] = v
         return self
