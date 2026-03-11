@@ -38,7 +38,7 @@ dependencies = [
     "jax",
     "tqdm",
     "brainstate>=0.2.7",
-    "brainunit",
+    "brainunit>=0.2.0",
     "brainevent>=0.0.7",
     "braintools>=0.0.9",
     'brainpy_state>=0.0.3',
