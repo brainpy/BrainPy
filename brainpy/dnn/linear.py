@@ -19,8 +19,12 @@ from typing import Dict, Optional, Union, Callable
 import jax
 import jax.numpy as jnp
 import numpy as np
-from brainevent import csr_on_pre, csr2csc_on_post
-from brainevent import dense_on_pre, dense_on_post
+from brainevent import (
+    update_csr_on_binary_pre,
+    update_csr_on_binary_post,
+    update_dense_on_binary_pre,
+    update_dense_on_binary_post,
+)
 
 from brainpy import connect, initialize as init
 from brainpy import math as bm
@@ -226,11 +230,11 @@ class Dense(Layer, SupportSTDP, SupportOnline, SupportOffline):
         if on_pre is not None:
             spike = on_pre['spike']
             trace = on_pre['trace']
-            self.W.value = dense_on_pre(self.W.value, spike, trace, w_min, w_max)
+            self.W.value = update_dense_on_binary_pre(self.W.value, spike, trace, w_min, w_max)
         if on_post is not None:
             spike = on_post['spike']
             trace = on_post['trace']
-            self.W.value = dense_on_post(self.W.value, trace, spike, w_min, w_max)
+            self.W.value = update_dense_on_binary_post(self.W.value, trace, spike, w_min, w_max)
 
 
 Linear = Dense
@@ -321,11 +325,11 @@ class AllToAll(Layer, SupportSTDP):
         if on_pre is not None:
             spike = on_pre['spike']
             trace = on_pre['trace']
-            self.weight.value = dense_on_pre(self.weight.value, spike, trace, w_min, w_max)
+            self.weight.value = update_dense_on_binary_pre(self.weight.value, spike, trace, w_min, w_max)
         if on_post is not None:
             spike = on_post['spike']
             trace = on_post['trace']
-            self.weight.value = dense_on_post(self.weight.value, trace, spike, w_min, w_max)
+            self.weight.value = update_dense_on_binary_post(self.weight.value, trace, spike, w_min, w_max)
 
 
 class OneToOne(Layer, SupportSTDP):
@@ -449,11 +453,11 @@ class MaskedLinear(Layer, SupportSTDP):
         if on_pre is not None:
             spike = on_pre['spike']
             trace = on_pre['trace']
-            self.weight.value = dense_on_pre(self.weight.value, spike, trace, w_min, w_max)
+            self.weight.value = update_dense_on_binary_pre(self.weight.value, spike, trace, w_min, w_max)
         if on_post is not None:
             spike = on_post['spike']
             trace = on_post['trace']
-            self.weight.value = dense_on_post(self.weight.value, trace, spike, w_min, w_max)
+            self.weight.value = update_dense_on_binary_post(self.weight.value, trace, spike, w_min, w_max)
 
 
 class _CSRLayer(Layer, SupportSTDP):
@@ -500,7 +504,7 @@ class _CSRLayer(Layer, SupportSTDP):
         if on_pre is not None:  # update on presynaptic spike
             spike = on_pre['spike']
             trace = on_pre['trace']
-            self.weight.value = csr_on_pre(
+            self.weight.value = update_csr_on_binary_pre(
                 self.weight.value, self.indices, self.indptr, spike, trace, w_min, w_max,
                 shape=(spike.shape[0], trace.shape[0]),
             )
@@ -512,7 +516,7 @@ class _CSRLayer(Layer, SupportSTDP):
                     )
             spike = on_post['spike']
             trace = on_post['trace']
-            self.weight.value = csr2csc_on_post(
+            self.weight.value = update_csr_on_binary_post(
                 self.weight.value, self._pre_ids, self._post_indptr,
                 self.w_indices, trace, spike, w_min, w_max,
                 shape=(trace.shape[0], spike.shape[0]),

@@ -1,4 +1,4 @@
-# `brainpy.state` - State-based Brain Dynamics Programming
+# `brainpy.state`
 
 ## Overview
 
@@ -37,7 +37,7 @@ pip install brainpy -U
 For development or to install the state module separately:
 
 ```bash
-pip install brainpy_state -U
+pip install brainpy.state -U
 ```
 
 ## Usage

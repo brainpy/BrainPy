@@ -84,7 +84,7 @@ def csrmv(
     if isinstance(events, Array):
         events = events.value
 
-    events = brainevent.EventArray(events)
+    events = brainevent.BinaryArray(events)
     csr = brainevent.CSR((data, indices, indptr), shape=shape)
     if transpose:
         return events @ csr

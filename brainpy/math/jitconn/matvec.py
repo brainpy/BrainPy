@@ -96,7 +96,7 @@ def mv_prob_homo(
     if isinstance(weight, Array):
         weight = weight.value
 
-    csr = brainevent.JITCHomoR((weight, conn_prob, seed), shape=shape, corder=outdim_parallel)
+    csr = brainevent.JITCScalarR((weight, conn_prob, seed), shape=shape, corder=outdim_parallel)
     if transpose:
         return vector @ csr
     else:
@@ -290,7 +290,7 @@ def get_homo_weight_matrix(
     """
     if seed is None:
         seed = np.random.randint(0, 1000000000)
-    csr = brainevent.JITCHomoR((weight, conn_prob, seed), shape=shape, corder=outdim_parallel)
+    csr = brainevent.JITCScalarR((weight, conn_prob, seed), shape=shape, corder=outdim_parallel)
     if transpose:
         csr = csr.T
     return csr.todense()

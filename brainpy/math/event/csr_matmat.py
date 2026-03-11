@@ -59,7 +59,7 @@ def csrmm(
     if isinstance(matrix, Array):
         matrix = matrix.value
 
-    matrix = brainevent.EventArray(matrix)
+    matrix = brainevent.BinaryArray(matrix)
     csr = brainevent.CSR((data, indices, indptr), shape=shape)
     if transpose:
         return matrix @ csr
