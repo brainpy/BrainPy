@@ -1,5 +1,71 @@
 # Changelog
 
+## Version 2.7.7
+
+**Release Date:** March 12, 2026
+
+This release migrates to the new `brainevent` binary backend API, fixes numerous bugs across neuron models, synapse dynamics, ODE integrators, and object transforms, and raises the minimum Python version to 3.11.
+
+### Breaking Changes
+
+#### Python Version Requirement
+- **Raised**: Minimum Python version from 3.10 to **3.11**
+  - Dropped Python 3.10 support from classifiers and build metadata
+
+#### brainevent API Migration (#817)
+- **Updated**: Event-driven operations to use the new `brainevent` binary backend
+  - `EventArray` replaced by `BinaryArray` in all event CSR and jitconn operations
+  - `JITCHomoR` replaced by `JITCScalarR` for homogeneous JIT connectivity
+  - STDP weight update functions renamed:
+    - `dense_on_pre` / `dense_on_post` → `update_dense_on_binary_pre` / `update_dense_on_binary_post`
+    - `csr_on_pre` / `csr2csc_on_post` → `update_csr_on_binary_pre` / `update_csr_on_binary_post`
+  - Affected layers: `Dense`, `AllToAll`, `MaskedLinear`, and all CSR-based layers
+
+### Bug Fixes
+
+#### Neuron Models
+- **Fixed**: All LIF-family neuron models (`LifLTC`, `LifRefLTC`, `ExpIFLTC`, `ExpIFRefLTC`, `AdExIFLTC`, `AdExIFRefLTC`, `QuaIFLTC`, `QuaIFRefLTC`, `AdQuaIFLTC`, `AdQuaIFRefLTC`, `GifLTC`, `GifRefLTC`) now raise descriptive `ValueError` messages for invalid `spk_reset` modes instead of bare `ValueError`
+
+#### Synapse Models
+- **Fixed**: Synaptic variable updates in `DualExpon`, `Alpha`, and `NMDA` models
+  - Replaced in-place `+=` operator with explicit `.value` assignment to prevent tracing issues under JAX transformations
+
+#### ODE Integrators
+- **Fixed**: `BogackiShampine` adaptive Runge-Kutta coefficient typo — corrected `'4/0'` to `'4/9'` in the Butcher tableau
+- **Fixed**: `set_default_odeint` was incorrectly assigning to `_DEFAULT_ODE_METHOD` instead of `_DEFAULT_DDE_METHOD`
+
+#### Object Transforms
+- **Fixed**: `Variable.varshape` used `self.batch_size` instead of `self.batch_axis` when computing non-batch shape dimensions
+- **Fixed**: `NodeDict.update()` and `VarDict.update()` referenced `args[1]` instead of `arg[1]` when updating from tuple arguments
+- **Fixed**: `NodeDict.__setitem__` duplicate key error message incorrectly displayed the new value instead of the existing one
+
+#### Training
+- **Fixed**: `BPTrainer` did not raise `NoLongerSupportError` when `seed` parameter was passed (missing `raise` keyword)
+- **Fixed**: `BPTrainer` metric aggregation switched from `jnp.mean(bm.as_jax(...))` to `np.mean(np.asarray(...))` to avoid unnecessary JAX tracing overhead
+
+#### Core
+- **Fixed**: `ShardedArray.value` setter used `_check_tracer()` instead of direct `_value` access
+- **Fixed**: `_slice_to_num` did not handle negative step values and raised no error on zero step
+- **Fixed**: `load_state` crashed with `KeyError` when state dict contained missing keys; now correctly reports them as missing
+
+#### Code Quality
+- **Improved**: Narrowed bare `except` clauses to specific exception types (`ValueError`, `TypeError`, `ImportError`, `ModuleNotFoundError`) in convolution layers and Flax interoperation module
+
+### Dependencies
+
+- **Updated**: `brainevent` from `>=0.0.4` to `>=0.0.7`
+- **Updated**: `braintools` version spec corrected to `>=0.0.9`
+- **Updated**: `numpy` minimum version set to `>=1.15`
+- **Updated**: `brainpy_state` from `>=0.0.2` to `>=0.0.3`
+
+### CI/CD
+
+- **Updated**: `actions/upload-artifact` from v6 to v7 (#815)
+- **Updated**: `actions/download-artifact` from v7 to v8 (#816)
+
+
+---
+
 ## Version 2.7.6
 
 **Release Date:** January 21, 2026
