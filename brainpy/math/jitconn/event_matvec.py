@@ -49,8 +49,8 @@ def event_mv_prob_homo(
     if isinstance(weight, Array):
         weight = weight.value
 
-    events = brainevent.EventArray(events)
-    csr = brainevent.JITCHomoR((weight, conn_prob, seed), shape=shape, corder=outdim_parallel)
+    events = brainevent.BinaryArray(events)
+    csr = brainevent.JITCScalarR((weight, conn_prob, seed), shape=shape, corder=outdim_parallel)
     if transpose:
         return events @ csr
     else:
@@ -75,7 +75,7 @@ def event_mv_prob_uniform(
         seed = np.random.randint(0, 1000000000)
     if isinstance(events, Array):
         events = events.value
-    events = brainevent.EventArray(events)
+    events = brainevent.BinaryArray(events)
     if isinstance(w_low, Array):
         w_low = w_low.value
     if isinstance(w_high, Array):
@@ -106,7 +106,7 @@ def event_mv_prob_normal(
         seed = np.random.randint(0, 1000000000)
     if isinstance(events, Array):
         events = events.value
-    events = brainevent.EventArray(events)
+    events = brainevent.BinaryArray(events)
     if isinstance(w_mu, Array):
         w_mu = w_mu.value
     if isinstance(w_sigma, Array):

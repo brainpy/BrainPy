@@ -16,7 +16,6 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -41,7 +40,7 @@ dependencies = [
     "tqdm",
     "brainstate>=0.2.7",
     "brainunit",
-    "brainevent>=0.0.4",
+    "brainevent>=0.0.7",
     "braintools>=0.0.9",
     'brainpy_state>=0.0.3',
 ]

@@ -16,5 +16,6 @@
 from brainpy_state import *
 from brainpy_state import __all__
 
-
-
+if __name__ == '__main__':
+    print(LIF)
+    print(__all__)

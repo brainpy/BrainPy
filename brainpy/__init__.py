@@ -14,7 +14,7 @@
 # limitations under the License.
 # ==============================================================================
 
-__version__ = "2.7.6"
+__version__ = "2.7.7"
 __version_info__ = tuple(map(int, __version__.split(".")))
 
 from brainpy import _errors as errors
@@ -133,20 +133,14 @@ from brainpy import (
     synouts,  # synaptic output
     synplast,  # synaptic plasticity
 )
-from brainpy.math.object_transform.base import (
-    Base as Base,
-)
+from brainpy.math.object_transform.base import Base as Base
 
 from brainpy.math.object_transform.collectors import (
     ArrayCollector as ArrayCollector,
     Collector as Collector,
 )
 
-from brainpy.deprecations import deprecation_getattr
-
 optimizers = optim
-
 
 # New package
 from brainpy import state
-

@@ -36,7 +36,7 @@ __all__ = [
     'lcm', 'gcd', 'arccos', 'arccosh', 'arcsin', 'arcsinh', 'arctan',
     'arctan2', 'arctanh', 'cos', 'cosh', 'sin', 'sinc', 'sinh', 'tan',
     'tanh', 'deg2rad', 'hypot', 'rad2deg', 'degrees', 'radians', 'round',
-    'around', 'round_', 'rint', 'floor', 'ceil', 'trunc', 'fix', 'prod',
+    'around', 'round_', 'rint', 'floor', 'ceil', 'trunc', 'prod',
     'sum', 'diff', 'median', 'nancumprod', 'nancumsum', 'nanprod', 'nansum',
     'cumprod', 'cumsum', 'ediff1d', 'cross', 'isfinite', 'isinf',
     'isnan', 'signbit', 'copysign', 'nextafter', 'ldexp', 'frexp', 'convolve',
@@ -397,7 +397,6 @@ rint = _compatible_with_brainpy_array(jnp.rint)
 floor = _compatible_with_brainpy_array(jnp.floor)
 ceil = _compatible_with_brainpy_array(jnp.ceil)
 trunc = _compatible_with_brainpy_array(jnp.trunc)
-fix = _compatible_with_brainpy_array(jnp.fix)
 prod = _compatible_with_brainpy_array(jnp.prod)
 
 sum = _compatible_with_brainpy_array(jnp.sum)
