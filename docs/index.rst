@@ -157,5 +157,3 @@ See also the ecosystem
    FAQ.rst
    api.rst
    changelog.md
-   brainpy-changelog.md
-   brainpylib-changelog.md

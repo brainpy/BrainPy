@@ -53,10 +53,10 @@ dynamic = ['version']
 "Source Code" = "https://github.com/brainpy/BrainPy"
 
 [project.optional-dependencies]
-cpu = ["jax[cpu]"]
-cuda12 = ["jax[cuda12]"]
-cuda13 = ["jax[cuda13]"]
-tpu = ["jax[tpu]"]
+cpu = ["jax[cpu]", 'brainevent[cpu]']
+cuda12 = ["jax[cuda12]", 'brainevent[cuda12]']
+cuda13 = ["jax[cuda13]", 'brainevent[cuda13]']
+tpu = ["jax[tpu]", 'brainevent[tpu]']
 
 [tool.setuptools]
 package-dir = { "" = "." }
