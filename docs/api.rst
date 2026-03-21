@@ -20,6 +20,7 @@ API Documentation
    apis/optim.rst
    apis/running.rst
    apis/mixin.rst
+   ``brainpy.state`` module <https://brainpy-state.readthedocs.io/api/index.html>
 
 The following APIs will no longer be maintained in the future, but you can still use them normally.
 
