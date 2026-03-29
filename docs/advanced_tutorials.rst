@@ -24,17 +24,6 @@ Interoperation
    tutorial_advanced/integrate_bp_convlstm_into_flax.ipynb
 
 
-Brain Dynamics Dedicated Operators
-----------------------------------
-
-.. toctree::
-   :maxdepth: 1
-
-   tutorial_advanced/operator_custom_with_numba.ipynb
-   tutorial_advanced/operator_custom_with_taichi.ipynb
-   tutorial_advanced/operator_custom_with_cupy.ipynb
-
-
 Developer Guides
 ----------------
 

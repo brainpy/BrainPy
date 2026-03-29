@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+
+import os
+
+os.environ['JAX_TRACEBACK_FILTERING'] = 'off'
+
 import jax.numpy as jnp
 from absl.testing import absltest
 from absl.testing import parameterized
