@@ -1,5 +1,44 @@
 # Changelog
 
+## Version 2.7.8
+
+**Release Date:** April 18, 2026
+
+This maintenance release focuses on JAX compatibility cleanup, packaging improvements for `brainevent`, and documentation streamlining. It also removes duplicated internal JAXPR source-conversion code by relying on the shared `brainstate` implementation.
+
+### Improvements
+
+#### JAX Compatibility and Internal Refactoring
+- **Updated**: Replaced version-specific JAX imports with `brainstate._compatible_import` across math compatibility, backend environment utilities, surrogate operators, and vmap-removal helpers
+  - Centralizes compatibility handling for `Primitive` and backend imports across newer JAX releases
+- **Updated**: `brainpy.integrators` now imports `jaxpr_to_python_code` from `brainstate.transform`
+  - Removed the duplicated local `brainpy.integrators._jaxpr_to_source_code` implementation
+  - Keeps integrator math-expression generation aligned with the shared `brainstate` implementation
+- **Updated**: `bm.trapz` now consistently maps to `jax.scipy.integrate.trapezoid`
+
+### Packaging
+
+- **Updated**: Optional install extras now include matching `brainevent` extras
+  - `brainpy[cpu]` installs `brainevent[cpu]`
+  - `brainpy[cuda12]` installs `brainevent[cuda12]`
+  - `brainpy[cuda13]` installs `brainevent[cuda13]`
+  - `brainpy[tpu]` installs `brainevent[tpu]`
+- **Impact**: Simplifies accelerator-specific installation and keeps event-backend dependencies aligned with the selected JAX platform
+
+### Documentation
+
+- **Added**: Direct link to the external `brainpy.state` API reference in the docs API index (#822)
+- **Removed**: Legacy `brainpy` and `brainpylib` historical changelog pages from the main documentation navigation
+- **Removed**: Advanced operator-customization tutorial notebooks for CuPy, Numba, and Taichi from the documentation tree
+- **Updated**: Refreshed quickstart simulation notebook content and documentation structure around `brainpy.state`
+
+### Testing and CI/CD
+
+- **Improved**: Disabled JAX traceback filtering in `brainpy.dnn` linear tests to make failures easier to diagnose
+- **Updated**: Raised the Sphinx upper bound for documentation builds from `<8.2.0` to `<9.1.0` (#820)
+- **Updated**: Bumped `styfle/cancel-workflow-action` from `0.13.0` to `0.13.1` in CI (#819)
+
+
 ## Version 2.7.7
 
 **Release Date:** March 12, 2026
