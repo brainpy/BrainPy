@@ -17,12 +17,12 @@ from contextlib import contextmanager
 from typing import Dict, Sequence, Union, Callable
 
 import jax
+from brainstate.transform import jaxpr_to_python_code
 
 from brainpy._errors import DiffEqError
 from brainpy.check import is_float, is_dict_data
 from brainpy.math import TimeDelay, LengthDelay
 from brainpy.math.object_transform.base import BrainPyObject
-from ._jaxpr_to_source_code import jaxpr_to_python_code
 from .constants import DT
 
 __all__ = [
