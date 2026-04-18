@@ -24,12 +24,8 @@ from typing import Callable, Union
 import jax
 import jax.numpy as jnp
 import numpy as np
+from brainstate._compatible_import import Literal, Var, Jaxpr
 from jax._src.sharding_impls import UNSPECIFIED
-
-if jax.__version__ >= '0.5.0':
-    from jax.extend.core import Literal, Var, Jaxpr
-else:
-    from jax.core import Primitive, Literal, Var, Jaxpr
 
 __all__ = [
     'fn_to_python_code',
