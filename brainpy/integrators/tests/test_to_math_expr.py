@@ -13,6 +13,9 @@
 # limitations under the License.
 # ==============================================================================
 
+import brainstate
+import pytest
+from packaging import version
 
 import brainpy as bp
 
@@ -40,6 +43,9 @@ class EINet3(bp.DynSysGroup):
         return self.N.spike.value
 
 
+@pytest.mark.skipif(
+    tuple(map(int, brainstate.__version__.split('.'))) < (0, 3, 1),
+)
 def test1():
     model = EINet3()
 
