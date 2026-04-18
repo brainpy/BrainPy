@@ -45,6 +45,7 @@ class EINet3(bp.DynSysGroup):
 
 @pytest.mark.skipif(
     tuple(map(int, brainstate.__version__.split('.'))) < (0, 3, 1),
+    reason='The `to_math_expr` method is only available in BrainState v0.3.1 and above.'
 )
 def test1():
     model = EINet3()
