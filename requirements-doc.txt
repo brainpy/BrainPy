@@ -13,6 +13,6 @@ sphinx-autodoc-typehints
 sphinx-book-theme>=1.0.1
 sphinx-copybutton>=0.5.0
 sphinx-remove-toctrees
-jupyter-sphinx>=0.3.2
+jupyter-sphinx>=0.5.3
 sphinx-design
 sphinx_math_dollar
