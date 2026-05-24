@@ -1,5 +1,5 @@
 <p align="center">
-  	<img alt="Header image of BrainPy - brain dynamics programming in Python." src="https://raw.githubusercontent.com/brainpy/BrainPy/master/images/logo-banner.png" width=80%>
+  	<img alt="Header image of BrainPy - brain dynamics programming in Python." src="https://brainx.chaobrain.com/images/brainpy.webp" width=40%>
 </p> 
 
 
