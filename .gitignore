@@ -237,3 +237,4 @@ cython_debug/
 /docs_state/_static/logos/
 /docs_state/changelog.md
 /examples/dynamics_training/data/
+/CLAUDE.md
