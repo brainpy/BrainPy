@@ -17,15 +17,15 @@
 BrainPy is a flexible, efficient, and extensible framework for computational neuroscience and brain-inspired computation based on the Just-In-Time (JIT) compilation. It provides an integrative ecosystem for brain dynamics programming, including brain dynamics **building**, **simulation**, **training**, **analysis**, etc. 
 
 - **Source**: https://github.com/brainpy/BrainPy
-- **Documentation**: https://brainpy.readthedocs.io/
-- **Documentation (state-based)**: https://brainpy-state.readthedocs.io/
 - **Bug reports**: https://github.com/brainpy/BrainPy/issues
-- **Ecosystem**: https://brainmodeling.readthedocs.io/
+- **Documentation**: https://brainpy.readthedocs.io/
+- **Documentation (state-based)**: https://brainx.chaobrain.com/brainpy-state
+- **Ecosystem**: https://brainx.chaobrain.com
 
 
 ## Installation
 
-BrainPy is based on Python (>=3.10) and can be installed on Linux (Ubuntu 16.04 or later), macOS (10.12 or later), and Windows platforms. 
+BrainPy is based on Python (>=3.11) and can be installed on Linux (Ubuntu 16.04 or later), macOS (10.12 or later), and Windows platforms. 
 
 ```bash
 pip install brainpy -U
