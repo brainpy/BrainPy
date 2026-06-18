@@ -11,4 +11,5 @@ setuptools
 # test requirements
 pytest
 pytest-xdist  # for parallel test execution
+pytest-cov  # for coverage reporting (Codecov badge)
 absl-py
