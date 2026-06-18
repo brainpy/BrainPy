@@ -40,7 +40,7 @@ dependencies = [
     "brainstate>=0.5.1",
     "brainunit>=0.2.0",
     "brainevent>=0.0.7",
-    "braintools>=0.0.9",
+    "braintools>=0.2.0",
     'brainpy_state>=0.0.3',
 ]
 
