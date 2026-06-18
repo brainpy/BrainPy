@@ -15,7 +15,8 @@ This module exercises the fixes recorded in the audit for the
   accept a ``Variable``/``Array`` in ``operands``), H-03 (``for_loop(jit=False)``
   with a zero-length pytree operand returns ``[]`` instead of crashing),
   M-03 (``scan`` returns ``(carry, ys)``), M-05 (``ifelse`` builds mutually
-  exclusive conditions), M-06 (``while_loop`` body returning ``None`` raises).
+  exclusive conditions), M-06 (``while_loop`` body returning ``None`` threads the
+  operands through unchanged so the canonical state-mutation idiom keeps working).
 * ``function.py``   — ``Partial``/``to_object`` behaviour and L-04 (``function``
   emits a ``DeprecationWarning``).
 * ``_utils.py``     — ``warp_to_no_state_input_output`` strips/restores states.
@@ -352,16 +353,18 @@ def test_while_loop_state_mutation():
     assert len(res) == 2
 
 
-def test_while_loop_body_returning_none_raises():
-    """M-06: a ``while_loop`` body that returns ``None`` would freeze the carry
-    and loop forever -- it must raise a clear ``ValueError`` instead."""
+def test_while_loop_body_returning_none_threads_operands():
+    """M-06: a ``while_loop`` body that returns ``None`` mutates ``Variable`` state
+    in place (the canonical brainpy idiom, e.g. ``SpikeTimeGroup.update`` with empty
+    ``operands``) and threads the operands through unchanged. brainstate tracks the
+    mutated state, which drives the loop condition, so it must NOT raise."""
+    a = bm.Variable(bm.zeros(1))
 
-    def body(x):
-        # returns None -> illegal
-        pass
+    def body():
+        a.value += 1.
 
-    with pytest.raises(ValueError):
-        bm.while_loop(body, lambda x: x < 3., 0.)
+    bm.while_loop(body, lambda: bm.all(a.value < 3.), ())
+    assert float(np.asarray(a.value[0])) == 3.0
 
 
 def test_ifelse_callable_branches_mutually_exclusive():

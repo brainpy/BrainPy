@@ -312,9 +312,10 @@ class TestRandom(unittest.TestCase):
         self.assertTrue(a.dtype, float)
 
     def test_chisquare2(self):
+        # Array-valued ``df`` is now supported (broadcasts over the batch axis).
         br.seed()
-        with self.assertRaises(NotImplementedError):
-            a = bm.random.chisquare(df=[2, 3, 4])
+        a = bm.random.chisquare(df=[2, 3, 4])
+        self.assertTupleEqual(a.shape, (3,))
 
     def test_chisquare3(self):
         br.seed()
@@ -451,8 +452,10 @@ class TestRandom(unittest.TestCase):
         self.assertTupleEqual(a.shape, (4, 2))
 
     def test_triangular(self):
+        # ``triangular`` signature is ``(left, mode, right, size, ...)``; pass the
+        # output shape via the ``size`` keyword.
         br.seed()
-        a = bm.random.triangular((2, 2))
+        a = bm.random.triangular(size=(2, 2))
         self.assertTupleEqual(a.shape, (2, 2))
 
     def test_vonmises(self):
