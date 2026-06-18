@@ -1150,7 +1150,20 @@ def test_relative_nodes_nested_hierarchy():
 
 def test_cuda_tpu_raise_without_device():
     obj = _Obj()
-    with pytest.raises(RuntimeError):
-        obj.cuda()
-    with pytest.raises(RuntimeError):
-        obj.tpu()
+
+    # ``.cuda()`` / ``.tpu()`` move variables onto a GPU / TPU and only raise a
+    # ``RuntimeError`` when no such device is present. Guard each assertion on device
+    # availability so the test stays meaningful on CPU-only machines (the common CI
+    # case) without failing on developer machines that do expose a GPU / TPU.
+    def _device_available(platform):
+        try:
+            return len(jax.devices(platform)) > 0
+        except RuntimeError:
+            return False
+
+    if not _device_available('gpu'):
+        with pytest.raises(RuntimeError):
+            obj.cuda()
+    if not _device_available('tpu'):
+        with pytest.raises(RuntimeError):
+            obj.tpu()
