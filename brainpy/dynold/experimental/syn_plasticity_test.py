@@ -18,17 +18,10 @@
 Exercises the experimental short-term plasticity components ``STD`` (fully
 functional) and ``STP``.
 
-.. note::
-
-    ``STP`` is currently **unconstructable**: its ``reset_state`` calls
-    ``variable_(jnp.ones, batch_size, self.num)`` with the ``batch_or_mode``
-    and ``sizes`` arguments swapped relative to ``STD``. When ``__init__``
-    calls ``reset_state(self.mode)`` the ``Mode`` object lands in the
-    ``sizes`` slot and ``to_size`` raises ``ValueError: Cannot make a size
-    for NonBatchingMode``. The DEFECT is pinned in
-    ``TestSTP.test_stp_construction_is_broken`` below; the rest of STP's
-    behaviour (the ``du``/``dx`` ODE RHS and ``update``) is exercised through
-    a manually corrected instance.
+``STP`` previously could not be constructed: its ``reset_state`` called
+``variable_(jnp.ones, batch_size, self.num)`` with the ``batch_or_mode`` and
+``sizes`` arguments swapped relative to ``STD`` (P11-C1). That is now fixed and
+the construction / update behaviour is exercised directly below.
 """
 
 import unittest
@@ -88,29 +81,33 @@ class TestSTP(unittest.TestCase):
         bm.random.seed(123)
         bm.set_dt(0.1)
 
-    def test_stp_construction_is_broken(self):
-        # NOTE: DEFECT -- STP.reset_state has swapped (batch_or_mode, sizes)
-        # arguments to variable_, so constructing STP with the default
-        # NonBatchingMode raises ValueError ("Cannot make a size for ...Mode").
-        # STD.reset_state uses the correct order; STP should mirror it.
-        with self.assertRaises(ValueError):
-            sp.STP(4)
+    def test_stp_construction_ok(self):
+        # P11-C1 regression: STP.reset_state used to pass (batch_or_mode, sizes)
+        # to variable_ in the wrong order, so constructing STP with the default
+        # NonBatchingMode raised ValueError ("Cannot make a size for ...Mode").
+        # It must now construct cleanly with x=ones, u=U.
+        stp = sp.STP(4, U=0.15, tau_f=1500., tau_d=200.)
+        self.assertEqual(stp.num, 4)
+        self.assertEqual(stp.x.shape, (4,))
+        self.assertEqual(stp.u.shape, (4,))
+        np.testing.assert_allclose(bm.as_jax(stp.x.value), np.ones(4))
+        np.testing.assert_allclose(bm.as_jax(stp.u.value), np.full(4, 0.15))
+
+    def test_stp_update_state_changes(self):
+        # P11-C1 regression: a constructed STP must update without error and
+        # respond to a presynaptic spike (u facilitates, x depresses).
+        stp = sp.STP(4, U=0.15, tau_f=1500., tau_d=200.)
+        share.save(t=0.0, dt=bm.dt)
+        x_before = bm.as_jax(stp.x.value).copy()
+        u_before = bm.as_jax(stp.u.value).copy()
+        r = bm.as_jax(stp.update(bm.ones(4, dtype=bool)))
+        self.assertEqual(r.shape, (4,))
+        self.assertTrue(np.all(bm.as_jax(stp.u.value) >= u_before - 1e-6))
+        self.assertTrue(np.all(bm.as_jax(stp.x.value) <= x_before + 1e-6))
 
     def _make_stp(self, num=4, U=0.15, tau_f=1500., tau_d=200.):
-        """Build a working STP instance, working around the reset_state defect."""
-        stp = sp.STP.__new__(sp.STP)
-        SynSTPNS.__init__(stp)
-        stp.pre_size = tools.to_size(num)
-        stp.num = tools.size2num(stp.pre_size)
-        stp.tau_f = parameter(tau_f, stp.num)
-        stp.tau_d = parameter(tau_d, stp.num)
-        stp.U = parameter(U, stp.num)
-        stp.method = 'exp_auto'
-        stp.integral = odeint(JointEq([stp.du, stp.dx]), method=stp.method)
-        # correct argument order (mirrors STD.reset_state)
-        stp.x = variable_(jnp.ones, stp.num, None)
-        stp.u = variable_(OneInit(stp.U), stp.num, None)
-        return stp
+        """Build an STP instance directly (now that the constructor works)."""
+        return sp.STP(num, U=U, tau_f=tau_f, tau_d=tau_d)
 
     def test_du_dx_rhs(self):
         stp = self._make_stp()

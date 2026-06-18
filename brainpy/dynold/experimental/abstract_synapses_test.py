@@ -116,15 +116,36 @@ class TestExponential(parameterized.TestCase):
             r = bm.as_jax(syn.update(bm.ones((2, 5))))
         self.assertEqual(r.shape, (2, 4))
 
-    def test_sparse_with_stp_defect(self):
-        # NOTE: DEFECT -- the sparse + stp path calls
-        # bm.sparse.csrmv(..., method='cusparse'); csrmv no longer accepts
-        # a `method` kwarg, so this raises TypeError.
+    def test_sparse_with_stp(self):
+        # P11-H1/H2 regression: the sparse + stp path used to (a) call
+        # bm.sparse.csrmv(..., method='cusparse') -> TypeError, and (b) feed the
+        # raw pre_spike (not the STP-filtered syn_value) into csrmv. It must now
+        # run and return a finite, post-shaped conductance.
+        import numpy as np
         conn = bp.conn.FixedProb(0.5)(pre_size=5, post_size=4)
         syn = asyn.Exponential(conn, comp_method='sparse', stp=syn_plasticity.STD(5))
-        share.save(t=0.0, dt=bm.get_dt())
-        with self.assertRaises(TypeError):
-            syn.update(bm.ones(5, dtype=bool))
+        r = _step(syn, bm.ones(5, dtype=bool))
+        self.assertEqual(r.shape, (4,))
+        self.assertTrue(np.all(np.isfinite(np.asarray(r))))
+
+    def test_sparse_stp_filters_conductance(self):
+        # P11-H2 regression: with STD attached, the depressed (filtered) drive
+        # must produce a strictly smaller conductance than with no STP, on the
+        # same sparse connectivity / spikes. (Previously STP was ignored on the
+        # sparse path, so the two were identical.)
+        import numpy as np
+        conn = bp.conn.FixedProb(1.0)(pre_size=5, post_size=4)
+        spikes = bm.ones(5, dtype=bool)
+
+        syn_no = asyn.Exponential(conn, comp_method='sparse')
+        r_no = np.asarray(_step(syn_no, spikes, n=1))
+
+        syn_stp = asyn.Exponential(conn, comp_method='sparse',
+                                   stp=syn_plasticity.STD(5, U=0.5))
+        r_stp = np.asarray(_step(syn_stp, spikes, n=1))
+
+        self.assertTrue(np.all(r_stp <= r_no + 1e-6))
+        self.assertTrue(np.any(r_stp < r_no - 1e-6))
 
     def test_reset_state(self):
         conn = bp.conn.All2All()(pre_size=4, post_size=4)
@@ -188,15 +209,17 @@ class TestDualExponential(parameterized.TestCase):
         g = bm.ones(3)
         np.testing.assert_allclose(bm.as_jax(syn.dg(g, 0., h)), -bm.as_jax(g) / 10. + bm.as_jax(h))
 
-    def test_sparse_defect(self):
-        # NOTE: DEFECT -- DualExponential's sparse path always calls
+    def test_sparse(self):
+        # P11-H1 regression: DualExponential's sparse path used to always call
         # bm.sparse.csrmv(..., method='cusparse'); csrmv no longer accepts a
-        # `method` kwarg, so this raises TypeError.
+        # `method` kwarg, so this raised TypeError. It must now run and return a
+        # finite, post-shaped conductance.
+        import numpy as np
         conn = bp.conn.FixedProb(0.5)(pre_size=5, post_size=4)
         syn = asyn.DualExponential(conn, comp_method='sparse')
-        share.save(t=0.0, dt=bm.get_dt())
-        with self.assertRaises(TypeError):
-            syn.update(bm.ones(5))
+        r = _step(syn, bm.ones(5))
+        self.assertEqual(r.shape, (4,))
+        self.assertTrue(np.all(np.isfinite(np.asarray(r))))
 
     def test_reset_state(self):
         conn = bp.conn.All2All()(pre_size=4, post_size=4)

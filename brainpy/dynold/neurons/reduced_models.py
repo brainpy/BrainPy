@@ -1309,7 +1309,7 @@ class ALIFBellec2020(NeuDyn):
 
         # initializers
         V_initializer: Union[Initializer, Callable, ArrayType] = OneInit(-70.),
-        a_initializer: Union[Initializer, Callable, ArrayType] = OneInit(-50.),
+        a_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
 
         # parameter for training
         spike_fun: Callable = bm.surrogate.relu_grad,
@@ -1472,7 +1472,7 @@ class LIF_SFA_Bellec2020(NeuDyn):
 
         # initializers
         V_initializer: Union[Initializer, Callable, ArrayType] = OneInit(-70.),
-        a_initializer: Union[Initializer, Callable, ArrayType] = OneInit(-50.),
+        a_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
 
         # parameter for training
         spike_fun: Callable = bm.surrogate.relu_grad,

@@ -92,7 +92,10 @@ class STD(SynSTPNS):
 
     def update(self, pre_spike):
         x = self.integral(self.x.value, share.load('t'), share.load('dt'))
-        self.x.value = bm.where(pre_spike, x - self.U * self.x, x)
+        # The depression jump must be applied to the value *at spike arrival*,
+        # i.e. the recovered/decayed local ``x`` (= x^-), not the pre-decay
+        # ``self.x`` from the previous step (P11-M1).
+        self.x.value = bm.where(pre_spike, x - self.U * x, x)
         return self.x.value
 
 
@@ -166,16 +169,19 @@ class STP(SynSTPNS):
         self.reset_state(self.mode)
 
     def reset_state(self, batch_size=None):
-        self.x = variable_(jnp.ones, batch_size, self.num)
-        self.u = variable_(OneInit(self.U), batch_size, self.num)
+        self.x = variable_(jnp.ones, self.num, batch_size)
+        self.u = variable_(OneInit(self.U), self.num, batch_size)
 
     du = lambda self, u, t: self.U - u / self.tau_f
     dx = lambda self, x, t: (1 - x) / self.tau_d
 
     def update(self, pre_spike):
         u, x = self.integral(self.u.value, self.x.value, share.load('t'), bm.get_dt())
-        u = bm.where(pre_spike, u + self.U * (1 - self.u), u)
-        x = bm.where(pre_spike, x - u * self.x, x)
+        # Tsodyks-Markram jumps act on the values *at spike arrival* (the decayed
+        # locals u^-/x^-), and the depression of x uses the facilitated u^+
+        # (P11-M1): u^+ = u^- + U(1 - u^-); x^+ = x^- - u^+ x^-.
+        u = bm.where(pre_spike, u + self.U * (1 - u), u)
+        x = bm.where(pre_spike, x - u * x, x)
         self.x.value = x
         self.u.value = u
         return self.x.value * self.u.value

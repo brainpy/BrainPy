@@ -83,3 +83,26 @@ class Test_Reduced(parameterized.TestCase):
                                  progress_bar=False)
             runner.run(10.)
             self.assertTupleEqual(runner.mon['V'].shape, (1, 100, 10))
+
+
+class TestBellecAdaptation(parameterized.TestCase):
+    """P11-M2 regression: the SFA adaptation variable ``a`` must start at rest.
+
+    The threshold adaptation contributes ``beta * a`` to the effective firing
+    threshold (``V_th + beta * a``). The historical default ``OneInit(-50.)``
+    started ``a`` deeply negative, dropping the effective threshold by tens of
+    mV for thousands of ms and making a cold-started neuron fire spuriously.
+    The default must be a rest value (~0).
+    """
+
+    @parameterized.named_parameters(
+        {'testcase_name': 'ALIFBellec2020', 'neuron': 'ALIFBellec2020'},
+        {'testcase_name': 'LIF_SFA_Bellec2020', 'neuron': 'LIF_SFA_Bellec2020'},
+    )
+    def test_default_adaptation_starts_at_rest(self, neuron):
+        bm.random.seed(0)
+        model = getattr(reduced_models, neuron)(size=4)
+        model.reset_state()
+        a0 = bm.as_jax(model.a.value)
+        # adaptation starts at zero (no spurious sub-threshold offset)
+        self.assertTrue(bool(bm.all(a0 == 0.)))
