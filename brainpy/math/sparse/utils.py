@@ -34,9 +34,56 @@ def coo_to_csr(
     *,
     num_row: int
 ) -> Tuple[jnp.ndarray, jnp.ndarray]:
-    """convert pre_ids, post_ids to (indices, indptr)."""
+    """Convert COO ``(pre_ids, post_ids)`` connectivity to CSR ``(indices, indptr)``.
+
+    Parameters
+    ----------
+    pre_ids : ndarray
+        Row (pre-synaptic) index of each non-zero entry. Every value must be in
+        ``[0, num_row)``.
+    post_ids : ndarray
+        Column (post-synaptic) index of each non-zero entry, aligned with
+        ``pre_ids``.
+    num_row : int
+        Number of rows of the sparse matrix (``shape[0]``).
+
+    Returns
+    -------
+    indices : ndarray
+        CSR column indices of shape ``(nse,)``.
+    indptr : ndarray
+        CSR row pointers of shape ``(num_row + 1,)`` and dtype ``int32``.
+
+    Raises
+    ------
+    ValueError
+        If any ``pre_ids`` falls outside ``[0, num_row)``. Such an entry would
+        otherwise be silently dropped from ``indptr`` (its scatter index is
+        out-of-bounds), producing a structurally invalid CSR in which
+        ``indptr[-1] != len(indices)``.
+
+    Notes
+    -----
+    This is an eager preprocessing helper: it relies on ``jnp.unique`` (whose
+    output size is data-dependent) and therefore cannot be traced under
+    ``jit``/``vmap``.
+    """
     pre_ids = as_jax(pre_ids)
     post_ids = as_jax(post_ids)
+
+    # Validate the pre (row) indices eagerly. An out-of-range ``pre_id`` would be
+    # silently dropped by the out-of-bounds ``.at[].set`` scatter below, yielding
+    # a corrupt CSR (``indptr[-1] != nse``) instead of an error. ``coo_to_csr``
+    # already cannot be ``jit``-traced (``jnp.unique``), so this concrete check
+    # does not regress any JAX transformation behaviour.
+    if pre_ids.size > 0:
+        pre_min = int(jnp.min(pre_ids))
+        pre_max = int(jnp.max(pre_ids))
+        if pre_min < 0 or pre_max >= num_row:
+            raise ValueError(
+                f'"pre_ids" must lie in [0, num_row) = [0, {num_row}), '
+                f'but got values in [{pre_min}, {pre_max}].'
+            )
 
     # sorting
     sort_ids = jnp.argsort(pre_ids, stable=True)

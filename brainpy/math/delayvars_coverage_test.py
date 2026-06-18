@@ -178,3 +178,40 @@ def test_update_value_none_without_target_raises():
     assert ld.delay_target is None
     with pytest.raises(ValueError):
         ld.update(None)
+
+
+# ---------------------------------------------------------------------------
+# ring-buffer correctness regressions (guards the ``% num_delay_step`` modulo
+# in ``TimeDelay._true_fn`` and the rotate index in ``LengthDelay``)
+# ---------------------------------------------------------------------------
+
+def test_time_delay_ring_buffer_wraps_modulo():
+    """``_true_fn`` must read ``data[(idx + step) % num_delay_step]``.
+
+    Without the modulo, when the read index wraps past the end of the buffer JAX
+    clamps the out-of-bounds index to the last slot and returns a stale value.
+    We feed a long ramp (many wraps) and check the exact-step (no-interp) reads.
+    """
+    dt = 0.1
+    delay_len = 1.0  # exact multiple of dt -> exact-step (``_true_fn``) branch
+    d = TimeDelay(bm.zeros(1), delay_len=delay_len, dt=dt, before_t0=lambda t: t)
+    # ``num_delay_step == 11``; iterate well past one full wrap of the buffer.
+    n = 37
+    for i in range(n):
+        d.update(bm.asarray([float(i)]))
+    ct = float(d.current_time[0])
+    last = n - 1  # the most recently stored ramp value
+    # delay d_ms -> value stored ``round(d_ms/dt)`` steps before ``last``.
+    for d_ms in [0.0, 0.1, 0.3, 0.5, 1.0]:
+        got = float(d(ct - d_ms)[0])
+        expected = last - round(d_ms / dt)
+        assert abs(got - expected) < 1e-4, (d_ms, got, expected)
+
+
+def test_length_delay_ramp_matches_reference():
+    for method in (ROTATE_UPDATE, CONCAT_UPDATE):
+        d = LengthDelay(bm.zeros(1), delay_len=5, update_method=method)
+        for i in range(23):  # many wraps for the rotate buffer (len 6)
+            d.update(bm.asarray([float(i)]))
+        got = [float(d(k)[0]) for k in range(6)]
+        assert got == [22 - k for k in range(6)], (method, got)
