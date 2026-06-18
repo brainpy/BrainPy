@@ -170,8 +170,20 @@ class BatchNorm(Layer):
                     2
                 )
             var = jnp.maximum(0., mean_of_square - _square(mean))
+            # ``var`` above is the biased (divisor ``N``) variance used to normalize
+            # the current batch. The running buffer, however, should track the
+            # unbiased (Bessel-corrected, divisor ``N - 1``) estimate to match the
+            # conventional BatchNorm running statistic (e.g. PyTorch); otherwise the
+            # eval-time variance is systematically too small by ``(N - 1) / N`` (M-25).
+            num_reduced = 1
+            for ax in self.axis:
+                num_reduced *= x.shape[ax]
+            if num_reduced > 1:
+                unbiased_var = var * (num_reduced / (num_reduced - 1))
+            else:
+                unbiased_var = var
             self.running_mean.value = (self.momentum * self.running_mean + (1 - self.momentum) * mean)
-            self.running_var.value = (self.momentum * self.running_var + (1 - self.momentum) * var)
+            self.running_var.value = (self.momentum * self.running_var + (1 - self.momentum) * unbiased_var)
         else:
             mean = self.running_mean.value
             var = self.running_var.value
@@ -533,7 +545,7 @@ class LayerNorm(Layer):
 
     def update(self, x):
         if x.shape[-len(self.normalized_shape):] != self.normalized_shape:
-            raise ValueError(f'Expect the input shape should be (..., {", ".join(self.normalized_shape)}), '
+            raise ValueError(f'Expect the input shape should be (..., {", ".join(map(str, self.normalized_shape))}), '
                              f'but we got {x.shape}')
         axis = tuple(range(0, x.ndim - len(self.normalized_shape)))
         mean = jnp.mean(bm.as_jax(x), axis=axis, keepdims=True)
