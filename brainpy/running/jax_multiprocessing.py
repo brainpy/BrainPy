@@ -133,9 +133,10 @@ def jax_parallelize_map(
 
     res_tree = None
     results = None
-    # Build the pmapped function once and reuse it across all chunks. Re-applying
-    # ``jax.pmap`` inside the loop forces a recompilation on every chunk, which is
-    # both slow and unnecessary since the traced function does not change.
+    # Build the pmapped function once and reuse it across all chunks. ``jax.pmap``
+    # automatically re-traces for a chunk whose leading-axis size differs from the
+    # device count (e.g. a trailing partial chunk), so a single cached function is
+    # both correct and avoids redundant re-tracing of full chunks.
     pmap_func = pmap(func)
     for i in range(0, num_pars[0], num_parallel):
         if isinstance(arguments, dict):
@@ -145,16 +146,21 @@ def jax_parallelize_map(
         else:
             raise TypeError(f'"arguments" must be sequence or dict, but we got {type(arguments)}')
         res_values, res_tree = tree_flatten(r, is_leaf=lambda a: isinstance(a, bm.Array))
+        # Gather each chunk's output to the host. A trailing partial chunk is
+        # sharded on only a *subset* of devices, so leaving the outputs on-device
+        # makes the final concatenation fail with "Received incompatible devices
+        # for jitted computation". Pulling to numpy first sidesteps the placement
+        # conflict (it also serves the ``clear_buffer`` path for free).
         if results is None:
-            results = tuple([np.asarray(val) if clear_buffer else val] for val in res_values)
+            results = tuple([np.asarray(val)] for val in res_values)
         else:
             for j, val in enumerate(res_values):
-                results[j].append(np.asarray(val) if clear_buffer else val)
+                results[j].append(np.asarray(val))
         if clear_buffer:
             bm.clear_buffer_memory()
     if res_tree is None:
         return None
-    results = ([np.concatenate(res, axis=0) for res in results]
-               if clear_buffer else
-               [bm.concatenate(res, axis=0) for res in results])
+    results = [np.concatenate(res, axis=0) for res in results]
+    if not clear_buffer:
+        results = [bm.asarray(res) for res in results]
     return tree_unflatten(res_tree, results)

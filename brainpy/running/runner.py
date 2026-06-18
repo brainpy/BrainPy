@@ -96,6 +96,11 @@ class Runner(BrainPyObject):
         if isinstance(jit, bool):
             self.jit = {C.PREDICT_PHASE: jit}
         elif isinstance(jit, dict):
+            # Operate on a shallow copy: never mutate the caller-owned dict. The
+            # original ``jit`` is also kept as ``self._origin_jit`` and read by
+            # subclasses (e.g. ``DSTrainer``/``BPTrainer``) which expect the
+            # explicit ``predict`` setting to still be present.
+            jit = dict(jit)
             for k, v in jit.items():
                 self.jit[k] = v
             self.jit[C.PREDICT_PHASE] = jit.pop(C.PREDICT_PHASE, True)
@@ -238,16 +243,24 @@ class Runner(BrainPyObject):
         monitors = {}
         name2node = None
         for _key, _mon in _monitors.items():
-            if isinstance(_mon, str):
+            # A ``(name_str, index)`` value (produced by ``_format_dict_monitors``
+            # from a string monitor such as ``{'a': 'V'}`` or ``{'a': ('sub.V', 2)}``)
+            # must be resolved to its target Variable, exactly like the
+            # sequence-form resolver. ``(Variable, index)`` / callable values are
+            # already resolved and fall through to the ``else`` branch unchanged.
+            if isinstance(_mon, (tuple, list)) and isinstance(_mon[0], str):
                 if name2node is None:
                     name2node = {node.name: node for node in list(self.target.nodes(level=-1).unique().values())}
 
+                # ``_key`` is the user-chosen monitor name (e.g. 'a' for
+                # ``{'a': 'V'}``); the resolved (Variable, index) must be stored
+                # under ``_key`` so that ``runner.mon[_key]`` works.
                 key, index = _mon[0], _mon[1]
                 splits = key.split('.')
                 if len(splits) == 1:
                     if not hasattr(self.target, splits[0]):
                         raise RunningError(f'{self.target} does not has variable {key}.')
-                    monitors[key] = (getattr(self.target, splits[-1]), index)
+                    monitors[_key] = (getattr(self.target, splits[-1]), index)
                 else:
                     if not hasattr(self.target, splits[0]):
                         if splits[0] not in name2node:
@@ -255,7 +268,7 @@ class Runner(BrainPyObject):
                         else:
                             master = name2node[splits[0]]
                             assert len(splits) == 2
-                            monitors[key] = (getattr(master, splits[-1]), index)
+                            monitors[_key] = (getattr(master, splits[-1]), index)
                     else:
                         master = self.target
                         for s in splits[:-1]:
@@ -263,7 +276,7 @@ class Runner(BrainPyObject):
                                 master = getattr(master, s)
                             except KeyError:
                                 raise MonitorError(f'Cannot find {key} in {master}, please check.')
-                        monitors[key] = (getattr(master, splits[-1]), index)
+                        monitors[_key] = (getattr(master, splits[-1]), index)
             else:
                 monitors[_key] = _mon
         return monitors
