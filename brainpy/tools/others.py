@@ -16,7 +16,7 @@
 import _thread as thread
 import collections.abc
 import threading
-from typing import Optional, Tuple, Callable, Union, Sequence, TypeVar, Any, cast
+from typing import Optional, Tuple, Callable, Union, Sequence, TypeVar, Any
 
 import numpy as np
 
@@ -85,7 +85,7 @@ def not_customized(fun: Callable[..., Any]) -> Callable[..., Any]:
 
 def size2num(size: Union[int, Sequence[int]]) -> int:
     if isinstance(size, (int, np.integer)):
-        return cast(int, size)
+        return size
     elif isinstance(size, (tuple, list)):
         a = 1
         for b in size:
@@ -99,7 +99,7 @@ def to_size(x: Union[int, Sequence[int], None]) -> Optional[Tuple[int, ...]]:
     if isinstance(x, (tuple, list)):
         return tuple(x)
     if isinstance(x, (int, np.integer)):
-        return (cast(int, x),)
+        return (x,)
     if x is None:
         return x
     raise ValueError(f'Cannot make a size for {x}')
