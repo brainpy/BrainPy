@@ -329,23 +329,37 @@ class VariableView(Variable):
 
     @value.setter
     def value(self, v):
+        # Normalize/unwrap the incoming value *before* validating its
+        # shape/dtype, mirroring the hardened ``Variable.value`` setter. Without
+        # this a plain Python ``list``/scalar (no ``.shape``) raises an
+        # ``AttributeError``, a ``brainstate.State`` is not unwrapped, and a
+        # ``numpy`` array is never canonicalized to the view's dtype.
+        if isinstance(v, brainstate.State):
+            v = v.value
+        if isinstance(v, Array):
+            v = v.value
+        elif isinstance(v, np.ndarray):
+            v = jnp.asarray(v)
+
         int_shape = self.shape
+        ext_shape = jnp.shape(v)
         if self.batch_axis is None:
-            ext_shape = v.shape
+            pass
         else:
-            ext_shape = v.shape[:self.batch_axis] + v.shape[self.batch_axis + 1:]
+            ext_shape = ext_shape[:self.batch_axis] + ext_shape[self.batch_axis + 1:]
             int_shape = int_shape[:self.batch_axis] + int_shape[self.batch_axis + 1:]
         if ext_shape != int_shape:
-            error = f"The shape of the original data is {self.shape}, while we got {v.shape}"
+            error = f"The shape of the original data is {self.shape}, while we got {jnp.shape(v)}"
             if self.batch_axis is None:
                 error += '. Do you forget to set "batch_axis" when initialize this variable?'
             else:
                 error += f' with batch_axis={self.batch_axis}.'
             raise MathError(error)
-        if v.dtype != self._value.dtype:
+        ext_dtype = _get_dtype(v)
+        if ext_dtype != self._value.dtype:
             raise MathError(f"The dtype of the original data is {self._value.dtype}, "
-                            f"while we got {v.dtype}.")
-        self._value[self.index] = v.value if isinstance(v, Array) else v
+                            f"while we got {ext_dtype}.")
+        self._value[self.index] = v
 
 
 @register_pytree_node_class

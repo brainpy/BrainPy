@@ -928,6 +928,41 @@ def test_variable_view_setter_shape_and_dtype_checks():
         view.value = jnp.zeros(3)  # wrong shape
 
 
+# P4-M4: ``VariableView.value`` setter must accept the same inputs as
+# ``Variable.value`` (plain list / numpy / State), instead of crashing or
+# silently mismatching dtype.
+
+def test_variable_view_setter_python_list_matches_variable():
+    # A plain Python list is handled identically to ``Variable.value`` (both
+    # raise a descriptive MathError rather than the previous opaque
+    # ``AttributeError: 'list' object has no attribute 'shape'``).
+    origin = bm.Variable(jnp.arange(5.))
+    view = bm.VariableView(origin, slice(None, 2, None))
+    parent_var = bm.Variable(jnp.arange(2.))
+    with pytest.raises(MathError):
+        parent_var.value = [10., 11.]
+    with pytest.raises(MathError):
+        view.value = [10., 11.]
+
+
+def test_variable_view_setter_canonicalizes_numpy_dtype():
+    # A float64 numpy array assigned into a float32 view must be canonicalized,
+    # not rejected with a dtype MathError.
+    origin = bm.Variable(jnp.arange(5., dtype=jnp.float32))
+    view = bm.VariableView(origin, slice(None, 2, None))
+    view.value = np.array([7., 8.], dtype=np.float64)
+    assert origin.value.dtype == jnp.float32
+    assert bm.allclose(origin.value[:2], jnp.asarray([7., 8.]))
+
+
+def test_variable_view_setter_unwraps_state():
+    origin = bm.Variable(jnp.arange(5.))
+    view = bm.VariableView(origin, slice(None, 2, None))
+    src = bm.Variable(jnp.asarray([20., 21.]))
+    view.value = src
+    assert bm.allclose(origin.value[:2], jnp.asarray([20., 21.]))
+
+
 # ===========================================================================
 # Additional coverage for base.py
 # ===========================================================================

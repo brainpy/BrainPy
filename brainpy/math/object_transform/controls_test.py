@@ -17,6 +17,7 @@ import unittest
 from functools import partial
 
 import jax
+import jax.numpy as jnp
 from absl.testing import parameterized
 from jax import vmap
 
@@ -528,3 +529,49 @@ class TestWhile(unittest.TestCase):
             run(0., 1.)
 
         self.assertIn("cond_fun should not have any write states", str(cm.exception))
+
+
+class TestCondBranchTypes(parameterized.TestCase):
+    """Regression for P4-M1: ``bm.cond`` must accept non-callable (constant)
+    branches, as advertised by its docstring (``callable, ArrayType, float,
+    int, bool``)."""
+
+    def test_cond_with_constant_branches(self):
+        # Scalar Python constants as branches.
+        self.assertEqual(float(bm.cond(True, 1.0, 2.0)), 1.0)
+        self.assertEqual(float(bm.cond(False, 1.0, 2.0)), 2.0)
+
+    def test_cond_with_array_branches(self):
+        # Array constants as branches (unwrapped before forwarding).
+        r_true = bm.cond(True, bm.asarray([1., 2.]), bm.asarray([3., 4.]))
+        r_false = bm.cond(False, bm.asarray([1., 2.]), bm.asarray([3., 4.]))
+        self.assertTrue(bm.allclose(r_true, bm.asarray([1., 2.])))
+        self.assertTrue(bm.allclose(r_false, bm.asarray([3., 4.])))
+
+    def test_cond_callable_still_works(self):
+        # Callable branches keep working (and may mutate Variable state).
+        a = bm.Variable(bm.zeros(2))
+
+        def tf(op):
+            a.value += op
+
+        def ff(op):
+            a.value -= op
+
+        bm.cond(True, tf, ff, 5.0)
+        self.assertTrue(bm.allclose(a.value, bm.asarray([5., 5.])))
+
+
+class TestIfElseScalarCondition(parameterized.TestCase):
+    """Regression for P4-M2: ``bm.ifelse`` must accept a scalar-bool
+    ``conditions`` argument, as advertised by its docstring."""
+
+    def test_ifelse_scalar_python_bool(self):
+        self.assertEqual(int(bm.ifelse(conditions=True, branches=[lambda: 1, lambda: 2])), 1)
+        self.assertEqual(int(bm.ifelse(conditions=False, branches=[lambda: 1, lambda: 2])), 2)
+
+    def test_ifelse_scalar_array_bool(self):
+        r = bm.ifelse(conditions=jnp.asarray(True), branches=[lambda: 10, lambda: 20])
+        self.assertEqual(int(r), 10)
+        r = bm.ifelse(conditions=jnp.asarray(False), branches=[lambda: 10, lambda: 20])
+        self.assertEqual(int(r), 20)
