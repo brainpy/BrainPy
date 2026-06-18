@@ -319,7 +319,10 @@ class RKF45(AdaptiveRKIntegrator):
          ('-8/27', 2, '-3544/2565', '1859/4104', -0.275)]
     B1 = ['16/135', 0, '6656/12825', '28561/56430', -0.18, '2/55']
     B2 = ['25/216', 0, '1408/2565', '2197/4104', -0.2, 0]
-    C = [0, 0.25, 0.375, '12/13', 1, '1/3']
+    # The 6th node is c6 = 1/2 (its A-row sums to 1/2); using 1/3 violates the
+    # consistency condition sum_j a_{6j} = c_6 and collapses the method to order 1
+    # for time-dependent f.
+    C = [0, 0.25, 0.375, '12/13', 1, 0.5]
 
 
 register_ode_integrator('rkf45', RKF45)

@@ -366,11 +366,15 @@ class KlPl(SDEIntegrator):
 
         # 2.4 final stage
         # ----
-        # g1 = (I1 - I11 / dt_sqrt + I10 / dt)
-        # g2 = I11 / dt_sqrt
+        # The strong order 1.0 SRK diffusion update is
+        #   g1 = I1 - I11 / dt_sqrt
+        #   g2 = I11 / dt_sqrt
+        # so that g1 + g2 = I1 reproduces the leading g * dW term for additive
+        # noise. The previous weights (g1 = -I1 + I11/dt_sqrt + I10/dt) summed to
+        # -I1 + 2 I11/dt_sqrt + I10/dt != I1, so the scheme did not converge.
         # y1 = x + dt * f_H0s1 + g1 * g_H1s1 + g2 * g_H1s2
         for var in self.variables:
-            self.code_lines.append(f'  {var}_g1 = -{var}_I1 + {var}_I11/dt_sqrt + {var}_I10/{constants.DT}')
+            self.code_lines.append(f'  {var}_g1 = {var}_I1 - {var}_I11/dt_sqrt')
             self.code_lines.append(f'  {var}_g2 = {var}_I11 / dt_sqrt')
             self.code_lines.append(f'  {var}_new = {var} + {constants.DT} * {var}_f_H0s1 + '
                                    f'{var}_g1 * {var}_g_H1s1 + {var}_g2 * {var}_g_H1s2')
