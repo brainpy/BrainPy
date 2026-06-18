@@ -89,3 +89,50 @@ class TestAdaptiveRK(unittest.TestCase):
                        adaptive_rk.HeunEuler]:
             bm.random.seed()
             run_integrator(method, show=False)
+
+
+def _convergence_order(method_cls, f, exact, y0, t_end=2.0, ns=(20, 40, 80, 160)):
+    """Measure the empirical convergence order of the higher-order (B1) solution.
+
+    The integrator is run in *fixed-step* mode (``adaptive=False``) on a
+    time-dependent scalar ODE with a known exact solution; the average
+    log2 error-ratio over successive step halvings gives the order ``p``.
+    """
+    errs = []
+    for n in ns:
+        dt = t_end / n
+        intg = method_cls(f, adaptive=False, dt=dt)
+        y = y0
+        for i in range(n):
+            y = intg(y, i * dt, dt=dt)
+        errs.append(abs(float(bm.as_jax(y)) - exact(t_end)))
+    rates = [np.log2(errs[i] / errs[i + 1]) for i in range(len(errs) - 1)]
+    return float(np.mean(rates)), errs
+
+
+class TestRKF45NodeFix(unittest.TestCase):
+    """Regression for P6-C1: RKF45 6th-stage node ``c6`` must be 1/2, not 1/3.
+
+    With the wrong node the consistency condition ``sum_j a_{6j} = c_6`` is
+    violated and the order conditions break for any time-dependent ``f``,
+    collapsing the advertised order-5 solution to order ~1. This is only
+    visible when ``f`` depends on ``t`` (autonomous smoke tests miss it).
+    """
+
+    def test_rkf45_is_order5_on_time_dependent_ode(self):
+        # dy/dt = cos(t), y(0) = 0  ->  y(t) = sin(t).
+        # Measure under x64 so the truncation error (not float32 round-off)
+        # governs the rate. The genuine order-5 method exceeds order 4; the
+        # buggy c6=1/3 variant measures order ~1.
+        f = lambda y, t: bm.cos(t)
+        exact = lambda t: np.sin(t)
+        bm.enable_x64()
+        try:
+            order, errs = _convergence_order(adaptive_rk.RKF45, f, exact, y0=0.0,
+                                             t_end=2.0, ns=(8, 16, 32, 64))
+        finally:
+            bm.disable_x64()
+        self.assertGreater(order, 4.0, msg=f'RKF45 order={order:.2f}, errs={errs}')
+
+    def test_rkf45_node_value(self):
+        self.assertAlmostEqual(float(eval(str(adaptive_rk.RKF45.C[-1]))), 0.5)
