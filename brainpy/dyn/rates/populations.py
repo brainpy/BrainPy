@@ -1043,23 +1043,23 @@ class ThresholdLinearModel(RateModel):
             input_e = inp_e if (inp_e is not None) else 0.
             input_i = inp_i if (inp_i is not None) else 0.
 
-        de = -self.e + self.beta_e * bm.maximum(input_e, 0.)
+        de = (-self.e + self.beta_e * bm.maximum(input_e, 0.)) / self.tau_e
+        de = self.e + de * dt
         with jax.ensure_compile_time_eval():
             has_noise = bm.any(self.noise_e != 0.)
-
         if has_noise:
-            de += bm.random.randn(*self.varshape) * self.noise_e
-        de = de / self.tau_e
-        self.e.value = bm.maximum(self.e + de * dt, 0.)
+            # Euler-Maruyama: the stochastic term scales as sqrt(dt), not dt, so the
+            # noise intensity is independent of the integration step (P10-M1).
+            de += self.noise_e / self.tau_e * bm.sqrt(dt) * bm.random.randn(*self.varshape)
+        self.e.value = bm.maximum(de, 0.)
 
-        di = -self.i + self.beta_i * bm.maximum(input_i, 0.)
+        di = (-self.i + self.beta_i * bm.maximum(input_i, 0.)) / self.tau_i
+        di = self.i + di * dt
         with jax.ensure_compile_time_eval():
             has_noise = bm.any(self.noise_i != 0.)
-
         if has_noise:
-            di += bm.random.randn(*self.varshape) * self.noise_i
-        di = di / self.tau_i
-        self.i.value = bm.maximum(self.i + di * dt, 0.)
+            di += self.noise_i / self.tau_i * bm.sqrt(dt) * bm.random.randn(*self.varshape)
+        self.i.value = bm.maximum(di, 0.)
         return self.e.value
 
     def clear_input(self):

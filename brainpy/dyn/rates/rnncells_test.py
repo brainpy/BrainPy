@@ -170,5 +170,38 @@ class Test_Rnncells(parameterized.TestCase):
         output = layer(input)
 
 
+class Test_Rnncells_reset_state(parameterized.TestCase):
+    """Regression tests for P10-H1: ``reset_state(None)`` must not crash."""
+
+    @parameterized.product(cls=['RNNCell', 'GRUCell', 'LSTMCell'])
+    def test_rnn_cells_reset_state_none_unbatched(self, cls):
+        # P10-H1: explicit reset_state(None) on a non-batching cell used to raise
+        # ``ValueError: Do not support type <class 'NoneType'>: None`` because the
+        # state shape was built as ``(None, num_out)``.
+        bm.random.seed()
+        cell = getattr(bp.dyn, cls)(num_in=3, num_out=4)
+        cell.reset_state(None)
+        expected = (8,) if cls == 'LSTMCell' else (4,)
+        self.assertTupleEqual(tuple(cell.state.shape), expected)
+
+    @parameterized.product(cls=['RNNCell', 'GRUCell', 'LSTMCell'])
+    def test_rnn_cells_reset_state_via_bp_reset_state(self, cls):
+        # P10-H1: the public ``bp.reset_state`` path passes ``batch_or_mode=None``.
+        bm.random.seed()
+        cell = getattr(bp.dyn, cls)(num_in=3, num_out=4)
+        bp.reset_state(cell)
+        expected = (8,) if cls == 'LSTMCell' else (4,)
+        self.assertTupleEqual(tuple(cell.state.shape), expected)
+
+    @parameterized.product(cls=['RNNCell', 'GRUCell', 'LSTMCell'])
+    def test_rnn_cells_reset_state_int_batch(self, cls):
+        # The int-batch path must still produce a leading batch axis.
+        bm.random.seed()
+        cell = getattr(bp.dyn, cls)(num_in=3, num_out=4, mode=bm.batching_mode)
+        cell.reset_state(2)
+        expected = (2, 8) if cls == 'LSTMCell' else (2, 4)
+        self.assertTupleEqual(tuple(cell.state.shape), expected)
+
+
 if __name__ == '__main__':
     absltest.main()

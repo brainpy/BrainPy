@@ -15,10 +15,13 @@
 # ==============================================================================
 from unittest import TestCase
 
+import jax.numpy as jnp
+import numpy as np
 from absl.testing import parameterized
 
 import brainpy as bp
 import brainpy.math as bm
+from brainpy.context import share
 from brainpy.dyn.rates import populations
 
 
@@ -52,6 +55,43 @@ class TestRate(TestCase):
         bm.random.seed()
         tlm = bp.rates.ThresholdLinearModel(size=1)
         self.assertTrue(tlm.tau_e is not None)
+
+
+class TestThresholdLinearModelNoise(TestCase):
+    """P10-M1: noise must follow Euler-Maruyama ``sqrt(dt)`` scaling."""
+
+    @staticmethod
+    def _noise_increment_std(dt):
+        # Drive a fresh model with no drift (beta_e=0, tau_e=1) from e=0 so that one
+        # step gives e = max(noise_e/tau_e * sqrt(dt) * randn, 0). Measure the std of
+        # the (clamped) increment; the positive-half std is proportional to the
+        # increment std, so its ratio across dt isolates the dt scaling.
+        bm.random.seed(0)
+        bm.set_dt(dt)
+        m = bp.rates.ThresholdLinearModel(20000, noise_e=1.0, beta_e=0.0, tau_e=1.0)
+        m.reset_state()
+        share.save(t=0.0, dt=dt, i=0)
+        out = np.asarray(m.update(inp_e=0.0))
+        pos = out[out > 0]
+        return float(pos.std())
+
+    def test_threshold_linear_model_noise_scales_as_sqrt_dt(self):
+        s_small = self._noise_increment_std(0.01)
+        s_large = self._noise_increment_std(0.1)
+        ratio = s_large / s_small
+        # sqrt(dt): ratio ~ sqrt(0.1/0.01) = sqrt(10) ~ 3.162.
+        # The buggy dt scaling gives ratio ~ 10.
+        self.assertAlmostEqual(ratio, np.sqrt(10.0), delta=0.2)
+
+    def test_threshold_linear_model_noise_finite(self):
+        bm.random.seed(0)
+        bm.set_dt(0.1)
+        m = bp.rates.ThresholdLinearModel(8, noise_e=1.0, noise_i=0.5)
+        m.reset_state()
+        share.save(t=0.0, dt=0.1, i=0)
+        out = jnp.asarray(m.update(inp_e=1.0, inp_i=1.0))
+        self.assertEqual(out.shape, (8,))
+        self.assertTrue(bool(jnp.isfinite(out).all()))
 
 
 class TestPopulation(parameterized.TestCase):

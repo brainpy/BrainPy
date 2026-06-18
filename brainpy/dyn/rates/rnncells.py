@@ -124,7 +124,7 @@ class RNNCell(Layer):
             self.state[:] = self.state2train
 
     def reset_state(self, batch_or_mode=None, **kwargs):
-        self.state.value = parameter(self._state_initializer, (batch_or_mode, self.num_out,), allow_none=False)
+        self.state.value = variable(self._state_initializer, batch_or_mode, self.num_out)
         if self.train_state:
             self.state2train.value = parameter(self._state_initializer, self.num_out, allow_none=False)
             self.state[:] = self.state2train
@@ -236,7 +236,7 @@ class GRUCell(Layer):
             self.state[:] = self.state2train
 
     def reset_state(self, batch_or_mode=None, **kwargs):
-        self.state.value = parameter(self._state_initializer, (batch_or_mode, self.num_out), allow_none=False)
+        self.state.value = variable(self._state_initializer, batch_or_mode, self.num_out)
         if self.train_state:
             self.state2train.value = parameter(self._state_initializer, self.num_out, allow_none=False)
             self.state[:] = self.state2train
@@ -372,7 +372,7 @@ class LSTMCell(Layer):
             self.state[:] = self.state2train
 
     def reset_state(self, batch_or_mode=None, **kwargs):
-        self.state.value = parameter(self._state_initializer, (batch_or_mode, self.num_out * 2), allow_none=False)
+        self.state.value = variable(self._state_initializer, batch_or_mode, self.num_out * 2)
         if self.train_state:
             self.state2train.value = parameter(self._state_initializer, self.num_out * 2, allow_none=False)
             self.state[:] = self.state2train
