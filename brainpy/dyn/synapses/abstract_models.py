@@ -159,9 +159,55 @@ Expon.__doc__ = Expon.__doc__ % (_docs.exp_syn_doc, _docs.pneu_doc,)
 def _format_dual_exp_A(self, A):
     A = parameter(A, sizes=self.varshape, allow_none=True, sharding=self.sharding)
     if A is None:
+        # The peak normalizer ``A = tau_decay / (tau_decay - tau_rise) * ...`` divides
+        # by zero when ``tau_rise == tau_decay``. For ``DualExponV2`` (the only consumer
+        # of this auto-normalizer that stores ``A`` directly and returns
+        # ``A * (g_decay - g_rise)``) the two gates collapse to identical trajectories,
+        # so ``g_decay - g_rise`` is identically zero and no finite ``A`` can recover a
+        # non-zero waveform. Fail loudly with an actionable message rather than emitting
+        # a ZeroDivisionError / silent NaN. ``DualExpon`` does not reach this branch for
+        # the equal-tau case: it computes its ``a`` coefficient directly (see below).
+        if bm.any(self.tau_rise == self.tau_decay):
+            raise ValueError(
+                'The dual-exponential peak normalizer "A" is undefined when '
+                '"tau_rise == tau_decay" (the rise and decay gates collapse to the '
+                'same trajectory). Use brainpy.dyn.Alpha for a single-time-constant '
+                'alpha synapse, or pass an explicit "A".'
+            )
         A = (self.tau_decay / (self.tau_decay - self.tau_rise) *
              bm.float_power(self.tau_rise / self.tau_decay, self.tau_rise / (self.tau_rise - self.tau_decay)))
     return A
+
+
+def _dual_exp_a(self, A):
+    r"""Compute the input-scaling coefficient ``a`` for :class:`DualExpon`.
+
+    The conductance jump per spike is ``a``. With the auto peak normalizer
+    (``A is None``) the closed form simplifies to
+
+    .. math::
+
+       a = \frac{1}{\tau_{rise}}
+           \left(\frac{\tau_{rise}}{\tau_{decay}}\right)^{\tau_{rise}/(\tau_{rise}-\tau_{decay})}
+
+    which is finite even when :math:`\tau_{rise} = \tau_{decay}` (the
+    dual-exponential degenerates to the normalized alpha function). In that limit
+    L'Hôpital gives :math:`a = e/\tau`, evaluated element-wise so heterogeneous
+    time constants are supported. An explicitly supplied ``A`` is honoured as
+    ``a = (tau_decay - tau_rise) / (tau_rise * tau_decay) * A``.
+    """
+    A = parameter(A, sizes=self.varshape, allow_none=True, sharding=self.sharding)
+    if A is not None:
+        return (self.tau_decay - self.tau_rise) / self.tau_rise / self.tau_decay * A
+    equal = self.tau_rise == self.tau_decay
+    ratio = self.tau_rise / self.tau_decay
+    # ``where(equal, ...)`` on the exponent avoids a 0/0 in the unused branch so the
+    # gradient/value stays finite; the equal-tau entries take the L'Hôpital value e/tau.
+    exponent = self.tau_rise / bm.where(equal, bm.ones_like(self.tau_decay),
+                                        self.tau_rise - self.tau_decay)
+    a_general = bm.float_power(ratio, exponent) / self.tau_rise
+    a_limit = bm.exp(bm.ones_like(self.tau_rise)) / self.tau_rise
+    return bm.where(equal, a_limit, a_general)
 
 
 class DualExpon(SynDyn):
@@ -262,8 +308,11 @@ class DualExpon(SynDyn):
         # parameters
         self.tau_rise = self.init_param(tau_rise)
         self.tau_decay = self.init_param(tau_decay)
-        A = _format_dual_exp_A(self, A)
-        self.a = (self.tau_decay - self.tau_rise) / self.tau_rise / self.tau_decay * A
+        # Compute the conductance-jump coefficient ``a`` directly. This avoids the
+        # ``(tau_decay - tau_rise)`` cancellation that produced a ZeroDivisionError /
+        # NaN for equal time constants, and supports the alpha-function limit
+        # ``tau_rise == tau_decay`` (a = e/tau) element-wise.
+        self.a = _dual_exp_a(self, A)
 
         # integrator
         self.integral = odeint(JointEq(self.dg, self.dh), method=method)
@@ -854,8 +903,11 @@ class STP(SynDyn):
 
     def reset_state(self, batch_or_mode=None, **kwargs):
         self.x = self.init_variable(bm.ones, batch_or_mode)
+        # Initialise ``u`` to the release probability ``U`` by broadcasting rather than
+        # ``Variable.fill_`` (which only accepts a scalar). This supports a per-neuron
+        # array ``U`` and batched modes alike.
         self.u = self.init_variable(bm.ones, batch_or_mode)
-        self.u.fill_(self.U)
+        self.u.value = self.u.value * self.U
 
     @property
     def derivative(self):

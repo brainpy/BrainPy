@@ -15,6 +15,7 @@
 import unittest
 
 import matplotlib.pyplot as plt
+import numpy as np
 
 import brainpy as bp
 import brainpy.math as bm
@@ -99,3 +100,75 @@ class TestAlpha(unittest.TestCase):
                 bp.visualize.line_plot(indices * bm.get_dt(), gs, legend='g', show=show)
 
         plt.close('all')
+
+
+class TestDualExpEqualTau(unittest.TestCase):
+    """Regression tests for P9-H1 / P9-H2: ``tau_rise == tau_decay``."""
+
+    def test_equal_tau_no_crash(self):
+        # P9-H1: scalar equal taus previously raised ZeroDivisionError at construction.
+        syn = bp.dyn.DualExpon(2, tau_rise=10., tau_decay=10.)
+        self.assertTrue(np.all(np.isfinite(np.asarray(syn.a))))
+        # array taus with one equal pair previously yielded a NaN coefficient.
+        syn2 = bp.dyn.DualExpon(2,
+                                tau_rise=bm.asarray([10., 5.]),
+                                tau_decay=bm.asarray([10., 50.]))
+        self.assertTrue(np.all(np.isfinite(np.asarray(syn2.a))))
+
+    def test_equal_tau_matches_alpha(self):
+        # P9-H1: the equal-tau dual-exponential is the normalized alpha function;
+        # a single unit spike drives a response that peaks at ~1.0.
+        bm.set(dt=0.05)
+
+        class Net(bp.DynSysGroup):
+            def __init__(self, tau):
+                super().__init__()
+                self.inp = bp.dyn.SpikeTimeGroup(1, bm.zeros(1, dtype=int), bm.asarray([1.]))
+                self.syn = bp.dyn.DualExpon(1, tau_rise=tau, tau_decay=tau)
+
+            def update(self):
+                return self.syn(self.inp())
+
+        net = Net(10.)
+        indices = bm.as_numpy(bm.arange(4000))
+        gs = bm.for_loop(net.step_run, indices)
+        peak = float(np.max(np.asarray(gs)))
+        self.assertTrue(np.isfinite(peak))
+        self.assertAlmostEqual(peak, 1.0, places=2)
+        bm.set(dt=0.1)
+
+    def test_v2_equal_tau_raises(self):
+        # P9-H2: DualExponV2 is structurally singular for equal taus; the auto
+        # normalizer must raise a clear error rather than crash / output zeros.
+        with self.assertRaises(ValueError):
+            bp.dyn.DualExponV2(2, tau_rise=10., tau_decay=10.)
+
+
+class TestSTPReset(unittest.TestCase):
+    """Regression tests for P9-H3: per-neuron array ``U``."""
+
+    def test_array_U_reset(self):
+        # P9-H3: array U previously crashed in reset_state via Variable.fill_.
+        U = bm.asarray([0.1, 0.2, 0.3])
+        syn = bp.dyn.STP(3, U=U)
+        np.testing.assert_allclose(np.asarray(syn.u.value), np.asarray(U))
+        np.testing.assert_allclose(np.asarray(syn.x.value), np.ones(3))
+
+    def test_array_U_run(self):
+        # The synapse must also integrate without error for heterogeneous U.
+        from brainpy.context import share
+        bm.set(dt=0.1)
+        syn = bp.dyn.STP(3, U=bm.asarray([0.1, 0.2, 0.3]))
+        out = []
+        for i in range(20):
+            share.save(t=i * 0.1, dt=0.1, i=i)
+            spk = bm.asarray([1., 0., 1.]) if i == 5 else bm.asarray([0., 0., 0.])
+            out.append(np.asarray(syn.update(spk)))
+        out = np.asarray(out)
+        self.assertTrue(np.all(np.isfinite(out)))
+
+    def test_scalar_U_batched(self):
+        # Scalar U with batching must keep working (no regression).
+        syn = bp.dyn.STP(3, U=0.15, mode=bm.BatchingMode(4))
+        self.assertEqual(syn.u.shape, (4, 3))
+        np.testing.assert_allclose(np.asarray(syn.u.value), np.full((4, 3), 0.15))
