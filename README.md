@@ -10,8 +10,7 @@
   	<a href="https://brainpy.readthedocs.io/en/latest/?badge=latest"><img alt="Documentation" src="https://readthedocs.org/projects/brainpy/badge/?version=latest"></a>
   	<a href="https://badge.fury.io/py/brainpy"><img alt="PyPI version" src="https://badge.fury.io/py/brainpy.svg"></a>
     <a href="https://github.com/brainpy/BrainPy/actions/workflows/CI.yml"><img alt="Continuous Integration" src="https://github.com/brainpy/BrainPy/actions/workflows/CI.yml/badge.svg"></a>
-    <a href="https://github.com/brainpy/BrainPy/actions/workflows/CI-models.yml"><img alt="Continuous Integration with Models" src="https://github.com/brainpy/BrainPy/actions/workflows/CI-models.yml/badge.svg"></a>
-    <a href="https://github.com/brainpy/BrainPy"><img alt="Test Coverage" src="https://img.shields.io/badge/coverage-93%25-brightgreen"></a>
+    <a href="https://codecov.io/gh/brainpy/BrainPy"><img alt="Test Coverage" src="https://codecov.io/gh/brainpy/BrainPy/branch/master/graph/badge.svg"></a>
 </p>
 
 
