@@ -154,18 +154,24 @@ class TestLassoRegression:
 
 
 class TestLogisticRegression:
-    def test_call_is_currently_broken(self):
-        # NOTE (defect): LogisticRegression.call flattens ``targets`` to 1-D
-        # (offline.py line ~386) and then immediately reads ``targets.shape[1]``
-        # at line ~389, which raises IndexError. The closed-form (non gradient
-        # descent) branch is also unreachable because of this. The fit path is
-        # therefore broken for both gradient_descent=True and =False.
+    def test_call_runs_and_separates(self):
+        # P16-C2 (was test_call_is_currently_broken): ``LogisticRegression.call``
+        # used to crash with IndexError because it flattened ``targets`` to 1-D
+        # and then read ``targets.shape[1]``. After the fix it must run and learn
+        # a usable separator on a trivially separable problem.
         rng = np.random.RandomState(1)
         x = rng.uniform(-1, 1, size=(30, 2)).astype(np.float32)
         y = (x[:, :1] > 0).astype(np.float32)
-        algo = offline.LogisticRegression(max_iter=50, learning_rate=0.1)
-        with pytest.raises(IndexError):
-            algo(bm.asarray(y), bm.asarray(x))
+        algo = offline.LogisticRegression(max_iter=200, learning_rate=0.5)
+        w = algo(bm.asarray(y), bm.asarray(x))
+        w = np.asarray(bm.as_jax(w))
+        # one weight per input feature (1-D parameter vector)
+        assert w.reshape(-1).shape == (2,)
+        assert np.all(np.isfinite(w))
+        # predictions should mostly agree with the (separable) labels
+        pred = np.asarray(bm.as_jax(algo.predict(bm.asarray(w), bm.asarray(x))))
+        acc = np.mean((pred.reshape(-1) > 0.5) == y.reshape(-1))
+        assert acc >= 0.8
 
     def test_predict_applies_sigmoid(self):
         # ``predict`` itself works in isolation (it does not hit the broken call).
@@ -209,19 +215,29 @@ class TestPolynomialRegressions:
         w = np.asarray(bm.as_jax(algo(y, x)))
         assert np.all(np.isfinite(w))
 
-    def test_elastic_net_predict_bias_mismatch_is_broken(self):
-        # NOTE (defect): ElasticNetRegression.call builds features with
-        # ``polynomial_features(inputs, degree=self.degree)`` which defaults to
-        # add_bias=True, while ``predict`` calls it with add_bias=self.add_bias
-        # (default False). The resulting feature width differs from the fitted
-        # weight length, so predicting on freshly-built features raises a
-        # shape-mismatch TypeError from jnp.dot.
+    def test_elastic_net_train_predict_consistent(self):
+        # P16-H1 (was test_elastic_net_predict_bias_mismatch_is_broken):
+        # ``call`` used to build features with the default add_bias=True while
+        # ``predict`` used add_bias=self.add_bias (default False), giving a
+        # train/predict feature-count mismatch that crashed jnp.dot. After the
+        # fix, training and prediction must use identical feature construction.
         x, y = _xy(slope=2.0)
         algo = offline.ElasticNetRegression(alpha=0.01, degree=2, l1_ratio=0.5,
                                             max_iter=50, learning_rate=0.001)
         w = bm.asarray(np.asarray(bm.as_jax(algo(y, x))))
-        with pytest.raises(TypeError):
-            algo.predict(w, x)
+        pred = np.asarray(bm.as_jax(algo.predict(w, x)))
+        assert pred.shape[0] == np.asarray(bm.as_jax(x)).shape[0]
+        assert np.all(np.isfinite(pred))
+
+    def test_elastic_net_add_bias_true_consistent(self):
+        # The fix must also hold when add_bias=True is requested explicitly.
+        x, y = _xy(slope=2.0)
+        algo = offline.ElasticNetRegression(alpha=0.01, degree=2, l1_ratio=0.5,
+                                            add_bias=True, max_iter=50,
+                                            learning_rate=0.001)
+        w = bm.asarray(np.asarray(bm.as_jax(algo(y, x))))
+        pred = np.asarray(bm.as_jax(algo.predict(w, x)))
+        assert np.all(np.isfinite(pred))
 
 
 class TestRegistry:

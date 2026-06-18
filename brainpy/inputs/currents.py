@@ -150,7 +150,7 @@ def spike_current(*args, **kwargs):
     warnings.warn('Please use "brainpy.inputs.spike_input()" instead. '
                   '"brainpy.inputs.spike_current()" is deprecated since version 2.1.13.',
                   DeprecationWarning)
-    return constant_input(*args, **kwargs)
+    return spike_input(*args, **kwargs)
 
 
 def ramp_input(c_start, c_end, duration, t_start=0, t_end=None, dt=None):
@@ -189,7 +189,7 @@ def ramp_current(*args, **kwargs):
     warnings.warn('Please use "brainpy.inputs.ramp_input()" instead. '
                   '"brainpy.inputs.ramp_current()" is deprecated since version 2.1.13.',
                   DeprecationWarning)
-    return constant_input(*args, **kwargs)
+    return ramp_input(*args, **kwargs)
 
 
 def wiener_process(duration, dt=None, n=1, t_start=0., t_end=None, seed=None):

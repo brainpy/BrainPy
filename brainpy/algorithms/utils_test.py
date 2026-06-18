@@ -97,25 +97,25 @@ class TestPolynomialFeatures:
     def test_degree2_with_bias(self):
         X = bm.asarray([[2.0, 3.0]])
         out = np.asarray(bm.as_jax(utils.polynomial_features(X, degree=2, add_bias=True)))
-        # X_new has shape (n_samples, 1 + n_features + len(combinations)).
-        # With add_bias, n_features is bumped to 3 (2 + 1), combos == 3, so the
-        # allocated width is 1 + 3 + 3 == 7. NOTE: the leading "1 +" plus the
-        # bumped n_features leaves one all-zero trailing column unused, i.e. the
-        # output is wider than the mathematically expected 6 columns.
-        assert out.shape == (1, 7)
+        # P16-M2: width is exactly 1 bias + 2 linear + 3 interaction == 6
+        # (previously a dead all-zero trailing column made it 7).
+        assert out.shape == (1, 6)
         assert out[0, 0] == 1.0
         # the linear features should appear
         assert 2.0 in out[0] and 3.0 in out[0]
         # interactions: 4 (=2^2), 6 (=2*3), 9 (=3^2)
         for v in (4.0, 6.0, 9.0):
             assert np.any(np.isclose(out[0], v))
+        # no dead all-zero column anymore
+        assert not np.any(np.all(out == 0, axis=0))
 
     def test_degree2_without_bias(self):
         X = bm.asarray([[2.0, 3.0]])
         out = np.asarray(bm.as_jax(utils.polynomial_features(X, degree=2, add_bias=False)))
-        # 1 + 2 linear + 3 interaction -> 6 cols (again one extra leading column;
-        # see NOTE in test_degree2_with_bias).
-        assert out.shape == (1, 6)
+        # P16-M2: 2 linear + 3 interaction -> 5 cols (previously 6 with a dead
+        # leading allocation slot).
+        assert out.shape == (1, 5)
+        assert not np.any(np.all(out == 0, axis=0))
 
 
 class TestNormalize:

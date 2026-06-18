@@ -105,3 +105,24 @@ class TestCurrents(TestCase):
                                                   bp.math.random.random((3, 10))],
                                           durations=[100, 300, 100])
         self.assertTrue(current.shape == (5000, 3, 10))
+
+    def test_spike_current_alias(self):
+        # P16-C1: the deprecated ``spike_current`` alias must forward to
+        # ``spike_input`` (it used to forward to ``constant_input`` and crash).
+        import warnings
+        kwargs = dict(sp_times=[10, 20, 30], sp_lens=1., sp_sizes=0.5, duration=40.)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', DeprecationWarning)
+            aliased = bp.inputs.spike_current(**kwargs)
+        direct = bp.inputs.spike_input(**kwargs)
+        self.assertTrue(np.array_equal(np.asarray(aliased), np.asarray(direct)))
+
+    def test_ramp_current_alias(self):
+        # P16-C1: the deprecated ``ramp_current`` alias must forward to
+        # ``ramp_input`` (it used to forward to ``constant_input`` and crash).
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', DeprecationWarning)
+            aliased = bp.inputs.ramp_current(0., 1., 100.)
+        direct = bp.inputs.ramp_input(0., 1., 100.)
+        self.assertTrue(np.array_equal(np.asarray(aliased), np.asarray(direct)))
