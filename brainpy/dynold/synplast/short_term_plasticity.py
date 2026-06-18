@@ -95,7 +95,10 @@ class STD(_SynSTP):
 
     def update(self, pre_spike):
         x = self.integral(self.x.value, share['t'], share['dt'])
-        self.x.value = jnp.where(pre_spike, x - self.U * self.x, x)
+        # The depression jump must be applied to the value *at spike arrival*,
+        # i.e. the recovered/decayed local ``x`` (= x^-), not the pre-decay
+        # ``self.x`` from the previous step (P11-M1).
+        self.x.value = jnp.where(pre_spike, x - self.U * x, x)
 
     def filter(self, g):
         if jnp.shape(g) != self.x.shape:
@@ -191,8 +194,11 @@ class STP(_SynSTP):
 
     def update(self, pre_spike):
         u, x = self.integral(self.u.value, self.x.value, share['t'], share['dt'])
-        u = jnp.where(pre_spike, u + self.U * (1 - self.u), u)
-        x = jnp.where(pre_spike, x - u * self.x, x)
+        # Tsodyks-Markram jumps act on the values *at spike arrival* (the decayed
+        # locals u^-/x^-), and the depression of x uses the facilitated u^+
+        # (P11-M1): u^+ = u^- + U(1 - u^-); x^+ = x^- - u^+ x^-.
+        u = jnp.where(pre_spike, u + self.U * (1 - u), u)
+        x = jnp.where(pre_spike, x - u * x, x)
         self.x.value = x
         self.u.value = u
 

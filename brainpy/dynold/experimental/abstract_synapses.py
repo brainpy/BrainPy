@@ -146,11 +146,14 @@ class Exponential(SynConnNS):
                                                   self.conn_mask[1],
                                                   s,
                                                   shape=(self.pre_num, self.post_num),
-                                                  transpose=True,
-                                                  method='cusparse')
+                                                  transpose=True)
                     if isinstance(self.mode, bm.BatchingMode):
                         f = vmap(f)
-                post_vs = f(pre_spike)
+                # ``f`` is fed ``syn_value`` (the STP-filtered drive when an stp
+                # component is present) so short-term plasticity actually affects
+                # the sparse conductance; the event-based no-stp branch above
+                # consumes the boolean ``pre_spike`` directly.
+                post_vs = f(syn_value)
             else:
                 post_vs = self._syn2post_with_dense(syn_value, self.g_max, self.conn_mask)
 
@@ -294,8 +297,7 @@ class DualExponential(SynConnNS):
                     self.conn_mask[1],
                     s,
                     shape=(self.conn.pre_num, self.conn.post_num),
-                    transpose=True,
-                    method='cusparse'
+                    transpose=True
                 )
                 if isinstance(self.mode, bm.BatchingMode):
                     f = vmap(f)
