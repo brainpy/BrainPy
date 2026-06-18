@@ -570,7 +570,7 @@ class L1Loss(Loss):
         return l1_loss(input, target, reduction=self.reduction)
 
 
-def l1_loss(logits, targets, reduction='sum'):
+def l1_loss(logits, targets, reduction='mean'):
     r"""Creates a criterion that measures the mean absolute error (MAE) between each element in
     the logits :math:`x` and targets :math:`y`. It is useful in regression problems.
 
@@ -1045,6 +1045,10 @@ def multi_margin_loss(predicts, targets, margin=1.0, p=1, reduction='mean'):
       a scalar representing the multi-class margin loss. If `reduction` is ``'none'``, then :math:`(N)`.
       """
     assert p == 1 or p == 2, 'p should be 1 or 2'
+    # Convert to plain JAX arrays: under JAX >= 0.9 implicit __jax_array__
+    # coercion was removed, so advanced-indexing a ``bm.Array`` would raise.
+    predicts = bm.as_jax(predicts)
+    targets = bm.as_jax(targets)
     batch_size = predicts.shape[0]
     correct_scores = predicts[jnp.arange(batch_size), targets]
     margins = jnp.power(jnp.maximum(0, predicts - correct_scores[:, jnp.newaxis] + margin), p)

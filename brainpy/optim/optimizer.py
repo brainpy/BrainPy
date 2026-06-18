@@ -17,7 +17,6 @@ import warnings
 from typing import Union, Sequence, Dict, Optional, Tuple
 
 import jax.numpy as jnp
-from jax.lax import cond
 
 import brainpy.math as bm
 from brainpy import check
@@ -772,6 +771,10 @@ class Adan(CommonOpt):
         self.eps = eps
         self.weight_decay = weight_decay
         self.no_prox = no_prox
+        # Per-update step counter for bias correction (see ``Adam``). It must be
+        # independent of the LR scheduler's ``last_epoch`` (which the optimizer
+        # never advances) and advance exactly once per ``update()``.
+        self.step = bm.Variable(jnp.asarray(0))
 
     def __repr__(self):
         return (f"{self.__class__.__name__}(lr={self.lr}, "
@@ -804,18 +807,26 @@ class Adan(CommonOpt):
 
     def update(self, grads: dict):
         self.check_grads(grads)
-        lr = self.lr()
-        step = self.lr.last_epoch.value + 1
-        correct_m = 1 / (1 - (1 - self.betas[0]) ** (step + 1))
-        correct_v = 1 / (1 - (1 - self.betas[1]) ** (step + 1))
-        correct_n = 1 / (1 - (1 - self.betas[2]) ** (step + 1))
+        lr = bm.as_jax(self.lr())
+        # Advance the per-update step counter (t = 1 on the first update). The
+        # bias-correction terms use ``(1 - beta) ** t`` (matching the reference
+        # Adan), so they actually evolve over training instead of being frozen.
+        self.step.value = self.step.value + 1
+        step = self.step.value
+        correct_m = 1 / (1 - (1 - self.betas[0]) ** step)
+        correct_v = 1 / (1 - (1 - self.betas[1]) ** step)
+        correct_n = 1 / (1 - (1 - self.betas[2]) ** step)
         for key, p_var in self.vars_to_train.items():
             m_var = self.implicit_vars[key + '_m']
             n_var = self.implicit_vars[key + '_n']
             v_var = self.implicit_vars[key + '_v']
             prev_g_var = self.implicit_vars[key + '_prev_grad']
             g = grads[key]
-            pre_g = cond(step == 0, lambda pg, g: g, lambda pg, g: pg, (prev_g_var.value, g))
+            # On the first update there is no previous gradient, so the gradient
+            # difference must be 0 (i.e. ``pre_g := g``). Use a value-level
+            # ``where`` rather than ``lax.cond`` (whose operand is splatted into
+            # the branch functions, which was the source of the crash).
+            pre_g = jnp.where(step == 1, g, prev_g_var.value)
             diff = g - pre_g
             m = m_var.value * (1 - self.betas[0]) + self.betas[0] * g
             v = v_var.value * (1 - self.betas[1]) + self.betas[1] * diff
@@ -1082,6 +1093,13 @@ class SM3(CommonOpt):
         vs = dict()
         for k, v in train_vars.items():
             rank, ndim = v.shape, v.ndim
+            if ndim == 0:
+                # A 0-dim (scalar) variable has no axes to build a cover over.
+                # Register a single scalar accumulator so SM3 degenerates to an
+                # Adagrad-like update (otherwise ``update`` would ``KeyError`` on
+                # the missing ``{k}_m0`` accumulator).
+                vs[f'{k}_m0'] = bm.Variable(bm.zeros((), dtype=v.dtype))
+                continue
             for i in range(ndim):
                 shape = [1] * ndim
                 shape[i] = rank[i]
@@ -1098,7 +1116,9 @@ class SM3(CommonOpt):
 
         for k, p in self.vars_to_train.items():
             g = grads[k]
-            ndim = p.ndim
+            # Match the rank-1 fallback used when registering accumulators for
+            # scalar variables (see ``register_train_vars``).
+            ndim = max(p.ndim, 1)
             update = self.implicit_vars[f'{k}_m0']
             for i in range(1, ndim):
                 update = bm.minimum(update, self.implicit_vars[f'{k}_m{i}'])

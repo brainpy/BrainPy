@@ -185,17 +185,16 @@ class TestLARS:
 
 
 class TestAdan:
-    def test_update_is_currently_broken(self):
-        # NOTE (defect): Adan.update calls
-        #   cond(step == 0, lambda pg, g: g, lambda pg, g: pg, (prev_g_var.value, g))
-        # jax.lax.cond unpacks *operands, so passing the single 2-tuple binds
-        # pg=(prev, g) and leaves g unbound -> TypeError. Adan.update therefore
-        # cannot run as written (both no_prox branches are unreachable).
+    def test_update_runs(self):
+        # P1-C1/P1-C2 fix: Adan.update used to crash (jax.lax.cond operand
+        # splatting) and its step counter was frozen at 0. It now runs and the
+        # per-update step counter advances.
         v = _make_var(2.0)
         opt = O.Adan(lr=1e-2, train_vars={'w': v})
         assert 'no_prox' in repr(opt)
-        with pytest.raises(TypeError):
-            opt.update({'w': bm.as_jax(v.value)})
+        out = _train(opt, {'w': v}, lambda val: val)
+        assert np.isfinite(out['w'])
+        assert int(bm.as_jax(opt.step.value)) == 5
 
     def test_invalid_eps(self):
         with pytest.raises(ValueError):
@@ -245,16 +244,15 @@ class TestAdamW:
 
 
 class TestSM3:
-    def test_scalar_var_is_broken(self):
-        # NOTE (defect): SM3.register_train_vars loops ``for i in range(ndim)``;
-        # for a scalar (0-dim) variable no ``_m{i}`` accumulator gets created,
-        # yet ``update`` reads ``{k}_m0`` -> KeyError. SM3 only works for
-        # >=1-dim variables.
+    def test_scalar_var_runs(self):
+        # P1-H1 fix: SM3 used to KeyError('w_m0') for a scalar (0-dim) variable
+        # because no accumulator was registered. It now registers a single
+        # scalar accumulator (Adagrad-like) and updates correctly.
         v = _make_var(2.0)
         opt = O.SM3(lr=0.1, train_vars={'w': v})
         assert 'beta' in repr(opt)
-        with pytest.raises(KeyError):
-            opt.update({'w': bm.as_jax(v.value)})
+        out = _train(opt, {'w': v}, lambda val: np.ones_like(val))
+        assert np.isfinite(out['w'])
 
     def test_1d_var(self):
         v = bm.Variable(bm.asarray(np.array([1.0, 2.0], dtype=np.float32)))
