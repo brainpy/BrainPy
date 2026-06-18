@@ -502,10 +502,20 @@ class MilsteinGradFree(SDEIntegrator):
                 else:
                     integral += diffusions[key] * noise
                 noise_p2 = (noise ** 2 - dt) if self.intg_type == constants.ITO_SDE else noise ** 2
-                minus = (diffusion_bars[key] - diffusions[key]) / 2 / jnp.sqrt(dt)
                 if self.wiener_type == constants.VECTOR_WIENER:
-                    integral += minus * jnp.sum(noise_p2, axis=-1)
+                    # ``y_bars[key]`` carries the noise axis (one support value per noise
+                    # component ``j``: ``y_bar_j = Y + f dt + g_j sqrt(dt)``), so
+                    # ``diffusion_bars[key]`` has a trailing ``(m, m)`` block whose diagonal is
+                    # ``g_j(y_bar_j)``. Previously the full ``(m, m)`` matrix was used together
+                    # with ``minus * jnp.sum(noise_p2, -1)``, which left the noise dimension in
+                    # the state and grew the output by two axes every step (a multi-GB blow-up
+                    # for long integrations). Take the diagonal and contract the per-component
+                    # Milstein correction over the noise axis, mirroring ``Milstein``.
+                    g_bar = jnp.diagonal(diffusion_bars[key], axis1=-2, axis2=-1)
+                    minus = (g_bar - diffusions[key]) / 2 / jnp.sqrt(dt)
+                    integral += jnp.sum(minus * noise_p2, axis=-1)
                 else:
+                    minus = (diffusion_bars[key] - diffusions[key]) / 2 / jnp.sqrt(dt)
                     integral += minus * noise_p2
             integrals.append(integral)
         return integrals if len(self.variables) > 1 else integrals[0]

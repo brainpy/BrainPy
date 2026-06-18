@@ -22,8 +22,8 @@ Audit findings exercised here (see the doc for full context):
   ``fill_diagonal(inplace=False)`` returns a brainpy ``Array``.
 * (``compat_pytorch.py``)          -- ``arcsinh``/``arctanh`` exist & correct,
   no duplicate ``arcsin`` clobbering.
-* (``einops.py``)                  -- module still imports after the dead
-  ``_optimize_transformation`` helper was removed.
+* (``einops``)                     -- the ``ein_*`` helpers are re-exported from
+  ``brainunit.math`` (the local port was removed); the wiring still works.
 """
 
 import jax
@@ -39,8 +39,8 @@ from brainpy.math import (
     activations as act,
     others as bo,
     _utils as butils,
-    einops as bein,
 )
+import brainunit.math as um
 from brainpy.math.ndarray import Array
 
 
@@ -258,16 +258,14 @@ def test_numpy_arcsinh_arctanh_present():
         np.asarray(_j(cn.arctanh(bm.asarray([0., 0.5])))), np.arctanh([0., 0.5]), atol=1e-6)
 
 
-# --- einops module still imports (dead _optimize_transformation removed) ----
+# --- einops helpers are re-exported from brainunit.math ---------------------
 
-def test_einops_module_imports():
-    import brainpy.math.einops as eio
-    assert hasattr(eio, 'ein_rearrange')
-    assert hasattr(eio, 'ein_reduce')
-    assert hasattr(eio, 'ein_repeat')
-    assert hasattr(eio, 'ein_shape')
-    # the dead helper flagged by the audit must be gone
-    assert not hasattr(eio, '_optimize_transformation')
+def test_einops_reexports_brainunit():
+    # the local einops port was removed; ``bm.ein_*`` must alias brainunit's.
+    assert bm.ein_rearrange is um.einrearrange
+    assert bm.ein_reduce is um.einreduce
+    assert bm.ein_repeat is um.einrepeat
+    assert bm.ein_shape is um.einshape
 
 
 # ===========================================================================
@@ -905,113 +903,101 @@ def test_utils_wrapper_doc_and_name():
 
 def test_einops_rearrange():
     x = jnp.arange(24.).reshape(2, 3, 4)
-    assert bein.ein_rearrange(x, 'a b c -> a c b').shape == (2, 4, 3)
-    assert bein.ein_rearrange(x, 'a b c -> (a b) c').shape == (6, 4)
-    assert bein.ein_rearrange(x, 'a b c -> a b c').shape == (2, 3, 4)
+    assert bm.ein_rearrange(x, 'a b c -> a c b').shape == (2, 4, 3)
+    assert bm.ein_rearrange(x, 'a b c -> (a b) c').shape == (6, 4)
+    assert bm.ein_rearrange(x, 'a b c -> a b c').shape == (2, 3, 4)
     # split an axis
-    assert bein.ein_rearrange(jnp.arange(12.), '(a b) -> a b', a=3).shape == (3, 4)
+    assert bm.ein_rearrange(jnp.arange(12.), '(a b) -> a b', a=3).shape == (3, 4)
+
+
+def test_einops_rearrange_on_brainpy_array():
+    # the reused brainunit helpers must accept brainpy ``Array`` instances.
+    x = bm.Array(jnp.arange(24.).reshape(2, 3, 4))
+    assert bm.ein_rearrange(x, 'a b c -> a c b').shape == (2, 4, 3)
+    assert bm.ein_reduce(x, 'a b c -> a c', 'sum').shape == (2, 4)
+    assert bm.ein_shape(x, 'a b c') == {'a': 2, 'b': 3, 'c': 4}
 
 
 def test_einops_reduce():
     x = jnp.arange(24.).reshape(2, 3, 4)
-    assert bein.ein_reduce(x, 'a b c -> a c', 'mean').shape == (2, 4)
-    assert bein.ein_reduce(x, 'a b c -> a', 'sum').shape == (2,)
-    assert bein.ein_reduce(x, 'a b c -> b c', 'max').shape == (3, 4)
-    assert bein.ein_reduce(x, 'a b c -> b c', 'min').shape == (3, 4)
-    assert bein.ein_reduce(x, 'a b c -> b c', 'prod').shape == (3, 4)
+    assert bm.ein_reduce(x, 'a b c -> a c', 'mean').shape == (2, 4)
+    assert bm.ein_reduce(x, 'a b c -> a', 'sum').shape == (2,)
+    assert bm.ein_reduce(x, 'a b c -> b c', 'max').shape == (3, 4)
+    assert bm.ein_reduce(x, 'a b c -> b c', 'min').shape == (3, 4)
+    assert bm.ein_reduce(x, 'a b c -> b c', 'prod').shape == (3, 4)
     # pooling-style reduce with explicit axis lengths
     y = jnp.arange(2 * 2 * 4 * 4.).reshape(2, 2, 4, 4)
-    assert bein.ein_reduce(y, 'b c (h h2) (w w2) -> b c h w', 'max', h2=2, w2=2).shape == (2, 2, 2, 2)
+    assert bm.ein_reduce(y, 'b c (h h2) (w w2) -> b c h w', 'max', h2=2, w2=2).shape == (2, 2, 2, 2)
 
 
 def test_einops_reduce_any_all():
     b = jnp.array([[True, False, True], [False, False, True]])
-    assert bein.ein_reduce(b, 'a c -> c', 'any').shape == (3,)
-    assert bein.ein_reduce(b, 'a c -> c', 'all').shape == (3,)
+    assert bm.ein_reduce(b, 'a c -> c', 'any').shape == (3,)
+    assert bm.ein_reduce(b, 'a c -> c', 'all').shape == (3,)
     np.testing.assert_array_equal(
-        np.asarray(_j(bein.ein_reduce(b, 'a c -> c', 'any'))), [True, False, True])
+        np.asarray(_j(bm.ein_reduce(b, 'a c -> c', 'any'))), [True, False, True])
     np.testing.assert_array_equal(
-        np.asarray(_j(bein.ein_reduce(b, 'a c -> c', 'all'))), [False, False, True])
+        np.asarray(_j(bm.ein_reduce(b, 'a c -> c', 'all'))), [False, False, True])
 
 
 def test_einops_repeat():
     img = jnp.arange(6.).reshape(2, 3)
-    assert bein.ein_repeat(img, 'h w -> h w c', c=4).shape == (2, 3, 4)
-    assert bein.ein_repeat(img, 'h w -> (h2 h) w', h2=2).shape == (4, 3)
+    assert bm.ein_repeat(img, 'h w -> h w c', c=4).shape == (2, 3, 4)
+    assert bm.ein_repeat(img, 'h w -> (h2 h) w', h2=2).shape == (4, 3)
 
 
 def test_einops_shape():
     x = jnp.zeros((2, 3, 5, 7))
-    assert bein.ein_shape(x, 'batch _ h w') == {'batch': 2, 'h': 5, 'w': 7}
-    assert bein.ein_shape(x, 'a b c d') == {'a': 2, 'b': 3, 'c': 5, 'd': 7}
+    assert bm.ein_shape(x, 'batch _ h w') == {'batch': 2, 'h': 5, 'w': 7}
+    assert bm.ein_shape(x, 'a b c d') == {'a': 2, 'b': 3, 'c': 5, 'd': 7}
 
 
 def test_einops_reduce_callable_reduction():
     x = jnp.arange(24.).reshape(2, 3, 4)
-    out = bein.ein_reduce(x, 'a b c -> a c', lambda t, axes: t.sum(axis=axes))
+    out = bm.ein_reduce(x, 'a b c -> a c', lambda t, axes: t.sum(axis=axes))
     assert out.shape == (2, 4)
 
 
 def test_einops_mean_requires_float():
     x = jnp.arange(24).reshape(2, 3, 4)  # integer tensor
     with pytest.raises(Exception):
-        bein.ein_reduce(x, 'a b c -> a c', 'mean')
+        bm.ein_reduce(x, 'a b c -> a c', 'mean')
 
 
 def test_einops_error_message_wrapped():
-    from brainpy.math.einops_parsing import EinopsError
-    with pytest.raises(EinopsError):
-        bein.ein_rearrange(jnp.arange(6.), 'a b c -> a b c')  # wrong ndim
-
-
-def test_einops_enumerate_directions_internal():
-    x = jnp.zeros((2, 3))
-    dirs = bein._enumerate_directions(x)
-    assert len(dirs) == 2
-    assert _j(dirs[0]).shape == (2, 1)
-    assert _j(dirs[1]).shape == (1, 3)
+    with pytest.raises(Exception):
+        bm.ein_rearrange(jnp.arange(6.), 'a b c -> a b c')  # wrong ndim
 
 
 def test_einops_ellipsis_patterns():
     x = jnp.arange(24.).reshape(2, 3, 4)
     # reduce trailing axis, keep ellipsis dims
-    assert bein.ein_reduce(x, '... c -> ...', 'sum').shape == (2, 3)
+    assert bm.ein_reduce(x, '... c -> ...', 'sum').shape == (2, 3)
     # move leading axis to the end across an ellipsis
-    assert bein.ein_rearrange(x, 'a ... -> ... a').shape == (3, 4, 2)
+    assert bm.ein_rearrange(x, 'a ... -> ... a').shape == (3, 4, 2)
     # repeat with ellipsis
-    assert bein.ein_repeat(jnp.arange(6.).reshape(2, 3), '... -> ... r', r=2).shape == (2, 3, 2)
+    assert bm.ein_repeat(jnp.arange(6.).reshape(2, 3), '... -> ... r', r=2).shape == (2, 3, 2)
 
 
 def test_einops_shape_with_ellipsis():
     x = jnp.zeros((2, 3, 5, 7))
-    assert bein.ein_shape(x, 'b ... w') == {'b': 2, 'w': 7}
+    assert bm.ein_shape(x, 'b ... w') == {'b': 2, 'w': 7}
 
 
 def test_einops_error_branches():
-    from brainpy.math.einops_parsing import EinopsError
     x = jnp.arange(24.).reshape(2, 3, 4)
     # identifiers only on one side of a rearrange
-    with pytest.raises(EinopsError):
-        bein.ein_rearrange(x, 'a b c -> a b')
+    with pytest.raises(Exception):
+        bm.ein_rearrange(x, 'a b c -> a b')
     # repeat without a size for a new axis
-    with pytest.raises(EinopsError):
-        bein.ein_repeat(jnp.arange(6.).reshape(2, 3), 'h w -> h w c')
+    with pytest.raises(Exception):
+        bm.ein_repeat(jnp.arange(6.).reshape(2, 3), 'h w -> h w c')
     # extra identifier on the right of a reduce
-    with pytest.raises(EinopsError):
-        bein.ein_reduce(x, 'a b c -> a b c d', 'sum')
+    with pytest.raises(Exception):
+        bm.ein_reduce(x, 'a b c -> a b c d', 'sum')
     # unknown reduction name
-    with pytest.raises(EinopsError):
-        bein.ein_reduce(x, 'a b c -> a', 'median')
+    with pytest.raises(Exception):
+        bm.ein_reduce(x, 'a b c -> a', 'median')
     # composed axes can't be parsed by ein_shape
-    with pytest.raises(RuntimeError):
-        bein.ein_shape(jnp.zeros((6,)), '(a b)')
-
-
-def test_einops_list_input_passthrough_identity():
-    # NOTE: the docstrings advertise stacking list-of-tensors input, but this
-    # port does not stack the list -- an identity pattern is a no-op and returns
-    # the list unchanged. Pin the current (documented-but-incomplete) behaviour.
-    imgs = [jnp.zeros((3, 4)) for _ in range(5)]
-    out = bein.ein_rearrange(imgs, 'b h w -> b h w')
-    assert isinstance(out, list)
-    assert len(out) == 5
+    with pytest.raises(Exception):
+        bm.ein_shape(jnp.zeros((6,)), '(a b)')

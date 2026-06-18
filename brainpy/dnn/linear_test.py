@@ -150,7 +150,10 @@ class TestLinear(parameterized.TestCase):
         self.assertTrue(y.shape == shape + (200,))
 
         conn_matrix = f.get_conn_matrix()
-        self.assertTrue(bm.allclose(y, x @ conn_matrix.T))
+        # float32-appropriate tolerances: the JIT operator and the dense ``x @ conn``
+        # differ at float32 rounding level; the default ``atol=1e-8`` is tighter than that
+        # for the symmetric-uniform layer whose outputs sit near zero.
+        self.assertTrue(bm.allclose(y, x @ conn_matrix.T, rtol=1e-4, atol=1e-5))
         # print(conn_matrix.shape)
         # self.assertTrue(conn_matrix.shape == (200, 100))
 
@@ -168,7 +171,10 @@ class TestLinear(parameterized.TestCase):
         self.assertTrue(y.shape == shape + (200,))
 
         conn_matrix = f.get_conn_matrix()
-        self.assertTrue(bm.allclose(y, x @ conn_matrix.T))
+        # float32-appropriate tolerances: the JIT operator and the dense ``x @ conn``
+        # differ at float32 rounding level; the default ``atol=1e-8`` is tighter than that
+        # for the symmetric-uniform layer whose outputs sit near zero.
+        self.assertTrue(bm.allclose(y, x @ conn_matrix.T, rtol=1e-4, atol=1e-5))
 
     @parameterized.product(
         prob=[0.1],
@@ -184,7 +190,10 @@ class TestLinear(parameterized.TestCase):
         self.assertTrue(y.shape == shape + (200,))
 
         conn_matrix = f.get_conn_matrix()
-        self.assertTrue(bm.allclose(y, x @ conn_matrix.T))
+        # float32-appropriate tolerances: the JIT operator and the dense ``x @ conn``
+        # differ at float32 rounding level; the default ``atol=1e-8`` is tighter than that
+        # for the symmetric-uniform layer whose outputs sit near zero.
+        self.assertTrue(bm.allclose(y, x @ conn_matrix.T, rtol=1e-4, atol=1e-5))
 
     @parameterized.product(
         prob=[0.1],
@@ -202,7 +211,10 @@ class TestLinear(parameterized.TestCase):
         self.assertTrue(y2.shape == shape + (200,))
 
         conn_matrix = f.get_conn_matrix()
-        self.assertTrue(bm.allclose(y, x @ conn_matrix.T))
+        # float32-appropriate tolerances: the JIT operator and the dense ``x @ conn``
+        # differ at float32 rounding level; the default ``atol=1e-8`` is tighter than that
+        # for the symmetric-uniform layer whose outputs sit near zero.
+        self.assertTrue(bm.allclose(y, x @ conn_matrix.T, rtol=1e-4, atol=1e-5))
 
     @parameterized.product(
         prob=[0.1],
@@ -221,7 +233,10 @@ class TestLinear(parameterized.TestCase):
         self.assertTrue(y2.shape == shape + (200,))
 
         conn_matrix = f.get_conn_matrix()
-        self.assertTrue(bm.allclose(y, x @ conn_matrix.T))
+        # float32-appropriate tolerances: the JIT operator and the dense ``x @ conn``
+        # differ at float32 rounding level; the default ``atol=1e-8`` is tighter than that
+        # for the symmetric-uniform layer whose outputs sit near zero.
+        self.assertTrue(bm.allclose(y, x @ conn_matrix.T, rtol=1e-4, atol=1e-5))
 
     @parameterized.product(
         prob=[0.1],
@@ -240,7 +255,10 @@ class TestLinear(parameterized.TestCase):
         self.assertTrue(y2.shape == shape + (200,))
 
         conn_matrix = f.get_conn_matrix()
-        self.assertTrue(bm.allclose(y, x @ conn_matrix.T))
+        # float32-appropriate tolerances: the JIT operator and the dense ``x @ conn``
+        # differ at float32 rounding level; the default ``atol=1e-8`` is tighter than that
+        # for the symmetric-uniform layer whose outputs sit near zero.
+        self.assertTrue(bm.allclose(y, x @ conn_matrix.T, rtol=1e-4, atol=1e-5))
 
 
 if __name__ == '__main__':
