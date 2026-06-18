@@ -16,7 +16,7 @@ __all__ = [
     'jaxlib_install_info',
 ]
 
-jaxlib_install_info = '''
+jaxlib_install_info: str = '''
 
 BrainPy needs jaxlib, please install it. 
 

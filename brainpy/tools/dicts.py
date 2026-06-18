@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Union, Dict, Sequence
+from typing import Any, Dict, Mapping, Sequence, Union
 
 import numpy as np
 from brainstate._compatible_import import safe_zip
@@ -24,7 +24,7 @@ __all__ = [
 ]
 
 
-class DotDict(dict):
+class DotDict(Dict[str, Any]):
     """Python dictionaries with advanced dot notation access.
 
     For example:
@@ -56,23 +56,23 @@ class DotDict(dict):
 
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.__dict__ = self
 
     def copy(self) -> 'DotDict':
         return type(self)(super().copy())
 
-    def to_numpy(self):
+    def to_numpy(self) -> None:
         """Change all values to numpy arrays."""
         for key in tuple(self.keys()):
             self[key] = np.asarray(self[key])
 
-    def update(self, *args, **kwargs):
+    def update(self, *args: Any, **kwargs: Any) -> 'DotDict':  # type: ignore[override]  # returns self for chaining
         super().update(*args, **kwargs)
         return self
 
-    def __add__(self, other):
+    def __add__(self, other: Mapping[Any, Any]) -> 'DotDict':
         """Merging two dicts.
 
         Parameters::
@@ -89,7 +89,7 @@ class DotDict(dict):
         gather.update(other)
         return gather
 
-    def __sub__(self, other: Union[Dict, Sequence]):
+    def __sub__(self, other: Union[Dict[Any, Any], Sequence[Any]]) -> 'DotDict':
         """Remove other item in the collector.
 
         Parameters::
@@ -116,14 +116,14 @@ class DotDict(dict):
                     raise ValueError(f'Cannot remove {key}, because we do not find it '
                                      f'in {self.keys()}.')
         elif isinstance(other, (list, tuple)):
-            id_to_keys = {}
+            id_to_keys: Dict[int, list[Any]] = {}
             for k, v in self.items():
                 id_ = id(v)
                 if id_ not in id_to_keys:
                     id_to_keys[id_] = []
                 id_to_keys[id_].append(k)
 
-            keys_to_remove = []
+            keys_to_remove: list[Any] = []
             for key in other:
                 if isinstance(key, str):
                     keys_to_remove.append(key)
@@ -140,7 +140,7 @@ class DotDict(dict):
             raise KeyError(f'Unknown type of "other". Only support dict/tuple/list, but we got {type(other)}')
         return gather
 
-    def subset(self, var_type):
+    def subset(self, var_type: type) -> 'DotDict':
         """Get the subset of the (key, value) pair.
 
         ``subset()`` can be used to get a subset of some class:
@@ -171,7 +171,7 @@ class DotDict(dict):
                 gather[key] = value
         return gather
 
-    def unique(self):
+    def unique(self) -> 'DotDict':
         """Get a new type of collector with unique values.
 
         If one value is assigned to two or more keys,
@@ -185,7 +185,7 @@ class DotDict(dict):
                 gather[k] = v
         return gather
 
-    def __hash__(self):
+    def __hash__(self) -> int:  # type: ignore[override]  # dict sets __hash__ = None; DotDict is hashable
         return hash(tuple(sorted(self.items())))
 
 

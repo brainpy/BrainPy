@@ -30,7 +30,7 @@ __all__ = [
 ]
 
 
-def one_of(default: Any, *choices, names: Sequence[str] = None):
+def one_of(default: Any, *choices: Any, names: Optional[Sequence[str]] = None) -> Any:
     names = [f'arg{i}' for i in range(len(choices))] if names is None else names
     res = default
     has_chosen = False
@@ -56,7 +56,7 @@ def replicate(
     if isinstance(element, (str, bytes)) or not isinstance(element, collections.abc.Sequence):
         return (element,) * num_replicate
     elif len(element) == 1:
-        return tuple(element * num_replicate)
+        return tuple(element) * num_replicate
     elif len(element) == num_replicate:
         return tuple(element)
     else:
@@ -64,7 +64,7 @@ def replicate(
                         f"sequence of length {num_replicate}.")
 
 
-def not_customized(fun: Callable) -> Callable:
+def not_customized(fun: Callable[..., Any]) -> Callable[..., Any]:
     """Marks the given module method is not implemented.
 
     Methods wrapped in @not_customized can define submodules directly within the method.
@@ -79,11 +79,11 @@ def not_customized(fun: Callable) -> Callable:
       def feedback(self):
         ...
     """
-    fun.not_customized = True
+    fun.not_customized = True  # type: ignore[attr-defined]  # marker attribute on a callable
     return fun
 
 
-def size2num(size):
+def size2num(size: Union[int, Sequence[int]]) -> int:
     if isinstance(size, (int, np.integer)):
         return size
     elif isinstance(size, (tuple, list)):
@@ -95,7 +95,7 @@ def size2num(size):
         raise ValueError(f'Do not support type {type(size)}: {size}')
 
 
-def to_size(x) -> Optional[Tuple[int]]:
+def to_size(x: Union[int, Sequence[int], None]) -> Optional[Tuple[int, ...]]:
     if isinstance(x, (tuple, list)):
         return tuple(x)
     if isinstance(x, (int, np.integer)):
@@ -105,7 +105,7 @@ def to_size(x) -> Optional[Tuple[int]]:
     raise ValueError(f'Cannot make a size for {x}')
 
 
-def timeout(s):
+def timeout(s: float) -> Callable[[Callable[..., T]], Callable[..., T]]:
     """Add a timeout parameter to a function and return it.
 
     Parameters::
@@ -119,8 +119,8 @@ def timeout(s):
         Functional results. Or, raise an error of KeyboardInterrupt.
     """
 
-    def outer(fn):
-        def inner(*args, **kwargs):
+    def outer(fn: Callable[..., T]) -> Callable[..., T]:
+        def inner(*args: Any, **kwargs: Any) -> T:
             timer = threading.Timer(s, thread.interrupt_main)
             timer.start()
             try:
