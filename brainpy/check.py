@@ -620,6 +620,16 @@ def jit_error(pred, err_fun, err_arg=None):
       The arguments which passed into `err_f`.
     """
     from brainpy.math.interoperability import as_jax
+
+    # Fast path for a concrete (non-traced) predicate. ``jax.pure_callback`` only
+    # surfaces its raised exception when the staged computation is *executed*; for
+    # an eager, concrete predicate the callback never runs synchronously, so the
+    # error would be silently swallowed. Evaluate and raise directly instead.
+    if not isinstance(pred, jax.core.Tracer):
+        if bool(np.asarray(pred)):
+            err_fun(err_arg)
+        return
+
     partial(_cond, err_fun)(as_jax(pred), err_arg)
 
 
@@ -641,7 +651,16 @@ def jit_error_checking_no_args(pred: bool, err: Exception):
 
     assert isinstance(err, Exception), 'Must be instance of Exception.'
 
-    def true_err_fun(arg, transforms):
+    # Fast path for a concrete (non-traced) predicate. The ``jax.pure_callback``
+    # below only raises when the staged computation is *executed*; eagerly the
+    # exception is never surfaced synchronously, so an out-of-bound value would
+    # be silently accepted (e.g. ``is_float(2.0, max_bound=1.0)``). Raise here.
+    if not isinstance(pred, jax.core.Tracer):
+        if bool(np.asarray(pred)):
+            raise err
+        return
+
+    def true_err_fun(*args):
         raise err
 
     cond(unvmap(as_jax(pred)),

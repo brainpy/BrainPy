@@ -15,7 +15,60 @@
 # ==============================================================================
 import unittest
 
+import jax
+
 from brainpy import check as checking
+
+
+class TestBoundChecks(unittest.TestCase):
+    """Regression tests for P14-H2: eager bound checks must actually raise.
+
+    ``is_float``/``is_integer`` route their ``min_bound``/``max_bound`` checks
+    through ``jit_error_checking_no_args``. The previous implementation used a
+    ``jax.pure_callback`` whose raise never propagated for a *concrete* (eager)
+    predicate, so out-of-bound values were silently accepted.
+    """
+
+    def test_is_float_min_bound_raises(self):
+        with self.assertRaises(Exception):
+            checking.is_float(0.5, 'v', min_bound=1.0)
+
+    def test_is_float_max_bound_raises(self):
+        with self.assertRaises(Exception):
+            checking.is_float(20.0, 'v', max_bound=10.0)
+
+    def test_is_float_within_bounds_ok(self):
+        self.assertEqual(checking.is_float(5.0, 'v', min_bound=1.0, max_bound=10.0), 5.0)
+
+    def test_is_integer_min_bound_raises(self):
+        with self.assertRaises(Exception):
+            checking.is_integer(0, 'v', min_bound=1)
+
+    def test_is_integer_max_bound_raises(self):
+        with self.assertRaises(Exception):
+            checking.is_integer(20, 'v', max_bound=10)
+
+    def test_is_integer_within_bounds_ok(self):
+        self.assertEqual(checking.is_integer(5, 'v', min_bound=1, max_bound=10), 5)
+
+    def test_no_args_concrete_true_raises(self):
+        with self.assertRaises(ValueError):
+            checking.jit_error_checking_no_args(True, ValueError('boom'))
+
+    def test_no_args_concrete_false_ok(self):
+        # must not raise
+        checking.jit_error_checking_no_args(False, ValueError('boom'))
+
+    def test_no_args_under_jit_does_not_raise_at_trace(self):
+        # When the predicate is a tracer (inside jit) the check must NOT raise
+        # at trace time; it stays a deferred in-jit error signal.
+        @jax.jit
+        def f(x):
+            checking.jit_error_checking_no_args(x > 1.0, ValueError('boom'))
+            return x
+
+        # tracing/compiling with a value that does not trip the predicate runs fine
+        self.assertEqual(float(f(0.0)), 0.0)
 
 
 class TestUtils(unittest.TestCase):

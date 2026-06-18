@@ -14,6 +14,7 @@ Targets: ``is_checking``/``turn_on``/``turn_off``, shape helpers
 ``is_all_vars``, ``is_all_objs``), ``serialize_kwargs``, and the JIT error
 helpers (``jit_error``, ``jit_error_checking``, ``jit_error_checking_no_args``).
 """
+import jax
 import numpy as np
 import pytest
 
@@ -306,18 +307,18 @@ class TestIsFloat:
         assert checking.is_float(5.0, min_bound=1.0) == 5.0
 
     def test_min_bound_branch(self):
-        # NOTE: min/max bound checks route through jit_error_checking_no_args
-        # which uses jax.pure_callback. Eagerly the side-effect raise is NOT
-        # propagated, so an out-of-bound value returns rather than raising.
-        # We exercise the branch (line coverage) and pin the no-raise behavior.
-        assert checking.is_float(0.5, min_bound=1.0, name='v') == 0.5
+        # P14-H2: eager out-of-bound checks now raise (previously the
+        # jit_error_checking_no_args pure_callback path silently accepted them).
+        with pytest.raises(Exception):
+            checking.is_float(0.5, min_bound=1.0, name='v')
 
     def test_max_bound_ok(self):
         assert checking.is_float(5.0, max_bound=10.0) == 5.0
 
     def test_max_bound_branch(self):
-        # NOTE: see test_min_bound_branch -- eager pure_callback does not raise.
-        assert checking.is_float(20.0, max_bound=10.0, name='v') == 20.0
+        # P14-H2: eager out-of-bound checks now raise.
+        with pytest.raises(Exception):
+            checking.is_float(20.0, max_bound=10.0, name='v')
 
 
 # --------------------------------------------------------------------------- #
@@ -354,16 +355,17 @@ class TestIsInteger:
         assert checking.is_integer(5, min_bound=1) == 5
 
     def test_min_bound_branch(self):
-        # NOTE: bound check goes through jit_error_checking_no_args (pure_callback);
-        # eager evaluation does not propagate the raise -- value is returned.
-        assert checking.is_integer(0, min_bound=1, name='v') == 0
+        # P14-H2: eager out-of-bound checks now raise.
+        with pytest.raises(Exception):
+            checking.is_integer(0, min_bound=1, name='v')
 
     def test_max_bound_ok(self):
         assert checking.is_integer(5, max_bound=10) == 5
 
     def test_max_bound_branch(self):
-        # NOTE: see test_min_bound_branch.
-        assert checking.is_integer(20, max_bound=10, name='v') == 20
+        # P14-H2: eager out-of-bound checks now raise.
+        with pytest.raises(Exception):
+            checking.is_integer(20, max_bound=10, name='v')
 
 
 # --------------------------------------------------------------------------- #
@@ -533,18 +535,26 @@ class TestIsAllVarsObjs:
 # jit error helpers
 # --------------------------------------------------------------------------- #
 class TestJitErrors:
-    # NOTE: these helpers wrap ``jax.lax.cond`` + ``jax.pure_callback``. When the
-    # predicate is True the error callback executes, but eagerly the raised
-    # exception is NOT propagated synchronously to the caller (a known quirk of
-    # pure_callback used for in-jit error signalling). We therefore exercise the
-    # True/False branches for line coverage and assert they run without crashing.
+    # P14-H2: for a *concrete* predicate these helpers now raise synchronously
+    # (previously the ``jax.pure_callback`` path silently swallowed the raise).
+    # Under tracing they keep the deferred ``cond`` + ``pure_callback`` path.
     def test_no_args_pred_false(self):
-        # pred False -> false branch only
+        # pred False -> false branch only, no raise
         checking.jit_error_checking_no_args(False, ValueError('boom'))
 
     def test_no_args_pred_true(self):
-        # exercises the true branch (callback path), no propagated raise eagerly
-        checking.jit_error_checking_no_args(True, ValueError('boom'))
+        # concrete True -> raises synchronously
+        with pytest.raises(ValueError):
+            checking.jit_error_checking_no_args(True, ValueError('boom'))
+
+    def test_no_args_under_jit(self):
+        # tracer predicate -> deferred, no raise at trace time
+        @jax.jit
+        def f(x):
+            checking.jit_error_checking_no_args(x > 1.0, ValueError('boom'))
+            return x
+
+        assert float(f(0.0)) == 0.0
 
     def test_no_args_bad_err(self):
         with pytest.raises(AssertionError):
@@ -561,15 +571,17 @@ class TestJitErrors:
         def err_fun(arg):
             raise ValueError('boom')
 
-        # exercises the true branch + _err_jit_true_branch single-array path
-        checking.jit_error(True, err_fun, bm.as_jax(bm.zeros(2)))
+        # concrete True -> raises synchronously
+        with pytest.raises(ValueError):
+            checking.jit_error(True, err_fun, bm.as_jax(bm.zeros(2)))
 
     def test_jit_error_true_tuple_arg(self):
         def err_fun(arg):
             raise ValueError('boom')
 
-        # exercises the tuple/list branch of _err_jit_true_branch
-        checking.jit_error(True, err_fun, (bm.as_jax(bm.zeros(2)), bm.as_jax(bm.ones(3))))
+        # concrete True with a tuple err_arg -> raises synchronously
+        with pytest.raises(ValueError):
+            checking.jit_error(True, err_fun, (bm.as_jax(bm.zeros(2)), bm.as_jax(bm.ones(3))))
 
     def test_alias(self):
         assert checking.jit_error_checking is checking.jit_error
