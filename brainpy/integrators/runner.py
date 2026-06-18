@@ -251,8 +251,8 @@ class IntegratorRunner(Runner):
         if len(self.target.variables) == 1:
             self.variables[self.target.variables[0]].update(update_values)
         else:
-            for i, v in enumerate(self.target.variables):
-                self.variables[v].update(update_values[i])
+            for j, v in enumerate(self.target.variables):
+                self.variables[v].update(update_values[j])
 
         # progress bar
         if self.progress_bar:

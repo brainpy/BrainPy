@@ -23,6 +23,31 @@ import jax.numpy as jnp
 from brainpy.math.ndarray import Array
 from ._utils import warp_to_no_state_input_output
 
+
+def _unwrap_operand_leaf(x):
+    """Replace a ``State``/``Variable`` or BrainPy ``Array`` leaf with its raw value.
+
+    ``brainstate.transform.*`` rejects ``State`` objects passed as operands, and feeding a
+    BrainPy ``Array`` through brainstate's loop primitives round-trips it through
+    ``tree_unflatten`` (which reconstructs from ``ShapedArray`` avals and fails) inside a
+    JAX trace. Unwrapping both to the underlying ``jax.Array`` avoids both problems while
+    leaving any other operand type untouched.
+    """
+    if isinstance(x, (brainstate.State, Array)):
+        return x.value
+    return x
+
+
+def _unwrap_state_operands(operands):
+    """Unwrap ``brainstate.State`` (e.g. :py:class:`~.Variable`) and :py:class:`~.Array`
+    leaves in ``operands`` to their raw ``jax.Array`` values before forwarding to brainstate.
+    """
+    return jax.tree.map(
+        _unwrap_operand_leaf,
+        operands,
+        is_leaf=lambda x: isinstance(x, (brainstate.State, Array)),
+    )
+
 __all__ = [
     'cond',
     'ifelse',
@@ -124,6 +149,7 @@ def cond(
     """
     if not isinstance(operands, (tuple, list)):
         operands = (operands,)
+    operands = _unwrap_state_operands(operands)
     return brainstate.transform.cond(
         pred,
         warp_to_no_state_input_output(true_fun),
@@ -193,6 +219,7 @@ def ifelse(
         operands = ()
     elif not isinstance(operands, (tuple, list)):
         operands = (operands,)
+    operands = _unwrap_state_operands(operands)
 
     # Convert non-callable branches to callables
     def make_callable(branch):
@@ -234,7 +261,10 @@ def ifelse(
 
         conditions = exclusive_conditions
 
-    return brainstate.transform.ifelse(conditions, branches, *operands)
+    # BrainPy already converts the conditions into mutually exclusive form above,
+    # so brainstate does not need to re-check exclusivity (which would otherwise
+    # reject overlapping inputs at trace time).
+    return brainstate.transform.ifelse(conditions, branches, *operands, check_cond=False)
 
 
 def for_loop(
@@ -311,6 +341,12 @@ def for_loop(
       iteration of a loop.
     jit: bool
       Whether to just-in-time compile the function. Set to ``False`` to disable JIT compilation.
+
+      .. note::
+         ``jit=False`` is implemented via the global :py:func:`jax.disable_jit` context
+         manager. Consequently it has no effect when ``for_loop`` is called inside an
+         enclosing trace (e.g. within another jitted/scanned function): JAX is already
+         tracing, so the loop runs as a compiled ``scan`` regardless of this flag.
     progress_bar: bool, ProgressBar, int
       Whether and how to display a progress bar during execution:
 
@@ -362,6 +398,7 @@ def for_loop(
     """
     if not isinstance(operands, (tuple, list)):
         operands = (operands,)
+    operands = _unwrap_state_operands(operands)
 
     # Convert progress_bar to pbar format
     pbar = _convert_progress_bar_to_pbar(progress_bar)
@@ -371,11 +408,12 @@ def for_loop(
     # For zero-length inputs, we need to use JIT mode even when jit=False.
     should_disable_jit = False
     if jit is False:
-        # Check if any operand has zero length
-        first_operand = operands[0]
-        is_zero_length = False
-        if hasattr(first_operand, 'shape') and len(first_operand.shape) > 0:
-            is_zero_length = (first_operand.shape[0] == 0)
+        # Check if any operand (over the whole pytree) has a zero-length leading axis.
+        leaves = jax.tree.leaves(operands)
+        is_zero_length = any(
+            getattr(leaf, 'ndim', 0) > 0 and leaf.shape[0] == 0
+            for leaf in leaves
+        )
 
         if is_zero_length:
             # Use JIT mode for zero-length inputs to avoid JAX limitation
@@ -464,12 +502,20 @@ def scan(
          Now accepts ProgressBar instances and integers for advanced customization.
 
     Returns::
-    
-    outs: Any
-      The stacked outputs of ``body_fun`` when scanned over the leading axis of the inputs.
+
+    outs: tuple
+      A two-element tuple ``(final_carry, stacked_ys)``:
+
+      - ``final_carry``: the loop carry value returned by the last iteration of
+        ``body_fun`` (same structure as ``init``).
+      - ``stacked_ys``: the per-iteration outputs of ``body_fun`` stacked along a
+        new leading axis.
     """
     # Convert progress_bar to pbar format
     pbar = _convert_progress_bar_to_pbar(progress_bar)
+
+    init = _unwrap_state_operands(init)
+    operands = _unwrap_state_operands(operands)
 
     return brainstate.transform.scan(
         warp_to_no_state_input_output(body_fun),
@@ -546,13 +592,17 @@ def while_loop(
     if not isinstance(operands, (tuple, list)):
         operands = (operands,)
     operands = tuple(operands)
+    operands = _unwrap_state_operands(operands)
 
     def body(x):
         r = body_fun(*x)
         if r is None:
-            return x
-        else:
-            return r
+            raise ValueError(
+                '`body_fun` of `while_loop` must return the updated operands, '
+                'but got `None`. Returning `None` would leave the operands unchanged '
+                'and the loop condition would never become False, causing an infinite loop.'
+            )
+        return r
 
     return brainstate.transform.while_loop(
         warp_to_no_state_input_output(lambda x: cond_fun(*x)),

@@ -1106,7 +1106,14 @@ class ExpIFRefLTC(ExpIFLTC):
         self._V_initializer = is_initializer(V_initializer)
 
         # integral
-        self.integral = odeint(method=method, f=self.derivative)
+        # NOTE: ``self.noise`` is already created by ``ExpIFLTC.__init__`` above
+        # (via ``noise=noise``). Guard the integral on it so a configured
+        # ``noise=`` is honoured with ``sdeint`` instead of being silently
+        # dropped (mirrors every other ``*RefLTC`` and the non-Ref class).
+        if self.noise is not None:
+            self.integral = sdeint(method=self.method, f=self.derivative, g=self.noise)
+        else:
+            self.integral = odeint(method=method, f=self.derivative)
 
         # variables
         if init_var:
@@ -3811,8 +3818,11 @@ class GifRefLTC(GifLTC):
                 V += (self.V_reset - V) * spike_no_grad
             else:
                 raise ValueError(f"Unknown spk_reset mode: {self.spk_reset}. Must be 'soft' or 'hard'.")
-            I1 += spike * (self.R1 * I1 + self.A1 - I1)
-            I2 += spike * (self.R2 * I2 + self.A2 - I2)
+            # Use ``spike_no_grad`` for every state reset so that ``detach_spk``
+            # actually stops the gradient through the spike; the raw ``spike``
+            # here would otherwise leak it into the I1/I2 resets.
+            I1 += spike_no_grad * (self.R1 * I1 + self.A1 - I1)
+            I2 += spike_no_grad * (self.R2 * I2 + self.A2 - I2)
             V_th += (bm.maximum(self.V_th_reset, V_th) - V_th) * spike_no_grad
             spike_ = spike_no_grad > 0.
             # will be used in other place, like Delta Synapse, so stop its gradient
@@ -4492,8 +4502,11 @@ class IzhikevichRefLTC(IzhikevichLTC):
         if isinstance(self.mode, bm.TrainingMode):
             spike = self.spk_fun(V - self.V_th)
             spike_no_grad = stop_gradient(spike) if self.detach_spk else spike
-            V += spike * (self.c - V)
-            u += spike * self.d
+            # Use ``spike_no_grad`` for the state resets so that ``detach_spk``
+            # actually stops the gradient through the spike (raw ``spike`` here
+            # would otherwise make ``detach_spk`` a no-op for the V/u resets).
+            V += spike_no_grad * (self.c - V)
+            u += spike_no_grad * self.d
             spike_ = spike_no_grad > 0.
             # will be used in other place, like Delta Synapse, so stop its gradient
             if self.ref_var:

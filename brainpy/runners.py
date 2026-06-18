@@ -614,7 +614,9 @@ class DSRunner(Runner):
         else:
             raise ValueError
 
-    def _step_mon_on_cpu(self, args, transforms):
+    def _step_mon_on_cpu(self, args):
+        # host-side side effect: append the per-step monitored values (passed in
+        # as a dict of numpy arrays) to the running monitor lists.
         for key, val in args.items():
             self.mon[key].append(val)
 
@@ -636,12 +638,15 @@ class DSRunner(Runner):
         clear_input(self.target)
 
         if self._memory_efficient:
-            mon_shape_dtype = jax.ShapeDtypeStruct(mon.shape, mon.dtype)
-            result = jax.pure_callback(
-                self._step_mon_on_cpu,
-                mon_shape_dtype,
-                mon,
-            )
+            # ``mon`` is a dict of arrays. Offload the monitored values to the
+            # host on every step (keeping them out of device memory) using a
+            # side-effecting callback. ``jax.debug.callback`` is used instead of
+            # ``jax.pure_callback`` because the callback's purpose is the host
+            # side effect (appending to ``self.mon`` lists) and its result is
+            # discarded -- a ``pure_callback`` whose output is unused would be
+            # eliminated by XLA's dead-code elimination under ``jit``.
+            mon = tree_map(lambda x: bm.as_jax(x), mon, is_leaf=_is_brainpy_array)
+            jax.debug.callback(self._step_mon_on_cpu, mon)
             return out, None
         else:
             return out, mon

@@ -388,43 +388,57 @@ def set(
     numpy_func_return: str
       The array to return in all numpy functions. Support 'bp_array' and 'jax_array'.
     """
+    # Validate all arguments BEFORE mutating any global state, so that an
+    # invalid argument cannot leave the environment in a half-updated state.
     if dt is not None:
         assert isinstance(dt, float), '"dt" must a float.'
+    if mode is not None:
+        assert isinstance(mode, modes.Mode), f'"mode" must a {modes.Mode}.'
+    if membrane_scaling is not None:
+        assert isinstance(membrane_scaling, scales.Scaling), f'"membrane_scaling" must a {scales.Scaling}.'
+    if x64 is not None:
+        assert isinstance(x64, bool), f'"x64" must be a bool.'
+    if float_ is not None:
+        assert isinstance(float_, type), '"float_" must a float.'
+    if int_ is not None:
+        assert isinstance(int_, type), '"int_" must a type.'
+    if bool_ is not None:
+        assert isinstance(bool_, type), '"bool_" must a type.'
+    if complex_ is not None:
+        assert isinstance(complex_, type), '"complex_" must a type.'
+    if numpy_func_return is not None:
+        assert numpy_func_return in ['bp_array', 'jax_array'], \
+            '"numpy_func_return" must be "bp_array" or "jax_array".'
+
+    # All validation passed; now apply the settings.
+    if dt is not None:
         set_dt(dt)
 
     if mode is not None:
-        assert isinstance(mode, modes.Mode), f'"mode" must a {modes.Mode}.'
         set_mode(mode)
 
     if membrane_scaling is not None:
-        assert isinstance(membrane_scaling, scales.Scaling), f'"membrane_scaling" must a {scales.Scaling}.'
         set_membrane_scaling(membrane_scaling)
 
     if x64 is not None:
-        assert isinstance(x64, bool), f'"x64" must be a bool.'
         set_x64(x64)
 
     if float_ is not None:
-        assert isinstance(float_, type), '"float_" must a float.'
         set_float(float_)
 
     if int_ is not None:
-        assert isinstance(int_, type), '"int_" must a type.'
         set_int(int_)
 
     if bool_ is not None:
-        assert isinstance(bool_, type), '"bool_" must a type.'
         set_bool(bool_)
 
     if complex_ is not None:
-        assert isinstance(complex_, type), '"complex_" must a type.'
         set_complex(complex_)
 
     if bp_object_as_pytree is not None:
         defaults.bp_object_as_pytree = bp_object_as_pytree
 
     if numpy_func_return is not None:
-        assert numpy_func_return in ['bp_array', 'jax_array'], f'"numpy_func_return" must be "bp_array" or "jax_array".'
         defaults.numpy_func_return = numpy_func_return
 
 
@@ -643,6 +657,7 @@ def enable_x64(x64=None):
 
 
 def disable_x64():
+    brainstate.environ.set(precision=32)
     config.update("jax_enable_x64", False)
     set_int(jnp.int32)
     set_float(jnp.float32)

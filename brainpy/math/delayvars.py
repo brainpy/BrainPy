@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+import inspect
 import numbers
 from typing import Union, Callable
 
@@ -43,6 +44,24 @@ __all__ = [
 
 def _as_jax_array(arr):
     return arr.value if isinstance(arr, Array) else arr
+
+
+def _accepts_dtype_kwarg(func):
+    """Return True if ``func`` can be called with a ``dtype`` keyword argument.
+
+    Initializer/Connector instances accept ``(shape, dtype=...)``, whereas a plain
+    callable such as ``lambda shape: ...`` does not. When the signature cannot be
+    introspected (e.g. some built-ins or C-implemented callables), we conservatively
+    assume the ``dtype`` keyword is accepted to preserve the historical behaviour.
+    """
+    try:
+        sig = inspect.signature(func)
+    except (TypeError, ValueError):
+        return True
+    params = sig.parameters
+    if 'dtype' in params:
+        return True
+    return any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values())
 
 
 class AbstractDelay(BrainPyObject):
@@ -204,20 +223,31 @@ class TimeDelay(AbstractDelay):
           The maximum delay length. The unit is the time.
         t0: int, float
           The zero time.
-        before_t0: int, float, ArrayType
+        before_t0: callable, int, float, ArrayType
           The data before t0.
+          - when ``before_t0`` is a function, it should receive a time argument ``t``
+            (mirroring the behaviour of ``__init__``).
+          - when ``before_t0`` is a tensor / numerical value, it is broadcast into the
+            delay data before ``t0``.
         """
+        self.t0 = t0
         self.delay_len = delay_len
         self.num_delay_step = int(jnp.ceil(self.delay_len / self.dt)) + 1
         self.data.value = jnp.zeros((self.num_delay_step,) + delay_target.shape, dtype=delay_target.dtype)
         self.data[-1] = delay_target
         self.idx = Variable(jnp.asarray([0]))
-        self.current_time = Variable(jnp.asarray([t0]))
-        if before_t0 is not None:
-            if not isinstance(before_t0, (ndarray, jnp.ndarray, float, int)):
-                raise ValueError('Only support numerical values.')
+        self.current_time = Variable(jnp.asarray([t0], dtype=get_float()))
+        if before_t0 is None:
+            self._before_type = _DATA_BEFORE
+        elif callable(before_t0):
+            self._before_t0 = lambda t: as_jax(broadcast_to(before_t0(t), delay_target.shape),
+                                               dtype=delay_target.dtype)
+            self._before_type = _FUNC_BEFORE
+        elif isinstance(before_t0, (ndarray, jnp.ndarray, float, int)):
             self.data[:-1] = before_t0
             self._before_type = _DATA_BEFORE
+        else:
+            raise ValueError(f'"before_t0" does not support {type(before_t0)}')
 
     def _check_time1(self, times):
         prev_time, current_time = times
@@ -268,7 +298,7 @@ class TimeDelay(AbstractDelay):
                                    f'we only support: {[_INTERP_LINEAR, _INTERP_ROUND]}')
 
     def _true_fn(self, req_num_step, extra):
-        return self.data[self.idx[0] + req_num_step]
+        return self.data[(self.idx[0] + req_num_step) % self.num_delay_step]
 
     def _false_fn(self, req_num_step, extra):
         idx = jnp.asarray([self.idx[0] + req_num_step,
@@ -303,6 +333,10 @@ class LengthDelay(AbstractDelay):
     initial_delay_data: Any
       The delay data. It can be a Python number, like float, int, boolean values.
       It can also be arrays. Or a callable function or instance of ``Connector``.
+      A callable will be invoked as ``initial_delay_data(shape, dtype=...)`` when its
+      signature accepts a ``dtype`` keyword (e.g. ``Initializer``/``Connector``
+      instances), and as ``initial_delay_data(shape)`` otherwise (e.g. a plain
+      ``lambda shape: ...``).
       Note that ``initial_delay_data`` should be arranged as the following way::
 
          delay = 1             [ data
@@ -416,8 +450,16 @@ class LengthDelay(AbstractDelay):
         elif isinstance(initial_delay_data, (ndarray, jnp.ndarray, float, int, bool)):
             self.data[1:] = initial_delay_data
         elif callable(initial_delay_data):
-            self.data[1:] = initial_delay_data((delay_len,) + delay_target.shape,
-                                               dtype=delay_target.dtype)
+            shape = (delay_len,) + delay_target.shape
+            dtype = delay_target.dtype
+            # Initializer/Connector instances accept ``(shape, dtype=...)``, but a plain
+            # callable (e.g. ``lambda shape: ...``) may not accept the ``dtype`` keyword.
+            # Branch on whether the callable's signature accepts ``dtype`` and fall back
+            # to calling it with the shape only when it does not.
+            if _accepts_dtype_kwarg(initial_delay_data):
+                self.data[1:] = initial_delay_data(shape, dtype=dtype)
+            else:
+                self.data[1:] = initial_delay_data(shape)
         else:
             raise ValueError(f'"delay_data" does not support {type(initial_delay_data)}')
 

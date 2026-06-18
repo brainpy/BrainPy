@@ -17,6 +17,7 @@ from typing import Optional, Union
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 from jax.tree_util import tree_map
 
 from brainpy import check, tools
@@ -91,9 +92,14 @@ def remove_diag(arr):
     """
     if arr.ndim != 2:
         raise ValueError(f'Only support 2D matrix, while we got a {arr.ndim}D array.')
-    eyes = _return(jnp.ones(arr.shape, dtype=bool))
-    fill_diagonal(eyes, False)
-    return jnp.reshape(arr[eyes.value], (arr.shape[0], arr.shape[1] - 1))
+    arr = as_jax(arr)
+    m, n = arr.shape
+    # Static off-diagonal indices (computed with numpy so they are concrete
+    # constants and the gather traces cleanly under jit/vmap).
+    rows = np.repeat(np.arange(m), n - 1)
+    eye_mask = ~np.eye(m, n, dtype=bool)
+    cols = np.broadcast_to(np.arange(n), (m, n))[eye_mask]
+    return arr[rows, cols].reshape(m, n - 1)
 
 
 def clip_by_norm(t, clip_norm, axis=None):

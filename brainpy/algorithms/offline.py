@@ -156,7 +156,7 @@ class RegressionAlgorithm(OfflineAlgorithm):
         def cond_fun(a):
             i, par_old, par_new = a
             return jnp.logical_and(jnp.logical_not(jnp.allclose(par_old, par_new)),
-                                   i < self.max_iter).value
+                                   i < self.max_iter)
 
         def body_fun(a):
             i, _, par_new = a
@@ -269,9 +269,17 @@ class RidgeRegression(RegressionAlgorithm):
         if self.gradient_descent:
             return self.gradient_descent_solve(targets, inputs)
         else:
+            n_features = inputs.shape[-1]
             temp = inputs.T @ inputs
             if self.regularizer.alpha > 0.:
-                temp += self.regularizer.alpha * jnp.eye(inputs.shape[-1])
+                penalty = self.regularizer.alpha * jnp.ones((n_features,))
+                # Do not penalize the intercept/bias column. ``polynomial_features``
+                # (used by ``PolynomialRidgeRegression`` when ``add_bias=True``)
+                # prepends a constant column at index 0; shrinking it would bias
+                # the fit on data with a nonzero mean.
+                if getattr(self, 'add_bias', False):
+                    penalty = penalty.at[0].set(0.)
+                temp += jnp.diag(penalty)
             weights = jnp.linalg.pinv(temp) @ (inputs.T @ targets)
             return weights
 
@@ -383,7 +391,7 @@ class LogisticRegression(RegressionAlgorithm):
         def cond_fun(a):
             i, par_old, par_new = a
             return jnp.logical_and(jnp.logical_not(jnp.allclose(par_old, par_new)),
-                                   i < self.max_iter).value
+                                   i < self.max_iter)
 
         def body_fun(a):
             i, par_old, par_new = a

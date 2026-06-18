@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+import warnings
 from contextlib import contextmanager
 from functools import partial
 from typing import Optional, Any, Union, Sequence
@@ -123,8 +124,20 @@ def get_sharding(
     if mesh is None:
         return None
     else:
-        axis_names = [(name if name in mesh.axis_names else None) for name in axis_names]
-        return NamedSharding(mesh, PartitionSpec(*axis_names))
+        resolved = [(name if name in mesh.axis_names else None) for name in axis_names]
+        # If *every* requested axis name is absent from the mesh, the resulting
+        # PartitionSpec is fully replicated (all ``None``), which silently
+        # discards the user's sharding intent. Warn so this is not a silent
+        # no-op. Partial matches are tolerated (kept) on purpose.
+        if len(axis_names) > 0 and all(name is None for name in resolved):
+            warnings.warn(
+                f'None of the requested axis names {list(axis_names)} are present in the '
+                f'mesh axes {tuple(mesh.axis_names)}. The array will be fully replicated '
+                f'(PartitionSpec of all None). Check the axis names against the mesh.',
+                UserWarning,
+                stacklevel=2,
+            )
+        return NamedSharding(mesh, PartitionSpec(*resolved))
 
 
 def partition_by_axname(

@@ -374,7 +374,7 @@ class Num1DAnalyzer(LowDimAnalyzer):
         # args: parameters, a list/tuple of vectors
         candidates = candidates.value if isinstance(candidates, bm.Array) else candidates
         selected_ids = np.arange(len(candidates))
-        args = tuple(a.value if isinstance(candidates, bm.Array) else a for a in args)
+        args = tuple(a.value if isinstance(a, bm.Array) else a for a in args)
         for a in args: assert len(a) == len(candidates)
         if num_seg is None:
             num_seg = len(self.resolutions[self.x_var])
@@ -950,7 +950,7 @@ class Num2DAnalyzer(Num1DAnalyzer):
             # args: parameters, a list/tuple of vectors
             candidates = candidates.value if isinstance(candidates, bm.Array) else candidates
             selected_ids = np.arange(len(candidates))
-            args = tuple(a.value if isinstance(candidates, bm.Array) else a for a in args)
+            args = tuple(a.value if isinstance(a, bm.Array) else a for a in args)
             for a in args: assert len(a) == len(candidates)
 
             if self.convert_type() == C.x_by_y:
@@ -1035,9 +1035,16 @@ class Num2DAnalyzer(Num1DAnalyzer):
                     all_ids.append(seg_ids)
                     for i in range(len(all_args)):
                         all_args[i].append(seg_args[i][ids])
-            all_fps = jnp.concatenate(all_fps)
-            all_ids = jnp.concatenate(all_ids)
-            all_args = tuple(jnp.concatenate(args) for args in all_args)
+            if len(all_fps):
+                all_fps = jnp.concatenate(all_fps)
+                all_ids = jnp.concatenate(all_ids)
+                all_args = tuple(jnp.concatenate(args) for args in all_args)
+            else:
+                # No candidate converged to a fixed point. Return empty arrays
+                # with the correct shapes/dtypes instead of concatenating [].
+                all_fps = jnp.zeros((0, candidates.shape[1]), dtype=candidates.dtype)
+                all_ids = jnp.zeros((0,), dtype=selected_ids.dtype)
+                all_args = tuple(jnp.zeros((0,), dtype=a.dtype) for a in args)
             return all_fps, all_ids, all_args
 
 

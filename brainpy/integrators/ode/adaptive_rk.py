@@ -184,7 +184,7 @@ class AdaptiveRKIntegrator(ODEIntegrator):
             keywords['error'] = 'the local truncation error'
             for v in self.variables:
                 keywords[f'{v}_te'] = 'the local truncation error'
-            self.code_scope['tol'] = tol
+            self.code_scope['tol'] = self.tol
             self.code_scope['math'] = jnp
         utils.check_kws(self.arg_names, keywords)
 
@@ -212,13 +212,20 @@ class AdaptiveRKIntegrator(ODEIntegrator):
                         result.append(f'd{v}_k{i + 1} * {C.DT} * {diff}')
                 if len(result) > 0:
                     if self.var_type == C.SCALAR_VAR:
-                        self.code_lines.append(f'  {v}_te = abs({" + ".join(result)})')
+                        self.code_lines.append(f'  {v}_te = math.abs({" + ".join(result)})')
                     else:
-                        self.code_lines.append(f'  {v}_te = sum(abs({" + ".join(result)}))')
+                        self.code_lines.append(f'  {v}_te = math.sum(math.abs({" + ".join(result)}))')
                     errors_.append(f'{v}_te')
             if len(errors_) > 0:
                 self.code_lines.append(f'  error = {" + ".join(errors_)}')
-                self.code_lines.append(f'  {C.DT}_new = math.where(error > tol, 0.9*{C.DT}*(tol/error)**0.2, {C.DT})')
+                # Two-sided step-size controller: shrink dt when the error is
+                # above tolerance, grow it when the error is comfortably below.
+                # The growth/shrink factor is clamped to keep the step change
+                # bounded so that dt can both decrease and increase.
+                self.code_lines.append(
+                    f'  factor = 0.9 * (tol / (error + 1e-12)) ** 0.2')
+                self.code_lines.append('  factor = math.clip(factor, 0.2, 5.0)')
+                self.code_lines.append(f'  {C.DT}_new = {C.DT} * factor')
                 return_args.append(f'{C.DT}_new')
         # returns
         self.code_lines.append(f'  return {", ".join(return_args)}')
@@ -529,7 +536,7 @@ class BoSh3(AdaptiveRKIntegrator):
          (0.0, 0.75),
          ('2/9', '1/3', '4/9')]
     B1 = ['2/9', '1/3', '4/9', 0.0]
-    B2 = ['-5/72', 1 / 12, '1/9', '-1/8']
+    B2 = ['7/24', 0.25, '1/3', 0.125]
     C = [0., 0.5, 0.75, 1.0]
 
 

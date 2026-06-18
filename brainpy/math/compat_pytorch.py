@@ -40,11 +40,12 @@ __all__ = [
     'asin',
     'arcsin',
     'asinh',
-    'arcsin',
+    'arcsinh',
     'atan',
     'arctan',
     'atan2',
     'atanh',
+    'arctanh',
     'clamp_max',
     'clamp_min',
     'arctan2',
@@ -161,6 +162,7 @@ def abs(
     else:
         _check_out(out)
         out.value = r
+        return out
 
 
 absolute = abs
@@ -178,6 +180,7 @@ def acos(
     else:
         _check_out(out)
         out.value = r
+        return out
 
 
 arccos = acos
@@ -195,6 +198,7 @@ def acosh(
     else:
         _check_out(out)
         out.value = r
+        return out
 
 
 arccosh = acosh
@@ -224,6 +228,7 @@ def add(
     else:
         _check_out(out)
         out.value = r
+        return out
 
 
 def addcdiv(
@@ -266,6 +271,7 @@ def angle(
     else:
         _check_out(out)
         out.value = r
+        return out
 
 
 def asin(
@@ -280,6 +286,7 @@ def asin(
     else:
         _check_out(out)
         out.value = r
+        return out
 
 
 arcsin = asin
@@ -297,6 +304,7 @@ def asinh(
     else:
         _check_out(out)
         out.value = r
+        return out
 
 
 arcsinh = asinh
@@ -314,6 +322,7 @@ def atan(
     else:
         _check_out(out)
         out.value = r
+        return out
 
 
 arctan = atan
@@ -331,6 +340,7 @@ def atanh(
     else:
         _check_out(out)
         out.value = r
+        return out
 
 
 arctanh = atanh
@@ -350,6 +360,7 @@ def atan2(
     else:
         _check_out(out)
         out.value = r
+        return out
 
 
 arctan2 = atan2

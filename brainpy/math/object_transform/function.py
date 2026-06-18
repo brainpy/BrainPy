@@ -27,6 +27,42 @@ __all__ = [
 
 
 class Partial(FunAsObject):
+    """A picklable, object-aware partial application of a function.
+
+    ``Partial`` behaves like :py:func:`functools.partial`: it binds positional and
+    keyword arguments to ``fun`` so that the remaining arguments can be supplied
+    later when the instance is called. Unlike :py:func:`functools.partial`, it is a
+    :py:class:`~.BrainPyObject`, so any :py:class:`~.Variable` instances and child
+    :py:class:`~.BrainPyObject` objects used by ``fun`` are registered and tracked.
+
+    Parameters
+    ----------
+    fun : callable
+        The function to be partially applied.
+    *args : Any
+        Positional arguments bound ahead of the call-time positional arguments.
+    child_objs : callable, BrainPyObject, sequence of BrainPyObject, dict of BrainPyObject, optional
+        The children objects used in ``fun``.
+    dyn_vars : Variable, sequence of Variable, dict of Variable, optional
+        The :py:class:`~.Variable` instances used in ``fun``.
+    **keywords : Any
+        Keyword arguments bound to ``fun``. Keywords supplied at call time take
+        precedence over those bound here.
+
+    See Also
+    --------
+    to_object : Transform a Python function into a :py:class:`~.BrainPyObject`.
+
+    Examples
+    --------
+    .. code-block:: python
+
+        >>> import brainpy.math as bm
+        >>> add = bm.Partial(lambda x, y: x + y, 1)
+        >>> add(2)
+        3
+    """
+
     def __init__(
         self,
         fun: Callable,
@@ -110,6 +146,7 @@ def function(
     func: FunAsObject
       The instance of ``BrainPyObject``.
     """
-    warnings.warn('Using `brainpy.math.to_object()` instead. Will be removed after version 2.4.0.',
-                  UserWarning)
+    warnings.warn('`brainpy.math.function()` is deprecated; use `brainpy.math.to_object()` instead. '
+                  'It will be removed in a future release.',
+                  DeprecationWarning)
     return to_object(f, nodes, dyn_vars, name)

@@ -70,15 +70,18 @@ class PoissonInput(DynamicalSystem):
         p = self.freq * share.dt / 1e3
         a = self.num_input * p
         b = self.num_input * (1 - p)
+        # standard deviation of the Binomial(num_input, p) distribution:
+        # sqrt(num_input * p * (1 - p)) = sqrt(b * p), NOT the variance b * p.
+        scale = bm.sqrt(b * p)
         if isinstance(share.dt, (int, float)):  # dt is not in tracing
             if (a > 5) and (b > 5):
-                inp = bm.random.normal(a, b * p, self.target_shape)
+                inp = bm.random.normal(a, scale, self.target_shape)
             else:
                 inp = bm.random.binomial(self.num_input, p, self.target_shape)
 
         else:  # dt is in tracing
             inp = bm.cond((a > 5) * (b > 5),
-                          lambda _: bm.random.normal(a, b * p, self.target_shape),
+                          lambda _: bm.random.normal(a, scale, self.target_shape),
                           lambda _: bm.random.binomial(self.num_input, p, self.target_shape),
                           None)
         return inp * self.weight

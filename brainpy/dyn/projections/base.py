@@ -12,14 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from brainpy import math as bm
-from brainpy.mixin import ReturnInfo
+# Re-export the real projection base classes. This module previously held a
+# byte-for-byte duplicate of the private ``_get_return`` helper in ``utils.py``
+# (H-40); that helper is private, so ``from .base import *`` exported nothing and
+# the duplicate was both dead and misleading versus the real base classes.
+from brainpy.dynsys import Projection
+from .conn import SynConn
 
-
-def _get_return(return_info):
-    if isinstance(return_info, bm.Variable):
-        return return_info.value
-    elif isinstance(return_info, ReturnInfo):
-        return return_info.get_data()
-    else:
-        raise NotImplementedError
+__all__ = ['Projection', 'SynConn']

@@ -176,7 +176,7 @@ def sigmoid(
 ):
     r"""Spike function with the sigmoid-shaped surrogate gradient.
 
-    If `origin=False`, return the forward function:
+    The forward function:
 
     .. math::
 
@@ -185,11 +185,6 @@ def sigmoid(
           0, & x < 0 \\
           \end{cases}
 
-    If `origin=True`, computes the original function:
-
-    .. math::
-
-       g(x) = \mathrm{sigmoid}(\alpha x) = \frac{1}{1+e^{-\alpha x}}
 
     Backward function:
 
@@ -251,7 +246,7 @@ class PiecewiseQuadratic(Surrogate):
 
     def surrogate_grad(self, x):
         x = as_jax(x)
-        dx = jnp.where(jnp.abs(x) > 1 / self.alpha, 0., (-(self.alpha * x) ** 2 + self.alpha))
+        dx = jnp.where(jnp.abs(x) > 1 / self.alpha, 0., (-self.alpha ** 2 * jnp.abs(x) + self.alpha))
         return dx
 
     def __repr__(self):
@@ -264,7 +259,7 @@ def piecewise_quadratic(
 ):
     r"""Judge spiking state with a piecewise quadratic function [1]_ [2]_ [3]_ [4]_ [5]_.
 
-    If `origin=False`, computes the forward function:
+    The forward function:
 
     .. math::
 
@@ -273,16 +268,6 @@ def piecewise_quadratic(
           0, & x < 0 \\
           \end{cases}
 
-    If `origin=True`, computes the original function:
-
-    .. math::
-
-       g(x) =
-          \begin{cases}
-          0, & x < -\frac{1}{\alpha} \\
-          -\frac{1}{2}\alpha^2|x|x + \alpha x + \frac{1}{2}, & |x| \leq \frac{1}{\alpha}  \\
-          1, & x > \frac{1}{\alpha} \\
-          \end{cases}
 
     Backward function:
 
@@ -364,7 +349,7 @@ def piecewise_exp(
 ):
     r"""Judge spiking state with a piecewise exponential function [1]_.
 
-    If `origin=False`, computes the forward function:
+    The forward function:
 
     .. math::
 
@@ -373,14 +358,6 @@ def piecewise_exp(
           0, & x < 0 \\
           \end{cases}
 
-    If `origin=True`, computes the original function:
-
-    .. math::
-
-       g(x) = \begin{cases}
-              \frac{1}{2}e^{\alpha x}, & x < 0 \\
-              1 - \frac{1}{2}e^{-\alpha x}, & x \geq 0
-              \end{cases}
 
     Backward function:
 
@@ -454,7 +431,7 @@ def soft_sign(
 ):
     r"""Judge spiking state with a soft sign function.
 
-    If `origin=False`, computes the forward function:
+    The forward function:
 
     .. math::
 
@@ -463,12 +440,6 @@ def soft_sign(
           0, & x < 0 \\
           \end{cases}
 
-    If `origin=True`, computes the original function:
-
-    .. math::
-
-       g(x) = \frac{1}{2} (\frac{\alpha x}{1 + |\alpha x|} + 1)
-              = \frac{1}{2} (\frac{x}{\frac{1}{\alpha} + |x|} + 1)
 
     Backward function:
 
@@ -526,7 +497,7 @@ class Arctan(Surrogate):
 
     def surrogate_fun(self, x):
         x = as_jax(x)
-        return jnp.arctan2(jnp.pi / 2 * self.alpha * x) / jnp.pi + 0.5
+        return jnp.arctan(jnp.pi / 2 * self.alpha * x) / jnp.pi + 0.5
 
     def __repr__(self):
         return f'{self.__class__.__name__}(alpha={self.alpha})'
@@ -539,7 +510,7 @@ def arctan(
 ):
     r"""Judge spiking state with an arctan function.
 
-    If `origin=False`, computes the forward function:
+    The forward function:
 
     .. math::
 
@@ -548,11 +519,6 @@ def arctan(
           0, & x < 0 \\
           \end{cases}
 
-    If `origin=True`, computes the original function:
-
-    .. math::
-
-       g(x) = \frac{1}{\pi} \arctan(\frac{\pi}{2}\alpha x) + \frac{1}{2}
 
     Backward function:
 
@@ -623,7 +589,7 @@ def nonzero_sign_log(
 ):
     r"""Judge spiking state with a nonzero sign log function.
 
-    If `origin=False`, computes the forward function:
+    The forward function:
 
     .. math::
 
@@ -632,21 +598,6 @@ def nonzero_sign_log(
           0, & x < 0 \\
           \end{cases}
 
-    If `origin=True`, computes the original function:
-
-    .. math::
-
-       g(x) = \mathrm{NonzeroSign}(x) \log (|\alpha x| + 1)
-
-    where
-
-    .. math::
-
-       \begin{split}\mathrm{NonzeroSign}(x) =
-        \begin{cases}
-        1, & x \geq 0 \\
-        -1, & x < 0 \\
-        \end{cases}\end{split}
 
     Backward function:
 
@@ -707,7 +658,7 @@ class ERF(Surrogate):
 
     def surrogate_fun(self, x):
         x = as_jax(x)
-        return sci.special.erf(-self.alpha * x) * 0.5
+        return 0.5 * (1. - sci.special.erf(-self.alpha * x))
 
     def __repr__(self):
         return f'{self.__class__.__name__}(alpha={self.alpha})'
@@ -720,7 +671,7 @@ def erf(
 ):
     r"""Judge spiking state with an erf function [1]_ [2]_ [3]_.
 
-    If `origin=False`, computes the forward function:
+    The forward function:
 
     .. math::
 
@@ -729,15 +680,6 @@ def erf(
           0, & x < 0 \\
           \end{cases}
 
-    If `origin=True`, computes the original function:
-
-    .. math::
-
-       \begin{split}
-        g(x) &= \frac{1}{2}(1-\text{erf}(-\alpha x)) \\
-        &= \frac{1}{2} \text{erfc}(-\alpha x) \\
-        &= \frac{1}{\sqrt{\pi}}\int_{-\infty}^{\alpha x}e^{-t^2}dt
-        \end{split}
 
     Backward function:
 
@@ -821,7 +763,7 @@ def piecewise_leaky_relu(
 ):
     r"""Judge spiking state with a piecewise leaky relu function [1]_ [2]_ [3]_ [4]_ [5]_ [6]_ [7]_ [8]_.
 
-    If `origin=False`, computes the forward function:
+    The forward function:
 
     .. math::
 
@@ -830,16 +772,6 @@ def piecewise_leaky_relu(
           0, & x < 0 \\
           \end{cases}
 
-    If `origin=True`, computes the original function:
-
-    .. math::
-
-       \begin{split}g(x) =
-        \begin{cases}
-        cx + cw, & x < -w \\
-        \frac{1}{2w}x + \frac{1}{2}, & -w \leq x \leq w \\
-        cx - cw + 1, & x > w \\
-        \end{cases}\end{split}
 
     Backward function:
 
@@ -940,7 +872,7 @@ def squarewave_fourier_series(
 ):
     r"""Judge spiking state with a squarewave fourier series.
 
-    If `origin=False`, computes the forward function:
+    The forward function:
 
     .. math::
 
@@ -949,11 +881,6 @@ def squarewave_fourier_series(
           0, & x < 0 \\
           \end{cases}
 
-    If `origin=True`, computes the original function:
-
-    .. math::
-
-       g(x) = 0.5 + \frac{1}{\pi}*\sum_{i=1}^n {\sin\left({(2i-1)*2\pi}*x/T\right) \over 2i-1 }
 
     Backward function:
 
@@ -1034,7 +961,7 @@ def s2nn(
 ):
     r"""Judge spiking state with the S2NN surrogate spiking function [1]_.
 
-    If `origin=False`, computes the forward function:
+    The forward function:
 
     .. math::
 
@@ -1043,14 +970,6 @@ def s2nn(
           0, & x < 0 \\
           \end{cases}
 
-    If `origin=True`, computes the original function:
-
-    .. math::
-
-       \begin{split}g(x) = \begin{cases}
-          \mathrm{sigmoid} (\alpha x), x < 0 \\
-          \beta \ln(|x + 1|) + 0.5, x \ge 0
-      \end{cases}\end{split}
 
     Backward function:
 
@@ -1115,13 +1034,13 @@ class QPseudoSpike(Surrogate):
 
     def surrogate_grad(self, x):
         x = as_jax(x)
-        dx = jnp.power(1 + 2 / (self.alpha + 1) * jnp.abs(x), -self.alpha)
+        dx = jnp.power(1 + 2 / (self.alpha - 1) * jnp.abs(x), -self.alpha)
         return dx
 
     def surrogate_fun(self, x):
         x = as_jax(x)
         z = jnp.where(x < 0.,
-                      0.5 * jnp.power(1 - 2 / (self.alpha - 1) * jnp.abs(x), 1 - self.alpha),
+                      0.5 * jnp.power(1 - 2 / (self.alpha - 1) * x, 1 - self.alpha),
                       1. - 0.5 * jnp.power(1 + 2 / (self.alpha - 1) * jnp.abs(x), 1 - self.alpha))
         return z
 
@@ -1136,7 +1055,7 @@ def q_pseudo_spike(
 ):
     r"""Judge spiking state with the q-PseudoSpike surrogate function [1]_.
 
-    If `origin=False`, computes the forward function:
+    The forward function:
 
     .. math::
 
@@ -1145,15 +1064,6 @@ def q_pseudo_spike(
           0, & x < 0 \\
           \end{cases}
 
-    If `origin=True`, computes the original function:
-
-    .. math::
-
-       \begin{split}g(x) =
-        \begin{cases}
-        \frac{1}{2}(1-\frac{2x}{\alpha-1})^{1-\alpha}, & x < 0 \\
-        1 - \frac{1}{2}(1+\frac{2x}{\alpha-1})^{1-\alpha}, & x \geq 0.
-        \end{cases}\end{split}
 
     Backward function:
 
@@ -1229,7 +1139,7 @@ def leaky_relu(
 ):
     r"""Judge spiking state with the Leaky ReLU function.
 
-    If `origin=False`, computes the forward function:
+    The forward function:
 
     .. math::
 
@@ -1238,15 +1148,6 @@ def leaky_relu(
           0, & x < 0 \\
           \end{cases}
 
-    If `origin=True`, computes the original function:
-
-    .. math::
-
-       \begin{split}g(x) =
-        \begin{cases}
-        \beta \cdot x, & x \geq 0 \\
-        \alpha \cdot x, & x < 0 \\
-        \end{cases}\end{split}
 
     Backward function:
 
@@ -1330,7 +1231,7 @@ def log_tailed_relu(
 ):
     r"""Judge spiking state with the Log-tailed ReLU function [1]_.
 
-    If `origin=False`, computes the forward function:
+    The forward function:
 
     .. math::
 
@@ -1339,16 +1240,6 @@ def log_tailed_relu(
           0, & x < 0 \\
           \end{cases}
 
-    If `origin=True`, computes the original function:
-
-    .. math::
-
-       \begin{split}g(x) =
-        \begin{cases}
-        \alpha x, & x \leq 0 \\
-        x, & 0 < x \leq 0 \\
-        log(x), x > 1 \\
-        \end{cases}\end{split}
 
     Backward function:
 
@@ -1489,7 +1380,7 @@ class GaussianGrad(Surrogate):
 
     def surrogate_grad(self, x):
         x = as_jax(x)
-        dx = jnp.exp(-(x ** 2) / 2 * jnp.power(self.sigma, 2)) / (jnp.sqrt(2 * jnp.pi) * self.sigma)
+        dx = jnp.exp(-(x ** 2) / (2 * jnp.power(self.sigma, 2))) / (jnp.sqrt(2 * jnp.pi) * self.sigma)
         return self.alpha * dx
 
     def __repr__(self):

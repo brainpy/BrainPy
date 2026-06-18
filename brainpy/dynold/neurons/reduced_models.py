@@ -297,12 +297,12 @@ class ExpIF(lif.ExpIFRef):
     ------------- -------------- -------- ---------------------------------------------------
     V_rest        -65            mV       Resting potential.
     V_reset       -68            mV       Reset potential after spike.
-    V_th          -30            mV       Threshold potential of spike.
+    V_th          -55            mV       Threshold potential of spike.
     V_T           -59.9          mV       Threshold potential of generating action potential.
     delta_T       3.48           \        Spike slope factor.
     R             1              \        Membrane resistance.
     tau           10             \        Membrane time constant. Compute by R * C.
-    tau_ref       1.7            \        Refractory period length.
+    tau_ref       0.             \        Refractory period length.
     ============= ============== ======== ===================================================
 
     **Model Variables**
@@ -412,7 +412,7 @@ class AdExIF(lif.AdExIFRef):
     ------------- -------------- -------- ------------------------------------------------------------------------------------------------------------------------
     V_rest        -65            mV       Resting potential.
     V_reset       -68            mV       Reset potential after spike.
-    V_th          -30            mV       Threshold potential of spike and reset.
+    V_th          -55            mV       Threshold potential of spike and reset.
     V_T           -59.9          mV       Threshold potential of generating action potential.
     delta_T       3.48           \        Spike slope factor.
     a             1              \        The sensitivity of the recovery variable :math:`u` to the sub-threshold fluctuations of the membrane potential :math:`v`

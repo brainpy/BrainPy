@@ -17,6 +17,7 @@ from typing import Dict, Callable
 
 import jax.numpy as jnp
 
+from brainpy import _errors as errors
 from brainpy import math as bm
 from brainpy.integrators import constants, utils
 from brainpy.integrators.base import Integrator
@@ -95,5 +96,14 @@ class SDEIntegrator(Integrator):
         self.show_code = show_code
 
     def _check_vector_wiener_dim(self, noise_size, var_size):
-        if noise_size[:-1] > var_size[-len(noise_size) + 1:]:
-            raise ValueError(f"Incompatible shapes for shapes of noise {noise_size} and variable {var_size}")
+        noise_size = tuple(noise_size)
+        var_size = tuple(var_size)
+        # For a vector Wiener process the diffusion value has shape
+        # ``var_size + (m,)``: its leading dimensions (all but the last, which
+        # holds the ``m`` noise channels) must match the variable shape exactly.
+        if tuple(noise_size[:-1]) != var_size:
+            raise ValueError(
+                f"Incompatible shapes for vector Wiener process: the diffusion "
+                f"value has shape {noise_size}, so its leading dimensions "
+                f"{noise_size[:-1]} must equal the variable shape {var_size}."
+            )

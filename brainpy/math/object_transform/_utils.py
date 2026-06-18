@@ -24,6 +24,7 @@ from .base import BrainPyObject, ArrayCollector
 __all__ = [
     'infer_dyn_vars',
     'get_brainpy_object',
+    'warp_to_no_state_input_output',
 ]
 
 

@@ -19,7 +19,6 @@ import brainunit as u
 import jax
 import numpy as np
 from jax import numpy as jnp
-from jax.dtypes import canonicalize_dtype
 from jax.tree_util import register_pytree_node_class
 
 from brainpy._errors import MathError
@@ -28,29 +27,9 @@ from .defaults import defaults
 bm = None
 
 __all__ = [
-    'Array', 'Array', 'ndarray', 'JaxArray',  # alias of Array
+    'Array', 'ndarray', 'JaxArray',  # alias of Array
     'ShardedArray',
 ]
-
-# Ways to change values in a zero-dimensional array
-# -----
-# Reference: https://stackoverflow.com/questions/56954714/how-do-i-assign-to-a-zero-dimensional-numpy-array
-#
-#   >>> x = np.array(10)
-# 1. index the original array with ellipsis or an empty tuple
-#    >>> x[...] = 2
-#    >>> x[()] = 2
-
-_all_slice = slice(None, None, None)
-
-
-def _check_input_array(array):
-    if isinstance(array, Array):
-        return array.value
-    elif isinstance(array, np.ndarray):
-        return jnp.asarray(array)
-    else:
-        return array
 
 
 def _return(a):
@@ -66,14 +45,6 @@ def _as_jax_array_(obj):
 def _check_out(out):
     if not isinstance(out, Array):
         raise TypeError(f'out must be an instance of brainpy Array. But got {type(out)}')
-
-
-def _get_dtype(v):
-    if hasattr(v, 'dtype'):
-        dtype = v.dtype
-    else:
-        dtype = canonicalize_dtype(type(v))
-    return dtype
 
 
 @register_pytree_node_class
@@ -101,6 +72,13 @@ class Array(u.CustomArray):
         if isinstance(value, Array):
             value = value.value
         elif isinstance(value, (tuple, list, np.ndarray)):
+            value = jnp.asarray(value)
+        elif isinstance(value, jax.Array):
+            pass
+        else:
+            # raw Python scalars (int/float/bool/complex) and any other input:
+            # convert to a jax array so ``self._value`` is always array-like
+            # (mirrors the ``value`` setter).
             value = jnp.asarray(value)
         if dtype is not None:
             value = jnp.asarray(value, dtype=dtype)
@@ -131,11 +109,14 @@ class Array(u.CustomArray):
 
     @classmethod
     def tree_unflatten(cls, aux_data, flat_contents):
-        return cls(*flat_contents)
-
-        # ins = object.__new__(cls)
-        # ins._value = flat_contents[0]
-        # return ins
+        # Reconstruct without going through ``__init__``: during abstract
+        # evaluation (``jax.eval_shape``, ``scan``/``for_loop`` tracing) the leaf
+        # is a ``ShapedArray``/``ShapeDtypeStruct`` rather than a concrete array,
+        # and ``__init__`` would try to ``jnp.asarray`` it and raise. Storing the
+        # leaf directly keeps the pytree round-trip transparent.
+        ins = object.__new__(cls)
+        ins._value = flat_contents[0]
+        return ins
 
     @property
     def data(self):
@@ -198,17 +179,23 @@ class Array(u.CustomArray):
         return self.value.at
 
     def block_host_until_ready(self, *args):
-        return self.value.block_host_until_ready(*args)
+        # ``jax.Array.block_host_until_ready`` was removed; ``block_until_ready``
+        # is the modern equivalent.
+        return self.value.block_until_ready(*args)
 
     def block_until_ready(self, *args):
         return self.value.block_until_ready(*args)
 
+    @property
     def device(self):
-        return self.value.device()
+        # ``jax.Array.device`` is now a property (it used to be a method).
+        return self.value.device
 
     @property
     def device_buffer(self):
-        return self.value.device_buffer
+        # ``jax.Array.device_buffer`` was removed; the addressable shard's data
+        # is the modern equivalent on a single-device array.
+        return self.value.addressable_data(0)
 
     def fill_(self, fill_value):
         """Fill the array with a scalar value.
@@ -264,8 +251,16 @@ class ShardedArray(Array):
           The stored data.
         """
         v = self._value
-        # keep sharding constraints
-        if self._keep_sharding and hasattr(v, 'sharding') and (v.sharding is not None):
+        # Keep sharding constraints, but only for genuinely multi-device
+        # shardings. A ``SingleDeviceSharding`` (the default on a single device,
+        # e.g. CPU) carries no distribution information, so inserting a
+        # ``with_sharding_constraint`` on every read is pure overhead.
+        if (
+            self._keep_sharding
+            and hasattr(v, 'sharding')
+            and (v.sharding is not None)
+            and not isinstance(v.sharding, jax.sharding.SingleDeviceSharding)
+        ):
             return jax.lax.with_sharding_constraint(v, v.sharding)
         # return the value
         return v

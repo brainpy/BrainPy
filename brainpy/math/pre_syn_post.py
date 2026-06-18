@@ -284,13 +284,24 @@ def pre2post_mean(pre_values, post_num, post_ids, pre_ids=None):
 
     post_val: ArrayType
       The value with the size of post-synaptic neurons.
+
+    Notes::
+
+    When ``pre_values`` is a scalar, every connection carries the same constant
+    value, so the per-post mean is simply that constant. In this case the function
+    broadcasts the constant to every targeted post-synaptic neuron (untargeted
+    neurons stay ``0``). Duplicate ``post_ids`` therefore do not require any
+    averaging -- the mean of identical values equals the value itself.
     """
     out = jnp.zeros(post_num)
     pre_values = as_jax(pre_values)
     post_ids = as_jax(post_ids)
     if jnp.ndim(pre_values) == 0:
+        # Scalar branch: every synapse carries the same constant ``pre_values``,
+        # so the mean over any group of post-synaptic targets is that constant.
+        # Broadcast it to the targeted posts (duplicate ``post_ids`` are harmless
+        # because the mean of identical values is the value itself).
         return out.at[post_ids].set(pre_values)
-        # return out.at[jnp.unique(post_ids)].set(pre_values)
     else:
         _raise_pre_ids_is_none(pre_ids)
         pre_ids = as_jax(pre_ids)
@@ -515,7 +526,9 @@ def syn2post_mean(syn_values, post_ids, post_num: int, indices_are_sorted=False)
         syn_values = jnp.asarray(syn_values, dtype=jnp.int32)
     nominator = _jit_seg_sum(syn_values, post_ids, post_num, indices_are_sorted)
     denominator = _jit_seg_sum(jnp.ones_like(syn_values), post_ids, post_num, indices_are_sorted)
-    return jnp.nan_to_num(nominator / denominator)
+    # Guard only the empty-group case (denominator == 0) instead of masking with
+    # ``nan_to_num``, which would also silently hide genuine NaNs in ``syn_values``.
+    return jnp.where(denominator > 0, nominator / denominator, 0.)
 
 
 def syn2post_softmax(syn_values, post_ids, post_num: int, indices_are_sorted=False):
@@ -547,5 +560,10 @@ def syn2post_softmax(syn_values, post_ids, post_num: int, indices_are_sorted=Fal
     syn_values = syn_values - syn_maxs[post_ids]
     syn_values = jnp.exp(syn_values)
     normalizers = _jit_seg_sum(syn_values, post_ids, post_num, indices_are_sorted)
-    softmax = syn_values / normalizers[post_ids]
-    return jnp.nan_to_num(softmax)
+    # ``normalizers[post_ids]`` is structurally >= 1 for every referenced post group
+    # (each such group contains at least the current synapse, contributing
+    # ``exp(0) == 1`` after the max-subtraction), so this division never hits a
+    # genuine 0/0. The previous ``jnp.nan_to_num`` only served to silently hide
+    # genuine NaNs produced upstream (e.g. NaNs already present in ``syn_values``),
+    # so it is intentionally removed to let such NaNs propagate.
+    return syn_values / normalizers[post_ids]

@@ -14,8 +14,10 @@
 # ==============================================================================
 from typing import Union, Optional
 
+import jax
 import jax.numpy as jnp
 import jax.ops
+import jax.scipy.special
 from jax import lax
 
 from brainpy.math.interoperability import as_jax
@@ -74,7 +76,7 @@ def reduce_logsumexp(input_tensor, axis=None, keepdims=False):
     Returns:
       The reduced tensor.
     """
-    r = jnp.log(jnp.sum(jnp.exp(_as_jax_array_(input_tensor)), axis=axis, keepdims=keepdims))
+    r = jax.scipy.special.logsumexp(_as_jax_array_(input_tensor), axis=axis, keepdims=keepdims)
     return _return(r)
 
 

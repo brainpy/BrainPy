@@ -665,7 +665,8 @@ def softmin(x, axis=-1):
             along dim will sum to 1).
     """
     x = x.value if isinstance(x, Array) else x
-    unnormalized = jnp.exp(-x)
+    neg_x = -x
+    unnormalized = jnp.exp(neg_x - jax.lax.stop_gradient(neg_x.max(axis, keepdims=True)))
     return unnormalized / unnormalized.sum(axis, keepdims=True)
 
 

@@ -147,7 +147,8 @@ class CaputoEuler(FDEIntegrator):
                                    f'but we got {self.alpha}.')
 
         # initial values
-        self.inits = check_inits(inits, self.variables)
+        inits = check_inits(inits, self.variables)
+        self.inits = bm.VarDict({v: bm.Variable(inits[v]) for v in self.variables})
 
         # coefficients
         rgamma_alpha = bm.asarray(rgamma(bm.as_numpy(self.alpha)))
@@ -162,6 +163,14 @@ class CaputoEuler(FDEIntegrator):
         self.idx = bm.Variable(bm.asarray([1]))
 
         self.set_integral(self._integral_func)
+
+    def reset(self, inits):
+        """Reset the integrator states so it can be re-run from new initial values."""
+        self.idx.value = bm.asarray([1])
+        inits = check_inits(inits, self.variables)
+        for key, val in inits.items():
+            self.inits[key] = val
+            self.f_states[key] = bm.zeros((self.num_memory,) + val.shape, dtype=self.f_states[key].dtype)
 
     def _check_step(self, args):
         dt, t = args
@@ -198,8 +207,8 @@ class CaputoEuler(FDEIntegrator):
         integrals = []
         idx = ((self.num_memory - 1 - self.idx) + bm.arange(self.num_memory)) % self.num_memory
         for i, key in enumerate(self.variables):
-            integral = self.inits[key] + self.coef[idx, i] @ self.f_states[key]
-            integrals.append(integral * (dt ** self.alpha[i] / self.alpha[i]))
+            integral = self.coef[idx, i] @ self.f_states[key]
+            integrals.append(self.inits[key] + integral * (dt ** self.alpha[i] / self.alpha[i]))
         self.idx.value = (self.idx + 1) % self.num_memory
 
         # return integrals
@@ -372,7 +381,7 @@ class CaputoL1Schema(FDEIntegrator):
                       for k in self.variables}
             hists_ = {k: bm.cumsum(v, axis=0) for k, v in hists_.items()}
             if numpy:
-                hists_ = {k: v.numpy() for k, v in hists_}
+                hists_ = {k: v.numpy() for k, v in hists_.items()}
             return hists_
         else:
             assert var in self.variables, (f'"{var}" is not defined in equation '

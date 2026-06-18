@@ -198,10 +198,12 @@ class CrossEntropyLoss(WeightedLoss):
         self.label_smoothing = label_smoothing
 
     def update(self, input: ArrayType, target: ArrayType) -> ArrayType:
-        return cross_entropy_loss(input, target, weight=self.weight, reduction=self.reduction)
+        return cross_entropy_loss(input, target, weight=self.weight, reduction=self.reduction,
+                                  ignore_index=self.ignore_index, label_smoothing=self.label_smoothing)
 
 
-def cross_entropy_loss(predicts, targets, weight=None, reduction='mean'):
+def cross_entropy_loss(predicts, targets, weight=None, reduction='mean',
+                       ignore_index=-100, label_smoothing=0.0):
     r"""This criterion combines ``LogSoftmax`` and `NLLLoss`` in one single class.
 
     It is useful when training a classification problem with `C` classes.
@@ -260,11 +262,46 @@ def cross_entropy_loss(predicts, targets, weight=None, reduction='mean'):
     """
 
     def _cel(_pred, _tar):
+        _pred = bm.as_jax(_pred)
+        num_classes = _pred.shape[-1]
+        # Per-sample class weight. The ``weight`` argument is indexed *by the
+        # target class* (``weight[y_n]``), not by the sample position.
+        sample_weight = None
+        # Mask of samples that should contribute to the loss (``ignore_index``).
+        valid_mask = None
         if bm.ndim(_tar) + 1 == bm.ndim(_pred):
-            _tar = bm.one_hot(_tar, _pred.shape[-1])
-        loss = logsumexp(bm.as_jax(_pred), axis=-1) - (_pred * _tar).sum(axis=-1)
-        if weight is not None:
-            loss *= weight
+            # ``_tar`` holds integer class indices.
+            _tar_idx = bm.as_jax(_tar)
+            if weight is not None:
+                sample_weight = bm.as_jax(weight)[_tar_idx]
+            valid_mask = (_tar_idx != ignore_index)
+            # Build the (possibly label-smoothed) soft target distribution. Clamp
+            # ignored indices to 0 first so one_hot does not error on negatives.
+            _tar_clamped = jnp.where(valid_mask, _tar_idx, 0)
+            _soft = bm.as_jax(bm.one_hot(_tar_clamped, num_classes))
+            if label_smoothing > 0.0:
+                _soft = _soft * (1.0 - label_smoothing) + label_smoothing / num_classes
+        else:
+            # ``_tar`` holds class probabilities / one-hot: the effective per-sample
+            # weight is the probability-weighted class weight (matches PyTorch).
+            _soft = bm.as_jax(_tar)
+            if label_smoothing > 0.0:
+                _soft = _soft * (1.0 - label_smoothing) + label_smoothing / num_classes
+            if weight is not None:
+                sample_weight = (bm.as_jax(weight) * _soft).sum(axis=-1)
+        loss = logsumexp(_pred, axis=-1) - (_pred * _soft).sum(axis=-1)
+        if sample_weight is not None:
+            loss = loss * sample_weight
+        if valid_mask is not None:
+            # Zero-out ignored samples so they contribute nothing to sum/mean.
+            loss = jnp.where(valid_mask, loss, 0.0)
+        if reduction == 'mean':
+            if sample_weight is not None:
+                denom = sample_weight if valid_mask is None else jnp.where(valid_mask, sample_weight, 0.0)
+                return loss.sum() / denom.sum()
+            if valid_mask is not None:
+                return loss.sum() / jnp.maximum(valid_mask.sum(), 1)
+            return loss.mean()
         return _reduce(outputs=loss, reduction=reduction)
 
     r = tree_map(_cel, predicts, targets, is_leaf=_is_leaf)
@@ -458,7 +495,9 @@ def nll_loss(input, target, reduction: str = 'mean'):
     assert target.ndim + 1 == input.ndim
     input = bm.as_jax(input)
     target = bm.as_jax(target)
-    loss = input[jnp.arange(len(target)), target]
+    # Negative log-likelihood: l_n = -x_{n, y_n}. The leading minus sign is what
+    # makes this a *loss* to minimize (the raw log-probabilities are negative).
+    loss = -input[jnp.arange(len(target)), target]
     if reduction == 'mean':
         return loss.mean()
     elif reduction == 'sum':

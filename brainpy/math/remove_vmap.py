@@ -27,6 +27,32 @@ __all__ = [
 
 
 def remove_vmap(x, op='any'):
+    """Reduce ``x`` with ``any``/``all`` *across the vmap batch axis as well*.
+
+    This is a custom primitive whose batching rule deliberately collapses the
+    batch axis into a single **global** scalar. That is, when called under
+    :func:`jax.vmap`, ``remove_vmap(x, 'any')`` returns one ``bool`` summarising
+    *all* batch elements together (``True`` if any element of any batch is
+    truthy), rather than a per-batch vector of results.
+
+    This is intentional: the primitive is used for global convergence / NaN-style
+    checks where the batch dimension must not survive the reduction. The batching
+    rule returns :data:`jax.interpreters.batching.not_mapped`, so the output is a
+    genuine unbatched scalar (it is *not* broadcast back across the batch axis).
+
+    Parameters
+    ----------
+    x : Array or jax.Array
+        The input array. ``brainpy.math.Array`` inputs are unwrapped.
+    op : {'any', 'all'}
+        The reduction to apply. ``'any'`` -> logical OR, ``'all'`` -> logical AND.
+
+    Returns
+    -------
+    jax.Array
+        A scalar boolean. Under :func:`jax.vmap` it is a single global scalar,
+        not a per-batch result.
+    """
     if isinstance(x, Array):
         x = x.value
     if op == 'any':

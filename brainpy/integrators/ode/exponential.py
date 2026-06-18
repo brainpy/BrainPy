@@ -370,16 +370,17 @@ class ExponentialEuler(ODEIntegrator):
             # integration function
             def integral(*args, **kwargs):
                 assert len(args) > 0
-                if args[0].dtype not in [jnp.float32, jnp.float64, jnp.float16, jnp.bfloat16]:
+                x0 = bm.as_jax(args[0])
+                if x0.dtype not in [jnp.float32, jnp.float64, jnp.float16, jnp.bfloat16]:
                     raise ValueError(
                         'The input data type should be float32, float64, float16, '
                         'or bfloat16 when using Exponential Euler method.'
-                        f'But we got {args[0].dtype}.'
+                        f'But we got {x0.dtype}.'
                     )
                 dt = kwargs.pop(C.DT, self.dt)
                 linear, derivative = bm.vector_grad(eq, argnums=0, return_value=True)(*args, **kwargs)
                 phi = bm.exprel(dt * linear)
-                return args[0] + dt * phi * derivative
+                return x0 + dt * phi * derivative
 
             return [(integral, vars, pars), ]
 

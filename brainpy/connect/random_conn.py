@@ -84,10 +84,10 @@ class FixedProb(TwoEndConnector):
                 f'seed={self.seed})')
 
     def _iii(self):
-        if (not self.include_self) and (self.pre_num != self.post_num):
-            raise ConnectorError(f'We found pre_num != post_num ({self.pre_num} != {self.post_num}). '
-                                 f'But `include_self` is set to True.')
-
+        # NOTE: no guard on ``include_self=False`` for rectangular (pre_num !=
+        # post_num) shapes — ``build_coo``/``build_csr`` already drop coincident
+        # ``pre == post`` indices generically, so the previous (contradictory)
+        # ConnectorError was both wrong-worded and overly restrictive.
         if self.pre_ratio < 1.:
             pre_num_to_select = int(self.pre_num * self.pre_ratio)
             pre_ids = self._jaxrand.choice(self.pre_num, size=(pre_num_to_select,), replace=False)
@@ -96,7 +96,10 @@ class FixedProb(TwoEndConnector):
             pre_ids = jnp.arange(self.pre_num)
 
         post_num_total = self.post_num
-        post_num_to_select = int(self.post_num * self.prob)
+        # Round instead of truncating: ``int(post_num * prob)`` floors a small
+        # expected fan-out (e.g. ``3 * 0.3 = 0.9``) to 0 connections, silently
+        # producing an empty connectivity for small post populations.
+        post_num_to_select = int(round(self.post_num * self.prob))
 
         if self.allow_multi_conn:
             selected_post_ids = self._jaxrand.randint(0, post_num_total, (pre_num_to_select, post_num_to_select))
