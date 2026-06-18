@@ -36,6 +36,16 @@ class _STPModel(Sequential, ParamDesc):
         exp = synapses.Expon(size, keep_size, tau=tau, method=method, mode=mode)
         super().__init__(stp, exp)
 
+    def update(self, pre_spike):
+        # ``synapses.STP.update`` returns the synaptic resource fraction ``u*x``,
+        # which is non-zero even at rest (≈U). Feeding it directly into ``Expon``
+        # (which treats its input as an additive current event) would inject
+        # ``u*x`` on *every* step, so the current keeps growing with zero
+        # presynaptic spikes. Gate the injected amplitude by ``pre_spike`` so the
+        # synaptic current only jumps when a presynaptic spike actually arrives.
+        ux = self[0](pre_spike)
+        return self[1](pre_spike * ux)
+
 
 class STP(_TwoEndConnAlignPre):
     r"""Short-term plasticity model.

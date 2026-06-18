@@ -113,6 +113,12 @@ class BatchNorm(Layer):
         mode: Optional[bm.Mode] = None,
         name: Optional[str] = None,
     ):
+        # ``BatchNorm`` computes statistics across a batch axis, so it requires a
+        # batching/training mode. The global default mode is ``NonBatchingMode``,
+        # which would make the layer raise ``UnsupportedError`` out-of-the-box
+        # (H-51). Default to the training mode when the user does not specify one.
+        if mode is None:
+            mode = bm.training_mode
         super(BatchNorm, self).__init__(name=name, mode=mode)
         # check.is_subclass(self.mode, (bm.BatchingMode, bm.TrainingMode), self.name)
 
@@ -131,9 +137,19 @@ class BatchNorm(Layer):
         self.running_mean = bm.Variable(jnp.zeros(self.num_features))
         self.running_var = bm.Variable(jnp.ones(self.num_features))
         if self.affine:
-            assert isinstance(self.mode, bm.TrainingMode)
-            self.bias = bm.TrainVar(parameter(self.bias_initializer, self.num_features))
-            self.scale = bm.TrainVar(parameter(self.scale_initializer, self.num_features))
+            bias = parameter(self.bias_initializer, self.num_features)
+            scale = parameter(self.scale_initializer, self.num_features)
+            # Make the affine parameters trainable only under a training mode;
+            # otherwise keep them as plain variables (matching the pattern used
+            # by ``brainpy.dnn.Linear``/``Conv``). This avoids the hard
+            # ``assert isinstance(self.mode, TrainingMode)`` that crashed the
+            # layer under non-training modes (H-51).
+            if isinstance(self.mode, bm.TrainingMode):
+                self.bias = bm.TrainVar(bias)
+                self.scale = bm.TrainVar(scale)
+            else:
+                self.bias = bm.Variable(bias)
+                self.scale = bm.Variable(scale)
 
     def _check_input_dim(self, x):
         raise NotImplementedError
@@ -500,9 +516,20 @@ class LayerNorm(Layer):
         assert all([isinstance(s, int) for s in normalized_shape]), 'Must be a sequence of integer.'
         self.elementwise_affine = elementwise_affine
         if self.elementwise_affine:
-            assert isinstance(self.mode, bm.TrainingMode)
-            self.bias = bm.TrainVar(parameter(self.bias_initializer, self.normalized_shape))
-            self.scale = bm.TrainVar(parameter(self.scale_initializer, self.normalized_shape))
+            bias = parameter(self.bias_initializer, self.normalized_shape)
+            scale = parameter(self.scale_initializer, self.normalized_shape)
+            # ``LayerNorm`` does not depend on batch statistics, so it works under
+            # any mode (including the default ``NonBatchingMode``). Only wrap the
+            # affine parameters as trainable variables under a training mode;
+            # otherwise keep them as plain variables. This removes the hard
+            # ``assert isinstance(self.mode, TrainingMode)`` that crashed the
+            # affine layer out-of-the-box (H-51).
+            if isinstance(self.mode, bm.TrainingMode):
+                self.bias = bm.TrainVar(bias)
+                self.scale = bm.TrainVar(scale)
+            else:
+                self.bias = bm.Variable(bias)
+                self.scale = bm.Variable(scale)
 
     def update(self, x):
         if x.shape[-len(self.normalized_shape):] != self.normalized_shape:
@@ -585,16 +612,32 @@ class GroupNorm(Layer):
         self.bias_initializer = bias_initializer
         self.scale_initializer = scale_initializer
         if self.affine:
-            assert isinstance(self.mode, bm.TrainingMode)
-            self.bias = bm.TrainVar(parameter(self.bias_initializer, self.num_channels))
-            self.scale = bm.TrainVar(parameter(self.scale_initializer, self.num_channels))
+            bias = parameter(self.bias_initializer, self.num_channels)
+            scale = parameter(self.scale_initializer, self.num_channels)
+            # ``GroupNorm``/``InstanceNorm`` compute statistics independently of
+            # the batch size, so they work under any mode (including the default
+            # ``NonBatchingMode``). Only make the affine parameters trainable
+            # under a training mode; otherwise keep them as plain variables. This
+            # removes the hard ``assert isinstance(self.mode, TrainingMode)`` that
+            # crashed the affine layer out-of-the-box (H-51).
+            if isinstance(self.mode, bm.TrainingMode):
+                self.bias = bm.TrainVar(bias)
+                self.scale = bm.TrainVar(scale)
+            else:
+                self.bias = bm.Variable(bias)
+                self.scale = bm.Variable(scale)
 
     def update(self, x):
         assert x.shape[-1] == self.num_channels
         origin_shape, origin_dim = x.shape, x.ndim
         group_shape = (-1,) + x.shape[1:-1] + (self.num_groups, self.num_channels // self.num_groups)
         x = bm.as_jax(x.reshape(group_shape))
-        reduction_axes = tuple(range(1, x.ndim - 1)) + (-1,)
+        # After reshape the axis layout is
+        # ``[0]=batch, [1..ndim-3]=spatial, [ndim-2]=group, [ndim-1]=channels-per-group``.
+        # Normalization must reduce over the spatial axes and the within-group
+        # channel axis, but NOT over the group axis (``ndim-2``); otherwise the
+        # groups are averaged together and ``num_groups`` has no effect (C-05).
+        reduction_axes = tuple(range(1, x.ndim - 2)) + (-1,)
         mean = jnp.mean(x, reduction_axes, keepdims=True)
         var = jnp.var(x, reduction_axes, keepdims=True)
         x = (x - mean) * lax.rsqrt(var + lax.convert_element_type(self.epsilon, x.dtype))

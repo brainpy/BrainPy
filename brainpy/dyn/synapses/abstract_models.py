@@ -859,7 +859,7 @@ class STP(SynDyn):
 
     @property
     def derivative(self):
-        du = lambda u, t: self.U - u / self.tau_f
+        du = lambda u, t: -u / self.tau_f
         dx = lambda x, t: (1 - x) / self.tau_d
         return JointEq(du, dx)
 
@@ -877,8 +877,11 @@ class STP(SynDyn):
         #     x = pre_spike * (x - u * self.x) + (1 - pre_spike) * x
 
         # --- simplified code:
-        u = pre_spike * self.U * (1 - self.u) + u
-        x = pre_spike * -u * self.x + x
+        # Apply the discrete spike jumps to the just-integrated (decayed) locals
+        # ``u``/``x`` rather than the pre-decay ``self.u``/``self.x``. The ``x``
+        # jump uses the already-updated ``u``.
+        u = u + pre_spike * self.U * (1 - u)
+        x = x - pre_spike * u * x
 
         self.x.value = x
         self.u.value = u

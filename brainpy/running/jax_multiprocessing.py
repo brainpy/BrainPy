@@ -133,13 +133,17 @@ def jax_parallelize_map(
 
     res_tree = None
     results = None
-    vmap_func = pmap(func)
+    # Build the pmapped function once and reuse it across all chunks. Re-applying
+    # ``jax.pmap`` inside the loop forces a recompilation on every chunk, which is
+    # both slow and unnecessary since the traced function does not change.
+    pmap_func = pmap(func)
     for i in range(0, num_pars[0], num_parallel):
-        run_f = pmap(func) if clear_buffer else vmap_func
         if isinstance(arguments, dict):
-            r = run_f(**tree_unflatten(tree, [ele[i: i + num_parallel] for ele in elements]))
+            r = pmap_func(**tree_unflatten(tree, [ele[i: i + num_parallel] for ele in elements]))
+        elif isinstance(arguments, (tuple, list)):
+            r = pmap_func(*tree_unflatten(tree, [ele[i: i + num_parallel] for ele in elements]))
         else:
-            r = run_f(*tree_unflatten(tree, [ele[i: i + num_parallel] for ele in elements]))
+            raise TypeError(f'"arguments" must be sequence or dict, but we got {type(arguments)}')
         res_values, res_tree = tree_flatten(r, is_leaf=lambda a: isinstance(a, bm.Array))
         if results is None:
             results = tuple([np.asarray(val) if clear_buffer else val] for val in res_values)

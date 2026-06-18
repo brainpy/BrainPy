@@ -42,7 +42,7 @@ class PotassiumFixed(Potassium):
         self,
         size: Shape,
         keep_size: bool = False,
-        E: Union[float, ArrayType, Initializer, Callable] = -950.,
+        E: Union[float, ArrayType, Initializer, Callable] = -95.,
         C: Union[float, ArrayType, Initializer, Callable] = 0.0400811,
         method: str = 'exp_auto',
         name: Optional[str] = None,

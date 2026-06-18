@@ -130,7 +130,7 @@ def fill_diagonal(a, val, inplace=True):
     if inplace:
         a.value = r
     else:
-        return r
+        return _return(r)
 
 
 def zeros(shape, dtype=None):
@@ -142,7 +142,7 @@ def ones(shape, dtype=None):
 
 
 def empty(shape, dtype=None):
-    return _return(jnp.zeros(shape, dtype=dtype))
+    return _return(jnp.empty(shape, dtype=dtype))
 
 
 def zeros_like(a, dtype=None, shape=None):
@@ -157,7 +157,7 @@ def ones_like(a, dtype=None, shape=None):
 
 def empty_like(a, dtype=None, shape=None):
     a = _as_jax_array_(a)
-    return _return(jnp.zeros_like(a, dtype=dtype, shape=shape))
+    return _return(jnp.empty_like(a, dtype=dtype, shape=shape))
 
 
 def array(a, dtype=None, copy=True, order="K", ndmin=0) -> Array:
@@ -215,8 +215,8 @@ def ascontiguousarray(a, dtype=None, order=None):
 
 
 def asfarray(a, dtype=None):
-    if not np.issubdtype(dtype, np.inexact):
-        dtype = np.float64
+    if dtype is None or not np.issubdtype(dtype, np.inexact):
+        dtype = jnp.float64
     return asarray(a, dtype=dtype)
 
 

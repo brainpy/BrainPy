@@ -220,10 +220,12 @@ class Reservoir(Layer):
             hidden += bm.sparse.seg_matmul(self.state, sparse)
         else:
             hidden += self.state @ self.Wrec
+        if self.bias is not None:
+            hidden += self.bias
         if self.activation_type == 'internal':
             hidden = self.activation(hidden)
         if self.noise_rec > 0.:
-            hidden += self.noise_rec * bm.random.uniform(-1, -1, self.state.shape)
+            hidden += self.noise_rec * bm.random.uniform(-1, 1, self.state.shape)
         # new state/output
         state = (1 - self.leaky_rate) * self.state + self.leaky_rate * hidden
         if self.activation_type == 'external':

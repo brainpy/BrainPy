@@ -52,7 +52,7 @@ class MixIons(IonChaDyn, Container, TreeNode):
         self.ions: Sequence['Ion'] = tuple(ions)
         self._ion_classes = tuple([type(ion) for ion in self.ions])
         for k, v in channels.items():
-            self.add_elem(k=v)
+            self.add_elem(**{k: v})
 
     def update(self, V):
         nodes = tuple(self.nodes(level=1, include_self=False).unique().subset(IonChaDyn).values())

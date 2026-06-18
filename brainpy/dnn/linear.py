@@ -225,8 +225,13 @@ class Dense(Layer, SupportSTDP, SupportOnline, SupportOffline):
         w_min: numbers.Number = None,
         w_max: numbers.Number = None
     ):
+        if bm.isscalar(self.W):
+            raise ValueError(f'When using STDP to update synaptic weights, the weight cannot be a scalar.')
         if not isinstance(self.W, bm.Variable):
-            raise ValueError(f'When using STDP to update synaptic weights, the weight must be a variable.')
+            # Promote the plain-array weight to a traceable Variable so the STDP
+            # in-place update works even when the comm was not built in a training
+            # mode. Only reached from ``stdp_update``; non-plastic use is unaffected.
+            self.W = bm.Variable(self.W)
         if on_pre is not None:
             spike = on_pre['spike']
             trace = on_pre['trace']
@@ -320,8 +325,13 @@ class AllToAll(Layer, SupportSTDP):
         w_min: numbers.Number = None,
         w_max: numbers.Number = None
     ):
+        if bm.isscalar(self.weight):
+            raise ValueError(f'When using STDP to update synaptic weights, the weight cannot be a scalar.')
         if not isinstance(self.weight, bm.Variable):
-            raise ValueError(f'When using STDP to update synaptic weights, the weight must be a variable.')
+            # Promote the plain-array weight to a traceable Variable so the STDP
+            # in-place update works even when the comm was not built in a training
+            # mode. Only reached from ``stdp_update``; non-plastic use is unaffected.
+            self.weight = bm.Variable(self.weight)
         if on_pre is not None:
             spike = on_pre['spike']
             trace = on_pre['trace']
@@ -375,7 +385,10 @@ class OneToOne(Layer, SupportSTDP):
         if isinstance(self.weight, float):
             raise ValueError(f'Cannot update the weight of a constant node.')
         if not isinstance(self.weight, bm.Variable):
-            self.tracing_variable('weight', self.weight, self.weight.shape)
+            # Promote the plain-array weight to a traceable Variable so that the
+            # STDP in-place update below works. This branch is only reached from
+            # ``stdp_update`` (plasticity), so non-plastic use is unaffected.
+            self.weight = bm.Variable(self.weight)
         if on_pre is not None:
             spike = on_pre['spike']
             trace = on_pre['trace']
@@ -449,7 +462,10 @@ class MaskedLinear(Layer, SupportSTDP):
         if isinstance(self.weight, float):
             raise ValueError(f'Cannot update the weight of a constant node.')
         if not isinstance(self.weight, bm.Variable):
-            self.tracing_variable('weight', self.weight, self.weight.shape)
+            # Promote the plain-array weight to a traceable Variable so that the
+            # STDP in-place update below works. This branch is only reached from
+            # ``stdp_update`` (plasticity), so non-plastic use is unaffected.
+            self.weight = bm.Variable(self.weight)
         if on_pre is not None:
             spike = on_pre['spike']
             trace = on_pre['trace']
@@ -500,7 +516,10 @@ class _CSRLayer(Layer, SupportSTDP):
             raise ValueError(
                 f'The shape of weight should be the same as the shape of sparse weight {self.weight.shape}.')
         if not isinstance(self.weight, bm.Variable):
-            self.tracing_variable('weight', self.weight, self.weight.shape)
+            # Promote the plain-array weight to a traceable Variable so that the
+            # STDP in-place update below works. This branch is only reached from
+            # ``stdp_update`` (plasticity), so non-plastic use is unaffected.
+            self.weight = bm.Variable(self.weight)
         if on_pre is not None:  # update on presynaptic spike
             spike = on_pre['spike']
             trace = on_pre['trace']

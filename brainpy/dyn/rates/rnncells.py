@@ -398,7 +398,7 @@ class LSTMCell(Layer):
     def h(self, value):
         if self.state is None:
             raise ValueError('Cannot set "h" state. Because the state is not initialized.')
-        self.state[:self.state.shape[0] // 2, :] = value
+        self.state[..., :self.state.shape[-1] // 2] = value
 
     @property
     def c(self):
@@ -409,7 +409,7 @@ class LSTMCell(Layer):
     def c(self, value):
         if self.state is None:
             raise ValueError('Cannot set "c" state. Because the state is not initialized.')
-        self.state[self.state.shape[0] // 2:, :] = value
+        self.state[..., self.state.shape[-1] // 2:] = value
 
 
 class _ConvNDLSTMCell(Layer):

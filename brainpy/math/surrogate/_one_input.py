@@ -192,7 +192,7 @@ class PiecewiseQuadratic(_OneInpSurrogate):
 
     def surrogate_grad(self, dz, x):
         x = as_jax(x)
-        dx = jnp.where(jnp.abs(x) > 1 / self.alpha, 0., dz * (-(self.alpha * x) ** 2 + self.alpha))
+        dx = jnp.where(jnp.abs(x) > 1 / self.alpha, 0., dz * (-self.alpha ** 2 * jnp.abs(x) + self.alpha))
         return dx
 
     def __repr__(self):
@@ -471,7 +471,7 @@ class Arctan(_OneInpSurrogate):
 
     def surrogate_fun(self, x):
         x = as_jax(x)
-        return jnp.arctan2(jnp.pi / 2 * self.alpha * x) / jnp.pi + 0.5
+        return jnp.arctan(jnp.pi / 2 * self.alpha * x) / jnp.pi + 0.5
 
     def __repr__(self):
         return f'{self.__class__.__name__}(alpha={self.alpha})'
@@ -654,7 +654,7 @@ class ERF(_OneInpSurrogate):
 
     def surrogate_fun(self, x):
         x = as_jax(x)
-        return sci.special.erf(-self.alpha * x) * 0.5
+        return 0.5 * (1. - sci.special.erf(-self.alpha * x))
 
     def __repr__(self):
         return f'{self.__class__.__name__}(alpha={self.alpha})'
@@ -1066,13 +1066,13 @@ class QPseudoSpike(_OneInpSurrogate):
 
     def surrogate_grad(self, dz, x):
         x = as_jax(x)
-        dx = jnp.power(1 + 2 / (self.alpha + 1) * jnp.abs(x), -self.alpha)
+        dx = jnp.power(1 + 2 / (self.alpha - 1) * jnp.abs(x), -self.alpha)
         return dx * as_jax(dz)
 
     def surrogate_fun(self, x):
         x = as_jax(x)
         z = jnp.where(x < 0.,
-                      0.5 * jnp.power(1 - 2 / (self.alpha - 1) * jnp.abs(x), 1 - self.alpha),
+                      0.5 * jnp.power(1 - 2 / (self.alpha - 1) * x, 1 - self.alpha),
                       1. - 0.5 * jnp.power(1 + 2 / (self.alpha - 1) * jnp.abs(x), 1 - self.alpha))
         return z
 
@@ -1443,7 +1443,7 @@ class GaussianGrad(_OneInpSurrogate):
 
     def surrogate_grad(self, dz, x):
         x = as_jax(x)
-        dx = jnp.exp(-(x ** 2) / 2 * jnp.power(self.sigma, 2)) / (jnp.sqrt(2 * jnp.pi) * self.sigma)
+        dx = jnp.exp(-(x ** 2) / (2 * jnp.power(self.sigma, 2))) / (jnp.sqrt(2 * jnp.pi) * self.sigma)
         return self.alpha * dx * as_jax(dz)
 
     def __repr__(self):

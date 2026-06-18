@@ -186,7 +186,12 @@ class JointEq(object):
                 elif (key not in vars_in_eqs) and (key not in all_arg_pars):
                     all_kwarg_pars[key] = value
                 else:
-                    raise DiffEqError
+                    raise DiffEqError(
+                        f'The keyword argument "{key}" conflicts with an existing name '
+                        f'in the joint equations: it is already used as a state variable '
+                        f'or a positional parameter. A keyword argument cannot reuse the '
+                        f'name of a state variable or positional parameter.'
+                    )
 
         # # variable names provided
         # if not isinstance(variables, (tuple, list)):

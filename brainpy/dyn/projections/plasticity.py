@@ -225,18 +225,23 @@ class STDP_Song2000(Projection):
             raise AttributeError(f'{self} needs a "spike" variable for the post-synaptic neuron group.')
         post_spike = self.refs['post'].spike.value
 
+        # weight bounds: pass ``None`` through unchanged (``bm.as_jax(None)`` raises);
+        # ``jnp.clip`` accepts ``None`` for an unbounded side.
+        w_min = None if self.W_min is None else bm.as_jax(self.W_min)
+        w_max = None if self.W_max is None else bm.as_jax(self.W_max)
+
         # weight updates
         Apost = self.refs['post_trace'].g.value
         self.comm.stdp_update(
             on_pre={"spike": bm.as_jax(pre_spike), "trace": bm.as_jax(-Apost * self.A2)},
-            w_min=bm.as_jax(self.W_min),
-            w_max=bm.as_jax(self.W_max),
+            w_min=w_min,
+            w_max=w_max,
         )
         Apre = self.refs['pre_trace'].g.value
         self.comm.stdp_update(
             on_post={"spike": bm.as_jax(post_spike), "trace": bm.as_jax(Apre * self.A1)},
-            w_min=bm.as_jax(self.W_min),
-            w_max=bm.as_jax(self.W_max),
+            w_min=w_min,
+            w_max=w_max,
         )
 
         # synaptic currents

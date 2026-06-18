@@ -20,6 +20,8 @@ This module implements voltage-dependent potassium channels.
 
 from typing import Union, Callable, Optional, Sequence
 
+import jax.numpy as jnp
+
 import brainpy.math as bm
 from brainpy.context import share
 from brainpy.dyn.ions.potassium import Potassium
@@ -41,6 +43,20 @@ __all__ = [
     'IKNI_Ya1989v2',
     'IK_Leak',
 ]
+
+
+def _exprel(x):
+    """Stable ``(exp(x) - 1) / x`` with a finite value *and* finite gradient at ``x == 0``.
+
+    The HH/Markov rate functions have the removable-singularity form
+    ``num * temp / (1 - exp(-temp / k))`` which is ``0 / 0`` (NaN value and NaN
+    gradient) at the singular voltage. Rewriting them as ``num * k / exprel(...)``
+    removes the singularity in value, but ``brainpy.math.exprel`` still yields a
+    NaN gradient at 0, so we use this branch-safe helper instead.
+    """
+    small = jnp.abs(x) < 1e-7
+    safe_x = jnp.where(small, 1.0, x)
+    return jnp.where(small, 1.0 + x / 2.0, jnp.expm1(safe_x) / safe_x)
 
 
 class PotassiumChannel(IonChannel):
@@ -219,7 +235,8 @@ class IKDR_Ba2002v2(_IK_p4_markov_v2):
 
     def f_p_alpha(self, V):
         tmp = V - self.V_sh - 15.
-        return 0.032 * tmp / (1. - bm.exp(-tmp / 5.))
+        # 0.032 * tmp / (1 - exp(-tmp/5)) == 0.032 * 5 / exprel(-tmp/5)
+        return 0.16 / _exprel(-tmp / 5.)
 
     def f_p_beta(self, V):
         return 0.5 * bm.exp(-(V - self.V_sh - 10.) / 40.)
@@ -287,7 +304,8 @@ class IK_TM1991v2(_IK_p4_markov_v2):
 
     def f_p_alpha(self, V):
         c = 15 - V + self.V_sh
-        return 0.032 * c / (bm.exp(c / 5) - 1.)
+        # 0.032 * c / (exp(c/5) - 1) == 0.032 * 5 / exprel(c/5)
+        return 0.16 / _exprel(c / 5.)
 
     def f_p_beta(self, V):
         return 0.5 * bm.exp((10 - V + self.V_sh) / 40)
@@ -356,7 +374,8 @@ class IK_HH1952v2(_IK_p4_markov_v2):
 
     def f_p_alpha(self, V):
         temp = V - self.V_sh + 10
-        return 0.01 * temp / (1 - bm.exp(-temp / 10))
+        # 0.01 * temp / (1 - exp(-temp/10)) == 0.01 * 10 / exprel(-temp/10)
+        return 0.1 / _exprel(-temp / 10.)
 
     def f_p_beta(self, V):
         return 0.125 * bm.exp(-(V - self.V_sh + 20) / 80)
@@ -1188,7 +1207,8 @@ class IKDR_Ba2002(_IK_p4_markov):
 
     def f_p_alpha(self, V):
         tmp = V - self.V_sh - 15.
-        return 0.032 * tmp / (1. - bm.exp(-tmp / 5.))
+        # 0.032 * tmp / (1 - exp(-tmp/5)) == 0.032 * 5 / exprel(-tmp/5)
+        return 0.16 / _exprel(-tmp / 5.)
 
     def f_p_beta(self, V):
         return 0.5 * bm.exp(-(V - self.V_sh - 10.) / 40.)
@@ -1258,7 +1278,8 @@ class IK_TM1991(_IK_p4_markov):
 
     def f_p_alpha(self, V):
         c = 15 - V + self.V_sh
-        return 0.032 * c / (bm.exp(c / 5) - 1.)
+        # 0.032 * c / (exp(c/5) - 1) == 0.032 * 5 / exprel(c/5)
+        return 0.16 / _exprel(c / 5.)
 
     def f_p_beta(self, V):
         return 0.5 * bm.exp((10 - V + self.V_sh) / 40)
@@ -1329,7 +1350,8 @@ class IK_HH1952(_IK_p4_markov):
 
     def f_p_alpha(self, V):
         temp = V - self.V_sh + 10
-        return 0.01 * temp / (1 - bm.exp(-temp / 10))
+        # 0.01 * temp / (1 - exp(-temp/10)) == 0.01 * 10 / exprel(-temp/10)
+        return 0.1 / _exprel(-temp / 10.)
 
     def f_p_beta(self, V):
         return 0.125 * bm.exp(-(V - self.V_sh + 20) / 80)

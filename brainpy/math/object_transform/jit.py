@@ -20,6 +20,7 @@ The JIT compilation tools for JAX backend.
 
 """
 
+import warnings
 from typing import Callable, Union, Sequence, Iterable
 
 import brainstate.transform
@@ -122,26 +123,27 @@ def jit(
 
 
     Parameters::
-    
+
     {jit_par}
-    dyn_vars : optional, dict, sequence of Variable, Variable
-      These variables will be changed in the function, or needed in the computation.
-
-      .. deprecated:: 2.4.0
-         No longer need to provide ``dyn_vars``. This function is capable of automatically
-         collecting the dynamical variables used in the target ``func``.
-    child_objs: optional, dict, sequence of BrainPyObject, BrainPyObject
-      The children objects used in the target function.
-
-      .. deprecated:: 2.4.0
-         No longer need to provide ``child_objs``. This function is capable of automatically
-         collecting the children objects used in the target ``func``.
 
     Returns::
-    
+
     func : JITTransform
       A callable jitted function, set up for just-in-time compilation.
     """
+    # ``dyn_vars`` and ``child_objs`` are no longer used; brainstate collects
+    # dynamical variables automatically. Pop them (with a one-time deprecation
+    # warning) rather than forwarding them into ``brainstate.transform.jit``,
+    # which would raise a TypeError on the unexpected keyword arguments.
+    for _deprecated in ('dyn_vars', 'child_objs'):
+        if _deprecated in kwargs:
+            kwargs.pop(_deprecated)
+            warnings.warn(
+                f'`{_deprecated}` is deprecated and ignored. This function automatically '
+                f'collects the dynamical variables and child objects used in the target `func`.',
+                DeprecationWarning,
+                stacklevel=2,
+            )
     return brainstate.transform.jit(
         warp_to_no_state_input_output(func),
         static_argnums=static_argnums,
@@ -160,6 +162,7 @@ def cls_jit(
     func: Callable = Missing(),
     static_argnums: Union[int, Iterable[int], None] = None,
     static_argnames: Union[str, Iterable[str], None] = None,
+    donate_argnums: Union[int, Sequence[int], None] = None,
     inline: bool = False,
     keep_unused: bool = False,
     **kwargs
@@ -197,19 +200,36 @@ def cls_jit(
     func : JITTransform
       A callable jitted function, set up for just-in-time compilation.
     """
+    # The bound method exposes ``self`` as the first positional argument, so any
+    # caller-supplied positional indices must be shifted by +1. Negative indices
+    # count from the end and are unaffected by the prepended ``self``; shifting
+    # them would silently corrupt the target argument.
+    def _shift_positive(x):
+        return x + 1 if x >= 0 else x
+
     if static_argnums is None:
         static_argnums = (0,)
     elif isinstance(static_argnums, int):
-        static_argnums = (0, static_argnums + 1,)
+        static_argnums = tuple(dict.fromkeys((0, _shift_positive(static_argnums))))
     elif isinstance(static_argnums, (tuple, list)):
-        static_argnums = (0,) + tuple(jax.tree.map(lambda x: x + 1, static_argnums))
+        static_argnums = tuple(dict.fromkeys((0,) + tuple(_shift_positive(x) for x in static_argnums)))
     else:
         raise ValueError('static_argnums is not supported yet.')
+
+    if donate_argnums is None:
+        donate_argnums = ()
+    elif isinstance(donate_argnums, int):
+        donate_argnums = (_shift_positive(donate_argnums),)
+    elif isinstance(donate_argnums, (tuple, list)):
+        donate_argnums = tuple(_shift_positive(x) for x in donate_argnums)
+    else:
+        raise ValueError('donate_argnums is not supported yet.')
 
     return jit(
         func=func,
         static_argnums=static_argnums,
         static_argnames=static_argnames,
+        donate_argnums=donate_argnums,
         inline=inline,
         keep_unused=keep_unused,
         **kwargs

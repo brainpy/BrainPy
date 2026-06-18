@@ -14,6 +14,7 @@
 # limitations under the License.
 # ==============================================================================
 import warnings
+import weakref
 
 from brainpy import _errors as errors
 
@@ -21,7 +22,16 @@ __all__ = [
     'clear_name_cache',
 ]
 
-_name2id = dict()
+# Maps a unique name to a *weak* reference of the object that owns it.
+#
+# Storing a weak reference (instead of the raw ``id(obj)``) has two benefits:
+#   1. The registry no longer keeps objects alive, so it does not grow
+#      unboundedly as transient objects are created and discarded.
+#   2. Once an owning object is garbage-collected, its name is treated as free
+#      again. Keying on ``id(obj)`` was unsafe because CPython readily reuses
+#      the integer id of a collected object for a brand-new one, which could
+#      trigger spurious ``UniqueNameError`` (or mask a genuine collision).
+_name2id = dict()  # name -> weakref.ref(obj)
 _typed_names = {}
 
 
@@ -32,7 +42,11 @@ def check_name_uniqueness(name, obj):
                                   f'according to Python language definition. '
                                   f'Please choose another name.')
     if name in _name2id:
-        if _name2id[name] != id(obj):
+        existing = _name2id[name]()  # dereference the weak ref
+        # ``existing is None``  -> the previous owner has been collected, so the
+        #                          name is free and can be re-registered.
+        # ``existing is obj``   -> the same object re-registering its own name.
+        if existing is not None and existing is not obj:
             raise errors.UniqueNameError(
                 f'In BrainPy, each object should have a unique name. '
                 f'However, we detect that {obj} has a used name "{name}". \n'
@@ -40,8 +54,15 @@ def check_name_uniqueness(name, obj):
                 f'>>> brainpy.math.clear_name_cache() \n\n'
                 f'to clear all cached names. '
             )
-    else:
-        _name2id[name] = id(obj)
+
+    # (Re)register the name with a weak reference to the current owner. A
+    # finalizer drops the entry as soon as the object is collected, keeping the
+    # registry bounded.
+    def _drop(_ref, _name=name):
+        if _name2id.get(_name) is _ref:
+            del _name2id[_name]
+
+    _name2id[name] = weakref.ref(obj, _drop)
 
 
 def get_unique_name(type_: str):

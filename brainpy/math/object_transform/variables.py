@@ -106,10 +106,10 @@ class Variable(brainstate.State, Array):
     @property
     def size_without_batch(self):
         if self.batch_axis is None:
-            return self.size
+            return self.shape
         else:
-            sizes = self.size
-            return sizes[:self.batch_axis] + sizes[self.batch_axis + 1:]
+            s = self.shape
+            return s[:self.batch_axis] + s[self.batch_axis + 1:]
 
     @property
     def batch_axis(self) -> Optional[int]:
@@ -141,6 +141,18 @@ class Variable(brainstate.State, Array):
 
     @value.setter
     def value(self, v):
+        # Normalize/unwrap the incoming value *before* validating its
+        # shape/dtype, so that ``Array``/``np.ndarray``/``brainstate.State``
+        # wrappers are converted to a plain JAX array first. Otherwise the
+        # shape/dtype checks below would run against the wrapper (and a numpy
+        # value would never be canonicalized to the Variable's dtype).
+        if isinstance(v, brainstate.State):
+            v = v.value
+        if isinstance(v, Array):
+            v = v.value
+        elif isinstance(v, np.ndarray):
+            v = jnp.asarray(v)
+
         _value = self.value
         ext_shape = jnp.shape(v)
         int_shape = jnp.shape(_value)
@@ -156,19 +168,50 @@ class Variable(brainstate.State, Array):
         if ext_dtype != int_dtype:
             raise MathError(f"The dtype of the original data is {int_dtype}, "
                             f"while we got {ext_dtype}.")
-        if isinstance(v, Array):
-            v = v.value
-        elif isinstance(v, np.ndarray):
-            v = jnp.asarray(v)
-        else:
-            v = v
 
-        if isinstance(v, brainstate.State):  # value checking
-            v = v.value
         self._check_value_tree(v)  # check the tree structure
         record_state_value_write(self)  # record the value by the stack (>= level)
         self._been_writen = True  # set the flag
         self._write_value(v)  # write the value
+
+    # ------------------------------------------------------------------
+    # Identity-based hashing / equality.
+    #
+    # ``__eq__`` is inherited from the array base class and performs an
+    # *element-wise* comparison (e.g. ``var == 0`` returns a boolean array),
+    # which is a useful and public behaviour we intentionally keep. The hash,
+    # however, must stay identity-based: every place in BrainPy that uses a
+    # ``Variable`` as a registry/dedup key keys on ``id(var)`` (see the
+    # collectors), so a value-based hash would be both incorrect (mutable
+    # value) and inconsistent with that usage. We pin ``__hash__`` here to
+    # make that contract explicit and stable.
+    # ------------------------------------------------------------------
+    def __hash__(self):
+        return id(self)
+
+    def tree_flatten(self):
+        # Carry ``batch_axis`` and ``axis_names`` through pytree round-trips.
+        # The base ``Array.tree_flatten`` returns ``aux_data=None``, which
+        # silently drops these attributes whenever a ``Variable`` is flattened
+        # and reconstructed (e.g. through ``jax.jit``/``vmap``).
+        return (self.value,), (self._batch_axis, self.axis_names)
+
+    @classmethod
+    def tree_unflatten(cls, aux_data, flat_contents):
+        batch_axis, axis_names = aux_data
+        (value,) = flat_contents
+        # Rebuild without re-running ``Variable.__init__``: that would re-run
+        # the batch-axis validation and the (costly) ``State`` source-info
+        # capture on every unflatten. Set the ``_value`` slot first so that
+        # ``State.__init__`` can initialise the remaining bookkeeping fields
+        # (trace state, level, hooks, ...) correctly, then restore the
+        # variable-specific metadata.
+        obj = object.__new__(cls)
+        object.__setattr__(obj, '_value', value)
+        brainstate.State.__init__(obj, value)
+        object.__setattr__(obj, '_batch_axis', batch_axis)
+        object.__setattr__(obj, 'axis_names', axis_names)
+        return obj
 
 
 def _get_dtype(v):
@@ -420,7 +463,11 @@ class VarDict(dict):
 
     @classmethod
     def tree_unflatten(cls, keys, values):
-        return cls(jax.util.safe_zip(keys, values))
+        # ``jax.util.safe_zip`` was removed in recent JAX. Reconstruct the
+        # mapping with a plain ``dict``; note that ``VarDict.update`` only
+        # understands ``dict`` (and single ``(k, v)`` tuples), so a bare
+        # ``zip`` iterator would be silently dropped here.
+        return cls(dict(zip(keys, values)))
 
 
 var_dict = VarDict

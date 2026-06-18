@@ -383,7 +383,7 @@ class HalfProjAlignPost(Projection):
 
     def update(self, x):
         current = self.comm(x)
-        g = self.syn(self.comm(x))
+        g = self.syn(current)
         self.refs['out'].bind_cond(g)  # synapse post current
         return current
 

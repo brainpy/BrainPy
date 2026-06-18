@@ -146,77 +146,29 @@ class BrainPyObject(object):
         axis_names: Optional[Sequence[str]] = None,
         batch_axis_name: Optional[str] = BATCH_AXIS,
     ) -> Variable:
-        """Initialize the variable which can be traced during computations and transformations.
+        """Initialize a variable that can be traced during computations and transformations.
 
-        Although this function is designed to initialize tracing variables during computation or compilation,
-        it can also be used for the initialization of variables before computation and compilation.
-
-        - If the variable has not been instantiated, a :py:class:`~.Variable` will be instantiated.
-        - If the variable has been created, the further call of this function will return the created variable.
-
-        Here is the usage example::
-
-           class Example(bm.BrainPyObject):
-             def fun(self):
-               # The first time of calling `.fun()`, this line will create a Variable instance.
-               # If users repeatedly call `.fun()` function, this line will not initialize variables again.
-               # Instead, it will return the variable has been created.
-               self.tracing_variable('a', bm.zeros, (10,))
-
-               # The created variable can be accessed with self.xxx
-               self.a.value = bm.ones(10)
-
-               # Calling this function again will not reinitialize the
-               # variable again, Instead, it will return the variable
-               # that has been created.
-               a = self.tracing_variable('a', bm.zeros, (10,))
-
-        .. versionadded:: 2.4.5
+        .. deprecated:: 3.0.0
+            This feature is no longer supported. Since BrainPy 3.0.0 the library
+            has been rewritten on top of ``brainstate`` and variable tracing is
+            handled by ``brainstate`` directly. Calling this method always raises
+            :class:`NotImplementedError`.
 
         Args:
           name: str. The variable name.
           init: callable, Array. The data to be initialized as a ``Variable``.
-          batch_or_mode: int, bool, Mode. This is used to specify the batch size of this variable.
-            If it is a boolean or an instance of ``Mode``, the batch size will be 1.
-            If it is None, the variable has no batch axis.
           shape: int, sequence of int. The shape of the variable.
+          batch_or_mode: int, bool, Mode. The batch size of this variable.
           batch_axis: int. The batch axis, if batch size is given.
-          axis_names: sequence of str. The name for each axis. These names should match the given ``axes``.
-          batch_axis_name: str. The name for the batch axis. The name will be used
-            if ``batch_or_mode`` is given. Default is ``brainpy.math.sharding.BATCH_AXIS``.
+          axis_names: sequence of str. The name for each axis.
+          batch_axis_name: str. The name for the batch axis.
 
-        Returns:
-          The instance of :py:class:`~.Variable`.
+        Raises:
+          NotImplementedError: Always, because this feature is unsupported since 3.0.0.
         """
-        # the variable has been created
         raise NotImplementedError(
             'Since 3.0.0, brainpy is rewritten with brainstate. The feature tracing_variable is no longer supported. '
         )
-        if hasattr(self, name):
-            var = getattr(self, name)
-            if isinstance(var, Variable):
-                return var
-                # if var.shape != value.shape:
-                #   raise ValueError(
-                #     f'"{name}" has been used in this class with the shape of {var.shape} (!= {value.shape}). '
-                #     f'Please assign another name for the initialization of variables '
-                #     f'tracing during computation and compilation.'
-                #   )
-                # if var.dtype != value.dtype:
-                #   raise ValueError(
-                #     f'"{name}" has been used in this class with the dtype of {var.dtype} (!= {value.dtype}). '
-                #     f'Please assign another name for the initialization of variables '
-                #     f'tracing during computation and compilation.'
-                #   )
-
-        global variable_
-        if variable_ is None:
-            from brainpy.initialize import variable_
-        with jax.ensure_compile_time_eval():
-            value = variable_(init, shape, batch_or_mode, batch_axis, axis_names, batch_axis_name)
-            value.ready_to_trace = True
-        self.setattr(name, value)
-        return value
 
     def __setattr__(self, key: str, value: Any) -> None:
         """Overwrite `__setattr__` method for changing :py:class:`~.Variable` values.
@@ -288,25 +240,41 @@ class BrainPyObject(object):
         if var_cls is None:
             var_cls = (Variable, VarList, VarDict)
 
+        def _store(key, value):
+            # ``self.implicit_vars`` is an ``ArrayCollector`` whose entries must
+            # be plain ``Variable`` instances (it is consumed directly by
+            # ``vars()``). ``VarList``/``VarDict`` containers are therefore
+            # flattened into their constituent variables before insertion,
+            # mirroring how attribute-stored containers are expanded in
+            # ``vars()``.
+            if isinstance(value, VarList):
+                for i, vv in enumerate(value):
+                    self.implicit_vars[f'{key}-{i}'] = vv
+            elif isinstance(value, VarDict):
+                for kk, vv in value.items():
+                    self.implicit_vars[f'{key}-{kk}'] = vv
+            else:
+                self.implicit_vars[key] = value
+
         for variable in variables:
             if isinstance(variable, var_cls):
-                self.implicit_vars[f'var{id(variable)}'] = variable
+                _store(f'var{id(variable)}', variable)
             elif isinstance(variable, (tuple, list)):
                 for v in variable:
                     if not isinstance(v, var_cls):
                         raise ValueError(f'Must be instance of {var_cls}, but we got {type(v)}')
-                    self.implicit_vars[f'var{id(v)}'] = v
+                    _store(f'var{id(v)}', v)
             elif isinstance(variable, dict):
                 for k, v in variable.items():
                     if not isinstance(v, var_cls):
                         raise ValueError(f'Must be instance of {var_cls}, but we got {type(v)}')
-                    self.implicit_vars[k] = v
+                    _store(k, v)
             else:
                 raise ValueError(f'Unknown type: {type(variable)}')
         for key, variable in named_variables.items():
             if not isinstance(variable, var_cls):
                 raise ValueError(f'Must be instance of {var_cls}, but we got {type(variable)}')
-            self.implicit_vars[key] = variable
+            _store(key, variable)
 
     def register_implicit_nodes(self, *nodes, node_cls: type = None, **named_nodes):
         if node_cls is None:
@@ -606,11 +574,12 @@ class BrainPyObject(object):
         Args:
           device: The device.
         """
-        for key, var in self.state_dict().items():
-            if isinstance(var, Array):
-                var.value = jax.device_put(var.value, device=device)
-            else:
-                setattr(self, key, jax.device_put(var, device=device))
+        # Iterate over the actual ``Variable`` instances (not the nested
+        # ``state_dict`` mapping). Iterating ``state_dict()`` would yield
+        # nested dicts/raw arrays keyed by name, so nothing was ever moved and
+        # ``setattr`` injected junk attributes onto the object.
+        for var in self.vars().values():
+            var.value = jax.device_put(var.value, device=device)
         return self
 
     def cpu(self):

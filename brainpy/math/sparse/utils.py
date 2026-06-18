@@ -16,8 +16,8 @@
 
 from typing import Tuple
 
+import brainevent
 from jax import numpy as jnp
-from jax.experimental.sparse import csr_todense
 
 from brainpy.math.interoperability import as_jax
 
@@ -39,15 +39,15 @@ def coo_to_csr(
     post_ids = as_jax(post_ids)
 
     # sorting
-    sort_ids = jnp.argsort(pre_ids, kind='stable')
+    sort_ids = jnp.argsort(pre_ids, stable=True)
     post_ids = post_ids[sort_ids]
 
     indices = post_ids
     unique_pre_ids, pre_count = jnp.unique(pre_ids, return_counts=True)
-    final_pre_count = jnp.zeros(num_row)
-    final_pre_count[unique_pre_ids] = pre_count
+    final_pre_count = jnp.zeros(num_row, dtype=jnp.int32)
+    final_pre_count = final_pre_count.at[unique_pre_ids].set(pre_count)
     indptr = final_pre_count.cumsum()
-    indptr = jnp.insert(indptr, 0, 0)
+    indptr = jnp.insert(indptr, 0, 0).astype(jnp.int32)
     return indices, indptr
 
 
@@ -61,4 +61,23 @@ def csr_to_coo(
     return jnp.cumsum(jnp.zeros_like(indices).at[indptr].add(1)) - 1, indices
 
 
-csr_to_dense = csr_todense
+def csr_to_dense(data, indices, indptr, *, shape):
+    """Convert a CSR sparse matrix to a dense array.
+
+    Parameters
+    ----------
+    data : ndarray
+        An array of shape ``(nse,)`` holding the non-zero values.
+    indices : ndarray
+        An array of shape ``(nse,)`` holding the column index of each value.
+    indptr : ndarray
+        An array of shape ``(shape[0] + 1,)`` holding the row pointers.
+    shape : tuple of int
+        A length-2 tuple ``(n_rows, n_cols)`` for the dense matrix.
+
+    Returns
+    -------
+    dense : ndarray
+        The dense matrix of shape ``shape``.
+    """
+    return brainevent.CSR((data, indices, indptr), shape=shape).todense()

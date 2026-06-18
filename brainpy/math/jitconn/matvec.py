@@ -77,6 +77,17 @@ def mv_prob_homo(
       The matrix shape.
     seed: int
       The random number generation seed.
+
+      .. warning::
+
+         If ``seed`` is left as ``None`` (the default), a host random seed is
+         drawn with ``numpy.random.randint`` on **every call**. This makes the
+         result non-reproducible in eager mode, and -- because the seed is
+         captured as a Python constant -- it becomes **frozen** the first time
+         the function is traced under ``jit()``/``vmap()``, so every subsequent
+         jitted call reuses that single seed. For reproducible and correct
+         behaviour under JAX transformations, always pass an explicit integer
+         ``seed``.
     transpose: bool
       Transpose the random matrix or not.
     outdim_parallel: bool
@@ -152,6 +163,17 @@ def mv_prob_uniform(
       The matrix shape.
     seed: int
       The random number generation seed.
+
+      .. warning::
+
+         If ``seed`` is left as ``None`` (the default), a host random seed is
+         drawn with ``numpy.random.randint`` on **every call**. This makes the
+         result non-reproducible in eager mode, and -- because the seed is
+         captured as a Python constant -- it becomes **frozen** the first time
+         the function is traced under ``jit()``/``vmap()``, so every subsequent
+         jitted call reuses that single seed. For reproducible and correct
+         behaviour under JAX transformations, always pass an explicit integer
+         ``seed``.
     transpose: bool
       Transpose the random matrix or not.
     outdim_parallel: bool
@@ -229,6 +251,17 @@ def mv_prob_normal(
       The matrix shape.
     seed: int
       The random number generation seed.
+
+      .. warning::
+
+         If ``seed`` is left as ``None`` (the default), a host random seed is
+         drawn with ``numpy.random.randint`` on **every call**. This makes the
+         result non-reproducible in eager mode, and -- because the seed is
+         captured as a Python constant -- it becomes **frozen** the first time
+         the function is traced under ``jit()``/``vmap()``, so every subsequent
+         jitted call reuses that single seed. For reproducible and correct
+         behaviour under JAX transformations, always pass an explicit integer
+         ``seed``.
     transpose: bool
       Transpose the random matrix or not.
     outdim_parallel: bool
@@ -276,6 +309,17 @@ def get_homo_weight_matrix(
       The matrix shape.
     seed: int
       The random number generation seed.
+
+      .. warning::
+
+         If ``seed`` is left as ``None`` (the default), a host random seed is
+         drawn with ``numpy.random.randint`` on **every call**. This makes the
+         result non-reproducible in eager mode, and -- because the seed is
+         captured as a Python constant -- it becomes **frozen** the first time
+         the function is traced under ``jit()``/``vmap()``, so every subsequent
+         jitted call reuses that single seed. For reproducible and correct
+         behaviour under JAX transformations, always pass an explicit integer
+         ``seed``.
     transpose: bool
       Transpose the random matrix or not.
     outdim_parallel: bool
@@ -320,6 +364,17 @@ def get_uniform_weight_matrix(
       The matrix shape.
     seed: int
       The random number generation seed.
+
+      .. warning::
+
+         If ``seed`` is left as ``None`` (the default), a host random seed is
+         drawn with ``numpy.random.randint`` on **every call**. This makes the
+         result non-reproducible in eager mode, and -- because the seed is
+         captured as a Python constant -- it becomes **frozen** the first time
+         the function is traced under ``jit()``/``vmap()``, so every subsequent
+         jitted call reuses that single seed. For reproducible and correct
+         behaviour under JAX transformations, always pass an explicit integer
+         ``seed``.
     transpose: bool
       Transpose the random matrix or not.
     outdim_parallel: bool
@@ -367,6 +422,17 @@ def get_normal_weight_matrix(
       The matrix shape.
     seed: int
       The random number generation seed.
+
+      .. warning::
+
+         If ``seed`` is left as ``None`` (the default), a host random seed is
+         drawn with ``numpy.random.randint`` on **every call**. This makes the
+         result non-reproducible in eager mode, and -- because the seed is
+         captured as a Python constant -- it becomes **frozen** the first time
+         the function is traced under ``jit()``/``vmap()``, so every subsequent
+         jitted call reuses that single seed. For reproducible and correct
+         behaviour under JAX transformations, always pass an explicit integer
+         ``seed``.
     transpose: bool
       Transpose the random matrix or not.
     outdim_parallel: bool

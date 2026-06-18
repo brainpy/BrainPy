@@ -28,6 +28,19 @@ from brainpy.integrators import odeint, JointEq
 from brainpy.types import ArrayType
 from .base import IonChannel
 
+
+def _exprel(x):
+    """Stable ``(exp(x) - 1) / x`` with finite value *and* gradient at ``x == 0``.
+
+    The HH/Markov rate functions have the removable-singularity form
+    ``num * temp / (1 - exp(-temp / k))`` (equivalently ``.../(exp(temp/k) - 1)``),
+    which is ``0 / 0`` (NaN value and NaN gradient) at the singular voltage.
+    Rewriting them as ``num * k / exprel(...)`` removes the singularity.
+    """
+    small = bm.abs(x) < 1e-7
+    safe_x = bm.where(small, 1.0, x)
+    return bm.where(small, 1.0 + x / 2.0, bm.expm1(safe_x) / safe_x)
+
 __all__ = [
     'INa_Ba2002',
     'INa_TM1991',
@@ -198,11 +211,11 @@ class INa_Ba2002(_INa_p3q_markov):
 
     def f_p_alpha(self, V):
         temp = V - self.V_sh - 13.
-        return 0.32 * temp / (1. - bm.exp(-temp / 4.))
+        return 1.28 / _exprel(-temp / 4.)
 
     def f_p_beta(self, V):
         temp = V - self.V_sh - 40.
-        return -0.28 * temp / (1. - bm.exp(temp / 5.))
+        return 1.4 / _exprel(temp / 5.)
 
     def f_q_alpha(self, V):
         return 0.128 * bm.exp(-(V - self.V_sh - 17.) / 18.)
@@ -284,11 +297,11 @@ class INa_TM1991(_INa_p3q_markov):
 
     def f_p_alpha(self, V):
         temp = 13 - V + self.V_sh
-        return 0.32 * temp / (bm.exp(temp / 4) - 1.)
+        return 1.28 / _exprel(temp / 4.)
 
     def f_p_beta(self, V):
         temp = V - self.V_sh - 40
-        return 0.28 * temp / (bm.exp(temp / 5) - 1)
+        return 1.4 / _exprel(temp / 5.)
 
     def f_q_alpha(self, V):
         return 0.128 * bm.exp((17 - V + self.V_sh) / 18)
@@ -371,7 +384,7 @@ class INa_HH1952(_INa_p3q_markov):
 
     def f_p_alpha(self, V):
         temp = V - self.V_sh - 5
-        return 0.1 * temp / (1 - bm.exp(-temp / 10))
+        return 1.0 / _exprel(-temp / 10.)
 
     def f_p_beta(self, V):
         return 4.0 * bm.exp(-(V - self.V_sh + 20) / 18)

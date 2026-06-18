@@ -60,6 +60,7 @@ def _compatible_with_brainpy_array(
             return tree_map(_return, r)
         else:
             out.value = r
+            return out
 
     new_fun.__doc__ = (
         f'Similar to ``jax.numpy.{module + fun.__name__}`` function, '

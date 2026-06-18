@@ -32,44 +32,39 @@ def coomv(
     vector: Union[jnp.ndarray, Array],
     *,
     shape: Tuple[int, int],
-    rows_sorted: bool = False,
-    cols_sorted: bool = False,
     transpose: bool = False,
-    method: str = 'cusparse'
 ):
-    """Product of COO sparse matrix and a dense vector using cuSPARSE algorithm.
+    """Product of COO sparse matrix and a dense vector.
 
-    This function supports JAX transformations, including `jit()`, `grad()`,
-    `vmap()` and `pmap()`.
+    The ``brainevent`` COO format was removed in v0.1.0, so the COO indices are
+    converted to CSR (via :func:`brainevent.coo2csr`) and the multiplication is
+    delegated to :class:`brainevent.CSR`.
 
-    Parameters::
+    This function supports JAX transformations, including ``jit()``, ``grad()``,
+    ``vmap()`` and ``pmap()``.
 
-    data: ndarray, float
-      An array of shape ``(nse,)``.
-    row: ndarray
-      An array of shape ``(nse,)``.
-    col: ndarray
-      An array of shape ``(nse,)`` and dtype ``row.dtype``.
-    vector: ndarray
-      An array of shape ``(shape[0] if transpose else shape[1],)`` and
-      dtype ``data.dtype``.
-    shape: tuple of int
-      The shape of the sparse matrix.
-    rows_sorted: bool
-      Row index are sorted.
-    cols_sorted: bool
-      Column index are sorted.
-    transpose: bool
-      A boolean specifying whether to transpose the sparse matrix
-      before computing.
-    method: str
-      The method used to compute the matrix-vector multiplication.
+    Parameters
+    ----------
+    data : ndarray, float
+        An array of shape ``(nse,)``.
+    row : ndarray
+        An array of shape ``(nse,)``.
+    col : ndarray
+        An array of shape ``(nse,)`` and dtype ``row.dtype``.
+    vector : ndarray
+        An array of shape ``(shape[0] if transpose else shape[1],)`` and
+        dtype ``data.dtype``.
+    shape : tuple of int
+        The shape of the sparse matrix.
+    transpose : bool
+        A boolean specifying whether to transpose the sparse matrix
+        before computing.
 
-    Returns::
-
-    y: ndarray
-      An array of shape ``(shape[1] if transpose else shape[0],)`` representing
-      the matrix vector product.
+    Returns
+    -------
+    y : ndarray
+        An array of shape ``(shape[1] if transpose else shape[0],)`` representing
+        the matrix vector product.
     """
     if isinstance(data, Array):
         data = data.value
@@ -79,7 +74,16 @@ def coomv(
         col = col.value
     if isinstance(vector, Array):
         vector = vector.value
-    csr = brainevent.COO((data, row, col), shape=shape)
+
+    # The COO format was removed in brainevent 0.1.0; convert COO indices to
+    # CSR before delegating to brainevent.CSR.
+    indptr, indices, order = brainevent.coo2csr(row, col, shape=shape)
+    data = jnp.asarray(data)
+    if data.ndim == 0:
+        # scalar weight: broadcast to one entry per non-zero
+        data = jnp.broadcast_to(data, (indices.shape[0],))
+    data = data[order]
+    csr = brainevent.CSR((data, indices, indptr), shape=shape)
     if transpose:
         return vector @ csr
     else:
