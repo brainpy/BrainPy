@@ -55,15 +55,6 @@ def csrmv(
     transpose: bool
       A boolean specifying whether to transpose the sparse matrix
       before computing.
-    method: str
-      The method used to compute Matrix-Vector Multiplication. Default is ``taichi``.
-      The candidate methods are:
-
-      - ``None``: default using Taichi kernel.
-      - ``cusparse``: using cuSPARSE library.
-      - ``scalar``:
-      - ``vector``:
-      - ``adaptive``:
 
     Returns::
 
