@@ -62,7 +62,14 @@ from .compat_pytorch import *
 from .compat_tensorflow import *
 from .datatypes import *
 from .delayvars import *
-from .einops import *
+# einops-style helpers are reused from ``brainunit.math`` (the local port was
+# removed); keep the historical ``ein_*`` names as thin aliases.
+from brainunit.math import (
+    einreduce as ein_reduce,
+    einrearrange as ein_rearrange,
+    einrepeat as ein_repeat,
+    einshape as ein_shape,
+)
 from .environment import *
 from .interoperability import *
 # environment settings
