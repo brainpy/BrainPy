@@ -65,7 +65,9 @@ class TestNVARConstruction(parameterized.TestCase):
 
 class TestNVARErrors(parameterized.TestCase):
     def test_order_below_two_raises(self):
-        with self.assertRaises(AssertionError):
+        # ``NVAR.__init__`` validates ``order`` via ``check.is_integer(min_bound=2)``,
+        # which now (correctly) raises a ``ValueError`` for ``order < 2``.
+        with self.assertRaises(ValueError):
             NVAR(num_in=3, delay=2, order=1)
 
     def test_non_bool_constant_raises(self):

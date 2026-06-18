@@ -179,7 +179,15 @@ class IntegratorRunner(Runner):
             monitors = {k: (self.variables[k], i) for k, i in monitors}
         elif isinstance(monitors, dict):
             monitors = self._format_dict_monitors(monitors)
-            monitors = {k: ((self.variables[i], i) if isinstance(i, str) else i) for k, i in monitors.items()}
+            # ``_format_dict_monitors`` yields ``{user_key: (var_name_or_Variable, index)}``.
+            # The integrator's state variables live in ``self.variables`` (they are NOT
+            # attributes of ``self.target``), so a string variable-name must be resolved
+            # here against ``self.variables``; the base runner then receives an already
+            # resolved ``(Variable, index)`` pair and passes it through unchanged.
+            monitors = {k: ((self.variables[v[0]], v[1])
+                            if (isinstance(v, (tuple, list)) and isinstance(v[0], str))
+                            else v)
+                        for k, v in monitors.items()}
         else:
             raise ValueError
 

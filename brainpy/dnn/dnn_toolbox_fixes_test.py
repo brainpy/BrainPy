@@ -406,15 +406,15 @@ def test_adamw_invalid_hyperparams():
         bp.optim.AdamW(lr=0.01, weight_decay=-1.0)
 
 
-def test_adan_constructs_update_is_known_bug():
-    """Adan constructs, but REMAINING BUG: ``Adan.update`` passes a tuple operand to
-    ``lax.cond`` while the branch lambdas expect two args (optimizer.py:818),
-    raising TypeError. Pinned so the construct path is covered + the bug documented."""
+def test_adan_constructs_and_updates():
+    """Adan constructs AND ``update`` runs (fixed in audit 2026-06-19: the
+    ``lax.cond`` first-step guard previously splatted its tuple operand, raising
+    ``TypeError`` on every call). The update now applies and leaves the var finite."""
     w = _train_var()
     adan = bp.optim.Adan(lr=0.01, train_vars={'w': w})
     repr(adan)
-    with pytest.raises(TypeError):
-        adan.update({'w': bm.ones((2, 3)) * 0.1})
+    adan.update({'w': bm.ones((2, 3)) * 0.1})
+    assert not bool(jnp.isnan(bm.as_jax(w)).any())
 
 
 def test_adan_invalid_betas():

@@ -239,22 +239,21 @@ def test_ridge_intercept_not_over_penalized():
     assert abs(slope) < abs(intercept), f"slope not shrunk: slope={slope}"
 
 
-def test_logistic_regression_remaining_bug():
-    """Document a remaining (un-audited) bug in ``LogisticRegression.call``.
+def test_logistic_regression_fit_runs():
+    """``LogisticRegression.call`` now fits instead of raising ``IndexError``.
 
-    ``call`` flattens ``targets`` to 1-D and then indexes ``targets.shape[1]``,
-    which raises ``IndexError: tuple index out of range``.  This is independent
-    of the H-46/H-47 ridge fixes and is *not* in the assigned fix scope, so the
-    test pins the current broken behavior (and exercises the code path) rather
-    than asserting success.  See summary notes.
+    Fixed in audit 2026-06-19: ``call`` previously flattened ``targets`` to 1-D
+    and then indexed ``targets.shape[1]``; it now initialises a 1-D parameter
+    vector and runs the gradient-descent solver to completion.
     """
     from brainpy.algorithms.offline import LogisticRegression
 
     rng = np.random.RandomState(3)
     x = jnp.asarray(rng.randn(30, 2))
     y = jnp.asarray((np.asarray(x)[:, :1] > 0).astype("float32"))
-    with pytest.raises(IndexError):
-        LogisticRegression(max_iter=100)(y, x)
+    w = LogisticRegression(max_iter=100)(y, x)
+    assert w is not None
+    assert not bool(jnp.isnan(jnp.asarray(w)).any())
 
 
 def test_offline_least_square_and_polynomial():
