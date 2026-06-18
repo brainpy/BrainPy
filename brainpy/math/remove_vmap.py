@@ -13,12 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-import jax
-import jax.numpy as jnp
+from brainstate.transform import unvmap
 
-from brainstate._compatible_import import Primitive
-from jax.core import ShapedArray
-from jax.interpreters import batching, mlir, xla
 from .ndarray import Array
 
 __all__ = [
@@ -29,16 +25,19 @@ __all__ = [
 def remove_vmap(x, op='any'):
     """Reduce ``x`` with ``any``/``all`` *across the vmap batch axis as well*.
 
-    This is a custom primitive whose batching rule deliberately collapses the
-    batch axis into a single **global** scalar. That is, when called under
-    :func:`jax.vmap`, ``remove_vmap(x, 'any')`` returns one ``bool`` summarising
-    *all* batch elements together (``True`` if any element of any batch is
-    truthy), rather than a per-batch vector of results.
+    This is a thin backward-compatible alias for
+    :func:`brainstate.transform.unvmap`, which is the actively maintained
+    implementation. ``unvmap`` collapses the batch axis into a single
+    **global** scalar: when called under :func:`jax.vmap`,
+    ``remove_vmap(x, 'any')`` returns one ``bool`` summarising *all* batch
+    elements together (``True`` if any element of any batch is truthy), rather
+    than a per-batch vector of results.
 
     This is intentional: the primitive is used for global convergence / NaN-style
-    checks where the batch dimension must not survive the reduction. The batching
-    rule returns :data:`jax.interpreters.batching.not_mapped`, so the output is a
-    genuine unbatched scalar (it is *not* broadcast back across the batch axis).
+    checks where the batch dimension must not survive the reduction. Delegating to
+    :func:`brainstate.transform.unvmap` keeps BrainPy compatible across JAX
+    releases (jax ``>= 0.10`` removed ``jax.interpreters.batching.not_mapped``,
+    which the previous in-tree primitive relied on).
 
     Parameters
     ----------
@@ -52,69 +51,27 @@ def remove_vmap(x, op='any'):
     jax.Array
         A scalar boolean. Under :func:`jax.vmap` it is a single global scalar,
         not a per-batch result.
+
+    Raises
+    ------
+    ValueError
+        If ``op`` is not supported by :func:`brainstate.transform.unvmap`.
+
+    See Also
+    --------
+    brainstate.transform.unvmap
+
+    Examples
+    --------
+    .. code-block:: python
+
+        >>> import jax.numpy as jnp
+        >>> from brainpy.math.remove_vmap import remove_vmap
+        >>> bool(remove_vmap(jnp.array([False, True])))
+        True
+        >>> bool(remove_vmap(jnp.array([True, False]), 'all'))
+        False
     """
     if isinstance(x, Array):
         x = x.value
-    if op == 'any':
-        return _any_without_vmap(x)
-    elif op == 'all':
-        return _all_without_vmap(x)
-    else:
-        raise ValueError(f'Do not support type: {op}')
-
-
-_any_no_vmap_prim = Primitive('any_no_vmap')
-
-
-def _any_without_vmap(x):
-    return _any_no_vmap_prim.bind(x)
-
-
-def _any_without_vmap_imp(x):
-    return jnp.any(x)
-
-
-def _any_without_vmap_abs(x):
-    return ShapedArray(shape=(), dtype=jnp.bool_)
-
-
-def _any_without_vmap_batch(x, batch_axes):
-    (x,) = x
-    return _any_without_vmap(x), batching.not_mapped
-
-
-_any_no_vmap_prim.def_impl(_any_without_vmap_imp)
-_any_no_vmap_prim.def_abstract_eval(_any_without_vmap_abs)
-batching.primitive_batchers[_any_no_vmap_prim] = _any_without_vmap_batch
-if hasattr(xla, "lower_fun"):
-    xla.register_translation(_any_no_vmap_prim,
-                             xla.lower_fun(_any_without_vmap_imp, multiple_results=False, new_style=True))
-mlir.register_lowering(_any_no_vmap_prim, mlir.lower_fun(_any_without_vmap_imp, multiple_results=False))
-
-_all_no_vmap_prim = Primitive('all_no_vmap')
-
-
-def _all_without_vmap(x):
-    return _all_no_vmap_prim.bind(x)
-
-
-def _all_without_vmap_imp(x):
-    return jnp.all(x)
-
-
-def _all_without_vmap_abs(x):
-    return ShapedArray(shape=(), dtype=jnp.bool_)
-
-
-def _all_without_vmap_batch(x, batch_axes):
-    (x,) = x
-    return _all_without_vmap(x), batching.not_mapped
-
-
-_all_no_vmap_prim.def_impl(_all_without_vmap_imp)
-_all_no_vmap_prim.def_abstract_eval(_all_without_vmap_abs)
-batching.primitive_batchers[_all_no_vmap_prim] = _all_without_vmap_batch
-if hasattr(xla, "lower_fun"):
-    xla.register_translation(_all_no_vmap_prim,
-                             xla.lower_fun(_all_without_vmap_imp, multiple_results=False, new_style=True))
-mlir.register_lowering(_all_no_vmap_prim, mlir.lower_fun(_all_without_vmap_imp, multiple_results=False))
+    return unvmap(x, op)

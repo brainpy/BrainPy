@@ -595,13 +595,13 @@ def _err_jit_false_branch(x):
 
 
 def _cond(err_fun, pred, err_arg):
-    from brainpy.math.remove_vmap import remove_vmap
+    from brainstate.transform import unvmap
 
     @wraps(err_fun)
     def true_err_fun(arg, transforms):
         err_fun(arg)
 
-    cond(remove_vmap(pred),
+    cond(unvmap(pred),
          partial(_err_jit_true_branch, true_err_fun),
          _err_jit_false_branch,
          err_arg)
@@ -636,7 +636,7 @@ def jit_error_checking_no_args(pred: bool, err: Exception):
     err: Exception
       The error.
     """
-    from brainpy.math.remove_vmap import remove_vmap
+    from brainstate.transform import unvmap
     from brainpy.math.interoperability import as_jax
 
     assert isinstance(err, Exception), 'Must be instance of Exception.'
@@ -644,6 +644,6 @@ def jit_error_checking_no_args(pred: bool, err: Exception):
     def true_err_fun(arg, transforms):
         raise err
 
-    cond(remove_vmap(as_jax(pred)),
+    cond(unvmap(as_jax(pred)),
          lambda: jax.pure_callback(true_err_fun, None),
          lambda: None)
