@@ -14,6 +14,7 @@
 
 # -*- coding: utf-8 -*-
 
+from typing import Any
 
 __all__ = [
     'BrainPyError',
@@ -79,7 +80,7 @@ class PackageMissingError(BrainPyError):
     __module__ = 'brainpy'
 
     @classmethod
-    def by_purpose(cls, name, purpose):
+    def by_purpose(cls, name: str, purpose: str) -> "PackageMissingError":
         err = (f'"{name}" must be installed when the user wants to use {purpose}. \n'
                f'Please install through "pip install {name}".')
         return cls(err)
@@ -88,7 +89,7 @@ class PackageMissingError(BrainPyError):
 class BackendNotInstalled(BrainPyError):
     __module__ = 'brainpy'
 
-    def __init__(self, backend):
+    def __init__(self, backend: str) -> None:
         super(BackendNotInstalled, self).__init__(
             '"{bk}" must be installed when the user wants to use {bk} backend. \n'
             'Please install {bk} through "pip install {bk}" '
@@ -98,7 +99,7 @@ class BackendNotInstalled(BrainPyError):
 class UniqueNameError(BrainPyError):
     __module__ = 'brainpy'
 
-    def __init__(self, *args):
+    def __init__(self, *args: Any) -> None:
         super(UniqueNameError, self).__init__(*args)
 
 
@@ -130,7 +131,7 @@ class MathError(BrainPyError):
 class JaxTracerError(MathError):
     __module__ = 'brainpy'
 
-    def __init__(self, variables=None):
+    def __init__(self, variables: Any = None) -> None:
         msg = 'There is an unexpected tracer. \n\n' \
               'In BrainPy, all the dynamically changed variables must be declared as ' \
               '"brainpy.math.Variable" and they should be provided ' \
@@ -159,7 +160,7 @@ class JaxTracerError(MathError):
 class GPUOperatorNotFound(Exception):
     __module__ = 'brainpy'
 
-    def __init__(self, name):
+    def __init__(self, name: str) -> None:
         super(GPUOperatorNotFound, self).__init__(f'''
 GPU operator for "{name}" does not found. 
 

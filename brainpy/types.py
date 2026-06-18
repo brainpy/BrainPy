@@ -14,7 +14,7 @@
 # limitations under the License.
 # ==============================================================================
 import numbers
-from typing import TypeVar, Tuple, Union, Callable, Sequence
+from typing import Any, TypeVar, Tuple, Union, Callable, Sequence
 
 import jax
 import numpy as np
@@ -33,7 +33,7 @@ __all__ = [
 # data
 Parameter = TypeVar('Parameter', numbers.Number, jax.Array, 'Array', 'Variable')  # noqa
 ArrayType = TypeVar('ArrayType', Array, Variable, TrainVar, jax.Array, np.ndarray)  # noqa
-Array = ArrayType  # noqa
+Array = ArrayType  # type: ignore[misc,assignment]  # noqa: back-compat alias of the ArrayType TypeVar
 PyTree = TypeVar('PyTree')  # noqa
 
 # shape
@@ -43,6 +43,6 @@ Shape = TypeVar('Shape', int, Tuple[int, ...])  # noqa
 Output = TypeVar('Output')  # noqa
 Monitor = TypeVar('Monitor')  # noqa
 Connector = Union[conn.Connector, Array, Variable, jax.Array, np.ndarray]
-Initializer = Union[init.Initializer, Callable, Array, Variable, jax.Array, np.ndarray]
+Initializer = Union[init.Initializer, Callable[..., Any], Array, Variable, jax.Array, np.ndarray]
 
 Sharding = Union[Sequence[str], jax.sharding.Sharding, jax.Device]

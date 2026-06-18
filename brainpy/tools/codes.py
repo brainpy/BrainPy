@@ -16,8 +16,11 @@
 import inspect
 import re
 from types import LambdaType
+from typing import Any, Callable, Dict, List, Optional, Sequence, Set, Tuple, TypeVar, cast
 
-BrainPyObject = None
+BrainPyObject: Any = None
+
+_F = TypeVar('_F', bound=Callable[..., Any])
 
 __all__ = [
     'repr_dict',
@@ -40,12 +43,12 @@ __all__ = [
 ]
 
 
-def repr_dict(dict_obj: dict):
+def repr_dict(dict_obj: Dict[Any, Any]) -> str:
     ret = [f'{k}={v}' for k, v in dict_obj.items()]
     return ', '.join(ret)
 
 
-def repr_object(x):
+def repr_object(x: Any) -> str:
     global BrainPyObject
     if BrainPyObject is None:
         from brainpy.math import BrainPyObject
@@ -53,39 +56,46 @@ def repr_object(x):
         return repr(x)
     elif callable(x):
         signature = inspect.signature(x)
-        args = [f'{k}={v.default}' for k, v in signature.parameters.items()
-                if v.default is not inspect.Parameter.empty]
-        args = ', '.join(args)
+        args = ', '.join([f'{k}={v.default}' for k, v in signature.parameters.items()
+                          if v.default is not inspect.Parameter.empty])
         while not hasattr(x, '__name__'):
             if not hasattr(x, 'func'):
                 break
             x = x.func  # Handle functools.partial
         if not hasattr(x, '__name__') and hasattr(x, '__class__'):
-            return x.__class__.__name__
+            cls_name: str = x.__class__.__name__
+            return cls_name
         if args:
             return f'{x.__name__}(*, {args})'
-        return x.__name__
+        name: str = x.__name__
+        return name
     else:
-        x = repr(x).split('\n')
-        x = [x[0]] + ['  ' + y for y in x[1:]]
-        return '\n'.join(x)
+        lines = repr(x).split('\n')
+        lines = [lines[0]] + ['  ' + y for y in lines[1:]]
+        return '\n'.join(lines)
 
 
-def repr_context(repr_str, indent):
+def repr_context(repr_str: str, indent: str) -> str:
     splits = repr_str.split('\n')
     splits = [(s if i == 0 else (indent + s)) for i, s in enumerate(splits)]
     return '\n'.join(splits)
 
 
-def copy_doc(source_f):
-    def copy(target_f):
+def copy_doc(source_f: Callable[..., Any]) -> Callable[[_F], _F]:
+    def copy(target_f: _F) -> _F:
         target_f.__doc__ = source_f.__doc__
         return target_f
 
     return copy
 
 
-def code_lines_to_func(lines, func_name, func_args, scope, remind=''):
+def code_lines_to_func(
+    lines: Sequence[str],
+    func_name: str,
+    func_args: Sequence[str],
+    scope: Dict[str, Any],
+    remind: str = '',
+) -> Tuple[str, Callable[..., Any]]:
     lines_for_compile = [f'    {line}' for line in lines]
     code_for_compile = '\n'.join(lines_for_compile)
     code = f'def {func_name}({", ".join(func_args)}):\n' + \
@@ -112,7 +122,7 @@ def code_lines_to_func(lines, func_name, func_args, scope, remind=''):
 ######################################
 
 
-def get_identifiers(expr, include_numbers=False):
+def get_identifiers(expr: str, include_numbers: bool = False) -> Set[str]:
     """
     Return all the identifiers in a given string ``expr``, that is everything
     that matches a programming language variable like expression, which is
@@ -153,7 +163,7 @@ def get_identifiers(expr, include_numbers=False):
     return (identifiers - _ID_KEYWORDS) | numbers
 
 
-def indent(text, num_tabs=1, spaces_per_tab=4, tab=None):
+def indent(text: str, num_tabs: int = 1, spaces_per_tab: int = 4, tab: Optional[str] = None) -> str:
     if tab is None:
         tab = ' ' * spaces_per_tab
     indent_ = tab * num_tabs
@@ -161,7 +171,7 @@ def indent(text, num_tabs=1, spaces_per_tab=4, tab=None):
     return indented_string
 
 
-def deindent(text, num_tabs=None, spaces_per_tab=4, docstring=False):
+def deindent(text: str, num_tabs: Optional[int] = None, spaces_per_tab: int = 4, docstring: bool = False) -> str:
     text = text.replace('\t', ' ' * spaces_per_tab)
     lines = text.split('\n')
     # if it's a docstring, we search for the common tabulation starting from
@@ -186,7 +196,7 @@ def deindent(text, num_tabs=None, spaces_per_tab=4, docstring=False):
     return '\n'.join(lines)
 
 
-def word_replace(expr, substitutions, exclude_dot=True):
+def word_replace(expr: str, substitutions: Dict[str, Any], exclude_dot: bool = True) -> str:
     """Applies a dict of word substitutions.
 
     The dict ``substitutions`` consists of pairs ``(word, rep)`` where each
@@ -212,12 +222,12 @@ def word_replace(expr, substitutions, exclude_dot=True):
 ######################################
 
 
-def change_func_name(f, name):
+def change_func_name(f: _F, name: str) -> _F:
     f.__name__ = name
     return f
 
 
-def is_lambda_function(func):
+def is_lambda_function(func: Any) -> bool:
     """Check whether the function is a ``lambda`` function. Comes from
     https://stackoverflow.com/questions/23852423/how-to-check-that-variable-is-a-lambda-function
 
@@ -234,7 +244,7 @@ def is_lambda_function(func):
     return isinstance(func, LambdaType) and func.__name__ == "<lambda>"
 
 
-def get_func_source(func):
+def get_func_source(func: Callable[..., Any]) -> str:
     code = inspect.getsource(func)
     # remove @
     try:
@@ -245,7 +255,7 @@ def get_func_source(func):
     return code
 
 
-def get_main_code(func, codes=None):
+def get_main_code(func: Optional[Callable[..., Any]], codes: Optional[str] = None) -> str:
     """Get the main function _code string.
 
     For lambda function, return the
@@ -261,23 +271,23 @@ def get_main_code(func, codes=None):
         return ''
     elif callable(func):
         if is_lambda_function(func):
-            codes = (codes or get_func_source(func))
-            splits = codes.split(':')
+            source = (codes or get_func_source(func))
+            splits = source.split(':')
             if len(splits) != 2:
-                raise ValueError(f'Can not parse function: \n{codes}')
+                raise ValueError(f'Can not parse function: \n{source}')
             return f'return {splits[1]}'
 
         else:
-            codes = (codes.split('\n') or inspect.getsourcelines(func)[0])
+            lines: List[str] = cast(str, codes).split('\n') or inspect.getsourcelines(func)[0]
             idx = 0
-            for line in codes:
+            for line in lines:
                 idx += 1
                 line = line.replace(' ', '')
                 if '):' in line:
                     break
             else:
-                code = "\n".join(codes)
+                code = "\n".join(lines)
                 raise ValueError(f'Can not parse function: \n{code}')
-            return ''.join(codes[idx:])
+            return ''.join(lines[idx:])
     else:
         raise ValueError(f'Unknown function type: {type(func)}.')

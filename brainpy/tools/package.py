@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+from typing import Any, Callable, Optional
+
 import numpy as np
 
 try:
@@ -27,27 +29,28 @@ __all__ = [
     'SUPPORT_NUMBA',
 ]
 
-SUPPORT_NUMBA = numba is not None
+SUPPORT_NUMBA: bool = numba is not None
 
 
-def numba_jit(f=None, **kwargs):
+def numba_jit(f: Optional[Callable[..., Any]] = None, **kwargs: Any) -> Callable[..., Any]:
     if f is None:
         return lambda f: (f if (numba is None) else numba.njit(f, **kwargs))
     else:
         if numba is None:
             return f
         else:
-            return numba.njit(f)
+            jitted: Callable[..., Any] = numba.njit(f)
+            return jitted
 
 
 @numba_jit
-def _seed(seed):
+def _seed(seed: int) -> None:
     np.random.seed(seed)
 
 
-def numba_seed(seed):
+def numba_seed(seed: Optional[int]) -> None:
     if numba is not None and seed is not None:
         _seed(seed)
 
 
-numba_range = numba.prange if SUPPORT_NUMBA else range
+numba_range: Callable[..., Any] = numba.prange if SUPPORT_NUMBA else range

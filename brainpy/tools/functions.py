@@ -16,13 +16,16 @@ import inspect
 from functools import partial
 from operator import attrgetter
 from types import MethodType
+from typing import Any, Callable, Optional, Sequence, Tuple, TypeVar
 
 __all__ = [
     'compose', 'pipe'
 ]
 
+_T = TypeVar('_T')
 
-def identity(x):
+
+def identity(x: _T) -> _T:
     """ Identity function. Return x
 
     >>> identity(3)
@@ -31,7 +34,13 @@ def identity(x):
     return x
 
 
-def instanceproperty(fget=None, fset=None, fdel=None, doc=None, classval=None):
+def instanceproperty(
+    fget: Optional[Callable[..., Any]] = None,
+    fset: Optional[Callable[..., Any]] = None,
+    fdel: Optional[Callable[..., Any]] = None,
+    doc: Optional[str] = None,
+    classval: Any = None,
+) -> Any:
     """ Like @property, but returns ``classval`` when used as a class attribute
 
     >>> class MyClass(object):
@@ -66,17 +75,20 @@ class InstanceProperty(property):
     Should not be used directly.  Use ``instanceproperty`` instead.
     """
 
-    def __init__(self, fget=None, fset=None, fdel=None, doc=None,
-                 classval=None):
+    def __init__(self, fget: Optional[Callable[..., Any]] = None,
+                 fset: Optional[Callable[..., Any]] = None,
+                 fdel: Optional[Callable[..., Any]] = None,
+                 doc: Optional[str] = None,
+                 classval: Any = None) -> None:
         self.classval = classval
         property.__init__(self, fget=fget, fset=fset, fdel=fdel, doc=doc)
 
-    def __get__(self, obj, type=None):
+    def __get__(self, obj: Any, type: Any = None) -> Any:
         if obj is None:
             return self.classval
         return property.__get__(self, obj, type)
 
-    def __reduce__(self):
+    def __reduce__(self) -> Tuple[Any, ...]:
         state = (self.fget, self.fset, self.fdel, self.__doc__, self.classval)
         return InstanceProperty, state
 
@@ -89,26 +101,29 @@ class Compose(object):
     """
     __slots__ = 'first', 'funcs'
 
-    def __init__(self, funcs):
+    first: Callable[..., Any]
+    funcs: Tuple[Callable[..., Any], ...]
+
+    def __init__(self, funcs: Sequence[Callable[..., Any]]) -> None:
         funcs = tuple(reversed(funcs))
         self.first = funcs[0]
-        self.funcs = funcs[1:]
+        self.funcs = tuple(funcs[1:])
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
         ret = self.first(*args, **kwargs)
         for f in self.funcs:
             ret = f(ret)
         return ret
 
-    def __getstate__(self):
+    def __getstate__(self) -> Tuple[Any, ...]:
         return self.first, self.funcs
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: Tuple[Any, ...]) -> None:
         self.first, self.funcs = state
 
-    @instanceproperty(classval=__doc__)
-    def __doc__(self):
-        def composed_doc(*fs):
+    @instanceproperty(classval=__doc__)  # type: ignore[untyped-decorator]  # dynamic descriptor factory
+    def __doc__(self) -> str:
+        def composed_doc(*fs: Any) -> str:
             """Generate a docstring for the composition of fs.
             """
             if not fs:
@@ -127,40 +142,42 @@ class Compose(object):
             return 'A composition of functions'
 
     @property
-    def __name__(self):
+    def __name__(self) -> str:
         try:
             return '_of_'.join(
                 (f.__name__ for f in reversed((self.first,) + self.funcs))
             )
         except AttributeError:
-            return type(self).__name__
+            # ``type.__name__`` (metaclass descriptor) wins at runtime over the
+            # ``__name__`` property defined on this class.
+            return type(self).__name__  # type: ignore[return-value]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '{.__class__.__name__}{!r}'.format(
             self, tuple(reversed((self.first,) + self.funcs)))
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, Compose):
             return other.first == self.first and other.funcs == self.funcs
         return NotImplemented
 
-    def __ne__(self, other):
+    def __ne__(self, other: object) -> bool:
         equality = self.__eq__(other)
         return NotImplemented if equality is NotImplemented else not equality
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.first) ^ hash(self.funcs)
 
     # Mimic the descriptor behavior of python functions.
     # i.e. let Compose be called as a method when bound to a class.
     # adapted from
     # docs.python.org/3/howto/descriptor.html#functions-and-methods
-    def __get__(self, obj, objtype=None):
+    def __get__(self, obj: Any, objtype: Any = None) -> Any:
         return self if obj is None else MethodType(self, obj)
 
     # introspection with Signature is only possible from py3.3+
     @instanceproperty
-    def __signature__(self):
+    def __signature__(self) -> inspect.Signature:
         base = inspect.signature(self.first)
         last = inspect.signature(self.funcs[-1])
         return base.replace(return_annotation=last.return_annotation)
@@ -168,7 +185,7 @@ class Compose(object):
     __wrapped__ = instanceproperty(attrgetter('first'))
 
 
-def compose(*funcs):
+def compose(*funcs: Callable[..., Any]) -> Callable[..., Any]:
     """ Compose functions to operate in series.
 
     Returns a function that applies other functions in sequence.
@@ -190,7 +207,7 @@ def compose(*funcs):
         return Compose(funcs)
 
 
-def pipe(*funcs):
+def pipe(*funcs: Callable[..., Any]) -> Callable[..., Any]:
     """ Pipe a value through a sequence of functions
 
     I.e. ``pipe(f, g, h)(data)`` is equivalent to ``h(g(f(data)))``
