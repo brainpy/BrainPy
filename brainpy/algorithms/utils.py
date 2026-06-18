@@ -106,7 +106,11 @@ def polynomial_features(X, degree: int, add_bias: bool = True):
         return bm.insert(X, 0, 1, axis=1) if add_bias else X
     if add_bias:
         n_features += 1
-    X_new = bm.zeros((n_samples, 1 + n_features + len(combinations)))
+    # ``n_features`` already accounts for the bias slot (when ``add_bias``); the
+    # design matrix is exactly the (bias +) original features plus the degree>=2
+    # interaction terms. The previous extra leading ``1 +`` left a dead all-zero
+    # trailing column and over-counted the feature dimension by one.
+    X_new = bm.zeros((n_samples, n_features + len(combinations)))
     if add_bias:
         X_new[:, 0] = 1
         X_new[:, 1:n_features] = X

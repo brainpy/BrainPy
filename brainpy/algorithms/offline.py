@@ -385,8 +385,11 @@ class LogisticRegression(RegressionAlgorithm):
             raise ValueError(f'Target must be a scalar, but got multiple variables: {targets.shape}. ')
         targets = targets.flatten()
 
-        # initialize parameters
-        param = self.init_weights(inputs.shape[1], targets.shape[1])
+        # Initialize a 1-D parameter vector to match the flattened 1-D
+        # ``targets`` used below. (``init_weights`` returns a 2-D ``(n_features,
+        # n_out)`` array; reading ``targets.shape[1]`` after the flatten raised
+        # IndexError, so request a single output and squeeze to 1-D.)
+        param = self.init_weights(inputs.shape[1], 1).flatten()
 
         def cond_fun(a):
             i, par_old, par_new = a
@@ -538,8 +541,9 @@ class ElasticNetRegression(RegressionAlgorithm):
         # checking
         inputs = _check_data_2d_atls(bm.as_jax(inputs))
         targets = _check_data_2d_atls(bm.as_jax(targets))
-        # solving
-        inputs = normalize(polynomial_features(inputs, degree=self.degree))
+        # solving. ``add_bias`` must match ``predict`` so the fitted weight
+        # length equals the feature width seen at prediction time.
+        inputs = normalize(polynomial_features(inputs, degree=self.degree, add_bias=self.add_bias))
         return super(ElasticNetRegression, self).gradient_descent_solve(targets, inputs)
 
     def predict(self, W, X):

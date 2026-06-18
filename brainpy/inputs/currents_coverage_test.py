@@ -43,25 +43,27 @@ class TestDeprecatedWrappers(unittest.TestCase):
         self.assertEqual(duration, 200)
 
     def test_spike_current_warns(self):
-        # NOTE: ``spike_current`` is documented as a spike-input shim but its
-        # body actually delegates to ``constant_input`` (copy/paste defect in
-        # the deprecation wrapper), so it must be fed constant_input-style
-        # ``[(value, duration), ...]`` pairs rather than spike arguments.
+        # P16-C1: ``spike_current`` now correctly delegates to ``spike_input``
+        # (it previously delegated to ``constant_input`` and crashed on spike
+        # arguments). It must warn AND accept spike-style arguments.
+        kwargs = dict(sp_times=[10, 20, 30], sp_lens=1., sp_sizes=0.5, duration=40.)
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
-            out = bp.inputs.spike_current([(0, 50), (1, 50)])
+            out = bp.inputs.spike_current(**kwargs)
         self.assertTrue(any(issubclass(x.category, DeprecationWarning) for x in w))
         self.assertIsNotNone(out)
+        self.assertTrue(np.array_equal(np.asarray(out), np.asarray(bp.inputs.spike_input(**kwargs))))
 
     def test_ramp_current_warns(self):
-        # NOTE: like ``spike_current``, ``ramp_current`` also delegates to
-        # ``constant_input`` rather than ``ramp_input`` (same wrapper defect),
-        # so it expects ``[(value, duration), ...]`` pairs.
+        # P16-C1: ``ramp_current`` now correctly delegates to ``ramp_input``
+        # (it previously delegated to ``constant_input``). It must warn AND
+        # accept ramp-style arguments.
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
-            out = bp.inputs.ramp_current([(0, 50), (1, 50)])
+            out = bp.inputs.ramp_current(0., 1., 100.)
         self.assertTrue(any(issubclass(x.category, DeprecationWarning) for x in w))
         self.assertIsNotNone(out)
+        self.assertTrue(np.array_equal(np.asarray(out), np.asarray(bp.inputs.ramp_input(0., 1., 100.))))
 
 
 @unittest.skipUnless(HAS_BRAINUNIT, 'brainunit required for unit-aware inputs')

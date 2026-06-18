@@ -100,7 +100,7 @@ class CSRConn(TwoEndConnector):
         self.max_post = self.indices.max()
 
     def build_csr(self):
-        if self.pre_num != self.pre_num:
+        if self.pre_num != self.inptr.size - 1:
             raise ConnectorError(f'(pre_size, post_size) is inconsistent with '
                                  f'the shape of the sparse matrix.')
         if self.post_num <= self.max_post:

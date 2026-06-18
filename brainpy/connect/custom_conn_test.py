@@ -61,6 +61,45 @@ class TestMatConn(TestCase):
             conn(pre_size=5, post_size=1)
 
 
+class TestCSRConn(TestCase):
+    def _csr(self):
+        # 3 pre-synaptic neurons (indptr has 4 entries), max post id == 2
+        indices = np.array([0, 1, 2, 0, 1], dtype=np.int32)
+        indptr = np.array([0, 2, 3, 5], dtype=np.int32)
+        return indices, indptr
+
+    def test_csrconn_consistent_ok(self):
+        # P16-H2: a CSRConn whose declared pre_size matches the indptr length
+        # must build without error.
+        indices, indptr = self._csr()
+        conn = bp.conn.CSRConn(indices, indptr)
+        ind, ip = conn.require(3, 3, 'csr')
+        assert np.array_equal(np.asarray(ind), indices)
+        assert np.array_equal(np.asarray(ip), indptr)
+
+    def test_csrconn_inconsistent_pre_num_raises(self):
+        # P16-H2: previously the guard ``self.pre_num != self.pre_num`` was a
+        # tautology (always False), so an inconsistent pre_size silently produced
+        # a malformed CSR. It must now raise.
+        indices, indptr = self._csr()  # indptr implies 3 pre
+        conn = bp.conn.CSRConn(indices, indptr)
+        with pytest.raises(bp.errors.ConnectorError):
+            conn.require(5, 3, 'csr')  # pre=5 inconsistent with indptr (3)
+
+    def test_coo2csr_no_dtype_warning(self):
+        # P16-M1: coo2csr must not emit the int32->uint32 scatter FutureWarning
+        # (which is slated to become an error in future JAX).
+        import warnings
+        import jax.numpy as jnp
+        from brainpy.connect.base import coo2csr
+        pre = jnp.array([0, 0, 1, 2, 2, 2])
+        post = jnp.array([1, 2, 0, 0, 1, 2])
+        with warnings.catch_warnings():
+            warnings.simplefilter('error', FutureWarning)
+            ind, indptr = coo2csr((pre, post), 3)
+        assert np.array_equal(np.asarray(indptr), np.array([0, 2, 3, 6]))
+
+
 class TestSparseMatConn(TestCase):
     def test_sparseMatConn(self):
         conn_mat = np.random.randint(2, size=(5, 3), dtype=bp.math.bool_)

@@ -689,7 +689,9 @@ def coo2csr(coo, num_pre):
         post_ids = post_ids[sort_ids]
         indices = post_ids
         unique_pre_ids, pre_count = onp.unique(pre_ids, return_counts=True)
-        final_pre_count = onp.zeros(num_pre, dtype=jnp.uint32)
+        # Use the connection index dtype (not uint32) so the assignment below does
+        # not trigger an int->uint scatter dtype mismatch.
+        final_pre_count = onp.zeros(num_pre, dtype=get_idx_type())
         final_pre_count[unique_pre_ids] = pre_count
     else:
         sort_ids = onp.argsort(bm.as_jax(pre_ids))
@@ -697,7 +699,10 @@ def coo2csr(coo, num_pre):
         post_ids = post_ids[sort_ids]
         indices = post_ids
         unique_pre_ids, pre_count = jnp.unique(pre_ids, return_counts=True)
-        final_pre_count = bm.zeros(num_pre, dtype=jnp.uint32)
+        # Use the connection index dtype (not uint32) so the in-place update below
+        # does not trigger an int->uint scatter dtype mismatch (FutureWarning that
+        # becomes an error in future JAX releases).
+        final_pre_count = bm.zeros(num_pre, dtype=get_idx_type())
         final_pre_count[unique_pre_ids] = pre_count
         final_pre_count = bm.as_jax(final_pre_count)
     indptr = final_pre_count.cumsum()
