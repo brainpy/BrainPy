@@ -92,10 +92,16 @@ class TestDelegatedEquivalence(unittest.TestCase):
 class TestReductionDefaults(unittest.TestCase):
     """Public default ``reduction`` values must not change."""
 
-    def test_l1_loss_default_is_sum(self):
+    def test_l1_loss_default_is_mean(self):
+        # P1-M1 fix: the functional ``l1_loss`` default reduction is now
+        # ``'mean'`` (matching the ``L1Loss`` class, the docstring and PyTorch),
+        # not the surprising ``'sum'`` it previously defaulted to.
         pred, tar = _arr(3, 4, seed=1), _arr(3, 4, seed=2)
         self.assertTrue(_close(L.l1_loss(pred, tar),
-                               L.l1_loss(pred, tar, reduction='sum')))
+                               L.l1_loss(pred, tar, reduction='mean')))
+        # and it must equal the OO wrapper's default.
+        self.assertTrue(_close(L.l1_loss(pred, tar),
+                               L.L1Loss().update(pred, tar)))
 
     def test_mse_default_is_mean(self):
         pred, tar = _arr(3, 4, seed=1), _arr(3, 4, seed=2)
@@ -184,6 +190,31 @@ class TestUntouchedLosses(unittest.TestCase):
         logits = bm.as_jax(bm.asarray(rng.randn(4, 5)))
         targets = rng.randint(0, 5, size=(4,))
         self.assertIsNotNone(L.multi_margin_loss(logits, targets))
+
+
+class TestMultiMarginArrayEnvelope(unittest.TestCase):
+    """P1-H2: ``multi_margin_loss`` must accept ``bm.Array`` inputs.
+
+    Under JAX >= 0.9 implicit ``__jax_array__`` coercion was removed, so
+    indexing a ``bm.Array`` with ``jnp`` advanced indexing raised
+    ``ValueError: Triggering __jax_array__() ... no longer supported``. Every
+    other loss in the module accepts ``bm.Array``; this one must too.
+    """
+
+    def test_multi_margin_accepts_bm_array(self):
+        predicts = bm.asarray(np.array([[0.2, 0.8], [0.6, 0.4]]))
+        targets = bm.asarray(np.array([1, 0]))
+        out = L.multi_margin_loss(predicts, targets, margin=1.0, p=1, reduction='mean')
+        self.assertTrue(np.isfinite(float(out)))
+
+    def test_multi_margin_bm_matches_jax(self):
+        p_np = np.array([[0.2, 0.8, 0.1], [0.6, 0.4, 0.9]])
+        t_np = np.array([1, 0])
+        bm_out = np.asarray(L.multi_margin_loss(bm.asarray(p_np), bm.asarray(t_np),
+                                                p=2, reduction='none'))
+        jax_out = np.asarray(L.multi_margin_loss(bm.as_jax(bm.asarray(p_np)),
+                                                 t_np, p=2, reduction='none'))
+        self.assertTrue(_close(bm_out, jax_out))
 
 
 if __name__ == '__main__':
