@@ -579,7 +579,7 @@ def generate_math_docs():
       'sparse': ('``brainpy.math.sparse`` module: Sparse Operators', 'brainpy.math.sparse'),
       'event': ('``brainpy.math.event`` module: Event-driven Operators', 'brainpy.math.event'),
       'jitconn': ('``brainpy.math.jitconn`` module: Just-In-Time Connectivity Operators', 'brainpy.math.jitconn'),
-      'surrogate': ('``brainpy.math.surrogate`` module: Surrogate Gradient Functions', 'brainpy.math.surrogate'),
+      'surrogate': ('``brainpy.math.surrogate`` module: Surrogate Gradient Functions', 'braintools.surrogate'),
       'random': ('``brainpy.math.random`` module: Random Number Generations', 'brainpy.math.random'),
       'linalg': ('``brainpy.math.linalg`` module: Linear algebra', 'brainpy.math.linalg'),
       'fft': ('``brainpy.math.fft`` module: Discrete Fourier Transform', 'brainpy.math.fft'),

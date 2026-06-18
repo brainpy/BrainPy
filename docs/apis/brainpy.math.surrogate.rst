@@ -1,8 +1,13 @@
 ``brainpy.math.surrogate``: Surrogate Gradient Functions
 =================================================================
 
-.. currentmodule:: brainpy.math.surrogate
-.. automodule:: brainpy.math.surrogate
+.. note::
+
+   ``brainpy.math.surrogate`` reuses :mod:`braintools.surrogate`:
+   ``brainpy.math.surrogate`` is an alias of ``braintools.surrogate``.
+
+.. currentmodule:: braintools.surrogate
+.. automodule:: braintools.surrogate
 
 .. autosummary::
    :toctree: generated/
@@ -44,5 +49,3 @@
    multi_gaussian_grad
    SlayerGrad
    slayer_grad
-   inv_square_grad2
-   relu_grad2
