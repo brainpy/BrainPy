@@ -182,15 +182,27 @@ class CondNeuGroupLTC(HHTypedNeuron, Container, TreeNode):
 
 
 class CondNeuGroup(CondNeuGroupLTC):
+    # density of synaptic currents evaluated at the pre-step membrane potential;
+    # refreshed every ``update`` and defaulted here so a bare ``derivative`` call
+    # (e.g. dynamics analysis) does not raise.
+    _syn_current = 0.
+
     def derivative(self, V, t, I):
+        # ``I`` is the external injected current that ``CondNeuGroupLTC.update``
+        # has already converted into a current *density* via the ``1e-3 / A``
+        # factor. Synaptic currents are densities as well (just like channel
+        # currents), so add the synaptic density computed at the pre-step
+        # membrane potential *here*, NOT to the pre-scaled external input.
+        I = I + self._syn_current
         for ch in self.nodes(level=1, include_self=False).subset(IonChaDyn).unique().values():
             I = I + ch.current(V)
         return I / self.C
 
     def update(self, x=None):
-        # inputs
-        x = 0. if x is None else x
-        x = self.sum_current_inputs(self.V.value, init=x)
+        # Evaluate synaptic inputs at the current (pre-update) membrane potential
+        # and stash the result as a density so it bypasses the ``1e-3 / A``
+        # scaling applied to the external input ``x`` in the parent ``update``.
+        self._syn_current = self.sum_current_inputs(self.V.value, init=0.)
         return super().update(x)
 
 
