@@ -895,3 +895,83 @@ def test_partition_with_axis_name_sequence():
 def test_keep_constraint_on_bp_array():
     out = sharding.keep_constraint(Array([1., 2., 3.]))
     np.testing.assert_allclose(np.asarray(out), [1., 2., 3.])
+
+
+# ===========================================================================
+# P2 audit (2026-06-19) regression tests
+# ===========================================================================
+
+# --- ndarray.py : P2-H1 (ShardedArray pytree round-trip) -------------------
+
+def test_shardedarray_pytree_round_trip_preserves_value_and_keep_sharding():
+    """P2-H1: ``ShardedArray`` reused the base ``Array.tree_unflatten`` which
+    only set ``_value`` and never ``_keep_sharding``. Any pytree round-trip
+    (``jit``/``vmap``/``scan``/``grad``/``tree_map``) then made the ``value``
+    getter raise ``AttributeError: ... has no attribute '_keep_sharding'``.
+    The flatten/unflatten pair must round-trip both attributes."""
+    from jax.tree_util import tree_flatten, tree_unflatten
+
+    for keep in (True, False):
+        sa = ShardedArray(jnp.arange(6.), keep_sharding=keep)
+        flat, treedef = tree_flatten(sa)
+        back = tree_unflatten(treedef, flat)
+        assert isinstance(back, ShardedArray)
+        # The getter must not raise (regression for the missing attribute).
+        np.testing.assert_allclose(np.asarray(back.value), np.arange(6.))
+        # ``keep_sharding`` must survive the round-trip.
+        assert back._keep_sharding is keep
+
+
+def test_shardedarray_works_under_jit():
+    """P2-H1: a ``ShardedArray`` passed through ``jit`` (which pytree-flattens
+    and unflattens its arguments) must not crash when its value is read."""
+
+    @jax.jit
+    def f(x):
+        return x.value + 1.
+
+    out = f(ShardedArray(jnp.arange(3.)))
+    np.testing.assert_allclose(np.asarray(out), [1., 2., 3.])
+
+
+def test_shardedarray_works_under_vmap():
+    """P2-H1: the same fix is exercised by ``vmap``."""
+
+    @jax.vmap
+    def g(x):
+        return x.value * 2.
+
+    out = g(ShardedArray(jnp.arange(4.)))
+    np.testing.assert_allclose(np.asarray(out), [0., 2., 4., 6.])
+
+
+# --- others.py : P2-M1 (remove_diag m > n) ---------------------------------
+
+def test_remove_diag_square_and_wide():
+    """P2-M1: the working ``m <= n`` path is unchanged."""
+    from brainpy.math.others import remove_diag
+
+    square = remove_diag(jnp.arange(9).reshape(3, 3))
+    np.testing.assert_array_equal(np.asarray(square), [[1, 2], [3, 5], [6, 7]])
+
+    wide = remove_diag(jnp.arange(12).reshape(3, 4))
+    np.testing.assert_array_equal(np.asarray(wide),
+                                  [[1, 2, 3], [4, 6, 7], [8, 9, 11]])
+
+
+def test_remove_diag_tall_raises_clear_error():
+    """P2-M1: a tall matrix (m > n) has no well-defined ``(m, n-1)`` result; the
+    old code crashed with an opaque broadcasting error. It must now raise a
+    clear ``ValueError`` mentioning the shape constraint."""
+    from brainpy.math.others import remove_diag
+
+    with pytest.raises(ValueError, match=r'm <= n'):
+        remove_diag(jnp.arange(12).reshape(4, 3))
+
+
+def test_remove_diag_still_rejects_non_2d():
+    """P2-M1: the pre-existing ndim guard is preserved."""
+    from brainpy.math.others import remove_diag
+
+    with pytest.raises(ValueError, match=r'2D matrix'):
+        remove_diag(jnp.arange(8).reshape(2, 2, 2))
