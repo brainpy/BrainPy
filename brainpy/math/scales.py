@@ -73,17 +73,42 @@ class Scaling(object):
 
 
 class IdScaling(Scaling):
+    """Identity scaling: a no-op :class:`Scaling` with ``scale=1`` and ``bias=0``.
+
+    Because the transform is the identity, custom ``bias``/``scale`` arguments are
+    meaningless. Passing non-default values is therefore rejected (rather than
+    being silently ignored) so the caller is not misled into thinking the values
+    take effect.
+    """
+
     def __init__(self):
         super().__init__(scale=1., bias=0.)
 
+    @staticmethod
+    def _reject_overrides(bias=None, scale=None):
+        if bias is not None and bias != 0.:
+            raise ValueError(
+                'IdScaling is the identity transform and ignores "bias". '
+                f'Got bias={bias}. Use a plain Scaling if you need a non-zero bias.'
+            )
+        if scale is not None and scale != 1.:
+            raise ValueError(
+                'IdScaling is the identity transform and ignores "scale". '
+                f'Got scale={scale}. Use a plain Scaling if you need a non-unit scale.'
+            )
+
     def offset_scaling(self, x, bias=None, scale=None):
+        self._reject_overrides(bias, scale)
         return x
 
     def std_scaling(self, x, scale=None):
+        self._reject_overrides(scale=scale)
         return x
 
     def inv_scaling(self, x, scale=None):
+        self._reject_overrides(scale=scale)
         return x
 
     def clone(self, bias=None, scale=None):
+        self._reject_overrides(bias, scale)
         return IdScaling()

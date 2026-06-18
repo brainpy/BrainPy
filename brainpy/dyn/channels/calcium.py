@@ -20,6 +20,8 @@ This module implements voltage-dependent calcium channels.
 
 from typing import Union, Callable, Optional
 
+import jax.numpy as jnp
+
 import brainpy.math as bm
 from brainpy.context import share
 from brainpy.dyn.ions.calcium import Calcium, CalciumDyna
@@ -38,6 +40,20 @@ __all__ = [
     'ICaHT_Re1993',
     'ICaL_IS2008',
 ]
+
+
+def _exprel(x):
+    """Stable ``(exp(x) - 1) / x`` with a finite value *and* finite gradient at ``x == 0``.
+
+    The HH/Markov rate functions have the removable-singularity form
+    ``num * temp / (exp(temp / k) - 1)`` which is ``0 / 0`` (NaN value and NaN
+    gradient) at the singular voltage. Rewriting them as ``num * k / exprel(...)``
+    removes the singularity in value, but ``brainpy.math.exprel`` still yields a
+    NaN gradient at 0, so we use this branch-safe helper instead.
+    """
+    small = jnp.abs(x) < 1e-7
+    safe_x = jnp.where(small, 1.0, x)
+    return jnp.where(small, 1.0 + x / 2.0, jnp.expm1(safe_x) / safe_x)
 
 
 class CalciumChannel(IonChannel):
@@ -708,7 +724,8 @@ class ICaHT_Re1993(_ICa_p2q_markov):
 
     def f_p_alpha(self, V):
         temp = -27 - V + self.V_sh
-        return 0.055 * temp / (bm.exp(temp / 3.8) - 1)
+        # 0.055 * temp / (exp(temp/3.8) - 1) == 0.055 * 3.8 / exprel(temp/3.8)
+        return (0.055 * 3.8) / _exprel(temp / 3.8)
 
     def f_p_beta(self, V):
         return 0.94 * bm.exp((-75. - V + self.V_sh) / 17.)

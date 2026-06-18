@@ -24,7 +24,7 @@ __all__ = [
 
 name2method = {}
 
-_DEFAULT_DDE_METHOD = 'l1'
+_DEFAULT_FDE_METHOD = 'l1'
 
 
 def fdeint(
@@ -60,7 +60,7 @@ def fdeint(
     integral : FDEIntegrator
         The numerical solver of `f`.
     """
-    method = _DEFAULT_DDE_METHOD if method is None else method
+    method = _DEFAULT_FDE_METHOD if method is None else method
     if method not in name2method:
         raise ValueError(f'Unknown FDE numerical method "{method}". Currently '
                          f'BrainPy supports: {list(name2method.keys())}')
@@ -72,7 +72,7 @@ def fdeint(
 
 
 def set_default_fdeint(method):
-    """Set the default ODE numerical integrator method for differential equations.
+    """Set the default FDE numerical integrator method for fractional differential equations.
 
     Parameters::
 
@@ -82,25 +82,25 @@ def set_default_fdeint(method):
     if not isinstance(method, str):
         raise ValueError(f'Only support string, not {type(method)}.')
     if method not in name2method:
-        raise ValueError(f'Unsupported ODE_INT numerical method: {method}.')
+        raise ValueError(f'Unsupported FDE numerical method: {method}.')
 
-    global _DEFAULT_DDE_METHOD
-    _DEFAULT_ODE_METHOD = method
+    global _DEFAULT_FDE_METHOD
+    _DEFAULT_FDE_METHOD = method
 
 
 def get_default_fdeint():
-    """Get the default ODE numerical integrator method.
+    """Get the default FDE numerical integrator method.
 
     Returns::
 
     method : str
         The default numerical integrator method.
     """
-    return _DEFAULT_DDE_METHOD
+    return _DEFAULT_FDE_METHOD
 
 
 def register_fde_integrator(name, integrator):
-    """Register a new ODE integrator.
+    """Register a new FDE integrator.
 
     Parameters::
 
@@ -117,5 +117,5 @@ def register_fde_integrator(name, integrator):
 
 
 def get_supported_methods():
-    """Get all supported numerical methods for DDEs."""
+    """Get all supported numerical methods for FDEs."""
     return list(name2method.keys())

@@ -89,7 +89,10 @@ def firing_rate(spikes, width, dt=None, numpy=True):
     np = onp if numpy else jnp
     dt = bm.get_dt() if (dt is None) else dt
     width1 = int(width / 2 / dt) * 2 + 1
-    window = np.ones(width1) * 1000 / width
+    # Normalize by the actual window length (``width1`` bins of ``dt`` ms each),
+    # converting a per-bin spike count into a rate in Hz. Normalizing by the
+    # requested ``width`` instead biases the rate by ``width1 * dt / width``.
+    window = np.ones(width1) / (width1 * dt) * 1000.
     return np.convolve(np.mean(spikes, axis=1), window, mode='same')
 
 

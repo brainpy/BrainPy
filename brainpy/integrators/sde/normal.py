@@ -17,6 +17,7 @@ from typing import Union, Callable, Dict, Sequence
 
 import jax.numpy as jnp
 
+from brainpy import _errors as errors
 from brainpy import math as bm
 from brainpy.integrators import constants, utils, joint_eq
 from brainpy.integrators.constants import DT

@@ -88,10 +88,22 @@ class PoissonEncoder(Encoder):
         Returns:
           out: Array. The encoded spike train.
         """
+        # Draw a single Bernoulli sample for one step. (Delegating to
+        # ``multi_steps`` with ``n_time=None`` would crash on ``int(None / dt)``,
+        # and the old ``cond(..., self.multi_steps, x)`` passed the wrong number
+        # of arguments to ``multi_steps``.)
+        x = self._normalize(x)
+        spikes = bm.asarray(bm.random.rand(*x.shape) < x, dtype=x.dtype)
         if i_step is None:
-            return self.multi_steps(x, n_time=None)
-        else:
-            return bm.cond(bm.as_jax(i_step < self.first_spk_step), self._zero_out, self.multi_steps, x)
+            return spikes
+        # Before the first-spike step, emit no spikes.
+        before_first = bm.as_jax(i_step) < self.first_spk_step
+        return bm.asarray(bm.where(before_first, bm.zeros_like(spikes), spikes), dtype=x.dtype)
+
+    def _normalize(self, x):
+        if (self.min_val is not None) and (self.max_val is not None):
+            x = (x - self.min_val) / (self.max_val - self.min_val)
+        return x * self.gain + self.offset
 
     def multi_steps(self, x, n_time: Optional[float]):
         """Generate spikes at multiple steps according to the inputs.
@@ -108,11 +120,11 @@ class PoissonEncoder(Encoder):
         Returns:
           out: Array. The encoded spike train.
         """
-        n_time = int(n_time / bm.get_dt())
+        # ``n_time=None`` means "encode the current single step" (see docstring);
+        # only convert to a step count when an actual duration is given.
+        n_time = None if n_time is None else int(n_time / bm.get_dt())
 
-        if (self.min_val is not None) and (self.max_val is not None):
-            x = (x - self.min_val) / (self.max_val - self.min_val)
-        x = x * self.gain + self.offset
+        x = self._normalize(x)
         if n_time is not None and self.first_spk_step > 0:
             pre = bm.zeros((self.first_spk_step,) + x.shape, dtype=x.dtype)
             shape = ((n_time - self.first_spk_step,) + x.shape)

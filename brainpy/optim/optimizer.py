@@ -570,6 +570,10 @@ class Adam(CommonOpt):
         self.beta1 = beta1
         self.beta2 = beta2
         self.eps = eps
+        # Per-update step counter used for bias correction. It is a Variable so
+        # that it is traceable under JAX transforms and advances exactly once per
+        # call to ``update()`` (independent of any LR scheduler's ``last_epoch``).
+        self.step = bm.Variable(jnp.asarray(0))
 
     def __repr__(self):
         return (f"{self.__class__.__name__}(lr={str(self.lr)}, "
@@ -589,9 +593,14 @@ class Adam(CommonOpt):
 
     def update(self, grads: dict):
         self.check_grads(grads)
-        lr = self.lr()
-        lr /= (1 - self.beta1 ** (self.lr.last_epoch.value + 2))
-        lr *= jnp.sqrt(1 - self.beta2 ** (self.lr.last_epoch.value + 2))
+        # Advance the per-update step counter (t = 1 on the first update).
+        self.step.value = self.step.value + 1
+        t = self.step.value
+        # Read the (possibly scheduled) learning rate as a plain JAX array so we
+        # never mutate the underlying ``lr`` Variable in place.
+        lr = bm.as_jax(self.lr())
+        lr = lr / (1 - self.beta1 ** t)
+        lr = lr * jnp.sqrt(1 - self.beta2 ** t)
         for key, p in self.vars_to_train.items():
             m = self.implicit_vars[key + '_m']
             v = self.implicit_vars[key + '_v']
@@ -931,6 +940,8 @@ class AdamW(CommonOpt):
         self.beta2 = beta2
         self.eps = eps
         self.weight_decay = weight_decay
+        # Per-update step counter for bias correction (see ``Adam``).
+        self.step = bm.Variable(jnp.asarray(0))
 
     def __repr__(self):
         return (f"{self.__class__.__name__}(lr={self.lr}, "
@@ -960,8 +971,11 @@ class AdamW(CommonOpt):
 
     def update(self, grads: dict):
         self.check_grads(grads)
-        lr_old = self.lr()
-        step = self.lr.last_epoch.value + 2
+        # Advance the per-update step counter (t = 1 on the first update) and read
+        # the learning rate as a plain JAX array (never mutate the lr Variable).
+        self.step.value = self.step.value + 1
+        step = self.step.value
+        lr_old = bm.as_jax(self.lr())
         bias_correction1 = 1 - self.beta1 ** step
         bias_correction2 = 1 - self.beta2 ** step
         lr = lr_old * jnp.sqrt(bias_correction2) / bias_correction1
@@ -1036,11 +1050,10 @@ class SM3(CommonOpt):
         weight_decay: Optional[float] = None,
         name: Optional[str] = None,
     ):
-        super(SM3, self).__init__(lr=lr,
-                                  weight_decay=weight_decay,
-                                  train_vars=train_vars,
-                                  name=name)
-
+        # NOTE: validate and assign hyper-parameters *before* ``super().__init__``.
+        # The base ``Optimizer.__init__`` calls ``register_train_vars`` (when
+        # ``train_vars`` is given), which reads ``self.momentum``; assigning these
+        # attributes afterwards left the optimizer un-instantiable with train vars.
         if not 0.0 <= momentum < 1.0:
             raise ValueError("Invalid momentum: {0}".format(momentum))
         if not 0.0 <= beta < 1.0:
@@ -1051,6 +1064,11 @@ class SM3(CommonOpt):
         self.eps = eps
         self.beta = beta
         self.momentum = momentum
+
+        super(SM3, self).__init__(lr=lr,
+                                  weight_decay=weight_decay,
+                                  train_vars=train_vars,
+                                  name=name)
 
     def __repr__(self):
         return (f"{self.__class__.__name__}(lr={self.lr}, "
@@ -1093,7 +1111,7 @@ class SM3(CommonOpt):
                 result = update
                 for j in range(ndim):
                     if i != j:
-                        result = result.max(axis=j, keepdim=True)
+                        result = result.max(axis=j, keepdims=True)
                 acc = self.implicit_vars[f'{k}_m{i}']
                 if self.beta > 0.:
                     acc.value = bm.maximum(acc, result)

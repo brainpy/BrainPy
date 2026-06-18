@@ -718,7 +718,7 @@ class StuartLandauOscillator(RateModel):
         return (a - x * x - y * y) * x - w * y + x_ext
 
     def dy(self, y, t, x, y_ext, a, w):
-        return (a - x * x - y * y) * y - w * y + y_ext
+        return (a - x * x - y * y) * y + w * x + y_ext
 
     def update(self, inp_x=None, inp_y=None):
         t = share.load('t')
@@ -1048,7 +1048,7 @@ class ThresholdLinearModel(RateModel):
             has_noise = bm.any(self.noise_e != 0.)
 
         if has_noise:
-            de += bm.random.randn(self.varshape) * self.noise_e
+            de += bm.random.randn(*self.varshape) * self.noise_e
         de = de / self.tau_e
         self.e.value = bm.maximum(self.e + de * dt, 0.)
 
@@ -1057,7 +1057,7 @@ class ThresholdLinearModel(RateModel):
             has_noise = bm.any(self.noise_i != 0.)
 
         if has_noise:
-            di += bm.random.randn(self.varshape) * self.noise_i
+            di += bm.random.randn(*self.varshape) * self.noise_i
         di = di / self.tau_i
         self.i.value = bm.maximum(self.i + di * dt, 0.)
         return self.e.value

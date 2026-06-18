@@ -145,12 +145,21 @@ class RLS(OnlineAlgorithm):
         assert input.ndim == 2, f'should be a 2D array with shape of (batch, feature). Got {input.shape}'
         assert target.ndim == 2, f'should be a 2D array with shape of (batch, feature). Got {target.shape}'
         assert output.ndim == 2, f'should be a 2D array with shape of (batch, feature). Got {output.shape}'
-        k = jnp.dot(P.value, input.T)  # (num_input, num_batch)
+        # Block recursive least squares update (valid for any batch size B>=1).
+        # See e.g. Haykin, "Adaptive Filter Theory", block/multi-sample RLS.
+        #   K = P Hᵀ (I_B + H P Hᵀ)⁻¹      -> Kalman gain, shape (num_input, B)
+        #   P <- P - K H P                  -> covariance update, shape (num_input, num_input)
+        #   w <- w + K (target - H w)       -> here output = H w, so dw = -K (output - target)
+        # For B==1 this reduces exactly to the previous scalar update
+        # (c = 1/(1+hPh)), but unlike `jnp.sum(1/(1+HPHᵀ))` it stays correct for
+        # B>1 by inverting the full (B, B) matrix instead of summing reciprocals.
+        Pv = P.value
+        k = jnp.dot(Pv, input.T)  # (num_input, num_batch)
         hPh = jnp.dot(input, k)  # (num_batch, num_batch)
-        c = jnp.sum(1.0 / (1.0 + hPh))  # ()
-        P -= c * jnp.dot(k, k.T)  # (num_input, num_input)
+        gain = jnp.dot(k, jnp.linalg.inv(jnp.eye(hPh.shape[0]) + hPh))  # (num_input, num_batch)
+        P.value = Pv - jnp.dot(gain, jnp.dot(input, Pv))  # (num_input, num_input)
         e = output - target  # (num_batch, num_output)
-        dw = -c * jnp.dot(k, e)  # (num_input, num_output)
+        dw = -jnp.dot(gain, e)  # (num_input, num_output)
         return dw
 
 

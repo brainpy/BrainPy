@@ -395,7 +395,7 @@ def roots_of_1d_by_x(f, candidates, args=()):
     """
     f = f_without_jaxarray_return(f)
     candidates = candidates.value if isinstance(candidates, bm.Array) else candidates
-    args = tuple(a.value if isinstance(candidates, bm.Array) else a for a in args)
+    args = tuple(a.value if isinstance(a, bm.Array) else a for a in args)
     vals = f(candidates, *args)
     signs = jnp.sign(vals)
     zero_sign_idx = jnp.where(signs == 0)[0]

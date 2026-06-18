@@ -158,8 +158,10 @@ class MultiStepLR(Scheduler):
     def call(self, i=None):
         i = (self.last_epoch.value + 1) if i is None else i
         milestones = jnp.asarray(self.milestones)
-        conditions = jnp.logical_and((i >= milestones[:-1]), (i < milestones[1:]))
-        p = jnp.argmax(conditions)
+        # Number of milestones strictly before epoch ``i``: lr decays *after* a
+        # milestone epoch is reached, so e.g. milestones=[10, 20] keeps the base
+        # lr through epoch 10 and applies the first decay from epoch 11 onward.
+        p = jnp.sum(milestones < i)
         return self.lr * self.gamma ** p
 
     def __call__(self, i=None):

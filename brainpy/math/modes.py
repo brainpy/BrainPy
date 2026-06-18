@@ -40,6 +40,11 @@ class Mode(brainstate.mixin.Mode):
             return False
         return other.__class__ == self.__class__
 
+    # Defining ``__eq__`` sets ``__hash__`` to None (making instances
+    # unhashable). Restore hashability so modes can be used in sets / as dict
+    # keys. Modes compare equal iff they share a class, so hash by class.
+    __hash__ = brainstate.mixin.Mode.__hash__
+
     def is_one_of(self, *modes):
         for m_ in modes:
             if not isinstance(m_, type):

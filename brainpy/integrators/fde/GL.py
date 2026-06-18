@@ -184,7 +184,7 @@ class GLShortMemory(FDEIntegrator):
         for key, val in inits.items():
             delay = bm.zeros((self.num_memory,) + val.shape, dtype=val.dtype)
             delay[0] = val
-            self.delays[key].value = delay
+            self.delays[key + '_delay'].value = delay
 
     @property
     def binomial_coef(self):

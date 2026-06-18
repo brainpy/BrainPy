@@ -251,10 +251,13 @@ class VarDelay(Delay):
 
         # delay data
         self._init = init
+        # ``self.data`` must exist before ``_init_data`` is called, because
+        # ``_init_data`` reads ``self.data`` to decide whether to allocate a
+        # new buffer. Initialize it unconditionally to avoid an AttributeError
+        # on the ``time > 0`` (``max_length > 0``) path.
+        self.data = None
         if self.max_length > 0:
             self._init_data(self.max_length)
-        else:
-            self.data = None
 
         # other info
         if entries is not None:

@@ -21,7 +21,7 @@ from brainpy.dyn.base import NeuDyn
 from brainpy.dynold.synouts import COBA, CUBA
 from brainpy.initialize import Initializer
 from brainpy.types import ArrayType
-from .abstract_models import Delta, Exponential, DualExponential
+from .abstract_models import Delta, Exponential, DualExponential, Alpha
 
 __all__ = [
     'DeltaSynapse',
@@ -205,7 +205,7 @@ class DualExpCOBA(DualExponential):
                          output=COBA(E=E))
 
 
-class AlphaCUBA(DualExpCUBA):
+class AlphaCUBA(Alpha):
     r"""Current-based alpha synapse model.
 
     .. deprecated:: 2.1.13
@@ -225,19 +225,23 @@ class AlphaCUBA(DualExpCUBA):
         method: str = 'exp_auto',
         name: str = None
     ):
+        # Alpha synapses have a single time constant; route through the
+        # single-tau ``Alpha`` implementation instead of a dual-exponential
+        # with ``tau_rise == tau_decay`` (which divides by zero in the peak
+        # normalizer ``A = tau_decay / (tau_decay - tau_rise)``).
         super().__init__(pre=pre,
                          post=post,
                          conn=conn,
-                         conn_type=conn_type,
+                         comp_method=conn_type,
                          delay_step=delay_step,
                          g_max=g_max,
                          tau_decay=tau_decay,
-                         tau_rise=tau_decay,
                          method=method,
-                         name=name)
+                         name=name,
+                         output=CUBA())
 
 
-class AlphaCOBA(DualExpCOBA):
+class AlphaCOBA(Alpha):
     """Conductance-based alpha synapse model.
 
     .. deprecated:: 2.1.13
@@ -258,13 +262,17 @@ class AlphaCOBA(DualExpCOBA):
         method: str = 'exp_auto',
         name: str = None
     ):
+        # Alpha synapses have a single time constant; route through the
+        # single-tau ``Alpha`` implementation instead of a dual-exponential
+        # with ``tau_rise == tau_decay`` (which divides by zero in the peak
+        # normalizer ``A = tau_decay / (tau_decay - tau_rise)``).
         super().__init__(pre=pre,
                          post=post,
                          conn=conn,
-                         conn_type=conn_type,
+                         comp_method=conn_type,
                          delay_step=delay_step,
-                         g_max=g_max, E=E,
+                         g_max=g_max,
                          tau_decay=tau_decay,
-                         tau_rise=tau_decay,
                          method=method,
-                         name=name)
+                         name=name,
+                         output=COBA(E=E))

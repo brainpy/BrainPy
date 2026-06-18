@@ -28,6 +28,19 @@ from brainpy.initialize import Initializer, parameter, variable
 from brainpy.integrators import odeint, JointEq
 from brainpy.types import ArrayType
 
+
+def _exprel(x):
+    """Stable ``(exp(x) - 1) / x`` with finite value *and* gradient at ``x == 0``.
+
+    The HH/Markov rate functions have the removable-singularity form
+    ``num * temp / (1 - exp(-temp / k))`` (equivalently ``.../(exp(temp/k) - 1)``),
+    which is ``0 / 0`` (NaN value and NaN gradient) at the singular voltage.
+    Rewriting them as ``num * k / exprel(...)`` removes the singularity.
+    """
+    small = bm.abs(x) < 1e-7
+    safe_x = bm.where(small, 1.0, x)
+    return bm.where(small, 1.0 + x / 2.0, bm.expm1(safe_x) / safe_x)
+
 __all__ = [
     'IKDR_Ba2002',
     'IK_TM1991',
@@ -204,7 +217,7 @@ class IKDR_Ba2002(_IK_p4_markov):
 
     def f_p_alpha(self, V):
         tmp = V - self.V_sh - 15.
-        return 0.032 * tmp / (1. - bm.exp(-tmp / 5.))
+        return 0.16 / _exprel(-tmp / 5.)
 
     def f_p_beta(self, V):
         return 0.5 * bm.exp(-(V - self.V_sh - 10.) / 40.)
@@ -274,7 +287,7 @@ class IK_TM1991(_IK_p4_markov):
 
     def f_p_alpha(self, V):
         c = 15 - V + self.V_sh
-        return 0.032 * c / (bm.exp(c / 5) - 1.)
+        return 0.16 / _exprel(c / 5.)
 
     def f_p_beta(self, V):
         return 0.5 * bm.exp((10 - V + self.V_sh) / 40)
@@ -345,7 +358,7 @@ class IK_HH1952(_IK_p4_markov):
 
     def f_p_alpha(self, V):
         temp = V - self.V_sh + 10
-        return 0.01 * temp / (1 - bm.exp(-temp / 10))
+        return 0.1 / _exprel(-temp / 10.)
 
     def f_p_beta(self, V):
         return 0.125 * bm.exp(-(V - self.V_sh + 20) / 80)
