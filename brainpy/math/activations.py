@@ -169,12 +169,21 @@ def gelu(x, approximate=True):
       whether to use the approximate or exact formulation.
     """
     x = x.value if isinstance(x, Array) else x
+    # Promote integer / boolean inputs to a floating dtype before computing.
+    # Without this the ``sqrt(2/pi)`` and ``0.044715`` constants are truncated to
+    # zero (approximate branch) or the float result is cast back to integer
+    # (exact branch), silently producing wrong values. This mirrors the
+    # ``promote_args_inexact`` step in ``jax.nn.gelu``.
+    x = jnp.asarray(x)
+    if not jnp.issubdtype(x.dtype, jnp.floating):
+        x = x.astype(jnp.promote_types(x.dtype, jnp.float32))
     if approximate:
         sqrt_2_over_pi = np.sqrt(2 / np.pi).astype(x.dtype)
         cdf = 0.5 * (1.0 + jnp.tanh(sqrt_2_over_pi * (x + 0.044715 * (x ** 3))))
         y = x * cdf
     else:
-        y = jnp.array(x * (jax.lax.erf(x / np.sqrt(2)) + 1) / 2, dtype=x.dtype)
+        sqrt_2 = np.sqrt(2).astype(x.dtype)
+        y = jnp.array(x * (jax.scipy.special.erf(x / sqrt_2) + 1) / 2, dtype=x.dtype)
     return y
 
 

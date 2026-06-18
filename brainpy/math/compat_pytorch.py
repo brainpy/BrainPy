@@ -117,11 +117,18 @@ def unflatten(x: Union[jax.Array, Array], dim: int, sizes: Sequence[int]) -> Arr
       The returned tensor has one more dimension than the input tensor.
       The returned tensor shares the same underlying data with this tensor.
     """
-    assert x.ndim > dim, ('The dimension to be unflattened should be less than the tensor dimension. '
-                          f'Got {dim} and {x.ndim}.')
     x = _as_jax_array_(x)
+    ndim = x.ndim
+    # Normalise a negative ``dim`` to PyTorch semantics, where ``dim`` indexes
+    # into ``x.shape`` and may be in ``[-ndim, ndim)``.
+    canon_dim = dim + ndim if dim < 0 else dim
+    if not 0 <= canon_dim < ndim:
+        raise ValueError(
+            f'Dimension out of range (expected to be in range of [{-ndim}, {ndim - 1}], '
+            f'but got {dim}).'
+        )
     shape = x.shape
-    new_shape = shape[:dim] + tuple(sizes) + shape[dim + 1:]
+    new_shape = shape[:canon_dim] + tuple(sizes) + shape[canon_dim + 1:]
     r = jnp.reshape(x, new_shape)
     return _return(r)
 

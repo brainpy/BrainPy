@@ -137,12 +137,10 @@ def segment_mean(data, segment_ids):
     See https://tensorflow.google.cn/api_docs/python/tf/math/segment_mean
 
     """
-    r = jax.ops.segment_sum(_as_jax_array_(data),
-                            _as_jax_array_(segment_ids),
-                            indices_are_sorted=False)
-    d = jax.ops.segment_sum(jnp.ones_like(data),
-                            _as_jax_array_(segment_ids),
-                            indices_are_sorted=False)
+    data = _as_jax_array_(data)
+    segment_ids = _as_jax_array_(segment_ids)
+    r = jax.ops.segment_sum(data, segment_ids, indices_are_sorted=False)
+    d = jax.ops.segment_sum(jnp.ones_like(data), segment_ids, indices_are_sorted=False)
     return _return(jnp.nan_to_num(r / d))
 
 
@@ -204,12 +202,12 @@ def unsorted_segment_sqrt_n(data, segment_ids, num_segments):
     See https://tensorflow.google.cn/api_docs/python/tf/math/unsorted_segment_sqrt_n
 
     """
-    r = jax.ops.segment_sum(_as_jax_array_(data),
-                            _as_jax_array_(segment_ids),
+    data = _as_jax_array_(data)
+    segment_ids = _as_jax_array_(segment_ids)
+    r = jax.ops.segment_sum(data, segment_ids,
                             num_segments=num_segments,
                             indices_are_sorted=False)
-    d = jax.ops.segment_sum(jnp.ones_like(data),
-                            _as_jax_array_(segment_ids),
+    d = jax.ops.segment_sum(jnp.ones_like(data), segment_ids,
                             num_segments=num_segments,
                             indices_are_sorted=False)
     return _return(jnp.nan_to_num(r / jnp.sqrt(d)))
@@ -221,12 +219,12 @@ def unsorted_segment_mean(data, segment_ids, num_segments):
     See https://tensorflow.google.cn/api_docs/python/tf/math/unsorted_segment_mean
 
     """
-    r = jax.ops.segment_sum(_as_jax_array_(data),
-                            _as_jax_array_(segment_ids),
+    data = _as_jax_array_(data)
+    segment_ids = _as_jax_array_(segment_ids)
+    r = jax.ops.segment_sum(data, segment_ids,
                             num_segments=num_segments,
                             indices_are_sorted=False)
-    d = jax.ops.segment_sum(jnp.ones_like(data),
-                            _as_jax_array_(segment_ids),
+    d = jax.ops.segment_sum(jnp.ones_like(data), segment_ids,
                             num_segments=num_segments,
                             indices_are_sorted=False)
     return _return(jnp.nan_to_num(r / d))
