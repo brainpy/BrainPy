@@ -84,6 +84,37 @@ exclude = [
 [tool.setuptools.dynamic]
 version = { attr = "brainpy.__version__" }
 
+
+[tool.coverage.run]
+# Measure coverage of the library source only -- never of the test files
+# themselves (a test file's lines are not "product code", and several
+# co-located ``*_test.py`` files are intentionally disabled via a module-level
+# ``pytest.skip`` and would otherwise inflate the denominator with dead lines).
+omit = [
+    "*_test.py",
+    "*/tests/*",
+    "brainpy/_version.py",
+]
+
+[tool.coverage.report]
+omit = [
+    "*_test.py",
+    "*/tests/*",
+    "brainpy/_version.py",
+]
+# Exclude only genuinely-unreachable-under-test lines. These are standard,
+# defensible exclusions (not metric gaming): module ``__main__`` guards never
+# run under pytest, ``TYPE_CHECKING`` blocks are import-time only, abstract
+# methods and ``NotImplementedError`` stubs have no body to exercise.
+exclude_also = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "@(abc\\.)?abstractmethod",
+    "def __repr__",
+]
+
 # ---------------------------------------------------------------------------
 # Static type checking (mypy)
 # ---------------------------------------------------------------------------

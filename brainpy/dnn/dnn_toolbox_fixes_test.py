@@ -278,18 +278,23 @@ def test_multi_margin_loss():
 
 
 def test_ctc_loss_known_value_bug():
-    """REMAINING BUG: ctc_loss / ctc_loss_with_forward_probs call ``.value`` on a
-    plain JAX array returned by ``bm.log_softmax`` (comparison.py:1006), which
-    raises AttributeError. Pinned here so the regression is documented + covered."""
+    """REGRESSION (now fixed): ``ctc_loss`` / ``ctc_loss_with_forward_probs`` used to
+    call ``.value`` on the plain JAX arrays returned by ``bm.log_softmax`` /
+    ``bm.one_hot`` (comparison.py:1006, 1061), raising ``AttributeError`` under
+    brainstate>=0.5. Fixed by routing through ``bm.as_jax(...)``. This confirms the
+    functions now run and return sane (finite, non-negative) per-sequence losses, and
+    that ``ctc_loss`` equals the first output of ``ctc_loss_with_forward_probs``."""
     B, T, K, N = 2, 5, 4, 3
     logits = bm.random.randn(B, T, K)
     lp = bm.zeros((B, T))
     labels = jnp.array([[1, 2, 1], [2, 1, 2]])
     lbp = bm.zeros((B, N))
-    with pytest.raises(AttributeError):
-        C.ctc_loss(logits, lp, labels, lbp)
-    with pytest.raises(AttributeError):
-        C.ctc_loss_with_forward_probs(logits, lp, labels, lbp)
+    loss = np.asarray(C.ctc_loss(logits, lp, labels, lbp))
+    assert loss.shape == (B,)
+    assert np.all(np.isfinite(loss))
+    assert np.all(loss >= 0)
+    per_seq, _, _ = C.ctc_loss_with_forward_probs(logits, lp, labels, lbp)
+    assert np.allclose(np.asarray(per_seq), loss)
 
 
 # ===========================================================================
