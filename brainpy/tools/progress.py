@@ -23,6 +23,7 @@ import re
 import sys
 import time
 import types as python_types
+from typing import Any, Callable, Container, Dict, Iterable, List, Optional, Sequence, Tuple, cast
 
 import numpy as np
 
@@ -30,7 +31,7 @@ import numpy as np
 # isort: off
 
 
-def func_dump(func):
+def func_dump(func: python_types.FunctionType) -> Tuple[str, Optional[Tuple[Any, ...]], Optional[Tuple[Any, ...]]]:
     """Serializes a user defined function.
 
     Args:
@@ -53,7 +54,8 @@ def func_dump(func):
     return code, defaults, closure
 
 
-def func_load(code, defaults=None, closure=None, globs=None):
+def func_load(code: Any, defaults: Any = None, closure: Any = None,
+              globs: Optional[Dict[str, Any]] = None) -> python_types.FunctionType:
     """Deserializes a user defined function.
 
     Args:
@@ -70,7 +72,7 @@ def func_load(code, defaults=None, closure=None, globs=None):
         if isinstance(defaults, list):
             defaults = tuple(defaults)
 
-    def ensure_value_to_cell(value):
+    def ensure_value_to_cell(value: Any) -> Any:
         """Ensures that a value is converted to a python cell object.
 
         Args:
@@ -80,10 +82,10 @@ def func_load(code, defaults=None, closure=None, globs=None):
             A value wrapped as a cell object (see function "func_load")
         """
 
-        def dummy_fn():
+        def dummy_fn() -> None:
             value  # just access it so it gets captured in .__closure__
 
-        cell_value = dummy_fn.__closure__[0]
+        cell_value = dummy_fn.__closure__[0]  # type: ignore[index]  # closure exists (captures `value`)
         if not isinstance(value, type(cell_value)):
             return cell_value
         return value
@@ -118,20 +120,20 @@ class Progbar:
 
     def __init__(
         self,
-        target,
-        width=30,
-        verbose=1,
-        interval=0.05,
-        stateful_metrics=None,
-        unit_name="step",
-    ):
+        target: Optional[int],
+        width: int = 30,
+        verbose: int = 1,
+        interval: float = 0.05,
+        stateful_metrics: Optional[Iterable[str]] = None,
+        unit_name: str = "step",
+    ) -> None:
         self.target = target
         self.width = width
         self.verbose = verbose
         self.interval = interval
         self.unit_name = unit_name
         if stateful_metrics:
-            self.stateful_metrics = set(stateful_metrics)
+            self.stateful_metrics: set[str] = set(stateful_metrics)
         else:
             self.stateful_metrics = set()
 
@@ -145,15 +147,16 @@ class Progbar:
         self._seen_so_far = 0
         # We use a dict + list to avoid garbage collection
         # issues found in OrderedDict
-        self._values = {}
-        self._values_order = []
+        self._values: Dict[str, Any] = {}
+        self._values_order: List[str] = []
         self._start = time.time()
-        self._last_update = 0
+        self._last_update: float = 0
         self._time_at_epoch_start = self._start
-        self._time_at_epoch_end = None
-        self._time_after_first_step = None
+        self._time_at_epoch_end: Optional[float] = None
+        self._time_after_first_step: Optional[float] = None
 
-    def update(self, current, values=None, finalize=None):
+    def update(self, current: int, values: Optional[Sequence[Tuple[str, float]]] = None,
+               finalize: Optional[bool] = None) -> None:
         """Updates the progress bar.
 
         Args:
@@ -274,8 +277,9 @@ class Progbar:
 
         elif self.verbose == 2:
             if finalize:
-                numdigits = int(np.log10(self.target)) + 1
-                count = ("%" + str(numdigits) + "d/%d") % (current, self.target)
+                target = cast(int, self.target)
+                numdigits = int(np.log10(target)) + 1
+                count = ("%" + str(numdigits) + "d/%d") % (current, target)
                 info = count + info
                 for k in self._values_order:
                     info += f" - {k}:"
@@ -290,7 +294,7 @@ class Progbar:
                     time_per_epoch = (
                         self._time_at_epoch_end - self._time_at_epoch_start
                     )
-                    avg_time_per_step = time_per_epoch / self.target
+                    avg_time_per_step = time_per_epoch / target
                     self._time_at_epoch_start = now
                     self._time_at_epoch_end = None
                     info += " -" + self._format_time(time_per_epoch, "epoch")
@@ -304,10 +308,10 @@ class Progbar:
 
         self._last_update = now
 
-    def add(self, n, values=None):
+    def add(self, n: int, values: Optional[Sequence[Tuple[str, float]]] = None) -> None:
         self.update(self._seen_so_far + n, values)
 
-    def _format_time(self, time_per_unit, unit_name):
+    def _format_time(self, time_per_unit: float, unit_name: str) -> str:
         """format a given duration to display to the user.
 
         Given the duration, this function formats it in either milliseconds
@@ -327,7 +331,7 @@ class Progbar:
             formatted += f" {time_per_unit * 1000000.0:.0f}us/{unit_name}"
         return formatted
 
-    def _estimate_step_duration(self, current, now):
+    def _estimate_step_duration(self, current: int, now: float) -> float:
         """Estimate the duration of a single step.
 
         Given the step number `current` and the corresponding time `now` this
@@ -363,11 +367,11 @@ class Progbar:
         else:
             return 0
 
-    def _update_stateful_metrics(self, stateful_metrics):
+    def _update_stateful_metrics(self, stateful_metrics: Iterable[str]) -> None:
         self.stateful_metrics = self.stateful_metrics.union(stateful_metrics)
 
 
-def make_batches(size, batch_size):
+def make_batches(size: int, batch_size: int) -> List[Tuple[int, int]]:
     """Returns a list of batch indices (tuples of indices).
 
     Args:
@@ -384,7 +388,7 @@ def make_batches(size, batch_size):
     ]
 
 
-def slice_arrays(arrays, start=None, stop=None):
+def slice_arrays(arrays: Any, start: Any = None, stop: Any = None) -> Any:
     """Slice an array or list of arrays.
 
     This takes an array-like, or a list of
@@ -436,7 +440,7 @@ def slice_arrays(arrays, start=None, stop=None):
         return [None]
 
 
-def to_list(x):
+def to_list(x: Any) -> List[Any]:
     """Normalizes a list/tensor into a list.
 
     If a tensor is passed, we return
@@ -453,7 +457,7 @@ def to_list(x):
     return [x]
 
 
-def to_snake_case(name):
+def to_snake_case(name: str) -> str:
     intermediate = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
     insecure = re.sub("([a-z])([A-Z])", r"\1_\2", intermediate).lower()
     # If the class is private the name starts with "_" which is not secure
@@ -463,7 +467,8 @@ def to_snake_case(name):
     return "private" + insecure
 
 
-def check_for_unexpected_keys(name, input_dict, expected_values):
+def check_for_unexpected_keys(name: str, input_dict: Dict[str, Any],
+                              expected_values: Iterable[str]) -> None:
     unknown = set(input_dict.keys()).difference(expected_values)
     if unknown:
         raise ValueError(
@@ -473,26 +478,28 @@ def check_for_unexpected_keys(name, input_dict, expected_values):
 
 
 def validate_kwargs(
-    kwargs, allowed_kwargs, error_message="Keyword argument not understood:"
-):
+    kwargs: Iterable[str], allowed_kwargs: Container[str],
+    error_message: str = "Keyword argument not understood:"
+) -> None:
     """Checks that all keyword arguments are in the set of allowed keys."""
     for kwarg in kwargs:
         if kwarg not in allowed_kwargs:
             raise TypeError(error_message, kwarg)
 
 
-def default(method):
+def default(method: Callable[..., Any]) -> Callable[..., Any]:
     """Decorates a method to detect overrides in subclasses."""
-    method._is_default = True
+    method._is_default = True  # type: ignore[attr-defined]  # marker attribute on a callable
     return method
 
 
-def is_default(method):
+def is_default(method: Any) -> bool:
     """Check if a method is decorated with the `default` wrapper."""
-    return getattr(method, "_is_default", False)
+    return bool(getattr(method, "_is_default", False))
 
 
-def populate_dict_with_module_objects(target_dict, modules, obj_filter):
+def populate_dict_with_module_objects(target_dict: Dict[str, Any], modules: Iterable[Any],
+                                      obj_filter: Callable[[Any], bool]) -> None:
     for module in modules:
         for name in dir(module):
             obj = getattr(module, name)
@@ -503,12 +510,12 @@ def populate_dict_with_module_objects(target_dict, modules, obj_filter):
 class LazyLoader(python_types.ModuleType):
     """Lazily import a module, mainly to avoid pulling in large dependencies."""
 
-    def __init__(self, local_name, parent_module_globals, name):
+    def __init__(self, local_name: str, parent_module_globals: Dict[str, Any], name: str) -> None:
         self._local_name = local_name
         self._parent_module_globals = parent_module_globals
         super().__init__(name)
 
-    def _load(self):
+    def _load(self) -> python_types.ModuleType:
         """Load the module and insert it into the parent's globals."""
         # Import the target module and insert it into the parent's namespace
         module = importlib.import_module(self.__name__)
@@ -519,12 +526,12 @@ class LazyLoader(python_types.ModuleType):
         self.__dict__.update(module.__dict__)
         return module
 
-    def __getattr__(self, item):
+    def __getattr__(self, item: str) -> Any:
         module = self._load()
         return getattr(module, item)
 
 
-def print_msg(message, line_break=True):
+def print_msg(message: str, line_break: bool = True) -> None:
     """Print the message to absl logging or stdout."""
     if line_break:
         sys.stdout.write(message + "\n")

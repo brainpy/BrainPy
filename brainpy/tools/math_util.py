@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+from typing import Optional
+
 import numpy as np
 
 __all__ = [
@@ -20,10 +22,10 @@ __all__ = [
 ]
 
 
-def format_seed(seed=None):
+def format_seed(seed: Optional[int] = None) -> int:
     """Get the random sed.
     """
     if seed is None:
-        return np.random.randint(0, int(1e7))
+        return int(np.random.randint(0, int(1e7)))
     else:
         return seed

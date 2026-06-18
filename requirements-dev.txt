@@ -13,3 +13,6 @@ pytest
 pytest-xdist  # for parallel test execution
 pytest-cov  # for coverage reporting (Codecov badge)
 absl-py
+
+# type-checking requirements
+mypy  # static type checking of the curated, strictly-typed subset (see [tool.mypy])

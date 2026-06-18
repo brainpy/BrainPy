@@ -19,8 +19,8 @@ This module implements several loss functions.
 
 from typing import Tuple, Optional
 
+import braintools.metric as _bt_metric
 import jax.numpy as jnp
-from jax.lax import scan
 from jax.scipy.special import logsumexp
 from jax.tree_util import tree_map
 
@@ -618,12 +618,8 @@ def l1_loss(logits, targets, reduction='sum'):
       If :attr:`reduction` is ``'none'``, then :math:`(N, *)`, same shape as the input.
     """
 
-    def loss(pred, tar):
-        diff = (pred - tar).reshape((pred.shape[0], -1))
-        norm = jnp.linalg.norm(bm.as_jax(diff), ord=1, axis=1, keepdims=False)
-        return _reduce(outputs=norm, reduction=reduction)
-
-    r = tree_map(loss, logits, targets, is_leaf=_is_leaf)
+    r = tree_map(lambda pred, tar: _bt_metric.l1_loss(pred, tar, reduction=reduction),
+                 logits, targets, is_leaf=_is_leaf)
     return _multi_return(r)
 
 
@@ -649,9 +645,10 @@ def l2_loss(predicts, targets):
 
     .. [1] Bishop, Christopher M. 2006. Pattern Recognition and Machine Learning.
     """
-    r = tree_map(lambda pred, tar: 0.5 * (pred - tar) ** 2,
+    r = tree_map(lambda pred, tar: _bt_metric.l2_loss(pred, tar),
                  predicts,
-                 targets)
+                 targets,
+                 is_leaf=_is_leaf)
     return _multi_return(r)
 
 
@@ -675,7 +672,7 @@ def mean_absolute_error(x, y, axis=None, reduction: str = 'mean'):
     Returns:
         tensor of shape (d_i, ..., for i in keep_axis) containing the mean absolute error.
     """
-    r = tree_map(lambda a, b: _reduce(bm.abs(a - b), reduction=reduction, axis=axis),
+    r = tree_map(lambda a, b: _bt_metric.absolute_error(a, b, axis=axis, reduction=reduction),
                  x,
                  y,
                  is_leaf=_is_leaf)
@@ -749,7 +746,7 @@ def mean_squared_error(predicts, targets, axis=None, reduction: str = 'mean'):
     Returns:
         tensor of shape (d_i, ..., for i in keep_axis) containing the mean squared error.
     """
-    r = tree_map(lambda a, b: _reduce((a - b) ** 2, reduction, axis=axis),
+    r = tree_map(lambda a, b: _bt_metric.squared_error(a, b, axis=axis, reduction=reduction),
                  predicts,
                  targets,
                  is_leaf=_is_leaf)
@@ -800,16 +797,8 @@ def huber_loss(predicts, targets, delta: float = 1.0):
     .. [1] https://en.wikipedia.org/wiki/Huber_loss
     """
 
-    def _loss(y_predict, y_target):
-        # 0.5 * err^2                  if |err| <= d
-        # 0.5 * d^2 + d * (|err| - d)  if |err| > d
-        diff = bm.abs(y_predict - y_target)
-        r = bm.where(diff > delta,
-                     delta * (diff - .5 * delta),
-                     0.5 * diff ** 2)
-        return bm.as_jax(r)
-
-    r = tree_map(_loss, targets, predicts, is_leaf=_is_leaf)
+    r = tree_map(lambda pred, tar: _bt_metric.huber_loss(pred, tar, delta=delta),
+                 predicts, targets, is_leaf=_is_leaf)
     return _multi_return(r)
 
 
@@ -871,13 +860,8 @@ def sigmoid_binary_cross_entropy(logits, labels):
       a sigmoid cross entropy loss.
     """
 
-    def loss(pred, tar):
-        log_p = bm.log_sigmoid(pred)
-        # log(1 - sigmoid(x)) = log_sigmoid(-x), the latter more numerically stable
-        log_not_p = bm.log_sigmoid(-pred)
-        return -tar * log_p - (1. - tar) * log_not_p
-
-    r = tree_map(loss, logits, labels, is_leaf=_is_leaf)
+    r = tree_map(lambda pred, tar: _bt_metric.sigmoid_binary_cross_entropy(pred, tar),
+                 logits, labels, is_leaf=_is_leaf)
     return _multi_return(r)
 
 
@@ -899,7 +883,7 @@ def softmax_cross_entropy(logits, labels):
     Returns:
       the cross entropy loss.
     """
-    r = tree_map(lambda pred, tar: -jnp.sum(tar * bm.log_softmax(pred, axis=-1), axis=-1),
+    r = tree_map(lambda pred, tar: _bt_metric.softmax_cross_entropy(pred, tar),
                  logits,
                  labels,
                  is_leaf=_is_leaf)
@@ -924,11 +908,8 @@ def log_cosh_loss(predicts, targets):
       the log-cosh loss.
     """
 
-    def loss(pred, tar):
-        errors = bm.as_jax(pred - tar)
-        return jnp.logaddexp(errors, -errors) - jnp.log(2.0).astype(errors.dtype)
-
-    r = tree_map(loss, predicts, targets, is_leaf=_is_leaf)
+    r = tree_map(lambda pred, tar: _bt_metric.log_cosh(pred, tar),
+                 predicts, targets, is_leaf=_is_leaf)
     return _multi_return(r)
 
 
@@ -990,78 +971,9 @@ def ctc_loss_with_forward_probs(
       \log \alpha_B(t, n) and \log \alpha_L(t, n), respectively, for ``b``-th
       sequence in the batch.
     """
-    assert logits.ndim == 3
-    assert labels.ndim == 2
-    batchsize, unused_maxinputlen, num_classes = logits.shape
-    batchsize_of_labels, maxlabellen = labels.shape
-    assert (batchsize == batchsize_of_labels)
-    assert (labels.shape == label_paddings.shape)
-    assert (logits.shape[:2] == logit_paddings.shape)
-
-    logits = logits.value if isinstance(logits, bm.Array) else logits
-    logit_paddings = logit_paddings.value if isinstance(logit_paddings, bm.Array) else logit_paddings
-    labels = labels.value if isinstance(labels, bm.Array) else labels
-    label_paddings = label_paddings.value if isinstance(label_paddings, bm.Array) else label_paddings
-
-    logprobs = bm.as_jax(bm.log_softmax(logits))
-    labellens = maxlabellen - jnp.sum(label_paddings, axis=1).astype(jnp.int32)
-
-    # repeat[b, n] == 1.0 when label[b, n] == label[b, n+1].
-    repeat = (labels[:, :-1] == labels[:, 1:]).astype(jnp.float32)
-    repeat = jnp.pad(repeat, ((0, 0), (0, 1)))
-
-    logprobs_phi = logprobs[:, :, blank_id:blank_id + 1]  # [B, T, 1]
-    logprobs_phi = jnp.transpose(logprobs_phi, (1, 0, 2))  # [T, B, 1]
-
-    one_hot = bm.one_hot(labels, num_classes=num_classes)  # [B, N, K]
-    logprobs_emit = jnp.einsum('btk,bnk->btn', logprobs, one_hot)
-    logprobs_emit = jnp.transpose(logprobs_emit, (1, 0, 2))  # [T, B, N]
-
-    logalpha_phi_init = jnp.ones(
-        (batchsize, maxlabellen + 1)) * log_epsilon  # [B, N]
-    logalpha_phi_init = logalpha_phi_init.at[:, 0].set(0.0)
-    logalpha_emit_init = jnp.ones((batchsize, maxlabellen)) * log_epsilon
-
-    def update_phi_score(phi, added_score):
-        # Update `phi[:, 1:]`` with adding `added_score` in log space.
-        return jnp.concatenate(
-            [phi[:, :1], jnp.logaddexp(phi[:, 1:], added_score)], axis=-1)
-
-    def loop_body(prev, x):
-        prev_phi, prev_emit = prev
-        # emit-to-phi epsilon transition, except if the next label is repetition
-        prev_phi_orig = prev_phi
-        prev_phi = update_phi_score(prev_phi, prev_emit + log_epsilon * repeat)
-
-        logprob_emit, logprob_phi, pad = x
-
-        # phi-to-emit transition
-        next_emit = jnp.logaddexp(prev_phi[:, :-1] + logprob_emit,
-                                  prev_emit + logprob_emit)
-        # self-loop transition
-        next_phi = prev_phi + logprob_phi
-        # emit-to-phi blank transition only when the next label is repetition
-        next_phi = update_phi_score(
-            next_phi, prev_emit + logprob_phi + log_epsilon * (1.0 - repeat))
-
-        pad = pad.reshape((batchsize, 1))
-        next_emit = pad * prev_emit + (1.0 - pad) * next_emit
-        next_phi = pad * prev_phi_orig + (1.0 - pad) * next_phi
-
-        return (next_phi, next_emit), (next_phi, next_emit)
-
-    xs = (logprobs_emit, logprobs_phi, logit_paddings.transpose((1, 0)))
-    _, (logalpha_phi, logalpha_emit) = scan(loop_body, (logalpha_phi_init, logalpha_emit_init), xs)
-
-    # last row needs to be updated with the last epsilon transition
-    logalpha_phi_last = update_phi_score(logalpha_phi[-1], logalpha_emit[-1])
-    logalpha_phi = logalpha_phi.at[-1].set(logalpha_phi_last)
-
-    # extract per_seq_loss
-    one_hot = bm.as_jax(bm.one_hot(labellens, num_classes=maxlabellen + 1))  # [B, N+1]
-    per_seq_loss = -jnp.einsum('bn,bn->b', logalpha_phi_last, one_hot)
-
-    return per_seq_loss, logalpha_phi, logalpha_emit
+    return _bt_metric.ctc_loss_with_forward_probs(
+        logits, logit_paddings, labels, label_paddings,
+        blank_id=blank_id, log_epsilon=log_epsilon)
 
 
 def ctc_loss(logits: ArrayType,
@@ -1096,10 +1008,9 @@ def ctc_loss(logits: ArrayType,
     Returns:
       (B,)-array containing loss values for each sequence in the batch.
     """
-    per_seq_loss, _, _ = ctc_loss_with_forward_probs(
+    return _bt_metric.ctc_loss(
         logits, logit_paddings, labels, label_paddings,
         blank_id=blank_id, log_epsilon=log_epsilon)
-    return per_seq_loss
 
 
 def multi_margin_loss(predicts, targets, margin=1.0, p=1, reduction='mean'):

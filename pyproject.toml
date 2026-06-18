@@ -40,7 +40,7 @@ dependencies = [
     "brainstate>=0.5.1",
     "brainunit>=0.2.0",
     "brainevent>=0.0.7",
-    "braintools>=0.0.9",
+    "braintools>=0.2.0",
     'brainpy_state>=0.0.3',
 ]
 
@@ -60,6 +60,11 @@ tpu = ["jax[tpu]", 'brainevent[tpu]']
 
 [tool.setuptools]
 package-dir = { "" = "." }
+
+[tool.setuptools.package-data]
+# PEP 561: ship the inline type information marker so downstream type checkers
+# consume BrainPy's annotations.
+brainpy = ["py.typed"]
 
 [tool.setuptools.packages.find]
 where = ["."]
@@ -109,3 +114,64 @@ exclude_also = [
     "@(abc\\.)?abstractmethod",
     "def __repr__",
 ]
+
+# ---------------------------------------------------------------------------
+# Static type checking (mypy)
+# ---------------------------------------------------------------------------
+# BrainPy is a large (~74K LOC), JAX-based scientific library. Strict, fully
+# type-checked coverage of the whole code base is a long-term effort. To make
+# that effort incremental *and* enforceable, mypy is configured to:
+#
+#   * type-check ONLY a curated, fully-annotated subset of modules (``files``),
+#   * apply strict rules to exactly that subset (the ``overrides`` block),
+#   * resolve imports into the rest of the package silently
+#     (``follow_imports = "silent"``) so the unchecked majority neither blocks
+#     nor pollutes the curated check.
+#
+# CI runs a bare ``mypy`` (no arguments); it picks up ``files`` from here, so the
+# curated set lives in exactly one place. Grow ``files`` (and the override
+# ``module`` list) as more modules are fully typed.
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+follow_imports = "silent"
+warn_unused_ignores = true
+warn_redundant_casts = true
+show_error_codes = true
+files = [
+    "brainpy/_errors.py",
+    "brainpy/types.py",
+    "brainpy/tools/__init__.py",
+    "brainpy/tools/codes.py",
+    "brainpy/tools/dicts.py",
+    "brainpy/tools/functions.py",
+    "brainpy/tools/install.py",
+    "brainpy/tools/math_util.py",
+    "brainpy/tools/others.py",
+    "brainpy/tools/package.py",
+    "brainpy/tools/progress.py",
+]
+
+# Strict enforcement for the curated subset only.
+[[tool.mypy.overrides]]
+module = [
+    "brainpy._errors",
+    "brainpy.types",
+    "brainpy.tools",
+    "brainpy.tools.codes",
+    "brainpy.tools.dicts",
+    "brainpy.tools.functions",
+    "brainpy.tools.install",
+    "brainpy.tools.math_util",
+    "brainpy.tools.others",
+    "brainpy.tools.package",
+    "brainpy.tools.progress",
+]
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_return_any = true
+disallow_any_generics = true
+strict_equality = true

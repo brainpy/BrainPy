@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+import braintools.init as _bt_init
+
 from brainpy import math as bm, tools
 from .base import _InterLayerInitializer
 
@@ -32,7 +34,7 @@ class ZeroInit(_InterLayerInitializer):
 
     def __call__(self, shape, dtype=None):
         shape = [tools.size2num(d) for d in shape]
-        return bm.zeros(shape, dtype=dtype)
+        return bm.asarray(_bt_init.ZeroInit()(shape), dtype=dtype)
 
     def __repr__(self):
         return self.__class__.__name__
@@ -55,7 +57,7 @@ class Constant(_InterLayerInitializer):
 
     def __call__(self, shape, dtype=None):
         shape = [tools.size2num(d) for d in shape]
-        return bm.ones(shape, dtype=dtype) * self.value
+        return bm.asarray(_bt_init.Constant(self.value)(shape), dtype=dtype)
 
     def __repr__(self):
         return f'{self.__class__.__name__}(value={self.value})'
@@ -103,7 +105,11 @@ class Identity(_InterLayerInitializer):
             raise ValueError(f'Only support shape of int, or tuple/list of int '
                              f'in {self.__class__.__name__}, but we got {shape}.')
         shape = [tools.size2num(d) for d in shape]
-        return bm.eye(*shape, dtype=dtype) * self.value
+        # brainpy treats a 1D shape ``(n,)`` as a square ``(n, n)`` identity
+        # matrix; expand before delegating so braintools builds the same matrix.
+        if len(shape) == 1:
+            shape = [shape[0], shape[0]]
+        return bm.asarray(_bt_init.Identity(scale=self.value)(tuple(shape)), dtype=dtype)
 
     def __repr__(self):
         return f'{self.__class__.__name__}(value={self.value})'

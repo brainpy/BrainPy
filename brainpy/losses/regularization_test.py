@@ -1,66 +1,89 @@
-# -*- coding: utf-8 -*-
-"""Coverage + correctness tests for ``brainpy/losses/regularization.py``.
+# Copyright 2025 BrainX Ecosystem Limited. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
+"""Regression tests for :mod:`brainpy.losses.regularization`."""
 
-Part of bringing the previously test-free ``brainpy.losses`` package to
->=90% line coverage. Each public regularizer is checked against an independent
-NumPy reference and through both single-array and pytree leaves.
-"""
+import unittest
 
-import jax.numpy as jnp
 import numpy as np
-import pytest
 
+import braintools.metric as M
 import brainpy.math as bm
-from brainpy.losses import regularization as R
+from brainpy import losses as L
 
 
-def _f(x):
-    return np.asarray(x, dtype=np.float64)
+def _close(a, b, atol=1e-5):
+    return np.allclose(np.asarray(a), np.asarray(b), atol=atol)
 
 
-class TestL2Norm:
-    def test_single_array(self):
-        x = jnp.array([3.0, 4.0])
-        assert float(R.l2_norm(x)) == pytest.approx(5.0)  # sqrt(9+16)
+class TestDelegatedEquivalence(unittest.TestCase):
+    def setUp(self):
+        rng = np.random.RandomState(11)
+        self.x = bm.asarray(rng.randn(4, 5))
+        self.y = bm.asarray(rng.randn(4, 5))
+        oh = np.eye(5)[rng.randint(0, 5, size=(4,))]
+        self.onehot = bm.asarray(oh)
 
-    def test_pytree(self):
-        x = {'a': jnp.array([3.0]), 'b': jnp.array([4.0])}
-        assert float(R.l2_norm(x)) == pytest.approx(5.0)
+    def test_log_cosh(self):
+        self.assertTrue(_close(L.log_cosh(self.x), M.log_cosh(self.x)))
 
-
-class TestMeanAbsoluteSquare:
-    def test_mean_absolute(self):
-        x = jnp.array([[1.0, -3.0]])
-        assert float(R.mean_absolute(x)) == pytest.approx(2.0)
-        assert np.allclose(np.asarray(R.mean_absolute(x, axis=1)), [2.0])
+    def test_smooth_labels(self):
+        for alpha in (0.0, 0.1, 0.5):
+            self.assertTrue(_close(L.smooth_labels(self.onehot, alpha),
+                                   M.smooth_labels(self.onehot, alpha)))
 
     def test_mean_square(self):
-        x = jnp.array([[1.0, 3.0]])
-        assert float(R.mean_square(x)) == pytest.approx(5.0)  # (1+9)/2
+        self.assertTrue(_close(L.mean_square(self.x),
+                               M.squared_error(self.x, None, reduction='mean')))
 
-    def test_bm_array_leaf(self):
-        x = bm.asarray([2.0, -2.0])
-        assert float(R.mean_absolute(x)) == pytest.approx(2.0)
+    def test_mean_square_axis(self):
+        self.assertTrue(_close(L.mean_square(self.x, axis=-1),
+                               M.squared_error(self.x, None, axis=-1, reduction='mean')))
+
+    def test_mean_absolute(self):
+        self.assertTrue(_close(L.mean_absolute(self.x),
+                               M.absolute_error(self.x, None, reduction='mean')))
+
+    def test_mean_absolute_axis(self):
+        self.assertTrue(_close(L.mean_absolute(self.x, axis=0),
+                               M.absolute_error(self.x, None, axis=0, reduction='mean')))
 
 
-class TestLogCosh:
-    def test_zero_is_zero(self):
-        assert float(R.log_cosh(jnp.array([0.0]))[0]) == pytest.approx(0.0, abs=1e-6)
+class TestPytreeEnvelope(unittest.TestCase):
+    def test_smooth_labels_pytree(self):
+        rng = np.random.RandomState(3)
+        oh = bm.asarray(np.eye(4)[rng.randint(0, 4, size=(5,))])
+        flat = L.smooth_labels(oh, 0.2)
+        tree = L.smooth_labels({'a': oh}, 0.2)
+        self.assertTrue(_close(flat, tree))
 
-    def test_large_value_asymptote(self):
-        big = float(R.log_cosh(jnp.array([10.0]))[0])
-        assert big == pytest.approx(10.0 - np.log(2.0), rel=1e-3)
+    def test_mean_square_pytree_sums_leaves(self):
+        rng = np.random.RandomState(4)
+        a = bm.asarray(rng.randn(3, 3))
+        single = L.mean_square(a)
+        multi = L.mean_square({'x': a, 'y': a})
+        self.assertTrue(_close(2.0 * np.asarray(single), multi))
 
 
-class TestSmoothLabels:
-    def test_smoothing(self):
-        labels = jnp.array([[1.0, 0.0, 0.0]])
-        alpha = 0.3
-        out = np.asarray(R.smooth_labels(labels, alpha))
-        ref = (1.0 - alpha) * _f(labels) + alpha / 3
-        assert np.allclose(out, ref, rtol=1e-6)
+class TestL2NormUnchanged(unittest.TestCase):
+    """l2_norm has a different definition upstream and stays as brainpy's."""
 
-    def test_smoothing_rows_sum_to_one(self):
-        labels = jnp.eye(4)[None, 0]
-        out = np.asarray(R.smooth_labels(labels, 0.5))
-        assert out.sum() == pytest.approx(1.0, rel=1e-6)
+    def test_l2_norm_is_sqrt_sum_squares(self):
+        x = bm.asarray(np.array([3.0, 4.0]))
+        # brainpy l2_norm == Euclidean norm == 5.0 for [3, 4]
+        self.assertTrue(_close(L.l2_norm(x), 5.0))
+
+
+if __name__ == '__main__':
+    unittest.main()

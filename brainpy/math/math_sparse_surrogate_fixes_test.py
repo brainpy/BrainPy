@@ -16,11 +16,11 @@ files (audit IDs in parentheses):
   (``csr_to_dense`` wraps ``brainevent.CSR(...).todense()`` correctly).
 * ``brainpy/math/jitconn/matvec.py``      — M-13 (``mv_prob_*`` /
   ``event_mv_prob_*`` are reproducible when an explicit ``seed`` is threaded).
-* ``brainpy/math/surrogate/_one_input.py`` and
-  ``brainpy/math/surrogate/_one_input_new.py`` — H-20..H-24: for every surrogate
-  the ``surrogate_grad`` matches ``jax.grad(surrogate_fun)``; ``GaussianGrad``
-  widens with ``sigma`` (H-20); ``PiecewiseQuadratic`` grad matches its forward
-  derivative (H-21); ``QPseudoSpike`` uses ``alpha-1`` (H-22); ``Arctan``
+* ``brainpy.math.surrogate`` (the local package was removed) — now an alias of
+  ``braintools.surrogate`` (>=0.2.0). H-20..H-24: for every reused surrogate the
+  ``surrogate_grad`` matches ``jax.grad(surrogate_fun)``; ``GaussianGrad`` widens
+  with ``sigma`` (H-20); ``PiecewiseQuadratic`` grad matches its forward
+  derivative (H-21); ``QPseudoSpike`` grad at 0 is 1 (H-22); ``Arctan``
   ``surrogate_fun`` does not raise (H-23); ``ERF`` ``surrogate_fun`` is
   increasing (H-24).
 * ``brainpy/math/delayvars.py``           — C-09 (``TimeDelay`` ring-buffer read
@@ -40,8 +40,7 @@ import jax.numpy as jnp
 import pytest
 
 import brainpy.math as bm
-import brainpy.math.surrogate._one_input as old_surr
-import brainpy.math.surrogate._one_input_new as new_surr
+import braintools.surrogate as _bt_surrogate
 
 
 # ---------------------------------------------------------------------------
@@ -248,42 +247,41 @@ def test_event_csrmv_matches_masked_dense():
 
 
 # ===========================================================================
-# H-20..H-24 — surrogate gradients consistent with their forward functions
+# Surrogate gradients now reuse ``braintools.surrogate`` (>=0.2.0).
+#
+# The local ``brainpy/math/surrogate`` package was removed; ``bm.surrogate`` is
+# an alias of ``braintools.surrogate``.  These tests lock in (a) the re-export
+# wiring and (b) the audit correctness properties H-20..H-24 against the reused,
+# fixed braintools implementation, so a braintools regression / accidental
+# downgrade is caught here.
 # ===========================================================================
 
-# The two modules expose slightly different APIs:
-#   _one_input.py     : surrogate_grad(self, dz, x)   (dz = upstream gradient)
-#   _one_input_new.py : surrogate_grad(self, x)
-# These helpers normalise that so the same assertions run against both.
-
-def _grad_old(inst, x):
-    return inst.surrogate_grad(1.0, x)
-
-
-def _grad_new(inst, x):
-    return inst.surrogate_grad(x)
+def test_surrogate_is_braintools_reexport():
+    # bm.surrogate is the braintools module itself (no local duplicate left).
+    assert bm.surrogate is _bt_surrogate
+    # neuron defaults reference these names; they must resolve and be callable.
+    assert callable(bm.surrogate.InvSquareGrad)
+    assert callable(bm.surrogate.relu_grad)
+    assert callable(bm.surrogate.InvSquareGrad())
 
 
-_MODULES = [
-    ("_one_input", old_surr, _grad_old),
-    ("_one_input_new", new_surr, _grad_new),
-]
-
-# Surrogates that expose BOTH surrogate_fun and surrogate_grad and are
-# differentiable away from kinks — used for the grad-vs-autograd check.
+# Surrogates exposing BOTH surrogate_fun and surrogate_grad, differentiable away
+# from kinks -- used for the grad-vs-autograd self-consistency check.
 _HAS_FUN = ["PiecewiseQuadratic", "QPseudoSpike", "Arctan", "ERF"]
 
+# Class / functional names re-exported from braintools.
+_ONE_INPUT_CLASSES = [n for n in _bt_surrogate.__all__
+                      if n[0].isupper() and n != "Surrogate"]
+_FUNC_NAMES = [n for n in _bt_surrogate.__all__ if n[0].islower()]
 
-@pytest.mark.parametrize("modname,mod,getgrad", _MODULES,
-                         ids=[m[0] for m in _MODULES])
+
 @pytest.mark.parametrize("clsname", _HAS_FUN)
-def test_surrogate_grad_matches_autograd(modname, mod, getgrad, clsname):
-    """H-21/H-22/H-23/H-24: surrogate_grad == d/dx surrogate_fun."""
-    cls = getattr(mod, clsname)
-    inst = cls()
+def test_surrogate_grad_matches_autograd(clsname):
+    """H-21..H-24: surrogate_grad == d/dx surrogate_fun on the reused impls."""
+    inst = getattr(bm.surrogate, clsname)()
     # Avoid the exact kinks (|x| = 1/alpha) where the piecewise derivative jumps.
     xs = jnp.asarray([-0.85, -0.4, -0.1, 0.1, 0.4, 0.85], dtype=jnp.float32)
-    analytic = np.asarray(getgrad(inst, xs))
+    analytic = np.asarray(inst.surrogate_grad(xs))
 
     def fun_scalar(v):
         return jnp.squeeze(inst.surrogate_fun(jnp.reshape(v, (1,))))
@@ -292,182 +290,68 @@ def test_surrogate_grad_matches_autograd(modname, mod, getgrad, clsname):
     np.testing.assert_allclose(analytic, autograd, rtol=2e-3, atol=2e-4)
 
 
-@pytest.mark.parametrize("modname,mod,getgrad", _MODULES,
-                         ids=[m[0] for m in _MODULES])
-@pytest.mark.parametrize("clsname", _HAS_FUN)
-def test_surrogate_fun_monotone_increasing_on_unit_interval(modname, mod, getgrad, clsname):
-    """Each surrogate forward (origin) function is non-decreasing on [0, 1]."""
-    cls = getattr(mod, clsname)
-    inst = cls()
-    fx = np.asarray(inst.surrogate_fun(jnp.linspace(0.0, 1.0, 21)))
-    assert np.all(np.diff(fx) >= -1e-6)
-
-
-@pytest.mark.parametrize("modname,mod,getgrad", _MODULES,
-                         ids=[m[0] for m in _MODULES])
-def test_arctan_surrogate_fun_does_not_raise(modname, mod, getgrad):
-    """H-23: Arctan.surrogate_fun previously called jnp.arctan2 with one arg."""
-    inst = mod.Arctan()
-    out = np.asarray(inst.surrogate_fun(jnp.asarray([-0.5, -0.1, 0.0, 0.1, 0.5])))
+def test_arctan_surrogate_fun_does_not_raise():
+    """H-23: Arctan.surrogate_fun is finite, increasing, and centred at 0.5."""
+    out = np.asarray(bm.surrogate.Arctan().surrogate_fun(
+        jnp.asarray([-0.5, -0.1, 0.0, 0.1, 0.5])))
     assert np.all(np.isfinite(out))
-    # arctan forward crosses 0.5 at x = 0
-    assert np.isclose(out[2], 0.5, atol=1e-6)
+    assert np.isclose(out[2], 0.5, atol=1e-6)   # arctan forward crosses 0.5 at x=0
     assert np.all(np.diff(out) > 0)
 
 
-@pytest.mark.parametrize("modname,mod,getgrad", _MODULES,
-                         ids=[m[0] for m in _MODULES])
-def test_erf_surrogate_fun_is_increasing(modname, mod, getgrad):
-    """H-24: ERF.surrogate_fun must be increasing (was decreasing before)."""
-    inst = mod.ERF()
-    out = np.asarray(inst.surrogate_fun(jnp.linspace(-0.5, 0.5, 11)))
+def test_erf_surrogate_fun_is_increasing():
+    """H-24: ERF.surrogate_fun must be increasing and centred at 0.5."""
+    out = np.asarray(bm.surrogate.ERF().surrogate_fun(jnp.linspace(-0.5, 0.5, 11)))
     assert np.all(np.diff(out) > 0)
-    assert np.isclose(out[5], 0.5, atol=1e-6)   # centred at x = 0
+    assert np.isclose(out[5], 0.5, atol=1e-6)
 
 
-@pytest.mark.parametrize("modname,mod,getgrad", _MODULES,
-                         ids=[m[0] for m in _MODULES])
-def test_gaussian_grad_bump_widens_with_sigma(modname, mod, getgrad):
-    """H-20: GaussianGrad — at x=1 the gradient must INCREASE with sigma
-    (a wider bump), proving the sigma is no longer inverted by the
-    operator-precedence bug ``exp(-(x**2)/2*sigma**2)``."""
-    g_narrow = float(np.asarray(getgrad(mod.GaussianGrad(sigma=0.5), jnp.asarray(1.0))))
-    g_wide = float(np.asarray(getgrad(mod.GaussianGrad(sigma=2.0), jnp.asarray(1.0))))
+def test_gaussian_grad_bump_widens_with_sigma():
+    """H-20: GaussianGrad gradient at x=1 INCREASES with sigma (a wider bump),
+    proving sigma is not inverted by the operator-precedence bug."""
+    g_narrow = float(np.asarray(
+        bm.surrogate.GaussianGrad(sigma=0.5).surrogate_grad(jnp.asarray(1.0))))
+    g_wide = float(np.asarray(
+        bm.surrogate.GaussianGrad(sigma=2.0).surrogate_grad(jnp.asarray(1.0))))
     assert g_wide > g_narrow
-    # Sanity on the intended magnitude (audit: grad@±1 ≈ 0.088 for sigma=2).
-    assert g_wide == pytest.approx(0.088, abs=2e-2)
+    assert g_wide == pytest.approx(0.088, abs=2e-2)   # audit: grad@1 ~ 0.088 (sigma=2)
 
 
-@pytest.mark.parametrize("modname,mod,getgrad", _MODULES,
-                         ids=[m[0] for m in _MODULES])
-def test_piecewise_quadratic_grad_formula(modname, mod, getgrad):
-    """H-21: grad == -alpha**2 |x| + alpha inside the support, 0 outside."""
-    inst = mod.PiecewiseQuadratic(alpha=1.0)
-    g_in = float(np.asarray(getgrad(inst, jnp.asarray(0.5))))
-    assert g_in == pytest.approx(-1.0 * 0.5 + 1.0)   # = 0.5
-    g_out = float(np.asarray(getgrad(inst, jnp.asarray(5.0))))
-    assert g_out == pytest.approx(0.0)
+def test_piecewise_quadratic_grad_formula():
+    """H-21: grad == alpha - alpha**2 |x| inside the support, 0 outside."""
+    inst = bm.surrogate.PiecewiseQuadratic(alpha=1.0)
+    assert float(np.asarray(inst.surrogate_grad(jnp.asarray(0.5)))) == pytest.approx(0.5)
+    assert float(np.asarray(inst.surrogate_grad(jnp.asarray(5.0)))) == pytest.approx(0.0)
 
 
-@pytest.mark.parametrize("modname,mod,getgrad", _MODULES,
-                         ids=[m[0] for m in _MODULES])
-def test_qpseudospike_grad_uses_alpha_minus_one(modname, mod, getgrad):
-    """H-22: grad denominator uses (alpha-1); grad at 0 == 1."""
-    inst = mod.QPseudoSpike(alpha=2.0)
-    g0 = float(np.asarray(getgrad(inst, jnp.asarray(0.0))))
+def test_qpseudospike_grad_at_zero_is_one():
+    """H-22: q-PseudoSpike gradient at 0 == 1."""
+    g0 = float(np.asarray(
+        bm.surrogate.QPseudoSpike(alpha=2.0).surrogate_grad(jnp.asarray(0.0))))
     assert g0 == pytest.approx(1.0, abs=1e-6)
 
 
-# ===========================================================================
-# Surrogate coverage — every class's __call__ + surrogate_grad in both modules
-# ===========================================================================
-
-def _new_surrogate_classes():
-    return [getattr(new_surr, n) for n in new_surr.__all__
-            if n[0].isupper() and n != "Surrogate"]
-
-
-def _old_surrogate_classes():
-    out = []
-    for n in dir(old_surr):
-        obj = getattr(old_surr, n)
-        if (isinstance(obj, type) and issubclass(obj, old_surr.Surrogate)
-                and n not in ("Surrogate", "_OneInpSurrogate")):
-            out.append(obj)
-    return out
-
-
-@pytest.mark.parametrize("cls", _new_surrogate_classes(),
-                         ids=lambda c: c.__name__)
-def test_new_surrogate_call_and_grad_run(cls):
-    inst = cls()
+@pytest.mark.parametrize("clsname", _ONE_INPUT_CLASSES, ids=lambda n: n)
+def test_surrogate_call_and_grad_run(clsname):
+    """Every re-exported class: __call__ is a {0,1} spike + grad flows finite."""
+    inst = getattr(bm.surrogate, clsname)()
     x = jnp.linspace(-1.5, 1.5, 9)
-    y = inst(x)                              # __call__ -> heaviside forward
-    assert np.asarray(y).shape == (9,)
-    # forward is a {0,1} spike indicator
-    assert set(np.unique(np.asarray(y)).tolist()).issubset({0.0, 1.0})
-    g = np.asarray(inst.surrogate_grad(x))   # surrogate_grad(x)
-    assert g.shape == (9,) and np.all(np.isfinite(g))
-    # grad flows through __call__
-    flow = jax.grad(lambda v: jnp.sum(inst(v)))(x)
-    assert np.all(np.isfinite(np.asarray(flow)))
-
-
-@pytest.mark.parametrize("cls", _old_surrogate_classes(),
-                         ids=lambda c: c.__name__)
-def test_old_surrogate_call_and_grad_run(cls):
-    inst = cls()
-    x = jnp.linspace(-1.5, 1.5, 9)
-    y = inst(x)                                   # custom-gradient forward
+    y = inst(x)                                  # __call__ -> heaviside forward
     assert np.asarray(y).shape == (9,)
     assert set(np.unique(np.asarray(y)).tolist()).issubset({0.0, 1.0})
-    g = np.asarray(inst.surrogate_grad(1.0, x))   # surrogate_grad(dz, x)
+    g = np.asarray(inst.surrogate_grad(x))
     assert g.shape == (9,) and np.all(np.isfinite(g))
     flow = jax.grad(lambda v: jnp.sum(inst(v)))(x)
     assert np.all(np.isfinite(np.asarray(flow)))
 
 
-def test_new_surrogate_repr_and_functional_aliases():
-    # Exercise functional (lowercase) entry points + __repr__ for coverage.
-    x = jnp.linspace(-1.0, 1.0, 5)
-    assert "Arctan" in repr(new_surr.Arctan())
-    for fn in (new_surr.sigmoid, new_surr.arctan, new_surr.erf,
-               new_surr.gaussian_grad, new_surr.relu_grad):
-        assert np.asarray(fn(x)).shape == (5,)
-
-
-def test_old_surrogate_repr_and_functional_aliases():
-    x = jnp.linspace(-1.0, 1.0, 5)
-    assert "GaussianGrad" in repr(old_surr.GaussianGrad())
-    for fn in (old_surr.sigmoid, old_surr.arctan, old_surr.erf,
-               old_surr.gaussian_grad, old_surr.q_pseudo_spike):
-        assert np.asarray(fn(x)).shape == (5,)
-
-
-# Lowercase functional aliases present in BOTH modules.
-_FUNC_NAMES = [n for n in new_surr.__all__ if n[0].islower()]
-
-
 @pytest.mark.parametrize("fname", _FUNC_NAMES)
-def test_old_functional_alias_forward_and_origin(fname):
-    """Exercise every ``_one_input`` functional alias (heaviside forward and,
-    where supported, the ``origin=True`` smooth forward)."""
-    import inspect
-    fn = getattr(old_surr, fname)
+def test_functional_alias_forward(fname):
+    """Every re-exported functional alias returns a finite heaviside forward."""
+    fn = getattr(bm.surrogate, fname)
     x = jnp.linspace(-1.2, 1.2, 7)
     y = np.asarray(fn(x))
     assert y.shape == (7,) and np.all(np.isfinite(y))
-    if "origin" in inspect.signature(fn).parameters:
-        yo = np.asarray(fn(x, origin=True))   # exercises surrogate_fun
-        assert yo.shape == (7,) and np.all(np.isfinite(yo))
-
-
-@pytest.mark.parametrize("fname", _FUNC_NAMES)
-def test_new_functional_alias_forward(fname):
-    """Exercise every ``_one_input_new`` functional alias (heaviside forward)."""
-    fn = getattr(new_surr, fname)
-    x = jnp.linspace(-1.2, 1.2, 7)
-    y = np.asarray(fn(x))
-    assert y.shape == (7,) and np.all(np.isfinite(y))
-
-
-def _new_classes_with_surrogate_fun():
-    out = []
-    for n in new_surr.__all__:
-        if not (n[0].isupper() and n != "Surrogate"):
-            continue
-        c = getattr(new_surr, n)
-        if c.surrogate_fun is not new_surr.Surrogate.surrogate_fun:
-            out.append(c)
-    return out
-
-
-@pytest.mark.parametrize("cls", _new_classes_with_surrogate_fun(),
-                         ids=lambda c: c.__name__)
-def test_new_surrogate_fun_runs(cls):
-    """Cover the ``surrogate_fun`` body of every new-module class that has one."""
-    out = np.asarray(cls().surrogate_fun(jnp.linspace(-1.2, 1.2, 9)))
-    assert out.shape == (9,) and np.all(np.isfinite(out))
 
 
 # ===========================================================================
