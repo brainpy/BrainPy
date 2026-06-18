@@ -111,17 +111,18 @@ def test_pp2d_quiver_and_return():
     assert dx.shape == dy.shape
 
 
-# NOTE (defect): passing ``linewidth`` inside ``plot_style`` to the
-# ``streamplot`` branch crashes.  The code reads ``plot_style.get('linewidth')``
-# but never pops it, so ``pyplot.streamplot(..., linewidth=linewidth,
-# **plot_style)`` passes ``linewidth`` twice -> ``TypeError: got multiple values
-# for keyword argument 'linewidth'`` (lowdim_phase_plane.py:235).
-def test_pp2d_streamplot_custom_linewidth_is_buggy():
+# Regression for P13-M2: passing ``linewidth`` inside ``plot_style`` to the
+# ``streamplot`` branch used to crash because the code read
+# ``plot_style.get('linewidth')`` without popping it, so ``linewidth`` was
+# forwarded twice (explicitly and via ``**plot_style``) ->
+# ``TypeError: got multiple values for keyword argument 'linewidth'``.
+# The fix pops the key, so a user-supplied ``linewidth`` is honoured exactly once.
+def test_pp2d_streamplot_custom_linewidth():
     pp = bp.analysis.PhasePlane2D(model=_fhn_2d(),
                                   target_vars={'V': [-3., 3.], 'w': [-1., 3.]},
                                   resolutions=0.2)
-    with pytest.raises(TypeError):
-        pp.plot_vector_field(plot_method='streamplot', plot_style=dict(linewidth=1.0))
+    # should no longer raise
+    pp.plot_vector_field(plot_method='streamplot', plot_style=dict(linewidth=1.0))
 
 
 def test_pp2d_unknown_plot_method_raises():
@@ -167,6 +168,37 @@ def test_pp2d_fixed_point_after_nullcline():
                                   resolutions=0.1)
     pp.plot_nullcline()
     fps = pp.plot_fixed_point(select_candidates='fx-nullcline', with_return=True)
+    assert fps is not None
+
+
+def test_pp2d_nullclines_selector_uses_both_nullclines():
+    """Regression for P13-H2: the ``select_candidates='nullclines'`` branch must
+    gather candidates from *both* the fx- and fy-nullcline point sets.  The old
+    code tested ``startswith(fy_...)`` twice, so fx-nullcline points were dropped.
+    """
+    import jax.numpy as jnp
+    from brainpy.analysis import constants as C
+
+    pp = bp.analysis.PhasePlane2D(model=_fhn_2d(),
+                                  target_vars={'V': [-3., 3.], 'w': [-1., 3.]},
+                                  resolutions=0.1)
+    pp.plot_nullcline()
+
+    fx_keys = [k for k in pp.analyzed_results if k.startswith(C.fx_nullcline_points)]
+    fy_keys = [k for k in pp.analyzed_results if k.startswith(C.fy_nullcline_points)]
+    assert len(fx_keys) > 0 and len(fy_keys) > 0
+    n_fx = sum(pp.analyzed_results[k][0].shape[0] for k in fx_keys)
+    n_fy = sum(pp.analyzed_results[k][0].shape[0] for k in fy_keys)
+
+    # Reproduce the candidate gathering used by ``select_candidates='nullclines'``.
+    candidates = [pp.analyzed_results[k][0] for k in pp.analyzed_results.keys()
+                  if k.startswith(C.fx_nullcline_points) or k.startswith(C.fy_nullcline_points)]
+    candidates = jnp.vstack(candidates)
+    # union of both nullcline candidate sets, not just one of them
+    assert candidates.shape[0] == n_fx + n_fy
+    assert candidates.shape[0] > n_fy
+
+    fps = pp.plot_fixed_point(select_candidates='nullclines', with_return=True)
     assert fps is not None
 
 

@@ -155,6 +155,19 @@ def test_gd_with_args_and_custom_loss_verbose():
     assert f.opt_losses.ndim == 1
 
 
+def test_gd_small_num_opt_runs_at_least_one_batch():
+    """Regression for P13-M1: ``num_opt < num_batch`` previously gave
+    ``num_opt_loops = int(num_opt / num_batch) == 0``, leaving ``opt_losses``
+    empty and crashing on ``jnp.concatenate``.  At least one batch must run."""
+    f = bp.analysis.SlowPointFinder(f_cell=_linear_step, f_type=CONTINUOUS, verbose=False)
+    rng = bm.random.RandomState(2)
+    # num_opt (50) < num_batch (100) -> would crash before the fix.
+    f.find_fps_with_gd_method(rng.random((4, 2)) * 0.2, num_opt=50, num_batch=100)
+    assert f.num_fps == 4
+    assert f.opt_losses.ndim == 1
+    assert f.opt_losses.shape[0] == 100
+
+
 # --------------------------------------------------------------------------- #
 # full pipeline for a callable system
 # --------------------------------------------------------------------------- #
