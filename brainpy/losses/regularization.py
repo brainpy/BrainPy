@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+import braintools.metric as _bt_metric
 import jax.numpy as jnp
 from jax.tree_util import tree_flatten, tree_map
 
@@ -47,12 +48,14 @@ def mean_absolute(outputs, axis=None):
     Returns:
         tensor of shape (d_i, ..., for i in keep_axis) containing the mean absolute error.
     """
-    r = tree_map(lambda a: bm.mean(bm.abs(a), axis=axis), outputs, is_leaf=_is_leaf)
+    r = tree_map(lambda a: _bt_metric.absolute_error(a, None, axis=axis, reduction='mean'),
+                 outputs, is_leaf=_is_leaf)
     return _multi_return(r)
 
 
 def mean_square(predicts, axis=None):
-    r = tree_map(lambda a: bm.mean(a ** 2, axis=axis), predicts, is_leaf=_is_leaf)
+    r = tree_map(lambda a: _bt_metric.squared_error(a, None, axis=axis, reduction='mean'),
+                 predicts, is_leaf=_is_leaf)
     return _multi_return(r)
 
 
@@ -68,7 +71,7 @@ def log_cosh(errors):
     Returns:
       the log-cosh loss.
     """
-    r = tree_map(lambda a: bm.logaddexp(a, -a) - bm.log(2.0).astype(a.dtype),
+    r = tree_map(lambda a: _bt_metric.log_cosh(a),
                  errors, is_leaf=_is_leaf)
     return _multi_return(r)
 
@@ -87,6 +90,6 @@ def smooth_labels(labels, alpha: float) -> jnp.ndarray:
     Returns:
       a smoothed version of the one hot input labels.
     """
-    r = tree_map(lambda tar: (1.0 - alpha) * tar + alpha / tar.shape[-1],
+    r = tree_map(lambda tar: _bt_metric.smooth_labels(tar, alpha),
                  labels, is_leaf=lambda x: isinstance(x, bm.Array))
     return _multi_return(r)
