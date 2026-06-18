@@ -110,15 +110,13 @@ def test_offline_lasso_regression_and_predict():
     assert pred.shape[0] == x.shape[0]
 
 
-def test_offline_elastic_net_regression_fit_and_broken_predict():
-    """ElasticNet ``call`` (fit) runs through the gradient-descent solver.
+def test_offline_elastic_net_regression_fit_and_predict():
+    """ElasticNet ``call`` (fit) and ``predict`` are now consistent.
 
-    NOTE: ``ElasticNetRegression.predict`` is inconsistent with ``call``: ``call``
-    builds features via ``polynomial_features(inputs, degree=...)`` (default
-    ``add_bias=True`` -> bias column added), while ``predict`` passes
-    ``add_bias=self.add_bias`` (default ``False``). The feature counts therefore
-    differ (7 vs 6) and ``predict`` raises a shape ``TypeError``. We exercise the
-    fit path and pin the broken predict.
+    Fixed in audit 2026-06-19: ``call`` previously built features with the default
+    ``add_bias=True`` while ``predict`` used ``add_bias=self.add_bias`` (default
+    ``False``), so the feature counts differed and ``predict`` crashed. ``call``
+    now passes ``add_bias=self.add_bias``, so fit and predict agree.
     """
     from brainpy.algorithms.offline import ElasticNetRegression
 
@@ -127,8 +125,8 @@ def test_offline_elastic_net_regression_fit_and_broken_predict():
     model = ElasticNetRegression(alpha=0.05, degree=2, l1_ratio=0.5, max_iter=30)
     w = model(y, x)
     assert not bool(jnp.isnan(w).any())
-    with pytest.raises((TypeError, ValueError)):
-        model.predict(w, x)
+    pred = model.predict(w, x)
+    assert pred.shape[0] == x.shape[0]
 
 
 def test_offline_polynomial_regression_and_predict():
@@ -158,10 +156,12 @@ def test_offline_polynomial_ridge_regression_and_predict():
     assert pred.shape[0] == x.shape[0]
 
 
-def test_offline_logistic_regression_known_indexerror():
-    """NOTE: dead/broken path. ``LogisticRegression.call`` flattens ``targets``
-    to 1-D and then indexes ``targets.shape[1]``, raising ``IndexError``. Its
-    body (offline.py lines 391-415) is unreachable; we pin the broken behavior.
+def test_offline_logistic_regression_fit():
+    """``LogisticRegression.call`` now fits instead of crashing.
+
+    Fixed in audit 2026-06-19: ``call`` previously flattened ``targets`` to 1-D
+    and then indexed ``targets.shape[1]`` (``IndexError``); it now initialises a
+    1-D parameter vector and runs the gradient-descent solver.
     """
     from brainpy.algorithms.offline import LogisticRegression
 
@@ -169,8 +169,9 @@ def test_offline_logistic_regression_known_indexerror():
     rng = np.random.RandomState(6)
     x = jnp.asarray(rng.randn(20, 2).astype('float32'))
     y = jnp.asarray((np.asarray(x)[:, :1] > 0).astype('float32'))
-    with pytest.raises(IndexError):
-        LogisticRegression(max_iter=50)(y, x)
+    w = LogisticRegression(max_iter=50)(y, x)
+    assert w is not None
+    assert not bool(jnp.isnan(jnp.asarray(w)).any())
 
 
 def test_offline_registry_helpers_and_base_repr():
