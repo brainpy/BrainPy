@@ -88,14 +88,13 @@ def test_2d_unstable_focus_and_node():
 
 
 def test_2d_unstable_degenerate_and_star():
-    # p > 0, e == 0. Distinct construction so eigenvalues equal -> degenerate.
+    # p > 0, e == 0. A scalar multiple of the identity is a proper (star) node:
+    # full 2-D eigenspace.  (P13-C1: previously mislabelled as degenerate.)
     J = [[2., 0.], [0., 2.]]  # trace 4, det 4, e = 16 - 16 = 0; eigvals both 2
-    assert stability_analysis(J) == st.UNSTABLE_DEGENERATE_2D
-    # p > 0, e == 0 but eigvals not literally equal (numerical) -> star branch.
-    # Use a Jordan-like block so np.linalg.eigvals returns slightly different.
+    assert stability_analysis(J) == st.UNSTABLE_STAR_2D
+    # p > 0, e == 0 with a defective (Jordan) block -> degenerate (improper) node.
     J = [[2., 1.], [0., 2.]]  # trace 4, det 4, e = 0; defective matrix
-    res = stability_analysis(J)
-    assert res in (st.UNSTABLE_DEGENERATE_2D, st.UNSTABLE_STAR_2D)
+    assert stability_analysis(J) == st.UNSTABLE_DEGENERATE_2D
 
 
 def test_2d_stable_focus_and_node():
@@ -108,13 +107,13 @@ def test_2d_stable_focus_and_node():
 
 
 def test_2d_stable_degenerate_and_star():
-    # p < 0, e == 0 -> stable degenerate (eigvals equal)
+    # p < 0, e == 0. Scalar multiple of identity -> proper (star) node.
+    # (P13-C1: previously mislabelled as degenerate.)
     J = [[-2., 0.], [0., -2.]]  # trace -4, det 4, e = 0
-    assert stability_analysis(J) == st.STABLE_DEGENERATE_2D
-    # defective -> degenerate or star
+    assert stability_analysis(J) == st.STABLE_STAR_2D
+    # defective (Jordan) block -> degenerate (improper) node.
     J = [[-2., 1.], [0., -2.]]
-    res = stability_analysis(J)
-    assert res in (st.STABLE_DEGENERATE_2D, st.STABLE_STAR_2D)
+    assert stability_analysis(J) == st.STABLE_DEGENERATE_2D
 
 
 # --------------------------------------------------------------------------- #

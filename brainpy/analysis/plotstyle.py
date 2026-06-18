@@ -76,6 +76,6 @@ def set_markersize(markersize):
     if not isinstance(markersize, int):
         raise TypeError(f"Must be an integer, but got {type(markersize)}: {markersize}")
     global _markersize
-    __markersize = markersize
+    _markersize = markersize
     for key in tuple(plot_schema.keys()):
         plot_schema[key]['markersize'] = markersize

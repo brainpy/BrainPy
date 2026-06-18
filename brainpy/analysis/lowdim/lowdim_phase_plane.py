@@ -226,7 +226,10 @@ class PhasePlane2D(Num2DAnalyzer):
             elif plot_method == 'streamplot':
                 if plot_style is None:
                     plot_style = dict(arrowsize=1.2, density=1, color='thistle')
-                linewidth = plot_style.get('linewidth', None)
+                # Pop (not get) so a user-supplied ``linewidth`` is consumed and
+                # only passed once -- otherwise it is forwarded both explicitly
+                # and via ``**plot_style`` -> TypeError (multiple values).
+                linewidth = plot_style.pop('linewidth', None)
                 if linewidth is None:
                     if (not np.isnan(dx).any()) and (not np.isnan(dy).any()):
                         min_width, max_width = 0.5, 5.5
@@ -326,7 +329,7 @@ class PhasePlane2D(Num2DAnalyzer):
                 candidates = jnp.vstack(candidates)
             elif select_candidates == 'nullclines':
                 candidates = [self.analyzed_results[key][0] for key in self.analyzed_results.keys()
-                              if key.startswith(C.fy_nullcline_points) or key.startswith(C.fy_nullcline_points)]
+                              if key.startswith(C.fx_nullcline_points) or key.startswith(C.fy_nullcline_points)]
                 if len(candidates) == 0:
                     raise errors.AnalyzerError(f'No nullcline points are found, please call '
                                                f'".{self.plot_nullcline.__name__}()" first.')

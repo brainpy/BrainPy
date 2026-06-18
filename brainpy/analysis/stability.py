@@ -145,22 +145,25 @@ def stability_analysis(derivatives):
                 elif e > 0:
                     return UNSTABLE_NODE_2D
                 else:
-                    w = np.linalg.eigvals(derivatives)
-                    if w[0] == w[1]:
-                        return UNSTABLE_DEGENERATE_2D
-                    else:
+                    # Repeated eigenvalue. A star (proper) node has a full
+                    # eigenspace, which happens iff the matrix is a scalar
+                    # multiple of the identity (b == c == 0 and a == d).
+                    # Otherwise the matrix is defective -> degenerate (improper) node.
+                    if b == 0 and c == 0 and a == d:
                         return UNSTABLE_STAR_2D
+                    else:
+                        return UNSTABLE_DEGENERATE_2D
             else:
                 if e < 0:
                     return STABLE_FOCUS_2D
                 elif e > 0:
                     return STABLE_NODE_2D
                 else:
-                    w = np.linalg.eigvals(derivatives)
-                    if w[0] == w[1]:
-                        return STABLE_DEGENERATE_2D
-                    else:
+                    # Repeated eigenvalue. See the unstable branch above.
+                    if b == 0 and c == 0 and a == d:
                         return STABLE_STAR_2D
+                    else:
+                        return STABLE_DEGENERATE_2D
 
     elif np.size(derivatives) == 9:  # 3D dynamical system
         eigenvalues = np.linalg.eigvals(np.array(derivatives))

@@ -376,7 +376,10 @@ class SlowPointFinder(base.DSAnalyzer):
             print(f"Optimizing with {optimizer} to find fixed points:")
         opt_losses = []
         do_stop = False
-        num_opt_loops = int(num_opt / num_batch)
+        # Always run at least one batch, even when ``num_opt < num_batch`` (where
+        # ``int(num_opt / num_batch)`` would otherwise be 0 and leave ``opt_losses``
+        # empty, crashing the subsequent ``jnp.concatenate``).
+        num_opt_loops = max(1, int(np.ceil(num_opt / num_batch)))
         for oidx in range(num_opt_loops):
             if do_stop:
                 break
