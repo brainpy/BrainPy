@@ -221,18 +221,21 @@ class TestNLL:
 # ---------------------------------------------------------------------------
 class TestRegressionLosses:
     def test_l1_loss_reductions(self):
+        # NOTE: l1_loss now delegates to braintools.metric.l1_loss, which
+        # computes the per-row MEAN absolute error (not the L1 norm) for
+        # reduction='none', then sums / means those per-row values.
         x = jnp.array([[1., 2.], [3., 4.]])
         y = jnp.zeros((2, 2))
         none = np.asarray(C.l1_loss(x, y, reduction='none'))
-        assert np.allclose(none, [3., 7.])  # row L1 norms
-        assert float(C.l1_loss(x, y, reduction='sum')) == pytest.approx(10.0)
-        assert float(C.l1_loss(x, y, reduction='mean')) == pytest.approx(5.0)
+        assert np.allclose(none, [1.5, 3.5])  # per-row mean abs error
+        assert float(C.l1_loss(x, y, reduction='sum')) == pytest.approx(5.0)
+        assert float(C.l1_loss(x, y, reduction='mean')) == pytest.approx(2.5)
 
     def test_l1_class(self):
         x = jnp.array([[1., 2.], [3., 4.]])
         y = jnp.zeros((2, 2))
         layer = C.L1Loss(reduction='sum')
-        assert float(layer.update(x, y)) == pytest.approx(10.0)
+        assert float(layer.update(x, y)) == pytest.approx(5.0)
 
     def test_l2_loss_elementwise(self):
         out = np.asarray(C.l2_loss(jnp.array([2.0, 0.0]), jnp.array([0.0, 0.0])))
