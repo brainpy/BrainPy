@@ -1003,7 +1003,7 @@ def ctc_loss_with_forward_probs(
     labels = labels.value if isinstance(labels, bm.Array) else labels
     label_paddings = label_paddings.value if isinstance(label_paddings, bm.Array) else label_paddings
 
-    logprobs = bm.log_softmax(logits).value
+    logprobs = bm.as_jax(bm.log_softmax(logits))
     labellens = maxlabellen - jnp.sum(label_paddings, axis=1).astype(jnp.int32)
 
     # repeat[b, n] == 1.0 when label[b, n] == label[b, n+1].
@@ -1058,7 +1058,7 @@ def ctc_loss_with_forward_probs(
     logalpha_phi = logalpha_phi.at[-1].set(logalpha_phi_last)
 
     # extract per_seq_loss
-    one_hot = bm.one_hot(labellens, num_classes=maxlabellen + 1).value  # [B, N+1]
+    one_hot = bm.as_jax(bm.one_hot(labellens, num_classes=maxlabellen + 1))  # [B, N+1]
     per_seq_loss = -jnp.einsum('bn,bn->b', logalpha_phi_last, one_hot)
 
     return per_seq_loss, logalpha_phi, logalpha_emit
