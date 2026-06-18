@@ -99,3 +99,12 @@ def test_process_pool_lock_with_dict_params():
 def test_process_pool_lock_unknown_param_type_raises():
     with pytest.raises(ValueError):
         process_pool_lock(_add_lock, [42], num_process=1)
+
+
+def test_process_pool_lock_does_not_mutate_caller_dict():
+    # P15-M1: the lock must not be injected into the caller-owned param dicts.
+    params = [{'x': 1, 'y': 2}]
+    results = process_pool_lock(_add_lock_kw, params, num_process=1)
+    assert results == [3]
+    assert params == [{'x': 1, 'y': 2}]      # unchanged
+    assert 'lock' not in params[0]

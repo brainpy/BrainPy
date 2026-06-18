@@ -107,8 +107,8 @@ def process_pool_lock(func: callable,
         if isinstance(net_params, (list, tuple)):
             results.append(pool.apply_async(func, args=tuple(net_params) + (lock,)))
         elif isinstance(net_params, dict):
-            net_params.update(lock=lock)
-            results.append(pool.apply_async(func, kwds=net_params))
+            # Do not mutate the caller-owned dict; submit a copy with the lock added.
+            results.append(pool.apply_async(func, kwds={**net_params, 'lock': lock}))
         else:
             raise ValueError('Unknown parameter type: ', type(net_params))
     pool.close()

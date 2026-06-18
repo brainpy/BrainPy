@@ -122,6 +122,23 @@ def test_jit_invalid_type_raises(target):
         Runner(target, monitors=None, jit='not-a-jit', progress_bar=False)
 
 
+def test_jit_dict_does_not_mutate_caller(target):
+    # P15-H1: the caller's jit dict must not be mutated (no key popped).
+    d = {'train': False, C.PREDICT_PHASE: False}
+    Runner(target, monitors=None, jit=d, progress_bar=False)
+    assert d == {'train': False, C.PREDICT_PHASE: False}
+    assert C.PREDICT_PHASE in d
+
+
+def test_jit_dict_origin_jit_preserves_predict_key(target):
+    # P15-H1: ``_origin_jit`` keeps the explicit predict setting so that
+    # subclasses reading ``self._origin_jit.get('predict')`` see the user value.
+    d = {C.PREDICT_PHASE: False, 'fit': True}
+    r = Runner(target, monitors=None, jit=d, progress_bar=False)
+    assert r._origin_jit.get(C.PREDICT_PHASE) is False
+    assert r.jit[C.PREDICT_PHASE] is False
+
+
 # --------------------------------------------------------------------------- #
 # default / None monitors
 # --------------------------------------------------------------------------- #
@@ -224,30 +241,32 @@ def test_dict_monitor_variable_value(target):
     assert var is target.V and idx is None
 
 
-def test_dict_monitor_str_value_not_resolved():
-    # NOTE: DEFECT - dict-form *string* monitors are NOT resolved to their
-    # target Variable. ``_format_dict_monitors`` wraps a string value 'V' into
-    # the tuple ('V', None); by the time it reaches
-    # ``_find_dict_monitor_targets`` the value is a tuple, so the
-    # ``isinstance(_mon, str)`` resolution branch (runner.py lines ~241-266) is
-    # never taken and the value falls through to the ``else`` branch which
-    # stores it verbatim. The recorded "variable" is therefore the literal
-    # string 'V', not ``target.V``. (Sequence-form monitors resolve correctly.)
+def test_dict_monitor_str_value_resolved():
+    # P15-H2 (was a documented DEFECT): dict-form *string* monitors must resolve
+    # to their target Variable, exactly like sequence-form monitors.
     target = _Target()
     r = Runner(target, monitors={'a': 'V'}, progress_bar=False, jit=False)
     var, idx = r._monitors['a']
-    assert var == 'V'  # the bug: a string, not the Variable
+    assert var is target.V  # now resolved to the Variable
     assert idx is None
 
 
-def test_dict_monitor_str_value_nested_not_resolved():
-    # NOTE: DEFECT (same root cause as above) - a dotted string value is also
-    # stored verbatim and never resolved to ``target.sub.V``.
+def test_dict_monitor_str_value_nested_resolved():
+    # P15-H2: a dotted string value resolves to the nested ``target.sub.V``.
     target = _Target()
     r = Runner(target, monitors={'a': 'sub.V'}, progress_bar=False, jit=False)
     var, idx = r._monitors['a']
-    assert var == 'sub.V'
+    assert var is target.sub.V
     assert idx is None
+
+
+def test_dict_monitor_str_with_index_resolved():
+    # P15-H2: ``(name, index)`` dict values resolve the name and keep the index.
+    target = _Target()
+    r = Runner(target, monitors={'a': ('V', 2)}, progress_bar=False, jit=False)
+    var, idx = r._monitors['a']
+    assert var is target.V
+    assert np.asarray(bm.as_jax(idx)).tolist() == [2]
 
 
 def test_dict_monitor_var_index_tuple(target):
@@ -274,15 +293,12 @@ def test_dict_monitor_callable_value(target):
     assert r._monitors['a'] is fn
 
 
-def test_dict_monitor_str_missing_var_not_validated():
-    # NOTE: DEFECT (same root cause) - because dict string monitors are never
-    # resolved, an *invalid* variable name like 'nope' is silently accepted and
-    # stored verbatim instead of raising RunningError (contrast with the
-    # sequence-form which validates and raises). See
-    # ``test_dict_monitor_str_value_not_resolved``.
+def test_dict_monitor_str_missing_var_raises():
+    # P15-H2 (was a documented DEFECT): an invalid variable name in a dict-form
+    # string monitor must now be validated and raise, like the sequence form.
     target = _Target()
-    r = Runner(target, monitors={'a': 'nope'}, progress_bar=False, jit=False)
-    assert r._monitors['a'] == ('nope', None)
+    with pytest.raises(RunningError):
+        Runner(target, monitors={'a': 'nope'}, progress_bar=False, jit=False)
 
 
 def test_dict_monitor_nonstr_key_raises(target):
@@ -349,29 +365,24 @@ def test_find_dict_monitor_targets_type_guard(target):
         r._find_dict_monitor_targets(['not', 'a', 'dict'])
 
 
-def test_find_dict_monitor_targets_bare_string_branch():
-    # NOTE: DEFECT - the ``isinstance(_mon, str)`` branch in
-    # ``_find_dict_monitor_targets`` is dead under normal use (see
-    # ``test_dict_monitor_str_value_not_resolved``) AND broken: it does
-    # ``key, index = _mon[0], _mon[1]`` which takes the first *two characters*
-    # of the string rather than treating the whole string as the variable name.
-    # We call the helper directly to exercise this branch. With the bare string
-    # 'Vx', key='V' (a real single-char variable) and index='x'.
+def test_find_dict_monitor_targets_name_tuple_branch():
+    # P15-H2: the resolution branch fires for a ``(name_str, index)`` tuple
+    # (the form produced by ``_format_dict_monitors`` for string monitors) and
+    # resolves the whole name to the Variable, preserving the key and index.
     target = _Target()
     r = Runner(target, monitors=None, progress_bar=False, jit=False)
-    out = r._find_dict_monitor_targets({'k': 'Vx'})
-    var, index = out['V']  # NOTE: keyed by 'V' (first char), not 'k'
+    out = r._find_dict_monitor_targets({'k': ('V', None)})
+    var, index = out['k']  # keyed by 'k', not by the first char of 'V'
     assert var is target.V
-    assert index == 'x'  # NOTE: second char taken as the "index"
+    assert index is None
 
 
-def test_find_dict_monitor_targets_bare_string_missing_var_raises():
-    # NOTE: DEFECT - same broken branch: a string whose first character is not
-    # an attribute of the target raises RunningError.
+def test_find_dict_monitor_targets_name_tuple_missing_var_raises():
+    # P15-H2: a ``(name, index)`` tuple whose name is unknown raises RunningError.
     target = _Target()
     r = Runner(target, monitors=None, progress_bar=False, jit=False)
     with pytest.raises(RunningError):
-        r._find_dict_monitor_targets({'k': 'zz'})
+        r._find_dict_monitor_targets({'k': ('zz', None)})
 
 
 # --------------------------------------------------------------------------- #
