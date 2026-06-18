@@ -115,7 +115,9 @@ class Pool(Layer):
 
         # channel axis
         channel_axis = self.channel_axis
-        if channel_axis and not 0 <= abs(channel_axis) < x_dim:
+        # Valid axes are ``-x_dim <= channel_axis < x_dim``. The previous ``abs()``
+        # bound wrongly rejected the leftmost negative axis ``-x_dim`` (P12-M2).
+        if channel_axis and not -x_dim <= channel_axis < x_dim:
             raise ValueError(f"Invalid channel axis {channel_axis} for input with {x_dim} dimensions")
         if channel_axis and channel_axis < 0:
             channel_axis = x_dim + channel_axis
@@ -387,7 +389,9 @@ class _MaxPoolNd(Layer):
 
     def _infer_shape(self, x_dim, inputs, element):
         channel_axis = self.channel_axis
-        if channel_axis and not 0 <= abs(channel_axis) < x_dim:
+        # Valid axes are ``-x_dim <= channel_axis < x_dim``. The previous ``abs()``
+        # bound wrongly rejected the leftmost negative axis ``-x_dim`` (P12-M2).
+        if channel_axis and not -x_dim <= channel_axis < x_dim:
             raise ValueError(f"Invalid channel axis {channel_axis} for input with {x_dim} dimensions")
         if channel_axis and channel_axis < 0:
             channel_axis = x_dim + channel_axis
@@ -784,7 +788,9 @@ class AdaptivePool(Layer):
         channel_axis = self.channel_axis
 
         if channel_axis:
-            if not 0 <= abs(channel_axis) < x.ndim:
+            # Valid axes are ``-x.ndim <= channel_axis < x.ndim``. The previous
+            # ``abs()`` bound wrongly rejected the leftmost negative axis (P12-M2).
+            if not -x.ndim <= channel_axis < x.ndim:
                 raise ValueError(f"Invalid channel axis {channel_axis} for {x.shape}")
             if channel_axis < 0:
                 channel_axis = x.ndim + channel_axis

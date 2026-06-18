@@ -243,5 +243,36 @@ class TestPool(parameterized.TestCase):
         output = net(input)
 
 
+class TestPoolingChannelAxis(parameterized.TestCase):
+    """Regression for P12-M2: the leftmost negative ``channel_axis`` (== -x_dim)
+    was wrongly rejected because the bound check used ``abs(channel_axis)``."""
+
+    def test_maxpool2d_leftmost_negative_channel_axis(self):
+        bm.random.seed()
+        # channels-first (C, H, W); channel axis is axis 0 == -3.
+        x = bm.random.randn(6, 8, 8)
+        net = bp.dnn.MaxPool2d(2, channel_axis=-3)
+        out = net(x)
+        self.assertEqual(out.shape, (6, 4, 4))
+        # Must equal the equivalent positive channel_axis result.
+        net_pos = bp.dnn.MaxPool2d(2, channel_axis=0)
+        self.assertEqual(out.shape, net_pos(x).shape)
+
+    def test_adaptiveavgpool2d_leftmost_negative_channel_axis(self):
+        bm.random.seed()
+        x = bm.random.randn(6, 8, 8)  # (C, H, W)
+        net = bp.dnn.AdaptiveAvgPool2d((4, 4), channel_axis=-3)
+        out = net(x)
+        self.assertEqual(out.shape, (6, 4, 4))
+
+    def test_pool_leftmost_negative_channel_axis(self):
+        bm.random.seed()
+        # ``Pool`` family (MaxPool) with an integer kernel and channel_axis=-3.
+        x = bm.random.randn(6, 8, 8)
+        net = bp.dnn.MaxPool((2, 2), 2, channel_axis=-3)
+        out = net(x)
+        self.assertEqual(out.shape, (6, 4, 4))
+
+
 if __name__ == '__main__':
     absltest.main()

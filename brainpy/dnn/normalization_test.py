@@ -74,6 +74,50 @@ class Test_Normalization(parameterized.TestCase):
         net = bp.dnn.InstanceNorm(num_channels=6, mode=bm.training_mode)
         output = net(input)
 
+    def test_LayerNorm_shape_mismatch_raises_valueerror(self):
+        # Regression for P12-M1: the wrong-shape diagnostic used ``", ".join(<ints>)``
+        # which raised ``TypeError`` and masked the intended ``ValueError``.
+        net = bp.dnn.LayerNorm(10, mode=bm.training_mode)
+        bad_input = bm.random.randn(2, 5, 8)  # last dim 8 != 10
+        with self.assertRaises(ValueError):
+            net(bad_input)
+
+    def test_BatchNorm_running_var_is_unbiased(self):
+        # Regression for P12-M3: the running variance buffer must use the unbiased
+        # (Bessel-corrected, divisor N-1) batch variance, matching PyTorch, instead
+        # of the biased (divisor N) variance used to normalize the current batch.
+        import jax.numpy as jnp
+        import numpy as np
+        bm.random.seed(123)
+        net = bp.dnn.BatchNorm1d(num_features=3, affine=False, mode=bm.training_mode)
+        bp.share.save(fit=True)
+        x = bm.random.randn(4, 5, 3) * 3.0 + 7.0  # N = 4*5 = 20 reduced elements
+        net(x)
+
+        xj = bm.as_jax(x)
+        n = xj.shape[0] * xj.shape[1]
+        biased = jnp.var(xj, axis=(0, 1))
+        unbiased = biased * n / (n - 1)
+        # After one update: running_var = 0.99 * 1.0 + 0.01 * <var>.
+        expected_unbiased = 0.99 * 1.0 + 0.01 * unbiased
+        expected_biased = 0.99 * 1.0 + 0.01 * biased
+        rv = bm.as_jax(net.running_var.value)
+        self.assertTrue(bool(jnp.allclose(rv, expected_unbiased, atol=1e-5)))
+        # And it must NOT match the biased estimate (the previous behaviour).
+        self.assertFalse(bool(jnp.allclose(rv, expected_biased, atol=1e-5)))
+
+    def test_BatchNorm_batch_is_biased_normalized(self):
+        # The normalization of the current batch itself must remain unit-variance
+        # (biased), unaffected by the running-buffer correction.
+        import jax.numpy as jnp
+        bm.random.seed(7)
+        net = bp.dnn.BatchNorm1d(num_features=3, affine=False, mode=bm.training_mode)
+        bp.share.save(fit=True)
+        x = bm.random.randn(8, 6, 3) * 2.0 - 1.0
+        out = bm.as_jax(net(x))
+        self.assertTrue(bool(jnp.allclose(out.mean(axis=(0, 1)), 0.0, atol=1e-5)))
+        self.assertTrue(bool(jnp.allclose(out.var(axis=(0, 1)), 1.0, atol=1e-4)))
+
 
 if __name__ == '__main__':
     absltest.main()
