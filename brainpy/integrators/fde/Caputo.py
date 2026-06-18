@@ -157,9 +157,8 @@ class CaputoEuler(FDEIntegrator):
         self.coef = bm.flip(coef, axis=0)
 
         # variable states
-        self.f_states = {v: bm.Variable(bm.zeros((num_memory,) + self.inits[v].shape))
-                         for v in self.variables}
-        self.register_implicit_vars(self.f_states)
+        self.f_states = bm.VarDict({v: bm.Variable(bm.zeros((num_memory,) + self.inits[v].shape))
+                                    for v in self.variables})
         self.idx = bm.Variable(bm.asarray([1]))
 
         self.set_integral(self._integral_func)
@@ -171,6 +170,8 @@ class CaputoEuler(FDEIntegrator):
         for key, val in inits.items():
             self.inits[key] = val
             self.f_states[key] = bm.zeros((self.num_memory,) + val.shape, dtype=self.f_states[key].dtype)
+        # NOTE: ``self.f_states`` is a ``bm.VarDict``, so the assignment above performs an
+        # in-place ``.value`` update and preserves the registered ``Variable`` identity.
 
     def _check_step(self, args):
         dt, t = args

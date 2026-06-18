@@ -32,8 +32,8 @@ def fdeint(
     num_memory,
     inits,
     f=None,
-    method='l1',
-    dt: str = None,
+    method=None,
+    dt: float = None,
     name: str = None
 ):
     """Numerical integration for FDEs.
