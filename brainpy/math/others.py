@@ -94,6 +94,18 @@ def remove_diag(arr):
         raise ValueError(f'Only support 2D matrix, while we got a {arr.ndim}D array.')
     arr = as_jax(arr)
     m, n = arr.shape
+    # ``remove_diag`` drops the diagonal element ``[i, i]`` from every row, so it
+    # only has a well-defined ``(m, n - 1)`` result when every row owns a
+    # diagonal element, i.e. ``m <= n``. With ``m > n`` the rows ``i >= n`` have
+    # no diagonal to remove and the off-diagonal element count
+    # (``m * n - n``) no longer matches ``m * (n - 1)``; the old code crashed
+    # with an opaque broadcasting/reshape error. Fail fast with a clear message.
+    if m > n:
+        raise ValueError(
+            f'remove_diag requires the number of rows to not exceed the number '
+            f'of columns (m <= n), so that every row has a diagonal element to '
+            f'remove. But we got a matrix with shape {arr.shape}.'
+        )
     # Static off-diagonal indices (computed with numpy so they are concrete
     # constants and the gather traces cleanly under jit/vmap).
     rows = np.repeat(np.arange(m), n - 1)

@@ -243,6 +243,24 @@ class ShardedArray(Array):
         super().__init__(value, dtype)
         self._keep_sharding = keep_sharding
 
+    def tree_flatten(self):
+        # Carry ``_keep_sharding`` in ``aux_data`` so it survives a pytree
+        # round-trip (``jit``/``vmap``/``scan``/``grad``). Flatten the *raw*
+        # ``_value`` rather than the ``value`` property: the property inserts a
+        # ``with_sharding_constraint``, which must not run during the abstract
+        # flatten step (the leaf may be a tracer/``ShapeDtypeStruct``).
+        return (self._value,), self._keep_sharding
+
+    @classmethod
+    def tree_unflatten(cls, aux_data, flat_contents):
+        # Reconstruct without ``__init__`` (the leaf may be abstract during
+        # tracing) and restore ``_keep_sharding`` from ``aux_data``; otherwise
+        # the ``value`` getter raises ``AttributeError`` after any transform.
+        ins = object.__new__(cls)
+        ins._value = flat_contents[0]
+        ins._keep_sharding = True if aux_data is None else aux_data
+        return ins
+
     @property
     def value(self):
         """The value stored in this array.
