@@ -597,11 +597,13 @@ def while_loop(
     def body(x):
         r = body_fun(*x)
         if r is None:
-            raise ValueError(
-                '`body_fun` of `while_loop` must return the updated operands, '
-                'but got `None`. Returning `None` would leave the operands unchanged '
-                'and the loop condition would never become False, causing an infinite loop.'
-            )
+            # Classic brainpy idiom: ``body_fun`` mutates ``Variable`` state in place
+            # and returns ``None`` (often with empty ``operands``). brainstate's
+            # ``while_loop`` tracks that state automatically and the loop condition is
+            # driven by the mutated state, so the operands are threaded through
+            # unchanged. Returning ``x`` preserves this behaviour while still allowing
+            # a functional ``body_fun`` to return the updated operands explicitly.
+            return x
         return r
 
     return brainstate.transform.while_loop(

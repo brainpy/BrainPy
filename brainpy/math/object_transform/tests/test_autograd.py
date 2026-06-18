@@ -1026,8 +1026,11 @@ class TestDebug(parameterized.TestCase):
         a = bm.random.RandomState()
 
         def f(b):
+            # ``a.value`` is a typed JAX PRNG key (``key<fry>``) under modern JAX and
+            # cannot be used in arithmetic; read it (print) but differentiate through
+            # the random draw and the input ``b`` only.
             print(a.value)
-            return a.value + b + a.random()
+            return b + a.random()
 
         f = bm.vector_grad(f, argnums=0)
         f(1.)
