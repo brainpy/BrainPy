@@ -495,8 +495,21 @@ class DSRunner(Runner):
         # post-running for monitors
         if self._memory_efficient:
             self.mon['ts'] = indices * self.dt + self.t0
+            # The memory-efficient path appends per-step monitor values on the
+            # host, so they are always stacked time-major ``(T, ...)``. For a
+            # batching target with ``data_first_axis='B'`` the standard path
+            # re-orders monitors to ``(B, T, ...)`` (see ``_predict``); mirror
+            # that here so the monitor layout does not silently depend on the
+            # ``memory_efficient`` flag.
+            batch_major = (isinstance(self.target.mode, bm.BatchingMode)
+                           and self.data_first_axis == 'B')
             for key in self._monitors.keys():
-                self.mon[key] = np.asarray(self.mon[key])
+                arr = np.asarray(self.mon[key])
+                # ``arr`` is stacked time-major ``(T, B, ...)``; ndim >= 2 means a
+                # batch axis is present to swap with time (mirrors ``_predict``).
+                if batch_major and arr.ndim >= 2:
+                    arr = np.moveaxis(arr, 0, 1)
+                self.mon[key] = arr
         else:
             hists['ts'] = indices * self.dt + self.t0
             if self.numpy_mon_after_run:
@@ -658,13 +671,22 @@ class DSRunner(Runner):
             else:
                 run_fun = self._step_func_predict
 
-            outs = None
+            # Collect the per-step ``update()`` outputs and stack them along a
+            # new leading time axis, matching ``bm.for_loop``'s time-major
+            # stacking used by the standard (non-memory-efficient) path.
+            #
+            # NOTE: do *not* accumulate via ``tree_map(lambda a, o: o.append(a), ...)``:
+            # ``list.append`` returns ``None`` (so the accumulator would be reset
+            # to a tree of ``None`` every iteration) and an empty list ``[]`` is an
+            # empty pytree node rather than a leaf. We accumulate the whole outputs
+            # in a flat Python list and stack once at the end.
+            outs = []
             for i in range(indices.shape[0]):
                 out, _ = run_fun(indices[i], *tree_map(lambda a: a[i], inputs))
-                if outs is None:
-                    outs = tree_map(lambda a: [], out)
-                outs = tree_map(lambda a, o: o.append(a), out, outs)
-            outs = tree_map(lambda a: bm.as_jax(a), outs)
+                outs.append(out)
+            if len(outs) == 0:
+                return None, None
+            outs = tree_map(lambda *os: jnp.stack([bm.as_jax(o) for o in os]), *outs)
             return outs, None
 
         else:
