@@ -18,6 +18,68 @@ import unittest
 import numpy as np
 
 import brainpy as bp
+import brainpy.math as bm
+
+
+def _scalar(x):
+    return float(np.asarray(bm.as_numpy(x)).reshape(-1)[0])
+
+
+class TestCaputoEulerReset(unittest.TestCase):
+    def test_reset_preserves_variable(self):
+        """``reset`` must keep the memory buffer a ``bm.Variable`` (P7-H1)."""
+        intg = bp.fde.CaputoEuler(lambda y, t: -y, alpha=0.8, num_memory=20, inits=[1.])
+        self.assertIsInstance(intg.f_states['y'], bm.Variable)
+        intg.reset([2.])
+        self.assertIsInstance(intg.f_states['y'], bm.Variable)
+
+    def test_reset_then_run_matches_fresh(self):
+        """A reset+run must reproduce a fresh-integrator run (P7-H1).
+
+        Before the fix, ``reset`` orphaned the registered ``Variable`` so the
+        ``IntegratorRunner`` snapshotted a stale buffer and produced wrong values.
+        """
+        bm.enable_x64()
+        try:
+            def f(y, t):
+                return -y
+
+            # fresh reference run
+            fresh = bp.fde.CaputoEuler(f, alpha=0.8, num_memory=100, inits=[1.])
+            runner_fresh = bp.IntegratorRunner(fresh, monitors=['y'], dt=0.05, inits=[1.])
+            runner_fresh.run(1.0)
+            ref = _scalar(runner_fresh.mon.y[-1])
+
+            # reset then run
+            intg = bp.fde.CaputoEuler(f, alpha=0.8, num_memory=100, inits=[1.])
+            intg.reset([1.])
+            runner = bp.IntegratorRunner(intg, monitors=['y'], dt=0.05, inits=[1.])
+            runner.run(1.0)
+            got = _scalar(runner.mon.y[-1])
+
+            self.assertTrue(np.allclose(ref, got, atol=1e-10),
+                            msg=f'reset run {got} != fresh run {ref}')
+        finally:
+            bm.disable_x64()
+
+
+class TestFdeintDefaultMethod(unittest.TestCase):
+    def test_set_default_fdeint_respected(self):
+        """``fdeint`` must honor ``set_default_fdeint`` when method is omitted (P7-M1)."""
+        from brainpy.integrators.fde.generic import (
+            fdeint, set_default_fdeint, get_default_fdeint
+        )
+        original = get_default_fdeint()
+        try:
+            set_default_fdeint('euler')
+            intg = fdeint(alpha=0.8, num_memory=20, inits=[1.], f=lambda y, t: -y)
+            self.assertIsInstance(intg, bp.fde.CaputoEuler)
+
+            set_default_fdeint('l1')
+            intg2 = fdeint(alpha=0.8, num_memory=20, inits=[1.], f=lambda y, t: -y)
+            self.assertIsInstance(intg2, bp.fde.CaputoL1Schema)
+        finally:
+            set_default_fdeint(original)
 
 
 class TestCaputoL1(unittest.TestCase):
