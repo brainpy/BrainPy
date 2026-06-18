@@ -150,10 +150,22 @@ def cond(
     if not isinstance(operands, (tuple, list)):
         operands = (operands,)
     operands = _unwrap_state_operands(operands)
+
+    # ``true_fun``/``false_fun`` may be constants (array/number), per the
+    # documented contract. Wrap any non-callable branch into a callable that
+    # ignores ``*operands`` and returns the (unwrapped) constant, mirroring the
+    # handling in ``ifelse``. Otherwise brainstate would try to *call* the
+    # constant and raise ``TypeError: '<type>' object is not callable``.
+    def _make_branch(branch):
+        if callable(branch):
+            return warp_to_no_state_input_output(branch)
+        const = _unwrap_operand_leaf(branch)
+        return warp_to_no_state_input_output(lambda *args: const)
+
     return brainstate.transform.cond(
         pred,
-        warp_to_no_state_input_output(true_fun),
-        warp_to_no_state_input_output(false_fun),
+        _make_branch(true_fun),
+        _make_branch(false_fun),
         *operands
     )
 
@@ -229,6 +241,14 @@ def ifelse(
             return warp_to_no_state_input_output(lambda *args: branch)
 
     branches = [make_callable(branch) for branch in branches]
+
+    # A single condition may be passed as a bare scalar bool/array (the
+    # docstring types ``conditions`` as ``bool, sequence of bool``). Normalise
+    # it into a one-element list so it flows through the conversion below;
+    # otherwise ``brainstate.transform.ifelse`` would call ``len()`` on the
+    # scalar and raise ``TypeError: object ... has no len()``.
+    if not isinstance(conditions, (list, tuple)):
+        conditions = [conditions]
 
     # Convert if-elif-else chain to mutually exclusive conditions
     if isinstance(conditions, (list, tuple)) and len(conditions) > 0:

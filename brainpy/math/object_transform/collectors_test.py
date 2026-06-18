@@ -151,6 +151,16 @@ def test_sub_with_list_missing_key_raises():
         c - ['nope']
 
 
+def test_sub_with_list_missing_value_raises():
+    # P4-M3: removing a *value* object that is not present must raise the same
+    # descriptive ValueError as the string-key path, not a bare KeyError(id).
+    present = object()
+    absent = object()
+    c = Collector({'a': present})
+    with pytest.raises(ValueError):
+        c - [absent]
+
+
 def test_sub_rejects_bad_type():
     c = Collector({'a': 1})
     with pytest.raises(ValueError):

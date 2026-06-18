@@ -112,7 +112,15 @@ class Collector(dict):
                 if isinstance(key, str):
                     keys_to_remove.append(key)
                 else:
-                    keys_to_remove.extend(id_to_keys[id(key)])
+                    # Look the value up by identity. A value object that is not
+                    # present must raise the same descriptive ``ValueError`` as
+                    # the other "not found" paths below, rather than a bare
+                    # ``KeyError(id)`` from an unchecked dict access.
+                    matched = id_to_keys.get(id(key))
+                    if matched is None:
+                        raise ValueError(f'Cannot remove {key}, because we do not find it '
+                                         f'in {self.keys()}.')
+                    keys_to_remove.extend(matched)
 
             for key in set(keys_to_remove):
                 if key in gather:
