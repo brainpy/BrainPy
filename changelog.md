@@ -1,5 +1,75 @@
 # Changelog
 
+## Version 2.8.0
+
+**Release Date:** June 19, 2026
+
+Version 2.8.0 is a broad correctness, quality, and maintainability release. It bundles an audited, library-wide bug-fix sweep — neuron and synapse dynamics, ODE/SDE/FDE integrators, the math and object-transform layer, `dnn` layers, optimizers and losses, analysis tooling, and the simulation runners — each accompanied by new regression tests. Alongside the fixes, the release introduces static typing with a `mypy` CI gate, raises test coverage from roughly 84% to over 92%, co-locates tests with the modules they cover, and removes duplicated internals by reusing the shared `braintools` and `brainstate` implementations. Documentation and the bundled examples were repaired and refreshed.
+
+### Highlights
+
+- **Audited correctness sweep** across the whole library, each fix backed by regression tests.
+- **Static typing**: type annotations for core utilities, PEP 561 (`py.typed`), and a new `mypy` continuous-integration gate (#834).
+- **Test-suite overhaul**: coverage raised from ~84% to 92%+ (#836), with tests co-located as `<module>_test.py` (#832).
+- **Reduced duplication**: reuse `braintools` (init, metric, surrogate) and `brainstate` transforms instead of maintaining forked copies (#835, #833, #831).
+
+### Bug Fixes
+
+#### Neuron and synapse dynamics
+- `CondNeuGroup`: corrected synaptic-current scaling that attenuated currents by ~1000× (#842).
+- `DualExp`: correct handling of equal time constants, plus per-neuron STP reset (#847).
+- `dynold`: fixed STP construction, sparse-synapse drift, plasticity decay, and Bellec initialization (#848).
+- Rate models: fixed `RNNCell.reset_state` crash and `ThresholdLinearModel` noise `dt`-scaling (#850).
+
+#### Integrators
+- `RKF45` node handling and Kl/Pl SRK diffusion weights (#841).
+- Fractional integrators: `CaputoEuler.reset` state desynchronization and `set_default_fdeint` (#846).
+- Prevented a `MilsteinGradFree` out-of-memory crash (#837).
+
+#### Math, sparse, and object transforms
+- `coo_to_csr` bounds checking, plus a sparse/event/delay regression suite (#845).
+- Compatibility fixes: `gelu` integer input, `unflatten` negative dimension, `segment_mean` on `Array` (#844).
+- Object transforms: `cond`/`ifelse`, collectors, and `VariableView` edge cases (#840).
+- `ShardedArray` pytree flattening and `remove_diag` guard (#839).
+
+#### Neural-network layers
+- `BatchNorm` running-variance bias, pooling `channel_axis`, and `LayerNorm` error handling (#843).
+
+#### Optimizers and losses
+- Audited correctness fixes for `Adan`, `SM3`, and several loss functions (#838).
+
+#### Analysis
+- Fixed-point classification, nullcline selection, gradient-descent batching, and plotting keyword handling (#849).
+
+#### Runtime and runners
+- `DSRunner`: `memory_efficient` output/monitors and eager bound-validation checks (#851).
+- `IntegratorRunner`: dict-monitor regression (#854).
+- Runners: jit-dict mutation, dict string monitors, and multi-device parallel concatenation (#852).
+- Inputs / algorithms / connectivity: deprecation aliases, regression fits, CSR guard, and dtype handling (#853).
+- Earlier audited correctness, API-drift, and edge-case fixes with a regression and coverage suite (#830).
+
+### Quality and Tooling
+
+- Added typing for core utilities, enabled PEP 561, and added a `mypy` CI job (#834).
+- Comprehensive coverage tests, raising coverage from ~84% to 92%+ (#836).
+- Co-located tests as `<module>_test.py` and removed the legacy `tests/` trees (#832).
+- Reused `braintools.init` / `braintools.metric` in `brainpy.initialize` and losses (#835).
+- Reused `braintools.surrogate` and removed the duplicate `brainpy.math.surrogate` (#833).
+- CI: replaced `remove_vmap` with `brainstate.transform.unvmap` and resolved `brainstate` 0.5.1 API drift (#831); green-lighted the Dense fit-flag tracer, buffer-donation test pollution, and L1 loss contract, and restored the Codecov token (#855).
+
+### Documentation and Examples
+
+- Converted public-API docstrings to NumPy style and enforced the convention (#856).
+- Repaired documentation notebooks and fixed Hz-input and `RNNCell.reset(batch_size)` bugs (#857).
+- Repaired six broken example scripts — API drift, data paths, and channel handling (#858).
+- Updated documentation links and the Python-version requirement in `README.md`; added `.gitattributes` for line endings.
+- Served the project logo as WebP from `brainx.chaobrain.com`.
+
+### Dependencies
+
+- Bumped `sphinx` to `>=9.0.4,<9.1.0` (#827), `sphinx-book-theme` to `>=1.2.0` (#826), and `jupyter-sphinx` to `>=0.5.3` (#825).
+
+
 ## Version 2.7.8
 
 **Release Date:** April 18, 2026
