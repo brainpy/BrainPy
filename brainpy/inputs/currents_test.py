@@ -15,6 +15,7 @@
 # ==============================================================================
 from unittest import TestCase
 
+import brainunit as u
 import numpy as np
 
 import brainpy as bp
@@ -81,17 +82,42 @@ class TestCurrents(TestCase):
         current7 = bp.inputs.ou_process(mean=1., sigma=0.1, tau=10., duration=duration, n=2, t_start=10., t_end=180.)
         show(current7, duration, 'Ornstein-Uhlenbeck Process')
 
-    # def test_sinusoidal_input(self):
-    #     duration = 2000 * u.ms
-    #     current8 = bp.inputs.sinusoidal_input(amplitude=1., frequency=2.0 * u.Hz,
-    #                                           duration=duration, t_start=100. * u.ms, dt=0.1 * u.ms)
-    #     show(current8, duration, 'Sinusoidal Input')
-    #
-    # def test_square_input(self):
-    #     duration = 2000 * u.ms
-    #     current9 = bp.inputs.square_input(amplitude=1., frequency=2.0 * u.Hz,
-    #                                       duration=duration, t_start=100 * u.ms, dt=0.1 * u.ms)
-    #     show(current9, duration, 'Square Input')
+    def test_sinusoidal_input_bare_frequency(self):
+        # Regression: a bare numeric ``frequency`` (in Hz) must be accepted.
+        # ``braintools`` started requiring frequency/time arguments to carry
+        # units; the wrapper now attaches ``Hz``/``ms`` so the documented plain
+        # ``frequency=2.0`` call keeps working instead of raising
+        # ``AssertionError: Frequency must be in Hz``.
+        duration = 2000
+        current8 = bp.inputs.sinusoidal_input(amplitude=1., frequency=2.0,
+                                              duration=duration, t_start=100., dt=0.1)
+        current8 = np.asarray(current8)
+        self.assertEqual(current8.shape[0], int(duration / 0.1))
+        # amplitude 1 -> values bounded in [-1, 1]; current is zero before t_start
+        self.assertLessEqual(float(np.max(np.abs(current8))), 1.0 + 1e-5)
+        self.assertTrue(np.allclose(current8[:int(100 / 0.1)], 0.))
+        show(current8, duration, 'Sinusoidal Input')
+
+    def test_square_input_bare_frequency(self):
+        # Regression: same contract for ``square_input``.
+        duration = 2000
+        current9 = bp.inputs.square_input(amplitude=1., frequency=2.0,
+                                          duration=duration, t_start=100., dt=0.1)
+        current9 = np.asarray(current9)
+        self.assertEqual(current9.shape[0], int(duration / 0.1))
+        self.assertLessEqual(float(np.max(np.abs(current9))), 1.0 + 1e-5)
+        show(current9, duration, 'Square Input')
+
+    def test_sinusoidal_input_quantity_frequency(self):
+        # The unit-carrying form (``frequency=2 * u.Hz``, ``duration=... * u.ms``)
+        # must produce the same waveform as the bare-number form.
+        bare = np.asarray(bp.inputs.sinusoidal_input(amplitude=1., frequency=2.0,
+                                                     duration=2000, t_start=100., dt=0.1))
+        quant = np.asarray(bp.inputs.sinusoidal_input(amplitude=1., frequency=2.0 * u.Hz,
+                                                      duration=2000 * u.ms, t_start=100. * u.ms,
+                                                      dt=0.1 * u.ms))
+        self.assertEqual(bare.shape, quant.shape)
+        self.assertTrue(np.allclose(bare, quant))
 
     def test_general1(self):
         I1 = bp.inputs.section_input(values=[0, 1, 2], durations=[10, 20, 30], dt=0.1)

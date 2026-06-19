@@ -17,6 +17,7 @@ import warnings
 
 import brainstate
 import braintools
+import brainunit as u
 
 import brainpy.math
 
@@ -33,6 +34,31 @@ __all__ = [
     'sinusoidal_input',
     'square_input',
 ]
+
+
+def _as_hz(frequency):
+    """Attach ``Hz`` units to a bare numeric frequency.
+
+    ``braintools.input.sinusoidal`` / ``braintools.input.square`` require the
+    frequency to carry frequency (``Hz``) units; a plain number is treated as
+    dimensionless and rejected. A value that is already a
+    :class:`brainunit.Quantity` is returned unchanged.
+    """
+    return frequency if isinstance(frequency, u.Quantity) else frequency * u.Hz
+
+
+def _as_ms(value):
+    """Attach ``ms`` units to a bare numeric time value.
+
+    Once ``dt`` carries time units the waveform helpers convert the oscillation
+    frequency against that time unit, so the remaining time arguments
+    (``dt``/``duration``/``t_start``/``t_end``) must be unit-carrying as well.
+    ``None`` passes through and existing :class:`brainunit.Quantity` values are
+    left untouched.
+    """
+    if value is None:
+        return None
+    return value if isinstance(value, u.Quantity) else value * u.ms
 
 
 def section_input(values, durations, dt=None, return_length=False):
@@ -279,8 +305,10 @@ def sinusoidal_input(amplitude, frequency, duration, dt=None, t_start=0., t_end=
       Whether the sinusoid oscillates around 0 (False), or
       has a positive DC bias, thus non-negative (True).
     """
-    with brainstate.environ.context(dt=brainpy.math.get_dt() if dt is None else dt):
-        return braintools.input.sinusoidal(amplitude, frequency, duration, t_start=t_start, t_end=t_end, bias=bias)
+    dt = brainpy.math.get_dt() if dt is None else dt
+    with brainstate.environ.context(dt=_as_ms(dt)):
+        return braintools.input.sinusoidal(amplitude, _as_hz(frequency), _as_ms(duration),
+                                           t_start=_as_ms(t_start), t_end=_as_ms(t_end), bias=bias)
 
 
 def square_input(amplitude, frequency, duration, dt=None, bias=False, t_start=0., t_end=None):
@@ -305,6 +333,8 @@ def square_input(amplitude, frequency, duration, dt=None, bias=False, t_start=0.
       Whether the sinusoid oscillates around 0 (False), or
       has a positive DC bias, thus non-negative (True).
     """
-    with brainstate.environ.context(dt=brainpy.math.get_dt() if dt is None else dt):
-        return braintools.input.square(amplitude, frequency, duration, t_start=t_start, t_end=t_end, duty_cycle=0.5,
+    dt = brainpy.math.get_dt() if dt is None else dt
+    with brainstate.environ.context(dt=_as_ms(dt)):
+        return braintools.input.square(amplitude, _as_hz(frequency), _as_ms(duration),
+                                       t_start=_as_ms(t_start), t_end=_as_ms(t_end), duty_cycle=0.5,
                                        bias=bias)

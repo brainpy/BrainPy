@@ -124,6 +124,11 @@ class RNNCell(Layer):
             self.state[:] = self.state2train
 
     def reset_state(self, batch_or_mode=None, **kwargs):
+        # Accept ``batch_size`` as an alias for ``batch_or_mode`` so the canonical
+        # ``model.reset(batch_size=...)`` convention (used by ``brainpy.dyn``
+        # neurons and the training tutorials) works on recurrent cells too.
+        if batch_or_mode is None:
+            batch_or_mode = kwargs.get('batch_size', None)
         self.state.value = variable(self._state_initializer, batch_or_mode, self.num_out)
         if self.train_state:
             self.state2train.value = parameter(self._state_initializer, self.num_out, allow_none=False)
@@ -236,6 +241,11 @@ class GRUCell(Layer):
             self.state[:] = self.state2train
 
     def reset_state(self, batch_or_mode=None, **kwargs):
+        # Accept ``batch_size`` as an alias for ``batch_or_mode`` so the canonical
+        # ``model.reset(batch_size=...)`` convention (used by ``brainpy.dyn``
+        # neurons and the training tutorials) works on recurrent cells too.
+        if batch_or_mode is None:
+            batch_or_mode = kwargs.get('batch_size', None)
         self.state.value = variable(self._state_initializer, batch_or_mode, self.num_out)
         if self.train_state:
             self.state2train.value = parameter(self._state_initializer, self.num_out, allow_none=False)
@@ -371,6 +381,8 @@ class LSTMCell(Layer):
             self.state[:] = self.state2train
 
     def reset_state(self, batch_or_mode=None, **kwargs):
+        if batch_or_mode is None:
+            batch_or_mode = kwargs.get('batch_size', None)
         self.state.value = variable(self._state_initializer, batch_or_mode, self.num_out * 2)
         if self.train_state:
             self.state2train.value = parameter(self._state_initializer, self.num_out * 2, allow_none=False)
@@ -522,6 +534,8 @@ class _ConvNDLSTMCell(Layer):
         self.reset_state()
 
     def reset_state(self, batch_or_mode: int = 1, **kwargs):
+        if 'batch_size' in kwargs and kwargs['batch_size'] is not None:
+            batch_or_mode = kwargs['batch_size']
         if self.mode.is_a(bm.NonBatchingMode):
             shape = self.input_shape + (self.out_channels,)
             self.h = variable_(self._state_initializer, shape)

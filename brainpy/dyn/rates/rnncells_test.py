@@ -202,6 +202,28 @@ class Test_Rnncells_reset_state(parameterized.TestCase):
         expected = (2, 8) if cls == 'LSTMCell' else (2, 4)
         self.assertTupleEqual(tuple(cell.state.shape), expected)
 
+    @parameterized.product(cls=['RNNCell', 'GRUCell', 'LSTMCell'])
+    def test_rnn_cells_reset_batch_size_kwarg(self, cls):
+        # Regression (build_training_models tutorial): ``reset(batch_size=...)``
+        # — the canonical convention shared with ``brainpy.dyn`` neurons — must
+        # add a leading batch axis on recurrent cells. Previously the cells only
+        # understood ``batch_or_mode`` and silently dropped ``batch_size``,
+        # resetting the state to an unbatched shape and raising a MathError.
+        bm.random.seed()
+        cell = getattr(bp.dyn, cls)(num_in=3, num_out=4, mode=bm.batching_mode)
+        cell.reset(batch_size=5)
+        expected = (5, 8) if cls == 'LSTMCell' else (5, 4)
+        self.assertTupleEqual(tuple(cell.state.shape), expected)
+
+    @parameterized.product(cls=['RNNCell', 'GRUCell', 'LSTMCell'])
+    def test_rnn_cells_reset_batch_or_mode_kwarg_still_works(self, cls):
+        # Back-compat: the original ``batch_or_mode`` keyword must keep working.
+        bm.random.seed()
+        cell = getattr(bp.dyn, cls)(num_in=3, num_out=4, mode=bm.batching_mode)
+        cell.reset_state(batch_or_mode=3)
+        expected = (3, 8) if cls == 'LSTMCell' else (3, 4)
+        self.assertTupleEqual(tuple(cell.state.shape), expected)
+
 
 if __name__ == '__main__':
     absltest.main()
