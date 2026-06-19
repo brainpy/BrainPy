@@ -30,7 +30,8 @@ def process_pool(func: callable,
     .. Note::
        This multiprocessing function should be called within a `if __main__ == '__main__':` syntax.
 
-    Parameters::
+    Parameters
+    ----------
 
     func : callable
         The function to run model.
@@ -40,7 +41,8 @@ def process_pool(func: callable,
     num_process : int
         The number of the processes.
 
-    Returns::
+    Returns
+    -------
 
     results : list
         Process results.
@@ -84,16 +86,18 @@ def process_pool_lock(func: callable,
     .. Note::
        This multiprocessing function should be called within a `if __main__ == '__main__':` syntax.
 
-    Parameters::
+    Parameters
+    ----------
 
-    func: callable
+    func : callable
         The function to run model.
     all_params : list, tuple, dict
         The parameters of the function arguments.
     num_process : int
         The number of the processes.
 
-    Returns::
+    Returns
+    -------
 
     results : list
         Process results.

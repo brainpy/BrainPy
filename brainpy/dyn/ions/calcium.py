@@ -73,21 +73,22 @@ class CalciumFixed(Calcium):
 class CalciumDyna(Calcium):
     """Calcium ion flow with dynamics.
 
-    Parameters::
+    Parameters
+    ----------
 
-    size: int, tuple of int
+    size : int, tuple of int
       The ion size.
-    keep_size: bool
+    keep_size : bool
       Keep the geometry size.
-    C0: float, ArrayType, Initializer, Callable
+    C0 : float, ArrayType, Initializer, Callable
       The Calcium concentration outside of membrane.
-    T: float, ArrayType, Initializer, Callable
+    T : float, ArrayType, Initializer, Callable
       The temperature.
-    C_initializer: Initializer, Callable, ArrayType
+    C_initializer : Initializer, Callable, ArrayType
       The initializer for Calcium concentration.
-    method: str
+    method : str
       The numerical method.
-    name: str
+    name : str
       The ion name.
     """
     R = 8.31441  # gas constant, J*mol-1*K-1
@@ -228,7 +229,8 @@ class CalciumDetailed(CalciumDyna):
     :math:`F=96,489 \mathrm{C} / \mathrm{mol}`,
     and :math:`\left[\mathrm{Ca}^{2+}\right]_{0}=2 \mathrm{mM}`.
 
-    Parameters::
+    Parameters
+    ----------
 
     d : float
       The thickness of the peri-membrane "shell".
@@ -243,7 +245,8 @@ class CalciumDetailed(CalciumDyna):
     R : float
       The gas constant. (:math:` J*mol^{-1}*K^{-1}`)
 
-    References::
+    References
+    ----------
 
     .. [1] Destexhe, Alain, Agnessa Babloyantz, and Terrence J. Sejnowski.
            "Ionic mechanisms for intrinsic slow oscillations in thalamic

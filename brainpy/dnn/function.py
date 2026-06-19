@@ -29,14 +29,14 @@ __all__ = [
 class Activation(Layer):
     r"""Applies an activation function to the inputs
 
-    Parameters:
+    Parameters
     ----------
-    activate_fun: Callable, function
-      The function of Activation
-    name: str, Optional
-      The name of the object
-    mode: Mode
-      Enable training this node or not. (default True).
+    activate_fun : Callable, function
+        The function of Activation
+    name : str, Optional
+        The name of the object
+    mode : Mode
+        Enable training this node or not. (default True).
     """
     update_style = 'x'
 
@@ -65,13 +65,19 @@ class Flatten(Layer):
           number of dimensions including none.
         - Output: :math:`(*, \prod_{i=\text{start}}^{\text{end}} S_{i}, *)`.
 
-    Args:
-        start_dim: first dim to flatten (default = 1).
-        end_dim: last dim to flatten (default = -1).
-        name: str, Optional. The name of the object.
-        mode: Mode. Enable training this node or not. (default True).
+    Parameters
+    ----------
+    start_dim : int
+        first dim to flatten (default = 1).
+    end_dim : int
+        last dim to flatten (default = -1).
+    name : str, Optional
+        The name of the object.
+    mode : Mode
+        Enable training this node or not. (default True).
 
-    Examples::
+    Examples
+    --------
         >>> import brainpy.math as bm
         >>> inp = bm.random.randn(32, 1, 5, 5)
         >>> # With default parameters
@@ -126,11 +132,15 @@ class Unflatten(Layer):
         - Output: :math:`(*, U_1, ..., U_n, *)`, where :math:`U` = :attr:`unflattened_size` and
           :math:`\prod_{i=1}^n U_i = S_{\text{dim}}`.
 
-    Args:
-        dim: int, Dimension to be unflattened.
-        sizes: Sequence of int. New shape of the unflattened dimension.
+    Parameters
+    ----------
+    dim : int
+        Dimension to be unflattened.
+    sizes : Sequence of int
+        New shape of the unflattened dimension.
 
-    Examples:
+    Examples
+    --------
         >>> import brainpy as bp
         >>> import brainpy.math as bm
         >>> input = bm.random.randn(2, 50)

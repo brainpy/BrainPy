@@ -40,20 +40,22 @@ def jax_vectorize_map(
     suitable to be used in GPU backends. This is because ``jax.vmap``
     can parallelize the mapped axis on GPU devices.
 
-    Parameters::
+    Parameters
+    ----------
 
-    func: callable, function
+    func : callable, function
       The function to be mapped.
-    arguments: sequence, dict
+    arguments : sequence, dict
       The function arguments, used to define tasks.
-    num_parallel: int
+    num_parallel : int
       The number of batch size.
-    clear_buffer: bool
+    clear_buffer : bool
       Clear the buffer memory after running each batch data.
 
-    Returns::
+    Returns
+    -------
 
-    results: Any
+    results : Any
       The running results.
     """
     if not isinstance(arguments, (dict, tuple, list)):
@@ -105,20 +107,22 @@ def jax_parallelize_map(
     If you are using it in a single CPU, please set host device count
     by ``brainpy.math.set_host_device_count(n)`` before.
 
-    Parameters::
+    Parameters
+    ----------
 
-    func: callable, function
+    func : callable, function
       The function to be mapped.
-    arguments: sequence, dict
+    arguments : sequence, dict
       The function arguments, used to define tasks.
-    num_parallel: int
+    num_parallel : int
       The number of batch size.
-    clear_buffer: bool
+    clear_buffer : bool
       Clear the buffer memory after running each batch data.
 
-    Returns::
+    Returns
+    -------
 
-    results: Any
+    results : Any
       The running results.
     """
     if not isinstance(arguments, (dict, tuple, list)):

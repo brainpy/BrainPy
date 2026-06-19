@@ -151,15 +151,24 @@ class FullProjAlignPreSDMg(Projection):
         bp.visualize.raster_plot(indices, spks, show=True)
 
 
-    Args:
-      pre: The pre-synaptic neuron group.
-      syn: The synaptic dynamics.
-      delay: The synaptic delay.
-      comm: The synaptic communication.
-      out: The synaptic output.
-      post: The post-synaptic neuron group.
-      name: str. The projection name.
-      mode: Mode. The computing mode.
+    Parameters
+    ----------
+    pre : DynamicalSystem
+        The pre-synaptic neuron group.
+    syn : ParamDescriber[JointType[DynamicalSystem, SupportAutoDelay]]
+        The synaptic dynamics.
+    delay : Union[None, int, float]
+        The synaptic delay.
+    comm : DynamicalSystem
+        The synaptic communication.
+    out : JointType[DynamicalSystem, BindCondData]
+        The synaptic output.
+    post : DynamicalSystem
+        The post-synaptic neuron group.
+    name : str
+        The projection name.
+    mode : Mode
+        The computing mode.
     """
 
     def __init__(
@@ -288,15 +297,24 @@ class FullProjAlignPreDSMg(Projection):
         bp.visualize.raster_plot(indices, spks, show=True)
 
 
-    Args:
-      pre: The pre-synaptic neuron group.
-      delay: The synaptic delay.
-      syn: The synaptic dynamics.
-      comm: The synaptic communication.
-      out: The synaptic output.
-      post: The post-synaptic neuron group.
-      name: str. The projection name.
-      mode: Mode. The computing mode.
+    Parameters
+    ----------
+    pre : JointType[DynamicalSystem, SupportAutoDelay]
+        The pre-synaptic neuron group.
+    delay : Union[None, int, float]
+        The synaptic delay.
+    syn : ParamDescriber[DynamicalSystem]
+        The synaptic dynamics.
+    comm : DynamicalSystem
+        The synaptic communication.
+    out : JointType[DynamicalSystem, BindCondData]
+        The synaptic output.
+    post : DynamicalSystem
+        The post-synaptic neuron group.
+    name : str
+        The projection name.
+    mode : Mode
+        The computing mode.
     """
 
     def __init__(
@@ -420,15 +438,24 @@ class FullProjAlignPreSD(Projection):
         bp.visualize.raster_plot(indices, spks, show=True)
 
 
-    Args:
-      pre: The pre-synaptic neuron group.
-      syn: The synaptic dynamics.
-      delay: The synaptic delay.
-      comm: The synaptic communication.
-      out: The synaptic output.
-      post: The post-synaptic neuron group.
-      name: str. The projection name.
-      mode: Mode. The computing mode.
+    Parameters
+    ----------
+    pre : DynamicalSystem
+        The pre-synaptic neuron group.
+    syn : JointType[DynamicalSystem, SupportAutoDelay]
+        The synaptic dynamics.
+    delay : Union[None, int, float]
+        The synaptic delay.
+    comm : DynamicalSystem
+        The synaptic communication.
+    out : JointType[DynamicalSystem, BindCondData]
+        The synaptic output.
+    post : DynamicalSystem
+        The post-synaptic neuron group.
+    name : str
+        The projection name.
+    mode : Mode
+        The computing mode.
     """
 
     def __init__(
@@ -555,15 +582,24 @@ class FullProjAlignPreDS(Projection):
         bp.visualize.raster_plot(indices, spks, show=True)
 
 
-    Args:
-      pre: The pre-synaptic neuron group.
-      delay: The synaptic delay.
-      syn: The synaptic dynamics.
-      comm: The synaptic communication.
-      out: The synaptic output.
-      post: The post-synaptic neuron group.
-      name: str. The projection name.
-      mode: Mode. The computing mode.
+    Parameters
+    ----------
+    pre : JointType[DynamicalSystem, SupportAutoDelay]
+        The pre-synaptic neuron group.
+    delay : Union[None, int, float]
+        The synaptic delay.
+    syn : DynamicalSystem
+        The synaptic dynamics.
+    comm : DynamicalSystem
+        The synaptic communication.
+    out : JointType[DynamicalSystem, BindCondData]
+        The synaptic output.
+    post : DynamicalSystem
+        The post-synaptic neuron group.
+    name : str
+        The projection name.
+    mode : Mode
+        The computing mode.
     """
 
     def __init__(

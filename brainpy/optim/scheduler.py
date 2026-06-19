@@ -88,16 +88,17 @@ class StepLR(Scheduler):
     """Decays the learning rate of each parameter group by gamma every
     `step_size` epochs.
 
-    Parameters::
+    Parameters
+    ----------
 
-    lr: float
+    lr : float
       Initial learning rate.
-    step_size: int
+    step_size : int
       Period of learning rate decay.
-    gamma: float
+    gamma : float
       Multiplicative factor of learning rate decay.
       Default: 0.1.
-    last_epoch: int
+    last_epoch : int
       The index of last epoch. Default: -1.
     """
 
@@ -129,16 +130,17 @@ class MultiStepLR(Scheduler):
     happen simultaneously with other changes to the learning rate from outside
     this scheduler. When last_epoch=-1, sets initial lr as lr.
 
-    Parameters::
+    Parameters
+    ----------
 
-    lr: float
+    lr : float
       Initial learning rate.
-    milestones: sequence of int
+    milestones : sequence of int
       List of epoch indices. Must be increasing.
-    gamma: float
+    gamma : float
       Multiplicative factor of learning rate decay.
       Default: 0.1.
-    last_epoch: int
+    last_epoch : int
       The index of last epoch. Default: -1.
     """
 
@@ -201,15 +203,16 @@ class CosineAnnealingLR(Scheduler):
     `SGDR: Stochastic Gradient Descent with Warm Restarts`_. Note that this only
     implements the cosine annealing part of SGDR, and not the restarts.
 
-    Parameters::
+    Parameters
+    ----------
 
-    lr: float
+    lr : float
       Initial learning rate.
-    T_max: int
+    T_max : int
       Maximum number of iterations.
-    eta_min: float
+    eta_min : float
       Minimum learning rate. Default: 0.
-    last_epoch: int
+    last_epoch : int
       The index of last epoch. Default: -1.
 
     .. _SGDR\: Stochastic Gradient Descent with Warm Restarts:
@@ -250,20 +253,21 @@ class CosineAnnealingWarmRestarts(CallBasedScheduler):
     It has been proposed in
     `SGDR: Stochastic Gradient Descent with Warm Restarts`_.
 
-    Parameters::
+    Parameters
+    ----------
 
-    lr: float
+    lr : float
       Initial learning rate.
-    num_call_per_epoch: int
+    num_call_per_epoch : int
       The number the scheduler to call in each epoch.
       This usually means the number of batch in each epoch training.
-    T_0: int
+    T_0 : int
       Number of iterations for the first restart.
-    T_mult: int
+    T_mult : int
       A factor increases :math:`T_{i}` after a restart. Default: 1.
-    eta_min: float
+    eta_min : float
       Minimum learning rate. Default: 0.
-    last_call: int
+    last_call : int
       The index of last call. Default: -1.
 
     .. _SGDR\: Stochastic Gradient Descent with Warm Restarts:
@@ -322,13 +326,14 @@ class ExponentialLR(Scheduler):
     """Decays the learning rate of each parameter group by gamma every epoch.
     When last_epoch=-1, sets initial lr as lr.
 
-    Parameters::
+    Parameters
+    ----------
 
-    lr: float
+    lr : float
       Initial learning rate.
-    gamma: float
+    gamma : float
       Multiplicative factor of learning rate decay.
-    last_epoch: int
+    last_epoch : int
       The index of last epoch. Default: -1.
     """
 

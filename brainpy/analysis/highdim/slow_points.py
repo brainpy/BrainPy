@@ -57,7 +57,8 @@ class SlowPointFinder(base.DSAnalyzer):
     - exclude any non-unique fixed points according to a tolerance
     - exclude any far-away "outlier" fixed points
 
-    Parameters::
+    Parameters
+    ----------
 
     f_cell : callable, function, DynamicalSystem
       The target of computing the recurrent units.
@@ -71,7 +72,7 @@ class SlowPointFinder(base.DSAnalyzer):
     verbose : bool
       Whether output the optimization progress.
 
-    f_loss: callable
+    f_loss : callable
       The loss function.
       - If ``f_type`` is `"discrete"`, the loss function must receive three
         arguments, i.e., ``loss(outputs, targets, axis)``.
@@ -79,29 +80,29 @@ class SlowPointFinder(base.DSAnalyzer):
         arguments, i.e., ``loss(outputs, axis)``.
 
       .. versionadded:: 2.2.0
-    t: float
+    t : float
       Parameter for ``f_cell`` is instance of :py:class:`~.DynamicalSystem`.
       The time to evaluate the fixed points. Default is 0.
 
       .. versionadded:: 2.2.0
-    dt: float
+    dt : float
       Parameter for ``f_cell`` is instance of :py:class:`~.DynamicalSystem`.
       The numerical integration step, which can be used when .
       The default is given by `brainpy.math.get_dt()`.
 
       .. versionadded:: 2.2.0
-    inputs: sequence, callable
+    inputs : sequence, callable
       Parameter for ``f_cell`` is instance of :py:class:`~.DynamicalSystem`.
       Same as ``inputs`` in :py:class:`~.DSRunner`.
 
       .. versionadded:: 2.2.0
-    excluded_vars: sequence, dict
+    excluded_vars : sequence, dict
       Parameter for ``f_cell`` is instance of :py:class:`~.DynamicalSystem`.
       The excluded variables (can be a sequence of  `Variable` instances).
       These variables will not be included for optimization of fixed points.
 
       .. versionadded:: 2.2.0
-    target_vars: dict
+    target_vars : dict
       Parameter for ``f_cell`` is instance of :py:class:`~.DynamicalSystem`.
       The target variables (can be a dict of `Variable` instances).
       These variables will be included for optimization of fixed points.
@@ -114,7 +115,7 @@ class SlowPointFinder(base.DSAnalyzer):
 
       .. deprecated:: 2.2.0
          Has been removed. Please use ``f_loss`` to set different loss function.
-    fun_inputs: callable
+    fun_inputs : callable
 
       .. deprecated:: 2.3.1
          Will be removed since version 2.4.0.
@@ -318,13 +319,14 @@ class SlowPointFinder(base.DSAnalyzer):
     ):
         """Optimize fixed points with gradient descent methods.
 
-        Parameters::
+        Parameters
+        ----------
 
         candidates : ArrayType, dict
           The array with the shape of (batch size, state dim) of hidden states
           of RNN to start training for fixed points.
 
-        tolerance: float
+        tolerance : float
           The loss threshold during optimization
 
         num_opt : int
@@ -333,7 +335,7 @@ class SlowPointFinder(base.DSAnalyzer):
         num_batch : int
           Print training information during optimization every so often.
 
-        optimizer: optim.Optimizer
+        optimizer : optim.Optimizer
           The optimizer instance.
 
           .. versionadded:: 2.1.2
@@ -423,11 +425,12 @@ class SlowPointFinder(base.DSAnalyzer):
     ):
         """Optimize fixed points with nonlinear optimization solvers.
 
-        Parameters::
+        Parameters
+        ----------
 
-        candidates: ArrayType, dict
+        candidates : ArrayType, dict
           The candidate (initial) fixed points.
-        opt_solver: str
+        opt_solver : str
           The solver of the optimization.
         """
         # optimization function
@@ -468,9 +471,10 @@ class SlowPointFinder(base.DSAnalyzer):
     def filter_loss(self, tolerance: float = 1e-5):
         """Filter fixed points whose speed larger than a given tolerance.
 
-        Parameters::
+        Parameters
+        ----------
 
-        tolerance: float
+        tolerance : float
           Discard fixed points with squared speed larger than this value.
         """
         if self.verbose:
@@ -493,9 +497,10 @@ class SlowPointFinder(base.DSAnalyzer):
     def keep_unique(self, tolerance: float = 2.5e-2):
         """Filter unique fixed points by choosing a representative within tolerance.
 
-        Parameters::
+        Parameters
+        ----------
 
-        tolerance: float
+        tolerance : float
           Tolerance for determination of identical fixed points.
         """
         if self.verbose:
@@ -515,9 +520,10 @@ class SlowPointFinder(base.DSAnalyzer):
     def exclude_outliers(self, tolerance: float = 1e0):
         """Exclude points whose closest neighbor is further than threshold.
 
-        Parameters::
+        Parameters
+        ----------
 
-        tolerance: float
+        tolerance : float
           Any point whose closest fixed point is greater than tol is an outlier.
         """
         if self.verbose:
@@ -560,19 +566,20 @@ class SlowPointFinder(base.DSAnalyzer):
     ):
         """Compute the Jacobian matrices at the points.
 
-        Parameters::
+        Parameters
+        ----------
 
-        points: np.ndarray, bm.ArrayType, jax.ndarray
+        points : np.ndarray, bm.ArrayType, jax.ndarray
           The fixed points with the shape of (num_point, num_dim).
-        stack_dict_var: bool
+        stack_dict_var : bool
           Stack dictionary variables to calculate Jacobian matrix?
-        plot: bool
+        plot : bool
           Plot the decomposition results of the Jacobian matrix.
-        num_col: int
+        num_col : int
           The number of the figure column.
-        len_col: int
+        len_col : int
           The length of each column.
-        len_row: int
+        len_row : int
           The length of each row.
         """
         # check data
@@ -620,16 +627,18 @@ class SlowPointFinder(base.DSAnalyzer):
     def decompose_eigenvalues(matrices, sort_by='magnitude', do_compute_lefts=False):
         """Compute the eigenvalues of the matrices.
 
-        Parameters::
+        Parameters
+        ----------
 
-        matrices: np.ndarray, bm.ArrayType, jax.ndarray
+        matrices : np.ndarray, bm.ArrayType, jax.ndarray
           A 3D array with the shape of (num_matrices, dim, dim).
-        sort_by: str
+        sort_by : str
           The method of sorting.
-        do_compute_lefts: bool
+        do_compute_lefts : bool
           Compute the left eigenvectors? Requires a pseudo-inverse call.
 
-        Returns::
+        Returns
+        -------
 
         decompositions : list
           A list of dictionaries with sorted eigenvalues components:

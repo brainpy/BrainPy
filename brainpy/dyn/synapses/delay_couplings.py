@@ -35,19 +35,20 @@ __all__ = [
 class DelayCoupling(Projection):
     """Delay coupling.
 
-    Parameters::
+    Parameters
+    ----------
 
-    delay_var: Variable
+    delay_var : Variable
       The delay variable.
-    var_to_output: Variable, sequence of Variable
+    var_to_output : Variable, sequence of Variable
       The target variables to output.
-    conn_mat: ArrayType
+    conn_mat : ArrayType
       The connection matrix.
-    required_shape: sequence of int
+    required_shape : sequence of int
       The required shape of `(pre, post)`.
-    delay_steps: int, ArrayType
+    delay_steps : int, ArrayType
       The matrix of delay time steps. Must be int.
-    initial_delay_data: Initializer, Callable
+    initial_delay_data : Initializer, Callable
       The initializer of the initial delay data.
     """
 
@@ -134,7 +135,8 @@ class DiffusiveCoupling(DelayCoupling):
        target_var += coupling
 
 
-    Examples::
+    Examples
+    --------
 
     >>> import brainpy as bp
     >>> from brainpy import rates
@@ -144,21 +146,22 @@ class DiffusiveCoupling(DelayCoupling):
     >>>                                      initial_delay_data=bp.init.Uniform(0, 0.05))
     >>> net = bp.Network(areas, conn)
 
-    Parameters::
+    Parameters
+    ----------
 
-    coupling_var1: Variable
+    coupling_var1 : Variable
       The first coupling variable, used for delay.
-    coupling_var2: Variable
+    coupling_var2 : Variable
       Another coupling variable.
-    var_to_output: Variable, sequence of Variable
+    var_to_output : Variable, sequence of Variable
       The target variables to output.
-    conn_mat: ArrayType
+    conn_mat : ArrayType
       The connection matrix.
-    delay_steps: int, ArrayType
+    delay_steps : int, ArrayType
       The matrix of delay time steps. Must be int.
-    initial_delay_data: Initializer, Callable
+    initial_delay_data : Initializer, Callable
       The initializer of the initial delay data.
-    name: str
+    name : str
       The name of the model.
     """
 
@@ -239,19 +242,20 @@ class AdditiveCoupling(DelayCoupling):
        coupling = g * delayed_coupling_var
        target_var += coupling
 
-    Parameters::
+    Parameters
+    ----------
 
-    coupling_var: Variable
+    coupling_var : Variable
       The coupling variable, used for delay.
-    var_to_output: Variable, sequence of Variable
+    var_to_output : Variable, sequence of Variable
       The target variables to output.
-    conn_mat: ArrayType
+    conn_mat : ArrayType
       The connection matrix.
-    delay_steps: int, ArrayType
+    delay_steps : int, ArrayType
       The matrix of delay time steps. Must be int.
-    initial_delay_data: Initializer, Callable
+    initial_delay_data : Initializer, Callable
       The initializer of the initial delay data.
-    name: str
+    name : str
       The name of the model.
     """
 

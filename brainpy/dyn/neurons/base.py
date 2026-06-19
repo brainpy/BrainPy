@@ -25,9 +25,10 @@ __all__ = ['GradNeuDyn']
 class GradNeuDyn(NeuDyn):
     """Differentiable and Parallelizable Neuron Group.
 
-    Args:
-      {pneu}
-      {dpneu}
+    Parameters
+    ----------
+    {pneu}
+    {dpneu}
     """
 
     supported_modes = (bm.TrainingMode, bm.NonBatchingMode)

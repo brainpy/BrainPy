@@ -32,11 +32,14 @@ __all__ = [
 def l2_norm(x, axis=None):
     """Computes the L2 loss.
 
-    Args:
-        x: n-dimensional tensor of floats.
+    Parameters
+    ----------
+    x
+        n-dimensional tensor of floats.
 
-    Returns:
-        scalar tensor containing the l2 loss of x.
+    Returns
+    -------
+    scalar tensor containing the l2 loss of x.
     """
     leaves, _ = tree_flatten(x)
     return jnp.sqrt(jnp.sum(jnp.asarray([jnp.vdot(x, x) for x in leaves]), axis=axis))
@@ -45,8 +48,9 @@ def l2_norm(x, axis=None):
 def mean_absolute(outputs, axis=None):
     r"""Computes the mean absolute error between x and y.
 
-    Returns:
-        tensor of shape (d_i, ..., for i in keep_axis) containing the mean absolute error.
+    Returns
+    -------
+    tensor of shape (d_i, ..., for i in keep_axis) containing the mean absolute error.
     """
     r = tree_map(lambda a: _bt_metric.absolute_error(a, None, axis=axis, reduction='mean'),
                  outputs, is_leaf=_is_leaf)
@@ -64,12 +68,19 @@ def log_cosh(errors):
 
     log(cosh(x)) is approximately `(x**2) / 2` for small x and `abs(x) - log(2)`
     for large x.  It is a twice differentiable alternative to the Huber loss.
-    References:
-      [Chen et al, 2019](https://openreview.net/pdf?id=rkglvsC9Ym)
-    Args:
-      errors: a vector of arbitrary shape.
-    Returns:
-      the log-cosh loss.
+
+    Parameters
+    ----------
+    errors
+        a vector of arbitrary shape.
+
+    Returns
+    -------
+    the log-cosh loss.
+
+    References
+    ----------
+    [Chen et al, 2019](https://openreview.net/pdf?id=rkglvsC9Ym)
     """
     r = tree_map(lambda a: _bt_metric.log_cosh(a),
                  errors, is_leaf=_is_leaf)
@@ -81,14 +92,22 @@ def smooth_labels(labels, alpha: float) -> jnp.ndarray:
     Label smoothing is often used in combination with a cross-entropy loss.
     Smoothed labels favour small logit gaps, and it has been shown that this can
     provide better model calibration by preventing overconfident predictions.
-    References:
-      [Müller et al, 2019](https://arxiv.org/pdf/1906.02629.pdf)
-    Args:
-      labels: one hot labels to be smoothed.
-      alpha: the smoothing factor, the greedy category with be assigned
+
+    Parameters
+    ----------
+    labels
+        one hot labels to be smoothed.
+    alpha : float
+        the smoothing factor, the greedy category with be assigned
         probability `(1-alpha) + alpha / num_categories`
-    Returns:
-      a smoothed version of the one hot input labels.
+
+    Returns
+    -------
+    a smoothed version of the one hot input labels.
+
+    References
+    ----------
+    [Müller et al, 2019](https://arxiv.org/pdf/1906.02629.pdf)
     """
     r = tree_map(lambda tar: _bt_metric.smooth_labels(tar, alpha),
                  labels, is_leaf=lambda x: isinstance(x, bm.Array))

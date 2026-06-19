@@ -38,7 +38,8 @@ __all__ = [
 class IntegratorRunner(Runner):
     """Structural runner for numerical integrators in brainpy.
 
-    Examples::
+    Examples
+    --------
 
     Example to run an ODE integrator,
 
@@ -112,22 +113,23 @@ class IntegratorRunner(Runner):
     ):
         """Initialization of structural runner for integrators.
 
-        Parameters::
+        Parameters
+        ----------
 
-        target: Integrator
+        target : Integrator
           The target to run.
-        monitors: sequence of str
+        monitors : sequence of str
           The variables to monitor.
-        fun_monitors: dict
+        fun_monitors : dict
           The monitors with callable functions.
           .. deprecated:: 2.3.1
-        inits: sequence, dict
+        inits : sequence, dict
           The initial value of variables. With this parameter,
           you can easily control the number of variables to simulate.
           For example, if one of the variable has the shape of 10,
           then all variables will be an instance of :py:class:`brainpy.math.Variable`
           with the shape of :math:`(10,)`.
-        args: dict
+        args : dict
           The equation arguments to update.
           Note that if one of the arguments are heterogeneous (i.e., a tensor),
           it means we should run multiple trials. However, you can set the number
@@ -137,7 +139,7 @@ class IntegratorRunner(Runner):
           .. deprecated:: 2.3.1
              Will be removed after version 2.4.0.
 
-        dyn_args: dict
+        dyn_args : dict
           The dynamically changed arguments. This means this argument can control
           the argument dynamically changed. For example, if you want to inject a
           time varied currents into the HH neuron model, you can pack the currents
@@ -146,11 +148,11 @@ class IntegratorRunner(Runner):
           .. deprecated:: 2.3.1
              Will be removed after version 2.4.0.
 
-        dt: float, int
-        dyn_vars: dict
-        jit: bool
-        progress_bar: bool
-        numpy_mon_after_run: bool
+        dt : float, int
+        dyn_vars : dict
+        jit : bool
+        progress_bar : bool
+        numpy_mon_after_run : bool
         """
 
         if not isinstance(target, Integrator):
@@ -286,19 +288,20 @@ class IntegratorRunner(Runner):
     ):
         """The running function.
 
-        Parameters::
+        Parameters
+        ----------
 
         duration : float, int, tuple, list
           The running duration.
         start_t : float, optional
           The start time to simulate.
-        eval_time: bool
+        eval_time : bool
           Evaluate the running time or not?
-        args: dict
+        args : dict
           The equation arguments to update.
           .. versionadded:: 2.3.1
 
-        dyn_args: dict
+        dyn_args : dict
           The dynamically changed arguments over time. The size of first dimension should be
           equal to the running ``duration``.
 

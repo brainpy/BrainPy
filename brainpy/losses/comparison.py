@@ -126,33 +126,40 @@ class CrossEntropyLoss(WeightedLoss):
         indices, as this allows for optimized computation. Consider providing `target` as
         class probabilities only when a single class label per minibatch item is too restrictive.
 
-    Args:
-        weight (Tensor, optional): a manual rescaling weight given to each class.
-            If given, has to be a Tensor of size `C`
-        size_average (bool, optional): Deprecated (see :attr:`reduction`). By default,
-            the losses are averaged over each loss element in the batch. Note that for
-            some losses, there are multiple elements per sample. If the field :attr:`size_average`
-            is set to ``False``, the losses are instead summed for each minibatch. Ignored
-            when :attr:`reduce` is ``False``. Default: ``True``
-        ignore_index (int, optional): Specifies a target value that is ignored
-            and does not contribute to the input gradient. When :attr:`size_average` is
-            ``True``, the loss is averaged over non-ignored targets. Note that
-            :attr:`ignore_index` is only applicable when the target contains class indices.
-        reduce (bool, optional): Deprecated (see :attr:`reduction`). By default, the
-            losses are averaged or summed over observations for each minibatch depending
-            on :attr:`size_average`. When :attr:`reduce` is ``False``, returns a loss per
-            batch element instead and ignores :attr:`size_average`. Default: ``True``
-        reduction (str, optional): Specifies the reduction to apply to the output:
-            ``'none'`` | ``'mean'`` | ``'sum'``. ``'none'``: no reduction will
-            be applied, ``'mean'``: the weighted mean of the output is taken,
-            ``'sum'``: the output will be summed. Note: :attr:`size_average`
-            and :attr:`reduce` are in the process of being deprecated, and in
-            the meantime, specifying either of those two args will override
-            :attr:`reduction`. Default: ``'mean'``
-        label_smoothing (float, optional): A float in [0.0, 1.0]. Specifies the amount
-            of smoothing when computing the loss, where 0.0 means no smoothing. The targets
-            become a mixture of the original ground truth and a uniform distribution as described in
-            `Rethinking the Inception Architecture for Computer Vision <https://arxiv.org/abs/1512.00567>`__. Default: :math:`0.0`.
+    Parameters
+    ----------
+    weight : Tensor, optional
+        a manual rescaling weight given to each class.
+        If given, has to be a Tensor of size `C`
+    size_average : bool, optional
+        Deprecated (see :attr:`reduction`). By default,
+        the losses are averaged over each loss element in the batch. Note that for
+        some losses, there are multiple elements per sample. If the field :attr:`size_average`
+        is set to ``False``, the losses are instead summed for each minibatch. Ignored
+        when :attr:`reduce` is ``False``. Default: ``True``
+    ignore_index : int, optional
+        Specifies a target value that is ignored
+        and does not contribute to the input gradient. When :attr:`size_average` is
+        ``True``, the loss is averaged over non-ignored targets. Note that
+        :attr:`ignore_index` is only applicable when the target contains class indices.
+    reduce : bool, optional
+        Deprecated (see :attr:`reduction`). By default, the
+        losses are averaged or summed over observations for each minibatch depending
+        on :attr:`size_average`. When :attr:`reduce` is ``False``, returns a loss per
+        batch element instead and ignores :attr:`size_average`. Default: ``True``
+    reduction : str, optional
+        Specifies the reduction to apply to the output:
+        ``'none'`` | ``'mean'`` | ``'sum'``. ``'none'``: no reduction will
+        be applied, ``'mean'``: the weighted mean of the output is taken,
+        ``'sum'``: the output will be summed. Note: :attr:`size_average`
+        and :attr:`reduce` are in the process of being deprecated, and in
+        the meantime, specifying either of those two args will override
+        :attr:`reduction`. Default: ``'mean'``
+    label_smoothing : float, optional
+        A float in [0.0, 1.0]. Specifies the amount
+        of smoothing when computing the loss, where 0.0 means no smoothing. The targets
+        become a mixture of the original ground truth and a uniform distribution as described in
+        `Rethinking the Inception Architecture for Computer Vision <https://arxiv.org/abs/1512.00567>`__. Default: :math:`0.0`.
 
     Shape:
         - Input: Shape :math:`(C)`, :math:`(N, C)` or :math:`(N, C, d_1, d_2, ..., d_K)` with :math:`K \geq 1`
@@ -172,7 +179,9 @@ class CrossEntropyLoss(WeightedLoss):
                 N ={} & \text{batch size} \\
             \end{aligned}
 
-    Examples::
+    Examples
+    --------
+    .. code-block:: python
 
         >>> # Example of target with class indices
         >>> loss = nn.CrossEntropyLoss()
@@ -234,31 +243,31 @@ def cross_entropy_loss(predicts, targets, weight=None, reduction='mean',
     an input of size :math:`(d_1, d_2, ..., d_K, minibatch, C)` with :math:`K \geq 1`,
     where :math:`K` is the number of dimensions, and a target of appropriate shape.
 
-    Parameters::
-
+    Parameters
+    ----------
     predicts : ArrayType
-      :math:`(N, C)` where `C = number of classes`, or
-      :math:`(d_1, d_2, ..., d_K, N, C)` with :math:`K \geq 1`
-      in the case of `K`-dimensional loss.
+        :math:`(N, C)` where `C = number of classes`, or
+        :math:`(d_1, d_2, ..., d_K, N, C)` with :math:`K \geq 1`
+        in the case of `K`-dimensional loss.
     targets : ArrayType
-      :math:`(N, C)` or :math:`(N)`  where each value is
-      :math:`0 \leq \text{targets}[i] \leq C-1`, or
-      :math:`(d_1, d_2, ..., d_K, N, C)` or :math:`(d_1, d_2, ..., d_K, N)`
-      with :math:`K \geq 1` in the case of K-dimensional loss.
+        :math:`(N, C)` or :math:`(N)`  where each value is
+        :math:`0 \leq \text{targets}[i] \leq C-1`, or
+        :math:`(d_1, d_2, ..., d_K, N, C)` or :math:`(d_1, d_2, ..., d_K, N)`
+        with :math:`K \geq 1` in the case of K-dimensional loss.
     weight : ArrayType, optional
-      A manual rescaling weight given to each class. If given, has to be an array of size `C`.
+        A manual rescaling weight given to each class. If given, has to be an array of size `C`.
     reduction : str, optional
-      Specifies the reduction to apply to the output: ``'none'`` | ``'mean'`` | ``'sum'``.
-      - ``'none'``: no reduction will be applied,
-      - ``'mean'``: the weighted mean of the output is taken,
-      - ``'sum'``: the output will be summed.
+        Specifies the reduction to apply to the output: ``'none'`` | ``'mean'`` | ``'sum'``.
+        - ``'none'``: no reduction will be applied,
+        - ``'mean'``: the weighted mean of the output is taken,
+        - ``'sum'``: the output will be summed.
 
-    Returns::
-
+    Returns
+    -------
     output : scalar, ArrayType
-      If :attr:`reduction` is ``'none'``, then the same size as the target:
-      :math:`(N)`, or  :math:`(d_1, d_2, ..., d_K, N)` with :math:`K \geq 1`
-      in the case of K-dimensional loss.
+        If :attr:`reduction` is ``'none'``, then the same size as the target:
+        :math:`(N)`, or  :math:`(d_1, d_2, ..., d_K, N)` with :math:`K \geq 1`
+        in the case of K-dimensional loss.
     """
 
     def _cel(_pred, _tar):
@@ -311,12 +320,16 @@ def cross_entropy_loss(predicts, targets, weight=None, reduction='mean',
 def cross_entropy_sparse(predicts, targets):
     r"""Computes the softmax cross-entropy loss.
 
-    Args:
-        predicts: (batch, ..., #class) tensor of logits.
-        targets: (batch, ...) integer tensor of label indexes in {0, ...,#nclass-1} or just a single integer.
+    Parameters
+    ----------
+    predicts
+        (batch, ..., #class) tensor of logits.
+    targets
+        (batch, ...) integer tensor of label indexes in {0, ...,#nclass-1} or just a single integer.
 
-    Returns:
-        (batch, ...) tensor of the cross-entropy for each entry.
+    Returns
+    -------
+    (batch, ...) tensor of the cross-entropy for each entry.
     """
 
     def crs(_prd, _tar):
@@ -333,12 +346,16 @@ def cross_entropy_sparse(predicts, targets):
 def cross_entropy_sigmoid(predicts, targets):
     """Computes the sigmoid cross-entropy loss.
 
-    Args:
-        predicts: (batch, ..., #class) tensor of logits.
-        targets: (batch, ..., #class) tensor of label probabilities (e.g. labels.sum(axis=-1) must be 1)
+    Parameters
+    ----------
+    predicts
+        (batch, ..., #class) tensor of logits.
+    targets
+        (batch, ..., #class) tensor of label probabilities (e.g. labels.sum(axis=-1) must be 1)
 
-    Returns:
-        (batch, ...) tensor of the cross-entropies for each entry.
+    Returns
+    -------
+    (batch, ...) tensor of the cross-entropies for each entry.
     """
     r = tree_map(
         lambda pred, tar: bm.as_jax(
@@ -395,14 +412,16 @@ class NLLLoss(Loss):
             \text{if reduction} = \text{`sum'.}
         \end{cases}
 
-    Args:
-        reduction (str, optional): Specifies the reduction to apply to the output:
-            ``'none'`` | ``'mean'`` | ``'sum'``. ``'none'``: no reduction will
-            be applied, ``'mean'``: the weighted mean of the output is taken,
-            ``'sum'``: the output will be summed. Note: :attr:`size_average`
-            and :attr:`reduce` are in the process of being deprecated, and in
-            the meantime, specifying either of those two args will override
-            :attr:`reduction`. Default: ``'mean'``
+    Parameters
+    ----------
+    reduction : str, optional
+        Specifies the reduction to apply to the output:
+        ``'none'`` | ``'mean'`` | ``'sum'``. ``'none'``: no reduction will
+        be applied, ``'mean'``: the weighted mean of the output is taken,
+        ``'sum'``: the output will be summed. Note: :attr:`size_average`
+        and :attr:`reduce` are in the process of being deprecated, and in
+        the meantime, specifying either of those two args will override
+        :attr:`reduction`. Default: ``'mean'``
 
     Shape:
         - Input: :math:`(N, C)` or :math:`(C)`, where `C = number of classes`, or
@@ -470,14 +489,16 @@ def nll_loss(input, target, reduction: str = 'mean'):
             \text{if reduction} = \text{`sum'.}
         \end{cases}
 
-    Args:
-        reduction (str, optional): Specifies the reduction to apply to the output:
-            ``'none'`` | ``'mean'`` | ``'sum'``. ``'none'``: no reduction will
-            be applied, ``'mean'``: the weighted mean of the output is taken,
-            ``'sum'``: the output will be summed. Note: :attr:`size_average`
-            and :attr:`reduce` are in the process of being deprecated, and in
-            the meantime, specifying either of those two args will override
-            :attr:`reduction`. Default: ``'mean'``
+    Parameters
+    ----------
+    reduction : str, optional
+        Specifies the reduction to apply to the output:
+        ``'none'`` | ``'mean'`` | ``'sum'``. ``'none'``: no reduction will
+        be applied, ``'mean'``: the weighted mean of the output is taken,
+        ``'sum'``: the output will be summed. Note: :attr:`size_average`
+        and :attr:`reduce` are in the process of being deprecated, and in
+        the meantime, specifying either of those two args will override
+        :attr:`reduction`. Default: ``'mean'``
 
     Shape:
         - Input: :math:`(N, C)` or :math:`(C)`, where `C = number of classes`, or
@@ -539,13 +560,15 @@ class L1Loss(Loss):
 
     Supports real-valued and complex-valued inputs.
 
-    Args:
-        reduction (str, optional): Specifies the reduction to apply to the output:
-            ``'none'`` | ``'mean'`` | ``'sum'``. ``'none'``: no reduction will be applied,
-            ``'mean'``: the sum of the output will be divided by the number of
-            elements in the output, ``'sum'``: the output will be summed. Note: :attr:`size_average`
-            and :attr:`reduce` are in the process of being deprecated, and in the meantime,
-            specifying either of those two args will override :attr:`reduction`. Default: ``'mean'``
+    Parameters
+    ----------
+    reduction : str, optional
+        Specifies the reduction to apply to the output:
+        ``'none'`` | ``'mean'`` | ``'sum'``. ``'none'``: no reduction will be applied,
+        ``'mean'``: the sum of the output will be divided by the number of
+        elements in the output, ``'sum'``: the output will be summed. Note: :attr:`size_average`
+        and :attr:`reduce` are in the process of being deprecated, and in the meantime,
+        specifying either of those two args will override :attr:`reduction`. Default: ``'mean'``
 
     Shape:
         - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
@@ -553,7 +576,9 @@ class L1Loss(Loss):
         - Output: scalar. If :attr:`reduction` is ``'none'``, then
           :math:`(*)`, same shape as the input.
 
-    Examples::
+    Examples
+    --------
+    .. code-block:: python
 
         >>> loss = nn.L1Loss()
         >>> input = bm.random.randn(3, 5)
@@ -599,23 +624,23 @@ def l1_loss(logits, targets, reduction='mean'):
 
     Supports real-valued and complex-valued inputs.
 
-    Parameters::
-
+    Parameters
+    ----------
     logits : ArrayType
-      :math:`(N, *)` where :math:`*` means, any number of additional dimensions.
+        :math:`(N, *)` where :math:`*` means, any number of additional dimensions.
     targets : ArrayType
-      :math:`(N, *)`, same shape as the input.
+        :math:`(N, *)`, same shape as the input.
     reduction : str
-      Specifies the reduction to apply to the output: ``'none'`` | ``'mean'`` | ``'sum'``.
-      Default: ``'mean'``.
-      - ``'none'``: no reduction will be applied,
-      - ``'mean'``: the sum of the output will be divided by the number of elements in the output,
-      - ``'sum'``: the output will be summed. Note: :attr:`size_average`
+        Specifies the reduction to apply to the output: ``'none'`` | ``'mean'`` | ``'sum'``.
+        Default: ``'mean'``.
+        - ``'none'``: no reduction will be applied,
+        - ``'mean'``: the sum of the output will be divided by the number of elements in the output,
+        - ``'sum'``: the output will be summed. Note: :attr:`size_average`
 
-    Returns::
-
+    Returns
+    -------
     output : scalar.
-      If :attr:`reduction` is ``'none'``, then :math:`(N, *)`, same shape as the input.
+        If :attr:`reduction` is ``'none'``, then :math:`(N, *)`, same shape as the input.
     """
 
     r = tree_map(lambda pred, tar: _bt_metric.l1_loss(pred, tar, reduction=reduction),
@@ -629,20 +654,20 @@ def l2_loss(predicts, targets):
     The 0.5 term is standard in "Pattern Recognition and Machine Learning"
     by Bishop [1]_, but not "The Elements of Statistical Learning" by Tibshirani.
 
-    Parameters::
+    Parameters
+    ----------
+    predicts : ArrayType
+        A vector of arbitrary shape.
+    targets : ArrayType
+        A vector of shape compatible with predictions.
 
-    predicts: ArrayType
-      A vector of arbitrary shape.
-    targets: ArrayType
-      A vector of shape compatible with predictions.
-
-    Returns::
-
+    Returns
+    -------
     loss : float
-      A scalar value containing the l2 loss.
+        A scalar value containing the l2 loss.
 
-    References::
-
+    References
+    ----------
     .. [1] Bishop, Christopher M. 2006. Pattern Recognition and Machine Learning.
     """
     r = tree_map(lambda pred, tar: _bt_metric.l2_loss(pred, tar),
@@ -664,13 +689,18 @@ class MAELoss(Loss):
 def mean_absolute_error(x, y, axis=None, reduction: str = 'mean'):
     r"""Computes the mean absolute error between x and y.
 
-    Args:
-        x: a tensor of shape (d0, .. dN-1).
-        y: a tensor of shape (d0, .. dN-1).
-        axis: a sequence of the dimensions to keep, use `None` to return a scalar value.
+    Parameters
+    ----------
+    x
+        a tensor of shape (d0, .. dN-1).
+    y
+        a tensor of shape (d0, .. dN-1).
+    axis
+        a sequence of the dimensions to keep, use `None` to return a scalar value.
 
-    Returns:
-        tensor of shape (d_i, ..., for i in keep_axis) containing the mean absolute error.
+    Returns
+    -------
+    tensor of shape (d_i, ..., for i in keep_axis) containing the mean absolute error.
     """
     r = tree_map(lambda a, b: _bt_metric.absolute_error(a, b, axis=axis, reduction=reduction),
                  x,
@@ -706,19 +736,23 @@ class MSELoss(Loss):
 
     The division by :math:`n` can be avoided if one sets ``reduction = 'sum'``.
 
-    Args:
-        reduction (str, optional): Specifies the reduction to apply to the output:
-            ``'none'`` | ``'mean'`` | ``'sum'``. ``'none'``: no reduction will be applied,
-            ``'mean'``: the sum of the output will be divided by the number of
-            elements in the output, ``'sum'``: the output will be summed. Note: :attr:`size_average`
-            and :attr:`reduce` are in the process of being deprecated, and in the meantime,
-            specifying either of those two args will override :attr:`reduction`. Default: ``'mean'``
+    Parameters
+    ----------
+    reduction : str, optional
+        Specifies the reduction to apply to the output:
+        ``'none'`` | ``'mean'`` | ``'sum'``. ``'none'``: no reduction will be applied,
+        ``'mean'``: the sum of the output will be divided by the number of
+        elements in the output, ``'sum'``: the output will be summed. Note: :attr:`size_average`
+        and :attr:`reduce` are in the process of being deprecated, and in the meantime,
+        specifying either of those two args will override :attr:`reduction`. Default: ``'mean'``
 
     Shape:
         - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
         - Target: :math:`(*)`, same shape as the input.
 
-    Examples::
+    Examples
+    --------
+    .. code-block:: python
 
         >>> loss = nn.MSELoss()
         >>> input = torch.randn(3, 5, requires_grad=True)
@@ -738,13 +772,18 @@ class MSELoss(Loss):
 def mean_squared_error(predicts, targets, axis=None, reduction: str = 'mean'):
     r"""Computes the mean squared error between x and y.
 
-    Args:
-        predicts: a tensor of shape (d0, .. dN-1).
-        targets: a tensor of shape (d0, .. dN-1).
-        axis: a sequence of the dimensions to keep, use `None` to return a scalar value.
+    Parameters
+    ----------
+    predicts
+        a tensor of shape (d0, .. dN-1).
+    targets
+        a tensor of shape (d0, .. dN-1).
+    axis
+        a sequence of the dimensions to keep, use `None` to return a scalar value.
 
-    Returns:
-        tensor of shape (d_i, ..., for i in keep_axis) containing the mean squared error.
+    Returns
+    -------
+    tensor of shape (d_i, ..., for i in keep_axis) containing the mean squared error.
     """
     r = tree_map(lambda a, b: _bt_metric.squared_error(a, b, axis=axis, reduction=reduction),
                  predicts,
@@ -756,13 +795,18 @@ def mean_squared_error(predicts, targets, axis=None, reduction: str = 'mean'):
 def mean_squared_log_error(predicts, targets, axis=None, reduction: str = 'mean'):
     r"""Computes the mean squared logarithmic error between y_true and y_pred.
 
-    Args:
-        targets: a tensor of shape (d0, .. dN-1).
-        predicts: a tensor of shape (d0, .. dN-1).
-        keep_axis: a sequence of the dimensions to keep, use `None` to return a scalar value.
+    Parameters
+    ----------
+    targets
+        a tensor of shape (d0, .. dN-1).
+    predicts
+        a tensor of shape (d0, .. dN-1).
+    keep_axis
+        a sequence of the dimensions to keep, use `None` to return a scalar value.
 
-    Returns:
-        tensor of shape (d_i, ..., for i in keep_axis) containing the mean squared error.
+    Returns
+    -------
+    tensor of shape (d_i, ..., for i in keep_axis) containing the mean squared error.
     """
     r = tree_map(lambda a, b: _reduce((jnp.log1p(a) - jnp.log1p(b)) ** 2, reduction, axis=axis),
                  predicts,
@@ -778,22 +822,22 @@ def huber_loss(predicts, targets, delta: float = 1.0):
     If gradient descent is applied to the `huber loss`, it is equivalent to
     clipping gradients of an `l2_loss` to `[-delta, delta]` in the backward pass.
 
-    Parameters::
+    Parameters
+    ----------
+    predicts : ArrayType
+        predictions
+    targets : ArrayType
+        ground truth
+    delta : float
+        radius of quadratic behavior
 
-    predicts: ArrayType
-      predictions
-    targets: ArrayType
-      ground truth
-    delta: float
-      radius of quadratic behavior
-
-    Returns::
-
+    Returns
+    -------
     loss : float
-      The loss value.
+        The loss value.
 
-    References::
-
+    References
+    ----------
     .. [1] https://en.wikipedia.org/wiki/Huber_loss
     """
 
@@ -805,12 +849,16 @@ def huber_loss(predicts, targets, delta: float = 1.0):
 def binary_logistic_loss(predicts: float, targets: int, ) -> float:
     """Binary logistic loss.
 
-    Args:
-      targets: ground-truth integer label (0 or 1).
-      predicts: score produced by the model (float).
+    Parameters
+    ----------
+    targets
+        ground-truth integer label (0 or 1).
+    predicts
+        score produced by the model (float).
 
-    Returns:
-      loss value
+    Returns
+    -------
+    loss value
     """
     # Softplus is the Fenchel conjugate of the Fermi-Dirac negentropy on [0, 1].
     # softplus = proba * logit - xlogx(proba) - xlogx(1 - proba),
@@ -825,12 +873,16 @@ def binary_logistic_loss(predicts: float, targets: int, ) -> float:
 def multiclass_logistic_loss(label: int, logits: jnp.ndarray) -> float:
     """Multiclass logistic loss.
 
-    Args:
-      label: ground-truth integer label, between 0 and n_classes - 1.
-      logits: scores produced by the model, shape = (n_classes, ).
+    Parameters
+    ----------
+    label : int
+        ground-truth integer label, between 0 and n_classes - 1.
+    logits : jnp.ndarray
+        scores produced by the model, shape = (n_classes, ).
 
-    Returns:
-      loss value
+    Returns
+    -------
+    loss value
     """
 
     def loss(pred, tar):
@@ -849,15 +901,20 @@ def sigmoid_binary_cross_entropy(logits, labels):
     not mutually exclusive. This may be used for multilabel image classification
     for instance a model may predict that an image contains both a cat and a dog.
 
-    References:
-      [Goodfellow et al, 2016](http://www.deeplearningbook.org/contents/prob.html)
+    Parameters
+    ----------
+    logits
+        unnormalized log probabilities.
+    labels
+        the probability for that class.
 
-    Args:
-      logits: unnormalized log probabilities.
-      labels: the probability for that class.
+    Returns
+    -------
+    a sigmoid cross entropy loss.
 
-    Returns:
-      a sigmoid cross entropy loss.
+    References
+    ----------
+    [Goodfellow et al, 2016](http://www.deeplearningbook.org/contents/prob.html)
     """
 
     r = tree_map(lambda pred, tar: _bt_metric.sigmoid_binary_cross_entropy(pred, tar),
@@ -872,16 +929,21 @@ def softmax_cross_entropy(logits, labels):
     For example, each CIFAR-10 image is labeled with one and only one label:
     an image can be a dog or a truck, but not both.
 
-    References:
-      [Goodfellow et al, 2016](http://www.deeplearningbook.org/contents/prob.html)
-
-    Args:
-      logits: unnormalized log probabilities.
-      labels: a valid probability distribution (non-negative, sum to 1), e.g a
+    Parameters
+    ----------
+    logits
+        unnormalized log probabilities.
+    labels
+        a valid probability distribution (non-negative, sum to 1), e.g a
         one hot encoding of which class is the correct one for each input.
 
-    Returns:
-      the cross entropy loss.
+    Returns
+    -------
+    the cross entropy loss.
+
+    References
+    ----------
+    [Goodfellow et al, 2016](http://www.deeplearningbook.org/contents/prob.html)
     """
     r = tree_map(lambda pred, tar: _bt_metric.softmax_cross_entropy(pred, tar),
                  logits,
@@ -896,16 +958,21 @@ def log_cosh_loss(predicts, targets):
     log(cosh(x)) is approximately `(x**2) / 2` for small x and `abs(x) - log(2)`
     for large x.  It is a twice differentiable alternative to the Huber loss.
 
-    References:
-      [Chen et al, 2019](https://openreview.net/pdf?id=rkglvsC9Ym)
-
-    Args:
-      predicts: a vector of arbitrary shape.
-      targets: a vector of shape compatible with predictions; if not provided
+    Parameters
+    ----------
+    predicts
+        a vector of arbitrary shape.
+    targets
+        a vector of shape compatible with predictions; if not provided
         then it is assumed to be zero.
 
-    Returns:
-      the log-cosh loss.
+    Returns
+    -------
+    the log-cosh loss.
+
+    References
+    ----------
+    [Chen et al, 2019](https://openreview.net/pdf?id=rkglvsC9Ym)
     """
 
     r = tree_map(lambda pred, tar: _bt_metric.log_cosh(pred, tar),
@@ -941,35 +1008,44 @@ def ctc_loss_with_forward_probs(
     [Graves et al, 2006] that is blank-inserted representations of ``labels``.
     The return values are the logarithms of the above probabilities.
 
-    References:
-      [Graves et al, 2006](https://dl.acm.org/doi/abs/10.1145/1143844.1143891)
-
-    Args:
-      logits: (B, T, K)-array containing logits of each class where B denotes
+    Parameters
+    ----------
+    logits : ArrayType
+        (B, T, K)-array containing logits of each class where B denotes
         the batch size, T denotes the max time frames in ``logits``, and K
         denotes the number of classes including a class for blanks.
-      logit_paddings: (B, T)-array. Padding indicators for ``logits``. Each
+    logit_paddings : ArrayType
+        (B, T)-array. Padding indicators for ``logits``. Each
         element must be either 1.0 or 0.0, and ``logitpaddings[b, t] == 1.0``
         denotes that ``logits[b, t, :]`` are padded values.
-      labels: (B, N)-array containing reference integer labels where N denotes
+    labels : ArrayType
+        (B, N)-array containing reference integer labels where N denotes
         the max time frames in the label sequence.
-      label_paddings: (B, N)-array. Padding indicators for ``labels``. Each
+    label_paddings : ArrayType
+        (B, N)-array. Padding indicators for ``labels``. Each
         element must be either 1.0 or 0.0, and ``labelpaddings[b, n] == 1.0``
         denotes that ``labels[b, n]`` is a padded label. In the current
         implementation, ``labels`` must be right-padded, i.e. each row
         ``labelpaddings[b, :]`` must be repetition of zeroes, followed by
         repetition of ones.
-      blank_id: Id for blank token. ``logits[b, :, blank_id]`` are used as
+    blank_id : int
+        Id for blank token. ``logits[b, :, blank_id]`` are used as
         probabilities of blank symbols.
-      log_epsilon: Numerically-stable approximation of log(+0).
+    log_epsilon : float
+        Numerically-stable approximation of log(+0).
 
-    Returns:
-      A tuple ``(loss_value, logalpha_blank, logalpha_nonblank)``. Here,
-      ``loss_value`` is a (B,)-array containing the loss values for each sequence
-      in the batch, ``logalpha_blank`` and ``logalpha_nonblank`` are
-      (T, B, N+1)-arrays where the (t, b, n)-th element denotes
-      \log \alpha_B(t, n) and \log \alpha_L(t, n), respectively, for ``b``-th
-      sequence in the batch.
+    Returns
+    -------
+    A tuple ``(loss_value, logalpha_blank, logalpha_nonblank)``. Here,
+    ``loss_value`` is a (B,)-array containing the loss values for each sequence
+    in the batch, ``logalpha_blank`` and ``logalpha_nonblank`` are
+    (T, B, N+1)-arrays where the (t, b, n)-th element denotes
+    \log \alpha_B(t, n) and \log \alpha_L(t, n), respectively, for ``b``-th
+    sequence in the batch.
+
+    References
+    ----------
+    [Graves et al, 2006](https://dl.acm.org/doi/abs/10.1145/1143844.1143891)
     """
     return _bt_metric.ctc_loss_with_forward_probs(
         logits, logit_paddings, labels, label_paddings,
@@ -986,27 +1062,35 @@ def ctc_loss(logits: ArrayType,
 
     See docstring for ``ctc_loss_with_forward_probs`` for details.
 
-    Args:
-      logits: (B, T, K)-array containing logits of each class where B denotes
+    Parameters
+    ----------
+    logits : ArrayType
+        (B, T, K)-array containing logits of each class where B denotes
         the batch size, T denotes the max time frames in ``logits``, and K
         denotes the number of classes including a class for blanks.
-      logit_paddings: (B, T)-array. Padding indicators for ``logits``. Each
+    logit_paddings : ArrayType
+        (B, T)-array. Padding indicators for ``logits``. Each
         element must be either 1.0 or 0.0, and ``logitpaddings[b, t] == 1.0``
         denotes that ``logits[b, t, :]`` are padded values.
-      labels: (B, N)-array containing reference integer labels where N denotes
+    labels : ArrayType
+        (B, N)-array containing reference integer labels where N denotes
         the max time frames in the label sequence.
-      label_paddings: (B, N)-array. Padding indicators for ``labels``. Each
+    label_paddings : ArrayType
+        (B, N)-array. Padding indicators for ``labels``. Each
         element must be either 1.0 or 0.0, and ``labelpaddings[b, n] == 1.0``
         denotes that ``labels[b, n]`` is a padded label. In the current
         implementation, ``labels`` must be right-padded, i.e. each row
         ``labelpaddings[b, :]`` must be repetition of zeroes, followed by
         repetition of ones.
-      blank_id: Id for blank token. ``logits[b, :, blank_id]`` are used as
+    blank_id : int
+        Id for blank token. ``logits[b, :, blank_id]`` are used as
         probabilities of blank symbols.
-      log_epsilon: Numerically-stable approximation of log(+0).
+    log_epsilon : float
+        Numerically-stable approximation of log(+0).
 
-    Returns:
-      (B,)-array containing loss values for each sequence in the batch.
+    Returns
+    -------
+    (B,)-array containing loss values for each sequence in the batch.
     """
     return _bt_metric.ctc_loss(
         logits, logit_paddings, labels, label_paddings,
@@ -1028,12 +1112,18 @@ def multi_margin_loss(predicts, targets, margin=1.0, p=1, reduction='mean'):
     and :math:`i \in \left\{0, \; \cdots , \; \text{x.size}(0) - 1\right\}`
       and :math:`i \neq y`.
 
-    Args:
-      predicts: :math:`(N, C)` where `C = number of classes`.
-      target: :math:`(N)` where each value is :math:`0 \leq \text{targets}[i] \leq C-1`.
-      margin (float, optional): Has a default value of :math:`1`.
-      p (float, optional): Has a default value of :math:`1`.
-      reduction (str, optional): Specifies the reduction to apply to the output:
+    Parameters
+    ----------
+    predicts
+        :math:`(N, C)` where `C = number of classes`.
+    target
+        :math:`(N)` where each value is :math:`0 \leq \text{targets}[i] \leq C-1`.
+    margin : float, optional
+        Has a default value of :math:`1`.
+    p : float, optional
+        Has a default value of :math:`1`.
+    reduction : str, optional
+        Specifies the reduction to apply to the output:
         ``'none'`` | ``'mean'`` | ``'sum'``. ``'none'``: no reduction will
         be applied, ``'mean'``: the sum of the output will be divided by the
         number of elements in the output, ``'sum'``: the output will be summed.
@@ -1041,8 +1131,9 @@ def multi_margin_loss(predicts, targets, margin=1.0, p=1, reduction='mean'):
         and in the meantime, specifying either of those two args will override :attr:`reduction`.
         Default: ``'mean'``
 
-    Returns:
-      a scalar representing the multi-class margin loss. If `reduction` is ``'none'``, then :math:`(N)`.
+    Returns
+    -------
+    a scalar representing the multi-class margin loss. If `reduction` is ``'none'``, then :math:`(N)`.
       """
     assert p == 1 or p == 2, 'p should be 1 or 2'
     # Convert to plain JAX arrays: under JAX >= 0.9 implicit __jax_array__

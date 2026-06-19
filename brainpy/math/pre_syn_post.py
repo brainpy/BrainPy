@@ -85,20 +85,22 @@ def pre2post_event_sum(events,
             post_val[post_ids[j]] += values[j]
 
 
-    Parameters::
+    Parameters
+    ----------
 
-    events: ArrayType
+    events : ArrayType
       The events, must be bool.
-    pre2post: tuple of ArrayType, tuple of ArrayType
+    pre2post : tuple of ArrayType, tuple of ArrayType
       A tuple contains the connection information of pre-to-post.
-    post_num: int
+    post_num : int
       The number of post-synaptic group.
-    values: float, ArrayType
+    values : float, ArrayType
       The value to make summation.
 
-    Returns::
+    Returns
+    -------
 
-    out: ArrayType
+    out : ArrayType
       A tensor with the shape of ``post_num``.
     """
     indices, idnptr = pre2post
@@ -126,20 +128,22 @@ def pre2post_sum(pre_values, post_num, post_ids, pre_ids=None):
        for i, j in zip(pre_ids, post_ids):
          post_val[j] += pre_values[pre_ids[i]]
 
-    Parameters::
+    Parameters
+    ----------
 
-    pre_values: float, ArrayType
+    pre_values : float, ArrayType
       The pre-synaptic values.
-    post_ids: ArrayType
+    post_ids : ArrayType
       The connected post-synaptic neuron ids.
-    post_num: int
+    post_num : int
       Output dimension. The number of post-synaptic neurons.
-    pre_ids: optional, ArrayType
+    pre_ids : optional, ArrayType
       The connected pre-synaptic neuron ids.
 
-    Returns::
+    Returns
+    -------
 
-    post_val: ArrayType
+    post_val : ArrayType
       The value with the size of post-synaptic neurons.
     """
     out = jnp.zeros(post_num)
@@ -164,20 +168,22 @@ def pre2post_prod(pre_values, post_num, post_ids, pre_ids=None):
        for i, j in zip(pre_ids, post_ids):
          post_val[j] *= pre_values[pre_ids[i]]
 
-    Parameters::
+    Parameters
+    ----------
 
-    pre_values: float, ArrayType
+    pre_values : float, ArrayType
       The pre-synaptic values.
-    pre_ids: ArrayType
+    pre_ids : ArrayType
       The connected pre-synaptic neuron ids.
-    post_ids: ArrayType
+    post_ids : ArrayType
       The connected post-synaptic neuron ids.
-    post_num: int
+    post_num : int
       Output dimension. The number of post-synaptic neurons.
 
-    Returns::
+    Returns
+    -------
 
-    post_val: ArrayType
+    post_val : ArrayType
       The value with the size of post-synaptic neurons.
     """
     out = jnp.zeros(post_num)
@@ -202,20 +208,22 @@ def pre2post_min(pre_values, post_num, post_ids, pre_ids=None):
        for i, j in zip(pre_ids, post_ids):
          post_val[j] = np.minimum(post_val[j], pre_values[pre_ids[i]])
 
-    Parameters::
+    Parameters
+    ----------
 
-    pre_values: float, ArrayType
+    pre_values : float, ArrayType
       The pre-synaptic values.
-    pre_ids: ArrayType
+    pre_ids : ArrayType
       The connected pre-synaptic neuron ids.
-    post_ids: ArrayType
+    post_ids : ArrayType
       The connected post-synaptic neuron ids.
-    post_num: int
+    post_num : int
       Output dimension. The number of post-synaptic neurons.
 
-    Returns::
+    Returns
+    -------
 
-    post_val: ArrayType
+    post_val : ArrayType
       The value with the size of post-synaptic neurons.
     """
     out = jnp.zeros(post_num)
@@ -240,20 +248,22 @@ def pre2post_max(pre_values, post_num, post_ids, pre_ids=None):
        for i, j in zip(pre_ids, post_ids):
          post_val[j] = np.maximum(post_val[j], pre_values[pre_ids[i]])
 
-    Parameters::
+    Parameters
+    ----------
 
-    pre_values: float, ArrayType
+    pre_values : float, ArrayType
       The pre-synaptic values.
-    pre_ids: ArrayType
+    pre_ids : ArrayType
       The connected pre-synaptic neuron ids.
-    post_ids: ArrayType
+    post_ids : ArrayType
       The connected post-synaptic neuron ids.
-    post_num: int
+    post_num : int
       Output dimension. The number of post-synaptic neurons.
 
-    Returns::
+    Returns
+    -------
 
-    post_val: ArrayType
+    post_val : ArrayType
       The value with the size of post-synaptic neurons.
     """
     out = jnp.zeros(post_num)
@@ -269,23 +279,26 @@ def pre2post_max(pre_values, post_num, post_ids, pre_ids=None):
 def pre2post_mean(pre_values, post_num, post_ids, pre_ids=None):
     """The pre-to-post synaptic mean computation.
 
-    Parameters::
+    Parameters
+    ----------
 
-    pre_values: float, ArrayType
+    pre_values : float, ArrayType
       The pre-synaptic values.
-    pre_ids: ArrayType
+    pre_ids : ArrayType
       The connected pre-synaptic neuron ids.
-    post_ids: ArrayType
+    post_ids : ArrayType
       The connected post-synaptic neuron ids.
-    post_num: int
+    post_num : int
       Output dimension. The number of post-synaptic neurons.
 
-    Returns::
+    Returns
+    -------
 
-    post_val: ArrayType
+    post_val : ArrayType
       The value with the size of post-synaptic neurons.
 
-    Notes::
+    Notes
+    -----
 
     When ``pre_values`` is a scalar, every connection carries the same constant
     value, so the per-post mean is simply that constant. In this case the function
@@ -326,16 +339,18 @@ def pre2syn(pre_values, pre_ids):
       for syn_i, pre_i in enumerate(pre_ids):
         syn_val[i] = pre_values[pre_i]
 
-    Parameters::
+    Parameters
+    ----------
 
-    pre_values: float, ArrayType
+    pre_values : float, ArrayType
       The pre-synaptic value.
-    pre_ids: ArrayType
+    pre_ids : ArrayType
       The pre-synaptic neuron index.
 
-    Returns::
+    Returns
+    -------
 
-    syn_val: ArrayType
+    syn_val : ArrayType
       The synaptic value.
     """
     pre_values = as_jax(pre_values)
@@ -364,18 +379,20 @@ def syn2post_sum(syn_values, post_ids, post_num: int, indices_are_sorted=False):
       for syn_i, post_i in enumerate(post_ids):
         post_val[post_i] += syn_values[syn_i]
 
-    Parameters::
+    Parameters
+    ----------
 
-    syn_values: ArrayType
+    syn_values : ArrayType
       The synaptic values.
-    post_ids: ArrayType
+    post_ids : ArrayType
       The post-synaptic neuron ids.
-    post_num: int
+    post_num : int
       The number of the post-synaptic neurons.
 
-    Returns::
+    Returns
+    -------
 
-    post_val: ArrayType
+    post_val : ArrayType
       The post-synaptic value.
     """
     post_ids = as_jax(post_ids)
@@ -400,22 +417,24 @@ def syn2post_prod(syn_values, post_ids, post_num: int, indices_are_sorted=False)
       for syn_i, post_i in enumerate(post_ids):
         post_val[post_i] *= syn_values[syn_i]
 
-    Parameters::
+    Parameters
+    ----------
 
-    syn_values: ArrayType
+    syn_values : ArrayType
       The synaptic values.
-    post_ids: ArrayType
+    post_ids : ArrayType
       The post-synaptic neuron ids. If ``post_ids`` is generated by
       ``brainpy.conn.TwoEndConnector``, then it has sorted indices.
       Otherwise, this function cannot guarantee indices are sorted.
       You's better set ``indices_are_sorted=False``.
-    post_num: int
+    post_num : int
       The number of the post-synaptic neurons.
-    indices_are_sorted: whether ``post_ids`` is known to be sorted.
+    indices_are_sorted : whether ``post_ids`` is known to be sorted.
 
-    Returns::
+    Returns
+    -------
 
-    post_val: ArrayType
+    post_val : ArrayType
       The post-synaptic value.
     """
     post_ids = as_jax(post_ids)
@@ -437,22 +456,24 @@ def syn2post_max(syn_values, post_ids, post_num: int, indices_are_sorted=False):
       for syn_i, post_i in enumerate(post_ids):
         post_val[post_i] = np.maximum(post_val[post_i], syn_values[syn_i])
 
-    Parameters::
+    Parameters
+    ----------
 
-    syn_values: ArrayType
+    syn_values : ArrayType
       The synaptic values.
-    post_ids: ArrayType
+    post_ids : ArrayType
       The post-synaptic neuron ids. If ``post_ids`` is generated by
       ``brainpy.conn.TwoEndConnector``, then it has sorted indices.
       Otherwise, this function cannot guarantee indices are sorted.
       You's better set ``indices_are_sorted=False``.
-    post_num: int
+    post_num : int
       The number of the post-synaptic neurons.
-    indices_are_sorted: whether ``post_ids`` is known to be sorted.
+    indices_are_sorted : whether ``post_ids`` is known to be sorted.
 
-    Returns::
+    Returns
+    -------
 
-    post_val: ArrayType
+    post_val : ArrayType
       The post-synaptic value.
     """
     post_ids = as_jax(post_ids)
@@ -474,22 +495,24 @@ def syn2post_min(syn_values, post_ids, post_num: int, indices_are_sorted=False):
       for syn_i, post_i in enumerate(post_ids):
         post_val[post_i] = np.minimum(post_val[post_i], syn_values[syn_i])
 
-    Parameters::
+    Parameters
+    ----------
 
-    syn_values: ArrayType
+    syn_values : ArrayType
       The synaptic values.
-    post_ids: ArrayType
+    post_ids : ArrayType
       The post-synaptic neuron ids. If ``post_ids`` is generated by
       ``brainpy.conn.TwoEndConnector``, then it has sorted indices.
       Otherwise, this function cannot guarantee indices are sorted.
       You's better set ``indices_are_sorted=False``.
-    post_num: int
+    post_num : int
       The number of the post-synaptic neurons.
-    indices_are_sorted: whether ``post_ids`` is known to be sorted.
+    indices_are_sorted : whether ``post_ids`` is known to be sorted.
 
-    Returns::
+    Returns
+    -------
 
-    post_val: ArrayType
+    post_val : ArrayType
       The post-synaptic value.
     """
     post_ids = as_jax(post_ids)
@@ -502,22 +525,24 @@ def syn2post_min(syn_values, post_ids, post_num: int, indices_are_sorted=False):
 def syn2post_mean(syn_values, post_ids, post_num: int, indices_are_sorted=False):
     """The syn-to-post mean computation.
 
-    Parameters::
+    Parameters
+    ----------
 
-    syn_values: ArrayType
+    syn_values : ArrayType
       The synaptic values.
-    post_ids: ArrayType
+    post_ids : ArrayType
       The post-synaptic neuron ids. If ``post_ids`` is generated by
       ``brainpy.conn.TwoEndConnector``, then it has sorted indices.
       Otherwise, this function cannot guarantee indices are sorted.
       You's better set ``indices_are_sorted=False``.
-    post_num: int
+    post_num : int
       The number of the post-synaptic neurons.
-    indices_are_sorted: whether ``post_ids`` is known to be sorted.
+    indices_are_sorted : whether ``post_ids`` is known to be sorted.
 
-    Returns::
+    Returns
+    -------
 
-    post_val: ArrayType
+    post_val : ArrayType
       The post-synaptic value.
     """
     post_ids = as_jax(post_ids)
@@ -534,22 +559,24 @@ def syn2post_mean(syn_values, post_ids, post_num: int, indices_are_sorted=False)
 def syn2post_softmax(syn_values, post_ids, post_num: int, indices_are_sorted=False):
     """The syn-to-post softmax computation.
 
-    Parameters::
+    Parameters
+    ----------
 
-    syn_values: ArrayType
+    syn_values : ArrayType
       The synaptic values.
-    post_ids: ArrayType
+    post_ids : ArrayType
       The post-synaptic neuron ids. If ``post_ids`` is generated by
       ``brainpy.conn.TwoEndConnector``, then it has sorted indices.
       Otherwise, this function cannot guarantee indices are sorted.
       You's better set ``indices_are_sorted=False``.
-    post_num: int
+    post_num : int
       The number of the post-synaptic neurons.
-    indices_are_sorted: whether ``post_ids`` is known to be sorted.
+    indices_are_sorted : whether ``post_ids`` is known to be sorted.
 
-    Returns::
+    Returns
+    -------
 
-    post_val: ArrayType
+    post_val : ArrayType
       The post-synaptic value.
     """
     post_ids = as_jax(post_ids)

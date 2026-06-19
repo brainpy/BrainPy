@@ -53,46 +53,46 @@ def to_dimension_numbers(num_spatial_dims: int,
 class _GeneralConv(Layer):
     """Apply a convolution to the inputs.
 
-    Parameters::
-
-    num_spatial_dims: int
-      The number of spatial dimensions of the input.
-    in_channels: int
-      The number of input channels.
-    out_channels: int
-      The number of output channels.
-    kernel_size: int, sequence of int
-      The shape of the convolutional kernel.
-      For 1D convolution, the kernel size can be passed as an integer.
-      For all other cases, it must be a sequence of integers.
-    stride: int, sequence of int
-      An integer or a sequence of `n` integers, representing the inter-window strides (default: 1).
-    padding: str, int, sequence of int, sequence of tuple
-      Either the string `'SAME'`, the string `'VALID'`, or a sequence of n `(low,
-      high)` integer pairs that give the padding to apply before and after each
-      spatial dimension.
-    lhs_dilation: int, sequence of int
-      An integer or a sequence of `n` integers, giving the
-      dilation factor to apply in each spatial dimension of `inputs`
-      (default: 1). Convolution with input dilation `d` is equivalent to
-      transposed convolution with stride `d`.
-    rhs_dilation: int, sequence of int
-      An integer or a sequence of `n` integers, giving the
-      dilation factor to apply in each spatial dimension of the convolution
-      kernel (default: 1). Convolution with kernel dilation
-      is also known as 'atrous convolution'.
-    groups: int
-      If specified, divides the input features into groups. default 1.
-    w_initializer: Callable, ArrayType, Initializer
-      The initializer for the convolutional kernel.
-    b_initializer: Optional, Callable, ArrayType, Initializer
-      The initializer for the bias.
-    mask: ArrayType, Optional
-      The optional mask of the weights.
-    mode: Mode
-      The computation mode of the current object. Default it is `training`.
-    name: str, Optional
-      The name of the object.
+    Parameters
+    ----------
+    num_spatial_dims : int
+        The number of spatial dimensions of the input.
+    in_channels : int
+        The number of input channels.
+    out_channels : int
+        The number of output channels.
+    kernel_size : int, sequence of int
+        The shape of the convolutional kernel.
+        For 1D convolution, the kernel size can be passed as an integer.
+        For all other cases, it must be a sequence of integers.
+    stride : int, sequence of int
+        An integer or a sequence of `n` integers, representing the inter-window strides (default: 1).
+    padding : str, int, sequence of int, sequence of tuple
+        Either the string `'SAME'`, the string `'VALID'`, or a sequence of n `(low,
+        high)` integer pairs that give the padding to apply before and after each
+        spatial dimension.
+    lhs_dilation : int, sequence of int
+        An integer or a sequence of `n` integers, giving the
+        dilation factor to apply in each spatial dimension of `inputs`
+        (default: 1). Convolution with input dilation `d` is equivalent to
+        transposed convolution with stride `d`.
+    rhs_dilation : int, sequence of int
+        An integer or a sequence of `n` integers, giving the
+        dilation factor to apply in each spatial dimension of the convolution
+        kernel (default: 1). Convolution with kernel dilation
+        is also known as 'atrous convolution'.
+    groups : int
+        If specified, divides the input features into groups. default 1.
+    w_initializer : Callable, ArrayType, Initializer
+        The initializer for the convolutional kernel.
+    b_initializer : Optional, Callable, ArrayType, Initializer
+        The initializer for the bias.
+    mask : ArrayType, Optional
+        The optional mask of the weights.
+    mode : Mode
+        The computation mode of the current object. Default it is `training`.
+    name : str, Optional
+        The name of the object.
     """
 
     supported_modes = (bm.TrainingMode, bm.BatchingMode, bm.NonBatchingMode)
@@ -207,44 +207,44 @@ class Conv1d(_GeneralConv):
     The input should a 2d array with the shape of ``[H, C]``, or
     a 3d array with the shape of ``[B, H, C]``, where ``H`` is the feature size.
 
-    Parameters::
-
-    in_channels: int
-      The number of input channels.
-    out_channels: int
-      The number of output channels.
-    kernel_size: int, sequence of int
-      The shape of the convolutional kernel.
-      For 1D convolution, the kernel size can be passed as an integer.
-      For all other cases, it must be a sequence of integers.
-    strides: int, sequence of int
-      An integer or a sequence of `n` integers, representing the inter-window strides (default: 1).
-    padding: str, int, sequence of int, sequence of tuple
-      Either the string `'SAME'`, the string `'VALID'`, or a sequence of n `(low,
-      high)` integer pairs that give the padding to apply before and after each
-      spatial dimension.
-    lhs_dilation: int, sequence of int
-      An integer or a sequence of `n` integers, giving the
-      dilation factor to apply in each spatial dimension of `inputs`
-      (default: 1). Convolution with input dilation `d` is equivalent to
-      transposed convolution with stride `d`.
-    rhs_dilation: int, sequence of int
-      An integer or a sequence of `n` integers, giving the
-      dilation factor to apply in each spatial dimension of the convolution
-      kernel (default: 1). Convolution with kernel dilation
-      is also known as 'atrous convolution'.
-    groups: int
-      If specified, divides the input features into groups. default 1.
-    w_initializer: Callable, ArrayType, Initializer
-      The initializer for the convolutional kernel.
-    b_initializer: Callable, ArrayType, Initializer
-      The initializer for the bias.
-    mask: ArrayType, Optional
-      The optional mask of the weights.
-    mode: Mode
-      The computation mode of the current object. Default it is `training`.
-    name: str, Optional
-      The name of the object.
+    Parameters
+    ----------
+    in_channels : int
+        The number of input channels.
+    out_channels : int
+        The number of output channels.
+    kernel_size : int, sequence of int
+        The shape of the convolutional kernel.
+        For 1D convolution, the kernel size can be passed as an integer.
+        For all other cases, it must be a sequence of integers.
+    strides : int, sequence of int
+        An integer or a sequence of `n` integers, representing the inter-window strides (default: 1).
+    padding : str, int, sequence of int, sequence of tuple
+        Either the string `'SAME'`, the string `'VALID'`, or a sequence of n `(low,
+        high)` integer pairs that give the padding to apply before and after each
+        spatial dimension.
+    lhs_dilation : int, sequence of int
+        An integer or a sequence of `n` integers, giving the
+        dilation factor to apply in each spatial dimension of `inputs`
+        (default: 1). Convolution with input dilation `d` is equivalent to
+        transposed convolution with stride `d`.
+    rhs_dilation : int, sequence of int
+        An integer or a sequence of `n` integers, giving the
+        dilation factor to apply in each spatial dimension of the convolution
+        kernel (default: 1). Convolution with kernel dilation
+        is also known as 'atrous convolution'.
+    groups : int
+        If specified, divides the input features into groups. default 1.
+    w_initializer : Callable, ArrayType, Initializer
+        The initializer for the convolutional kernel.
+    b_initializer : Callable, ArrayType, Initializer
+        The initializer for the bias.
+    mask : ArrayType, Optional
+        The optional mask of the weights.
+    mode : Mode
+        The computation mode of the current object. Default it is `training`.
+    name : str, Optional
+        The name of the object.
     """
 
     def __init__(
@@ -302,44 +302,44 @@ class Conv2d(_GeneralConv):
     The input should a 3d array with the shape of ``[H, W, C]``, or
     a 4d array with the shape of ``[B, H, W, C]``.
 
-    Parameters::
-
-    in_channels: int
-      The number of input channels.
-    out_channels: int
-      The number of output channels.
-    kernel_size: int, sequence of int
-      The shape of the convolutional kernel.
-      For 1D convolution, the kernel size can be passed as an integer.
-      For all other cases, it must be a sequence of integers.
-    stride: int, sequence of int
-      An integer or a sequence of `n` integers, representing the inter-window strides (default: 1).
-    padding: str, int, sequence of int, sequence of tuple
-      Either the string `'SAME'`, the string `'VALID'`, or a sequence of n `(low,
-      high)` integer pairs that give the padding to apply before and after each
-      spatial dimension.
-    lhs_dilation: int, sequence of int
-      An integer or a sequence of `n` integers, giving the
-      dilation factor to apply in each spatial dimension of `inputs`
-      (default: 1). Convolution with input dilation `d` is equivalent to
-      transposed convolution with stride `d`.
-    rhs_dilation: int, sequence of int
-      An integer or a sequence of `n` integers, giving the
-      dilation factor to apply in each spatial dimension of the convolution
-      kernel (default: 1). Convolution with kernel dilation
-      is also known as 'atrous convolution'.
-    groups: int
-      If specified, divides the input features into groups. default 1.
-    w_initializer: Callable, ArrayType, Initializer
-      The initializer for the convolutional kernel.
-    b_initializer: Callable, ArrayType, Initializer
-      The initializer for the bias.
-    mask: ArrayType, Optional
-      The optional mask of the weights.
-    mode: Mode
-      The computation mode of the current object. Default it is `training`.
-    name: str, Optional
-      The name of the object.
+    Parameters
+    ----------
+    in_channels : int
+        The number of input channels.
+    out_channels : int
+        The number of output channels.
+    kernel_size : int, sequence of int
+        The shape of the convolutional kernel.
+        For 1D convolution, the kernel size can be passed as an integer.
+        For all other cases, it must be a sequence of integers.
+    stride : int, sequence of int
+        An integer or a sequence of `n` integers, representing the inter-window strides (default: 1).
+    padding : str, int, sequence of int, sequence of tuple
+        Either the string `'SAME'`, the string `'VALID'`, or a sequence of n `(low,
+        high)` integer pairs that give the padding to apply before and after each
+        spatial dimension.
+    lhs_dilation : int, sequence of int
+        An integer or a sequence of `n` integers, giving the
+        dilation factor to apply in each spatial dimension of `inputs`
+        (default: 1). Convolution with input dilation `d` is equivalent to
+        transposed convolution with stride `d`.
+    rhs_dilation : int, sequence of int
+        An integer or a sequence of `n` integers, giving the
+        dilation factor to apply in each spatial dimension of the convolution
+        kernel (default: 1). Convolution with kernel dilation
+        is also known as 'atrous convolution'.
+    groups : int
+        If specified, divides the input features into groups. default 1.
+    w_initializer : Callable, ArrayType, Initializer
+        The initializer for the convolutional kernel.
+    b_initializer : Callable, ArrayType, Initializer
+        The initializer for the bias.
+    mask : ArrayType, Optional
+        The optional mask of the weights.
+    mode : Mode
+        The computation mode of the current object. Default it is `training`.
+    name : str, Optional
+        The name of the object.
 
     """
 
@@ -398,44 +398,44 @@ class Conv3d(_GeneralConv):
     The input should a 3d array with the shape of ``[H, W, D, C]``, or
     a 4d array with the shape of ``[B, H, W, D, C]``.
 
-    Parameters::
-
-    in_channels: int
-      The number of input channels.
-    out_channels: int
-      The number of output channels.
-    kernel_size: int, sequence of int
-      The shape of the convolutional kernel.
-      For 1D convolution, the kernel size can be passed as an integer.
-      For all other cases, it must be a sequence of integers.
-    stride: int, sequence of int
-      An integer or a sequence of `n` integers, representing the inter-window strides (default: 1).
-    padding: str, int, sequence of int, sequence of tuple
-      Either the string `'SAME'`, the string `'VALID'`, or a sequence of n `(low,
-      high)` integer pairs that give the padding to apply before and after each
-      spatial dimension.
-    lhs_dilation: int, sequence of int
-      An integer or a sequence of `n` integers, giving the
-      dilation factor to apply in each spatial dimension of `inputs`
-      (default: 1). Convolution with input dilation `d` is equivalent to
-      transposed convolution with stride `d`.
-    rhs_dilation: int, sequence of int
-      An integer or a sequence of `n` integers, giving the
-      dilation factor to apply in each spatial dimension of the convolution
-      kernel (default: 1). Convolution with kernel dilation
-      is also known as 'atrous convolution'.
-    groups: int
-      If specified, divides the input features into groups. default 1.
-    w_initializer: Callable, ArrayType, Initializer
-      The initializer for the convolutional kernel.
-    b_initializer: Callable, ArrayType, Initializer
-      The initializer for the bias.
-    mask: ArrayType, Optional
-      The optional mask of the weights.
-    mode: Mode
-      The computation mode of the current object. Default it is `training`.
-    name: str, Optional
-      The name of the object.
+    Parameters
+    ----------
+    in_channels : int
+        The number of input channels.
+    out_channels : int
+        The number of output channels.
+    kernel_size : int, sequence of int
+        The shape of the convolutional kernel.
+        For 1D convolution, the kernel size can be passed as an integer.
+        For all other cases, it must be a sequence of integers.
+    stride : int, sequence of int
+        An integer or a sequence of `n` integers, representing the inter-window strides (default: 1).
+    padding : str, int, sequence of int, sequence of tuple
+        Either the string `'SAME'`, the string `'VALID'`, or a sequence of n `(low,
+        high)` integer pairs that give the padding to apply before and after each
+        spatial dimension.
+    lhs_dilation : int, sequence of int
+        An integer or a sequence of `n` integers, giving the
+        dilation factor to apply in each spatial dimension of `inputs`
+        (default: 1). Convolution with input dilation `d` is equivalent to
+        transposed convolution with stride `d`.
+    rhs_dilation : int, sequence of int
+        An integer or a sequence of `n` integers, giving the
+        dilation factor to apply in each spatial dimension of the convolution
+        kernel (default: 1). Convolution with kernel dilation
+        is also known as 'atrous convolution'.
+    groups : int
+        If specified, divides the input features into groups. default 1.
+    w_initializer : Callable, ArrayType, Initializer
+        The initializer for the convolutional kernel.
+    b_initializer : Callable, ArrayType, Initializer
+        The initializer for the bias.
+    mask : ArrayType, Optional
+        The optional mask of the weights.
+    mode : Mode
+        The computation mode of the current object. Default it is `training`.
+    name : str, Optional
+        The name of the object.
 
     """
 
@@ -606,20 +606,30 @@ class ConvTranspose1d(_GeneralConvTranspose):
     ):
         """Initializes the module.
 
-        Args:
-          in_channels: Number of input channels.
-          out_channels: Number of output channels.
-          kernel_size: The shape of the kernel. Either an integer or a sequence of
+        Parameters
+        ----------
+        in_channels
+            Number of input channels.
+        out_channels
+            Number of output channels.
+        kernel_size
+            The shape of the kernel. Either an integer or a sequence of
             length 1.
-          stride: Optional stride for the kernel. Either an integer or a sequence of
+        stride
+            Optional stride for the kernel. Either an integer or a sequence of
             length 1. Defaults to 1.
-          padding: Optional padding algorithm. Either ``VALID`` or ``SAME``.
+        padding
+            Optional padding algorithm. Either ``VALID`` or ``SAME``.
             Defaults to ``SAME``. See:
             https://www.tensorflow.org/xla/operation_semantics#conv_convolution.
-          w_initializer: Optional weight initialization. By default, truncated normal.
-          b_initializer: Optional bias initialization. By default, zeros.
-          mask: Optional mask of the weights.
-          name: The name of the module.
+        w_initializer
+            Optional weight initialization. By default, truncated normal.
+        b_initializer
+            Optional bias initialization. By default, zeros.
+        mask
+            Optional mask of the weights.
+        name
+            The name of the module.
         """
         super().__init__(
             num_spatial_dims=1,
@@ -663,20 +673,30 @@ class ConvTranspose2d(_GeneralConvTranspose):
     ):
         """Initializes the module.
 
-        Args:
-          in_channels: Number of input channels.
-          out_channels: Number of output channels.
-          kernel_size: The shape of the kernel. Either an integer or a sequence of
+        Parameters
+        ----------
+        in_channels
+            Number of input channels.
+        out_channels
+            Number of output channels.
+        kernel_size
+            The shape of the kernel. Either an integer or a sequence of
             length 2.
-          stride: Optional stride for the kernel. Either an integer or a sequence of
+        stride
+            Optional stride for the kernel. Either an integer or a sequence of
             length 2. Defaults to 1.
-          padding: Optional padding algorithm. Either ``VALID`` or ``SAME``.
+        padding
+            Optional padding algorithm. Either ``VALID`` or ``SAME``.
             Defaults to ``SAME``. See:
             https://www.tensorflow.org/xla/operation_semantics#conv_convolution.
-          w_initializer: Optional weight initialization. By default, truncated normal.
-          b_initializer: Optional bias initialization. By default, zeros.
-          mask: Optional mask of the weights.
-          name: The name of the module.
+        w_initializer
+            Optional weight initialization. By default, truncated normal.
+        b_initializer
+            Optional bias initialization. By default, zeros.
+        mask
+            Optional mask of the weights.
+        name
+            The name of the module.
         """
         super().__init__(
             num_spatial_dims=2,
@@ -720,20 +740,30 @@ class ConvTranspose3d(_GeneralConvTranspose):
     ):
         """Initializes the module.
 
-        Args:
-          in_channels: Number of input channels.
-          out_channels: Number of output channels.
-          kernel_size: The shape of the kernel. Either an integer or a sequence of
+        Parameters
+        ----------
+        in_channels
+            Number of input channels.
+        out_channels
+            Number of output channels.
+        kernel_size
+            The shape of the kernel. Either an integer or a sequence of
             length 3.
-          stride: Optional stride for the kernel. Either an integer or a sequence of
+        stride
+            Optional stride for the kernel. Either an integer or a sequence of
             length 3. Defaults to 1.
-          padding: Optional padding algorithm. Either ``VALID`` or ``SAME``.
+        padding
+            Optional padding algorithm. Either ``VALID`` or ``SAME``.
             Defaults to ``SAME``. See:
             https://www.tensorflow.org/xla/operation_semantics#conv_convolution.
-          w_initializer: Optional weight initialization. By default, truncated normal.
-          b_initializer: Optional bias initialization. By default, zeros.
-          mask: Optional mask of the weights.
-          name: The name of the module.
+        w_initializer
+            Optional weight initialization. By default, truncated normal.
+        b_initializer
+            Optional bias initialization. By default, zeros.
+        mask
+            Optional mask of the weights.
+        name
+            The name of the module.
         """
         super().__init__(
             num_spatial_dims=3,

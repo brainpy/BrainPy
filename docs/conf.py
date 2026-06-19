@@ -135,3 +135,16 @@ execution_timeout = 200
 autodoc_default_options = {
     'exclude-members': '....,default_rng',
 }
+
+# -- Options for napoleon (docstring style) ----------------------------------
+# BrainPy standardizes on NumPy-style docstrings (see CLAUDE.md). Parse only the
+# NumPy style so that any stray Google-style docstring renders incorrectly and is
+# caught in review, keeping the convention enforced.
+napoleon_google_docstring = False
+napoleon_numpy_docstring = True
+napoleon_include_init_with_doc = False
+napoleon_include_private_with_doc = False
+napoleon_use_param = True
+napoleon_use_rtype = True
+napoleon_preprocess_types = True
+napoleon_use_ivar = True

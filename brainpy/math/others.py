@@ -45,23 +45,23 @@ def shared_args_over_time(num_step: Optional[int] = None,
                           include_dt: bool = True):
     """Form a shared argument over time for the inference of a :py:class:`~.DynamicalSystem`.
 
-    Parameters::
+    Parameters
+    ----------
+    num_step : int
+        The number of time step. Provide either ``duration`` or ``num_step``.
+    duration : float
+        The total duration. Provide either ``duration`` or ``num_step``.
+    dt : float
+        The duration for each time step.
+    t0 : float
+        The start time.
+    include_dt : bool
+        Produce the time steps at every time step.
 
-    num_step: int
-      The number of time step. Provide either ``duration`` or ``num_step``.
-    duration: float
-      The total duration. Provide either ``duration`` or ``num_step``.
-    dt: float
-      The duration for each time step.
-    t0: float
-      The start time.
-    include_dt: bool
-      Produce the time steps at every time step.
-
-    Returns::
-
-    shared: DotDict
-      The shared arguments over the given time.
+    Returns
+    -------
+    shared : DotDict
+        The shared arguments over the given time.
     """
     dt = get_dt() if dt is None else dt
     check.is_float(dt, 'dt', allow_none=False)
@@ -80,15 +80,15 @@ def shared_args_over_time(num_step: Optional[int] = None,
 def remove_diag(arr):
     """Remove the diagonal of the matrix.
 
-    Parameters::
+    Parameters
+    ----------
+    arr : ArrayType
+        The matrix with the shape of `(M, N)`.
 
-    arr: ArrayType
-      The matrix with the shape of `(M, N)`.
-
-    Returns::
-
-    arr: Array
-      The matrix without diagonal which has the shape of `(M, N-1)`.
+    Returns
+    -------
+    arr : Array
+        The matrix without diagonal which has the shape of `(M, N-1)`.
     """
     if arr.ndim != 2:
         raise ValueError(f'Only support 2D matrix, while we got a {arr.ndim}D array.')
@@ -141,12 +141,16 @@ def exprel(x, threshold: float = None):
     suffer from catastrophic loss of precision. ``exprel(x)`` is implemented to avoid the loss of
     precision that occurs when ``x`` is near zero.
 
-    Args:
-      x: ndarray. Input array. ``x`` must contain real numbers.
-      threshold: float.
+    Parameters
+    ----------
+    x
+        ndarray. Input array. ``x`` must contain real numbers.
+    threshold : float
+        float.
 
-    Returns:
-      ``(exp(x) - 1)/x``, computed element-wise.
+    Returns
+    -------
+    ``(exp(x) - 1)/x``, computed element-wise.
     """
     x = as_jax(x)
     if threshold is None:

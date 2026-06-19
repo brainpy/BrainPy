@@ -154,17 +154,27 @@ class BrainPyObject(object):
             handled by ``brainstate`` directly. Calling this method always raises
             :class:`NotImplementedError`.
 
-        Args:
-          name: str. The variable name.
-          init: callable, Array. The data to be initialized as a ``Variable``.
-          shape: int, sequence of int. The shape of the variable.
-          batch_or_mode: int, bool, Mode. The batch size of this variable.
-          batch_axis: int. The batch axis, if batch size is given.
-          axis_names: sequence of str. The name for each axis.
-          batch_axis_name: str. The name for the batch axis.
+        Parameters
+        ----------
+        name : str
+            The variable name.
+        init : callable, Array
+            The data to be initialized as a ``Variable``.
+        shape : int, sequence of int
+            The shape of the variable.
+        batch_or_mode : int, bool, Mode
+            The batch size of this variable.
+        batch_axis : int
+            The batch axis, if batch size is given.
+        axis_names : sequence of str
+            The name for each axis.
+        batch_axis_name : str
+            The name for the batch axis.
 
-        Raises:
-          NotImplementedError: Always, because this feature is unsupported since 3.0.0.
+        Raises
+        ------
+        NotImplementedError
+            Always, because this feature is unsupported since 3.0.0.
         """
         raise NotImplementedError(
             'Since 3.0.0, brainpy is rewritten with brainstate. The feature tracing_variable is no longer supported. '
@@ -175,9 +185,12 @@ class BrainPyObject(object):
 
         .. versionadded:: 2.3.1
 
-        Args:
-          key: str. The attribute.
-          value: Any. The value.
+        Parameters
+        ----------
+        key : str
+            The attribute.
+        value : Any
+            The value.
         """
         if key in self.__dict__:
             val = self.__dict__[key]
@@ -193,10 +206,10 @@ class BrainPyObject(object):
 
         .. versionadded:: 2.3.1
 
-        Returns::
-
-        res: tuple
-          A tuple of dynamical values and static values.
+        Returns
+        -------
+        res : tuple
+            A tuple of dynamical values and static values.
         """
         dynamic_names = []
         dynamic_values = []
@@ -309,21 +322,21 @@ class BrainPyObject(object):
     ):
         """Collect all variables in this node and the children nodes.
 
-        Parameters::
-
+        Parameters
+        ----------
         method : str
-          The method to access the variables.
-        level: int
-          The hierarchy level to find variables.
-        include_self: bool
-          Whether include the variables in the self.
-        exclude_types: tuple of type
-          The type to exclude.
+            The method to access the variables.
+        level : int
+            The hierarchy level to find variables.
+        include_self : bool
+            Whether include the variables in the self.
+        exclude_types : tuple of type
+            The type to exclude.
 
-        Returns::
-
+        Returns
+        -------
         gather : ArrayCollector
-          The collection contained (the path, the variable).
+            The collection contained (the path, the variable).
         """
         if exclude_types is None:
             exclude_types = (VariableView,)
@@ -351,19 +364,19 @@ class BrainPyObject(object):
     def train_vars(self, method='absolute', level=-1, include_self=True):
         """The shortcut for retrieving all trainable variables.
 
-        Parameters::
-
+        Parameters
+        ----------
         method : str
-          The method to access the variables. Support 'absolute' and 'relative'.
-        level: int
-          The hierarchy level to find TrainVar instances.
-        include_self: bool
-          Whether include the TrainVar instances in the self.
+            The method to access the variables. Support 'absolute' and 'relative'.
+        level : int
+            The hierarchy level to find TrainVar instances.
+        include_self : bool
+            Whether include the TrainVar instances in the self.
 
-        Returns::
-
+        Returns
+        -------
         gather : ArrayCollector
-          The collection contained (the path, the trainable variable).
+            The collection contained (the path, the trainable variable).
         """
         return self.vars(method=method, level=level, include_self=include_self).subset(TrainVar)
 
@@ -439,37 +452,37 @@ class BrainPyObject(object):
     def nodes(self, method='absolute', level=-1, include_self=True):
         """Collect all children nodes.
 
-        Parameters::
-
+        Parameters
+        ----------
         method : str
-          The method to access the nodes.
-        level: int
-          The hierarchy level to find nodes.
-        include_self: bool
-          Whether include the self.
+            The method to access the nodes.
+        level : int
+            The hierarchy level to find nodes.
+        include_self : bool
+            Whether include the self.
 
-        Returns::
-
+        Returns
+        -------
         gather : Collector
-          The collection contained (the path, the node).
+            The collection contained (the path, the node).
         """
         return self._find_nodes(method=method, level=level, include_self=include_self)
 
     def unique_name(self, name=None, type_=None):
         """Get the unique name for this object.
 
-        Parameters::
-
+        Parameters
+        ----------
         name : str, optional
-          The expected name. If None, the default unique name will be returned.
-          Otherwise, the provided name will be checked to guarantee its uniqueness.
+            The expected name. If None, the default unique name will be returned.
+            Otherwise, the provided name will be checked to guarantee its uniqueness.
         type_ : str, optional
-          The name of this class, used for object naming.
+            The name of this class, used for object naming.
 
-        Returns::
-
+        Returns
+        -------
         name : str
-          The unique name for this object.
+            The unique name for this object.
         """
         if name is None:
             if type_ is None:
@@ -506,10 +519,10 @@ class BrainPyObject(object):
     def state_dict(self, **kwargs) -> dict:
         """Returns a dictionary containing a whole state of the module.
 
-        Returns::
-
-        out: dict
-          A dictionary containing a whole state of the module.
+        Returns
+        -------
+        out : dict
+            A dictionary containing a whole state of the module.
         """
         nodes = self.nodes()  # retrieve all nodes
         return {key: node.save_state(**kwargs) for key, node in nodes.items()}
@@ -524,22 +537,22 @@ class BrainPyObject(object):
         """Copy parameters and buffers from :attr:`state_dict` into
         this module and its descendants.
 
-        Parameters::
+        Parameters
+        ----------
+        state_dict : dict
+            A dict containing parameters and persistent buffers.
+        warn : bool
+            Warnings when there are missing keys or unexpected keys in the external ``state_dict``.
+        compatible : bool
+            The version of API for compatibility.
 
-        state_dict: dict
-          A dict containing parameters and persistent buffers.
-        warn: bool
-          Warnings when there are missing keys or unexpected keys in the external ``state_dict``.
-        compatible: bool
-          The version of API for compatibility.
+        Returns
+        -------
+        out : StateLoadResult
+            ``NamedTuple`` with ``missing_keys`` and ``unexpected_keys`` fields:
 
-        Returns::
-
-        out: StateLoadResult
-          ``NamedTuple`` with ``missing_keys`` and ``unexpected_keys`` fields:
-
-          * **missing_keys** is a list of str containing the missing keys
-          * **unexpected_keys** is a list of str containing the unexpected keys
+            * **missing_keys** is a list of str containing the missing keys
+            * **unexpected_keys** is a list of str containing the unexpected keys
         """
         if compatible == 'v1':
             variables = self.vars().unique()
@@ -571,8 +584,10 @@ class BrainPyObject(object):
     def to(self, device: Optional[Any]):
         """Moves all variables into the given device.
 
-        Args:
-          device: The device.
+        Parameters
+        ----------
+        device : Optional[Any]
+            The device.
         """
         # Iterate over the actual ``Variable`` instances (not the nested
         # ``state_dict`` mapping). Iterating ``state_dict()`` would yield
@@ -617,16 +632,16 @@ Base = BrainPyObject
 class FunAsObject(BrainPyObject):
     """Transform a Python function as a :py:class:`~.BrainPyObject`.
 
-    Parameters::
-
+    Parameters
+    ----------
     target : callable
-      The function to wrap.
+        The function to wrap.
     child_objs : optional, BrainPyObject, sequence of BrainPyObject, dict
-      The nodes in the defined function ``f``.
+        The nodes in the defined function ``f``.
     dyn_vars : optional, Variable, sequence of Variable, dict
-      The dynamically changed variables.
+        The dynamically changed variables.
     name : optional, str
-      The function name.
+        The function name.
     """
 
     def __init__(

@@ -56,26 +56,28 @@ def _parallel(
 ) -> Generator:
     """Perform a parallel map with a progress bar.
 
-    Parameters::
+    Parameters
+    ----------
 
-    ordered: bool
+    ordered : bool
       True for an ordered map, false for an unordered map.
-    function: callable, function
+    function : callable, function
       The function to apply to each element of the given Iterables.
-    arguments: sequence of Iterable, dict
+    arguments : sequence of Iterable, dict
       One or more Iterables containing the data to be mapped.
-    num_process: int, float
+    num_process : int, float
       Number of threads used for parallel running. If `int`, it is
       the number of threads to be used; if `float`, it is the fraction
       of total threads to be used for running.
-    num_task: int
+    num_task : int
       The total number of tasks in this parallel running.
-    tqdm_kwargs: Any
+    tqdm_kwargs : Any
       The setting for the progress bar.
 
-    Returns::
+    Returns
+    -------
 
-    results: Iterable
+    results : Iterable
         A generator which will apply the function to each element of the given Iterables
         in parallel in order with a progress bar.
     """
@@ -140,7 +142,8 @@ def cpu_ordered_parallel(
 ) -> List[Any]:
     """Performs a parallel ordered map with a progress bar.
 
-    Examples::
+    Examples
+    --------
 
     >>> import brainpy as bp
     >>> import brainpy.math as bm
@@ -160,24 +163,26 @@ def cpu_ordered_parallel(
     >>>   results = bp.running.cpu_unordered_parallel(simulate, [np.arange(1, 10, 100)], num_process=10)
     >>>   print(results)
 
-    Parameters::
+    Parameters
+    ----------
 
-    func: callable, function
+    func : callable, function
       The function to apply to each element of the given Iterables.
-    arguments: sequence of Iterable, dict
+    arguments : sequence of Iterable, dict
       One or more Iterables containing the data to be mapped.
-    num_process: int, float
+    num_process : int, float
       Number of threads used for parallel running. If `int`, it is
       the number of threads to be used; if `float`, it is the fraction
       of total threads to be used for running.
-    num_task: int
+    num_task : int
       The total number of tasks in this parallel running.
-    tqdm_kwargs: Any
+    tqdm_kwargs : Any
       The setting for the progress bar.
 
-    Returns::
+    Returns
+    -------
 
-    results: list
+    results : list
       A list which will apply the function to each element of the given tasks.
     """
     generator = _parallel(True,
@@ -198,7 +203,8 @@ def cpu_unordered_parallel(
 ) -> List[Any]:
     """Performs a parallel unordered map with a progress bar.
 
-    Examples::
+    Examples
+    --------
 
     >>> import brainpy as bp
     >>> import brainpy.math as bm
@@ -218,24 +224,26 @@ def cpu_unordered_parallel(
     >>>   results = bp.running.cpu_unordered_parallel(simulate, [np.arange(1, 10, 100)], num_process=10)
     >>>   print(results)
 
-    Parameters::
+    Parameters
+    ----------
 
-    func: callable, function
+    func : callable, function
       The function to apply to each element of the given Iterables.
-    arguments: sequence of Iterable, dict
+    arguments : sequence of Iterable, dict
       One or more Iterables containing the data to be mapped.
-    num_process: int, float
+    num_process : int, float
       Number of threads used for parallel running. If `int`, it is
       the number of threads to be used; if `float`, it is the fraction
       of total threads to be used for running.
-    num_task: int
+    num_task : int
       The total number of tasks in this parallel running.
-    tqdm_kwargs: Any
+    tqdm_kwargs : Any
       The setting for the progress bar.
 
-    Returns::
+    Returns
+    -------
 
-    results: list
+    results : list
       A list which will apply the function to each element of the given tasks.
     """
     generator = _parallel(False,

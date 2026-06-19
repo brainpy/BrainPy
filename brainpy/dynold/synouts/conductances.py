@@ -35,13 +35,15 @@ class CUBA(_SynOut):
 
        I_{\mathrm{syn}}(t) = g_{\mathrm{syn}}(t)
 
-    Parameters::
+    Parameters
+    ----------
 
-    name: str
+    name : str
       The model name.
 
 
-    See Also::
+    See Also
+    --------
 
     COBA
     """
@@ -67,14 +69,16 @@ class COBA(_SynOut):
 
        I_{syn}(t) = g_{\mathrm{syn}}(t) (E - V(t))
 
-    Parameters::
+    Parameters
+    ----------
 
-    E: float, ArrayType, ndarray, callable, Initializer
+    E : float, ArrayType, ndarray, callable, Initializer
       The reversal potential.
-    name: str
+    name : str
       The model name.
 
-    See Also::
+    See Also
+    --------
 
     CUBA
     """

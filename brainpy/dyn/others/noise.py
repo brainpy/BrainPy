@@ -41,19 +41,20 @@ class OUProcess(NeuDyn):
     where :math:`\theta >0` and :math:`\sigma >0` are parameters and :math:`W_{t}`
     denotes the Wiener process.
 
-    Parameters::
+    Parameters
+    ----------
 
-    size: int, sequence of int
+    size : int, sequence of int
       The model size.
-    mean: Parameter
+    mean : Parameter
       The noise mean value.
-    sigma: Parameter
+    sigma : Parameter
       The noise amplitude.
-    tau: Parameter
+    tau : Parameter
       The decay time constant.
-    method: str
+    method : str
       The numerical integration method for stochastic differential equation.
-    name: str
+    name : str
       The model name.
     """
 

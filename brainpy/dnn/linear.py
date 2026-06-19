@@ -58,18 +58,18 @@ class Dense(Layer, SupportSTDP, SupportOnline, SupportOffline):
 
        y = x  \cdot weight + b
 
-    Parameters::
-
-    num_in: int
-      The number of the input feature. A positive integer.
-    num_out: int
-      The number of the output features. A positive integer.
-    W_initializer: optional, Initializer
-      The weight initialization.
-    b_initializer: optional, Initializer
-      The bias initialization.
-    mode: Mode
-      Enable training this node or not. (default True)
+    Parameters
+    ----------
+    num_in : int
+        The number of the input feature. A positive integer.
+    num_out : int
+        The number of the output features. A positive integer.
+    W_initializer : optional, Initializer
+        The weight initialization.
+    b_initializer : optional, Initializer
+        The bias initialization.
+    mode : Mode
+        Enable training this node or not. (default True)
     """
 
     def __init__(
@@ -267,14 +267,22 @@ class Identity(Layer):
 class AllToAll(Layer, SupportSTDP):
     """Synaptic matrix multiplication with All2All connections.
 
-    Args:
-      num_pre: int. The number of neurons in the presynaptic neuron group.
-      num_post: int. The number of neurons in the postsynaptic neuron group.
-      weight: The synaptic weights.
-      sharding: The sharding strategy.
-      include_self: bool. Whether connect the neuron with at the same position.
-      mode: Mode. The computing mode.
-      name: str. The object name.
+    Parameters
+    ----------
+    num_pre : int
+        The number of neurons in the presynaptic neuron group.
+    num_post : int
+        The number of neurons in the postsynaptic neuron group.
+    weight : Union[float, ArrayType, Callable]
+        The synaptic weights.
+    sharding : Optional[Sharding]
+        The sharding strategy.
+    include_self : bool
+        Whether connect the neuron with at the same position.
+    mode : Mode
+        The computing mode.
+    name : str
+        The object name.
     """
 
     def __init__(
@@ -353,12 +361,18 @@ class AllToAll(Layer, SupportSTDP):
 class OneToOne(Layer, SupportSTDP):
     """Synaptic matrix multiplication with One2One connection.
 
-    Args:
-      num: int. The number of neurons.
-      weight: The synaptic weight.
-      sharding: The sharding strategy.
-      mode: The computing mode.
-      name: The object name.
+    Parameters
+    ----------
+    num : int
+        The number of neurons.
+    weight : Union[float, ArrayType, Callable]
+        The synaptic weight.
+    sharding : Optional[Sharding]
+        The sharding strategy.
+    mode : Optional[bm.Mode]
+        The computing mode.
+    name : Optional[str]
+        The object name.
 
     """
 
@@ -423,13 +437,20 @@ class MaskedLinear(Layer, SupportSTDP):
     >>> l = bp.dnn.MaskedLinear(bp.conn.FixedProb(0.1, pre=100, post=100),
     >>>                         weight=0.1)
 
-    Args:
-      conn: TwoEndConnector. The connection.
-      weight: Synaptic weights. Can be a scalar, array, or callable function.
-      mask_fun: Masking function.
-      sharding: The sharding strategy.
-      mode: The synaptic computing mode.
-      name: The synapse model name.
+    Parameters
+    ----------
+    conn : TwoEndConnector
+        The connection.
+    weight : Union[float, ArrayType, Callable]
+        Synaptic weights. Can be a scalar, array, or callable function.
+    mask_fun : Callable
+        Masking function.
+    sharding : Optional[Sharding]
+        The sharding strategy.
+    mode : Optional[bm.Mode]
+        The synaptic computing mode.
+    name : Optional[str]
+        The synapse model name.
     """
 
     def __init__(
@@ -562,12 +583,18 @@ class CSRLinear(_CSRLayer):
     where :math:`y` is the postsynaptic value, :math:`x` the presynaptic value,
     :math:`M` the synaptic weight using a CSR sparse matrix.
 
-    Args:
-      conn: TwoEndConnector. The connection.
-      weight: Synaptic weights. Can be a scalar, array, or callable function.
-      sharding: The sharding strategy.
-      mode: The synaptic computing mode.
-      name: The synapse model name.
+    Parameters
+    ----------
+    conn : TwoEndConnector
+        The connection.
+    weight : Union[float, ArrayType, Callable]
+        Synaptic weights. Can be a scalar, array, or callable function.
+    sharding : Optional[Sharding]
+        The sharding strategy.
+    mode : Optional[bm.Mode]
+        The synaptic computing mode.
+    name : Optional[str]
+        The synapse model name.
     """
 
     def __init__(
@@ -612,12 +639,18 @@ class EventCSRLinear(_CSRLayer):
     where :math:`y` is the postsynaptic value, :math:`x` the presynaptic spikes,
     :math:`M` the synaptic weight using a CSR sparse matrix.
 
-    Args:
-      conn: TwoEndConnector. The connection.
-      weight: Synaptic weights. Can be a scalar, array, or callable function.
-      sharding: The sharding strategy.
-      mode: The synaptic computing mode.
-      name: The synapse model name.
+    Parameters
+    ----------
+    conn : TwoEndConnector
+        The connection.
+    weight : Union[float, ArrayType, Callable]
+        Synaptic weights. Can be a scalar, array, or callable function.
+    sharding : Optional[Sharding]
+        The sharding strategy.
+    mode : Optional[bm.Mode]
+        The synaptic computing mode.
+    name : Optional[str]
+        The synapse model name.
     """
 
     def __init__(
@@ -662,12 +695,18 @@ class CSCLinear(Layer):
     where :math:`y` is the postsynaptic value, :math:`x` the presynaptic value,
     :math:`M` the synaptic weight using a CSC sparse matrix.
 
-    Args:
-      conn: TwoEndConnector. The connection.
-      weight: Synaptic weights. Can be a scalar, array, or callable function.
-      sharding: The sharding strategy.
-      mode: The synaptic computing mode.
-      name: The synapse model name.
+    Parameters
+    ----------
+    conn : TwoEndConnector
+        The connection.
+    weight : Union[float, ArrayType, Callable]
+        Synaptic weights. Can be a scalar, array, or callable function.
+    sharding : Optional[Sharding]
+        The sharding strategy.
+    mode : Optional[bm.Mode]
+        The synaptic computing mode.
+    name : Optional[str]
+        The synapse model name.
     """
 
     def __init__(
@@ -697,12 +736,18 @@ class BcsrMM(Layer):
     where :math:`y` is the postsynaptic value, :math:`x` the presynaptic value,
     :math:`M` the synaptic weight using a BCSR sparse matrix.
 
-    Args:
-      conn: TwoEndConnector. The connection.
-      weight: Synaptic weights. Can be a scalar, array, or callable function.
-      sharding: The sharding strategy.
-      mode: The synaptic computing mode.
-      name: The synapse model name.
+    Parameters
+    ----------
+    conn : TwoEndConnector
+        The connection.
+    weight : Union[float, ArrayType, Callable]
+        Synaptic weights. Can be a scalar, array, or callable function.
+    sharding : Optional[Sharding]
+        The sharding strategy.
+    mode : Optional[bm.Mode]
+        The synaptic computing mode.
+    name : Optional[str]
+        The synapse model name.
     """
 
     def __init__(
@@ -732,12 +777,18 @@ class BcscMM(Layer):
     where :math:`y` is the postsynaptic value, :math:`x` the presynaptic value,
     :math:`M` the synaptic weight using a BCSC sparse matrix.
 
-    Args:
-      conn: TwoEndConnector. The connection.
-      weight: Synaptic weights. Can be a scalar, array, or callable function.
-      sharding: The sharding strategy.
-      mode: The synaptic computing mode.
-      name: The synapse model name.
+    Parameters
+    ----------
+    conn : TwoEndConnector
+        The connection.
+    weight : Union[float, ArrayType, Callable]
+        Synaptic weights. Can be a scalar, array, or callable function.
+    sharding : Optional[Sharding]
+        The sharding strategy.
+    mode : Optional[bm.Mode]
+        The synaptic computing mode.
+    name : Optional[str]
+        The synapse model name.
     """
 
     def __init__(
@@ -798,18 +849,29 @@ class JitFPHomoLinear(JitFPHomoLayer):
     Particularly, the connectivity in :math:`M` is sampled from a fixed probability :math:`prob`,
     and at each connection, the synaptic value is the same :math:`weight`.
 
-    Args:
-      num_in: int. The number of the input feature. A positive integer.
-      num_out: int. The number of the input feature. A positive integer.
-      prob: float. The connectivity probability.
-      weight: float. The synaptic value at each position.
-      seed: int. The random seed used to keep the reproducibility of the connectivity.
-      transpose: bool. Transpose the JIT matrix or not. Default False.
-      atomic: bool. Compute the post-synaptic value with the atomic summation. Default False.
-         May be changed in the future.
-      sharding: The sharding strategy.
-      mode: The synaptic computing mode.
-      name: The synapse model name.
+    Parameters
+    ----------
+    num_in : int
+        The number of the input feature. A positive integer.
+    num_out : int
+        The number of the input feature. A positive integer.
+    prob : float
+        The connectivity probability.
+    weight : float
+        The synaptic value at each position.
+    seed : int
+        The random seed used to keep the reproducibility of the connectivity.
+    transpose : bool
+        Transpose the JIT matrix or not. Default False.
+    atomic : bool
+        Compute the post-synaptic value with the atomic summation. Default False.
+        May be changed in the future.
+    sharding : Optional[Sharding]
+        The sharding strategy.
+    mode : Optional[bm.Mode]
+        The synaptic computing mode.
+    name : Optional[str]
+        The synapse model name.
     """
 
     def __init__(
@@ -877,19 +939,31 @@ class JitFPUniformLinear(JitFPUniformLayer):
     Particularly, the connectivity in :math:`M` is sampled from a fixed probability :math:`prob`,
     and at each connection, the synaptic value is sample from a uniform distribution :math:`U(w_{low}, w_{high})`.
 
-    Args:
-      num_in: int. The number of the input feature. A positive integer.
-      num_out: int. The number of the input feature. A positive integer.
-      prob: float. The connectivity probability.
-      w_low: float. The lowest value of the uniform distribution.
-      w_high: float. The highest value of the uniform distribution.
-      seed: int. The random seed used to keep the reproducibility of the connectivity.
-      transpose: bool. Transpose the JIT matrix or not. Default False.
-      atomic: bool. Compute the post-synaptic value with the atomic summation. Default False.
-         May be changed in the future.
-      sharding: The sharding strategy.
-      mode: The synaptic computing mode.
-      name: The synapse model name.
+    Parameters
+    ----------
+    num_in : int
+        The number of the input feature. A positive integer.
+    num_out : int
+        The number of the input feature. A positive integer.
+    prob : float
+        The connectivity probability.
+    w_low : float
+        The lowest value of the uniform distribution.
+    w_high : float
+        The highest value of the uniform distribution.
+    seed : int
+        The random seed used to keep the reproducibility of the connectivity.
+    transpose : bool
+        Transpose the JIT matrix or not. Default False.
+    atomic : bool
+        Compute the post-synaptic value with the atomic summation. Default False.
+        May be changed in the future.
+    sharding : Optional[Sharding]
+        The sharding strategy.
+    mode : Optional[bm.Mode]
+        The synaptic computing mode.
+    name : Optional[str]
+        The synapse model name.
     """
 
     def __init__(
@@ -957,19 +1031,31 @@ class JitFPNormalLinear(JitFPNormalLayer):
     Particularly, the connectivity in :math:`M` is sampled from a fixed probability :math:`prob`,
     and at each connection, the synaptic value is sample from a normal distribution :math:`N(\mu, \sigma)`.
 
-    Args:
-      num_in: int. The number of the input feature. A positive integer.
-      num_out: int. The number of the input feature. A positive integer.
-      prob: float. The connectivity probability.
-      w_mu: float. The center of the normal distribution.
-      w_sigma: float. The standard variance of the normal distribution.
-      seed: int. The random seed used to keep the reproducibility of the connectivity.
-      transpose: bool. Transpose the JIT matrix or not. Default False.
-      atomic: bool. Compute the post-synaptic value with the atomic summation. Default False.
-         May be changed in the future.
-      sharding: The sharding strategy.
-      mode: The synaptic computing mode.
-      name: The synapse model name.
+    Parameters
+    ----------
+    num_in : int
+        The number of the input feature. A positive integer.
+    num_out : int
+        The number of the input feature. A positive integer.
+    prob : float
+        The connectivity probability.
+    w_mu : float
+        The center of the normal distribution.
+    w_sigma : float
+        The standard variance of the normal distribution.
+    seed : int
+        The random seed used to keep the reproducibility of the connectivity.
+    transpose : bool
+        Transpose the JIT matrix or not. Default False.
+    atomic : bool
+        Compute the post-synaptic value with the atomic summation. Default False.
+        May be changed in the future.
+    sharding : Optional[Sharding]
+        The sharding strategy.
+    mode : Optional[bm.Mode]
+        The synaptic computing mode.
+    name : Optional[str]
+        The synapse model name.
     """
 
     def __init__(
@@ -1037,18 +1123,29 @@ class EventJitFPHomoLinear(JitFPHomoLayer):
     Particularly, the connectivity in :math:`M` is sampled from a fixed probability :math:`prob`,
     and at each connection, the synaptic value is the same :math:`weight`.
 
-    Args:
-      num_in: int. The number of the input feature. A positive integer.
-      num_out: int. The number of the input feature. A positive integer.
-      prob: float. The connectivity probability.
-      weight: float. The synaptic value at each position.
-      seed: int. The random seed used to keep the reproducibility of the connectivity.
-      transpose: bool. Transpose the JIT matrix or not. Default False.
-      atomic: bool. Compute the post-synaptic value with the atomic summation. Default False.
-         May be changed in the future.
-      sharding: The sharding strategy.
-      mode: The synaptic computing mode.
-      name: The synapse model name.
+    Parameters
+    ----------
+    num_in : int
+        The number of the input feature. A positive integer.
+    num_out : int
+        The number of the input feature. A positive integer.
+    prob : float
+        The connectivity probability.
+    weight : float
+        The synaptic value at each position.
+    seed : int
+        The random seed used to keep the reproducibility of the connectivity.
+    transpose : bool
+        Transpose the JIT matrix or not. Default False.
+    atomic : bool
+        Compute the post-synaptic value with the atomic summation. Default False.
+        May be changed in the future.
+    sharding : Optional[Sharding]
+        The sharding strategy.
+    mode : Optional[bm.Mode]
+        The synaptic computing mode.
+    name : Optional[str]
+        The synapse model name.
     """
 
     def __init__(
@@ -1116,19 +1213,31 @@ class EventJitFPUniformLinear(JitFPUniformLayer):
     Particularly, the connectivity in :math:`M` is sampled from a fixed probability :math:`prob`,
     and at each connection, the synaptic value is sample from a uniform distribution :math:`U(w_{low}, w_{high})`.
 
-    Args:
-      num_in: int. The number of the input feature. A positive integer.
-      num_out: int. The number of the input feature. A positive integer.
-      prob: float. The connectivity probability.
-      w_low: float. The lowest value of the uniform distribution.
-      w_high: float. The highest value of the uniform distribution.
-      seed: int. The random seed used to keep the reproducibility of the connectivity.
-      transpose: bool. Transpose the JIT matrix or not. Default False.
-      atomic: bool. Compute the post-synaptic value with the atomic summation. Default False.
-         May be changed in the future.
-      sharding: The sharding strategy.
-      mode: The synaptic computing mode.
-      name: The synapse model name.
+    Parameters
+    ----------
+    num_in : int
+        The number of the input feature. A positive integer.
+    num_out : int
+        The number of the input feature. A positive integer.
+    prob : float
+        The connectivity probability.
+    w_low : float
+        The lowest value of the uniform distribution.
+    w_high : float
+        The highest value of the uniform distribution.
+    seed : int
+        The random seed used to keep the reproducibility of the connectivity.
+    transpose : bool
+        Transpose the JIT matrix or not. Default False.
+    atomic : bool
+        Compute the post-synaptic value with the atomic summation. Default False.
+        May be changed in the future.
+    sharding : Optional[Sharding]
+        The sharding strategy.
+    mode : Optional[bm.Mode]
+        The synaptic computing mode.
+    name : Optional[str]
+        The synapse model name.
     """
 
     def __init__(
@@ -1196,19 +1305,31 @@ class EventJitFPNormalLinear(JitFPNormalLayer):
     Particularly, the connectivity in :math:`M` is sampled from a fixed probability :math:`prob`,
     and at each connection, the synaptic value is sample from a normal distribution :math:`N(\mu, \sigma)`.
 
-    Args:
-      num_in: int. The number of the input feature. A positive integer.
-      num_out: int. The number of the input feature. A positive integer.
-      prob: float. The connectivity probability.
-      w_mu: float. The center of the normal distribution.
-      w_sigma: float. The standard variance of the normal distribution.
-      seed: int. The random seed used to keep the reproducibility of the connectivity.
-      transpose: bool. Transpose the JIT matrix or not. Default False.
-      atomic: bool. Compute the post-synaptic value with the atomic summation. Default False.
-         May be changed in the future.
-      sharding: The sharding strategy.
-      mode: The synaptic computing mode.
-      name: The synapse model name.
+    Parameters
+    ----------
+    num_in : int
+        The number of the input feature. A positive integer.
+    num_out : int
+        The number of the input feature. A positive integer.
+    prob : float
+        The connectivity probability.
+    w_mu : float
+        The center of the normal distribution.
+    w_sigma : float
+        The standard variance of the normal distribution.
+    seed : int
+        The random seed used to keep the reproducibility of the connectivity.
+    transpose : bool
+        Transpose the JIT matrix or not. Default False.
+    atomic : bool
+        Compute the post-synaptic value with the atomic summation. Default False.
+        May be changed in the future.
+    sharding : Optional[Sharding]
+        The sharding strategy.
+    mode : Optional[bm.Mode]
+        The synaptic computing mode.
+    name : Optional[str]
+        The synapse model name.
     """
 
     def __init__(

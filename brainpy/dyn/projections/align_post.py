@@ -112,14 +112,22 @@ class HalfProjAlignPostMg(Projection):
       spks = bm.for_loop(lambda i: model.step_run(i, 20.), indices)
       bp.visualize.raster_plot(indices, spks, show=True)
 
-    Args:
-      comm: The synaptic communication.
-      syn: The synaptic dynamics.
-      out: The synaptic output.
-      post: The post-synaptic neuron group.
-      out_label: str. The prefix of the output function.
-      name: str. The projection name.
-      mode:  Mode. The computing mode.
+    Parameters
+    ----------
+    comm : DynamicalSystem
+        The synaptic communication.
+    syn : ParamDescriber[JointType[DynamicalSystem, AlignPost]]
+        The synaptic dynamics.
+    out : ParamDescriber[JointType[DynamicalSystem, BindCondData]]
+        The synaptic output.
+    post : DynamicalSystem
+        The post-synaptic neuron group.
+    out_label : str
+        The prefix of the output function.
+    name : str
+        The projection name.
+    mode : Mode
+        The computing mode.
     """
 
     def __init__(
@@ -234,15 +242,24 @@ class FullProjAlignPostMg(Projection):
         spks = bm.for_loop(lambda i: model.step_run(i, 20.), indices)
         bp.visualize.raster_plot(indices, spks, show=True)
 
-    Args:
-      pre: The pre-synaptic neuron group.
-      delay: The synaptic delay.
-      comm: The synaptic communication.
-      syn: The synaptic dynamics.
-      out: The synaptic output.
-      post: The post-synaptic neuron group.
-      name: str. The projection name.
-      mode:  Mode. The computing mode.
+    Parameters
+    ----------
+    pre : JointType[DynamicalSystem, SupportAutoDelay]
+        The pre-synaptic neuron group.
+    delay : Union[None, int, float]
+        The synaptic delay.
+    comm : DynamicalSystem
+        The synaptic communication.
+    syn : ParamDescriber[JointType[DynamicalSystem, AlignPost]]
+        The synaptic dynamics.
+    out : ParamDescriber[JointType[DynamicalSystem, BindCondData]]
+        The synaptic output.
+    post : DynamicalSystem
+        The post-synaptic neuron group.
+    name : str
+        The projection name.
+    mode : Mode
+        The computing mode.
     """
 
     def __init__(
@@ -339,13 +356,20 @@ class HalfProjAlignPost(Projection):
         bp.visualize.raster_plot(indices, spks, show=True)
 
 
-    Args:
-      comm: The synaptic communication.
-      syn: The synaptic dynamics.
-      out: The synaptic output.
-      post: The post-synaptic neuron group.
-      name: str. The projection name.
-      mode:  Mode. The computing mode.
+    Parameters
+    ----------
+    comm : DynamicalSystem
+        The synaptic communication.
+    syn : JointType[DynamicalSystem, AlignPost]
+        The synaptic dynamics.
+    out : JointType[DynamicalSystem, BindCondData]
+        The synaptic output.
+    post : DynamicalSystem
+        The post-synaptic neuron group.
+    name : str
+        The projection name.
+    mode : Mode
+        The computing mode.
     """
 
     def __init__(
@@ -457,15 +481,24 @@ class FullProjAlignPost(Projection):
         bp.visualize.raster_plot(indices, spks, show=True)
 
 
-    Args:
-      pre: The pre-synaptic neuron group.
-      delay: The synaptic delay.
-      comm: The synaptic communication.
-      syn: The synaptic dynamics.
-      out: The synaptic output.
-      post: The post-synaptic neuron group.
-      name: str. The projection name.
-      mode:  Mode. The computing mode.
+    Parameters
+    ----------
+    pre : JointType[DynamicalSystem, SupportAutoDelay]
+        The pre-synaptic neuron group.
+    delay : Union[None, int, float]
+        The synaptic delay.
+    comm : DynamicalSystem
+        The synaptic communication.
+    syn : JointType[DynamicalSystem, AlignPost]
+        The synaptic dynamics.
+    out : JointType[DynamicalSystem, BindCondData]
+        The synaptic output.
+    post : DynamicalSystem
+        The post-synaptic neuron group.
+    name : str
+        The projection name.
+    mode : Mode
+        The computing mode.
     """
 
     def __init__(

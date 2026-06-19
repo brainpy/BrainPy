@@ -51,7 +51,8 @@ class Ih_HM1992(IonChannel):
 
     where :math:`\phi=1` is a temperature-dependent factor.
 
-    Parameters::
+    Parameters
+    ----------
 
     g_max : float
       The maximal conductance density (:math:`mS/cm^2`).
@@ -60,7 +61,8 @@ class Ih_HM1992(IonChannel):
     phi : float
       The temperature-dependent factor.
 
-    References::
+    References
+    ----------
 
     .. [1] Huguenard, John R., and David A. McCormick. "Simulation of the currents
            involved in rhythmic oscillations in thalamic relay neurons." Journal
@@ -164,7 +166,8 @@ class Ih_De1996(IonChannel):
 
     and the temperature regulating factor :math:`\phi=2^{(T-24)/10}`.
 
-    References::
+    References
+    ----------
 
     .. [1] Destexhe, Alain, et al. "Ionic mechanisms underlying synchronized
            oscillations and propagating waves in a model of ferret thalamic

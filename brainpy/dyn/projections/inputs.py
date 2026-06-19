@@ -32,7 +32,9 @@ __all__ = [
 class InputVar(Dynamic, SupportAutoDelay):
     """Define an input variable.
 
-    Example::
+    Examples
+    --------
+    ::
 
         import brainpy as bp
 
@@ -127,13 +129,20 @@ class PoissonInput(Projection):
     All neurons in the target variable receive independent realizations of
     Poisson spike trains.
 
-    Args:
-      target_var: The variable that is targeted by this input. Should be an instance of :py:class:`~.Variable`.
-      num_input: The number of inputs.
-      freq: The frequency of each of the inputs. Must be a scalar.
-      weight: The synaptic weight. Must be a scalar.
-      name: The target name.
-      mode: The computing mode.
+    Parameters
+    ----------
+    target_var : bm.Variable
+        The variable that is targeted by this input. Should be an instance of :py:class:`~.Variable`.
+    num_input : int
+        The number of inputs.
+    freq : Union[int, float]
+        The frequency of each of the inputs. Must be a scalar.
+    weight : Union[int, float]
+        The synaptic weight. Must be a scalar.
+    name : str
+        The target name.
+    mode : Mode
+        The computing mode.
     """
 
     def __init__(

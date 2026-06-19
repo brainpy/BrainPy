@@ -60,14 +60,21 @@ class DelayRegister(MixIn):
     ):
         """Register delay variable.
 
-        Args:
-          identifier: str. The delay access name.
-          delay_target: The target variable for delay.
-          delay_step: The delay time step.
-          initial_delay_data: The initializer for the delay data.
+        Parameters
+        ----------
+        identifier : str
+            The delay access name.
+        delay_target : bm.Variable
+            The target variable for delay.
+        delay_step : Optional[Union[int, ArrayType, Callable]]
+            The delay time step.
+        initial_delay_data : Union[Callable, ArrayType, numbers.Number]
+            The initializer for the delay data.
 
-        Returns:
-          delay_pos: The position of the delay.
+        Returns
+        -------
+        delay_pos
+            The position of the delay.
         """
         _delay_identifier, _init_delay_by_return = _get_delay_tool()
         assert isinstance(self, DynamicalSystem), f'self must be an instance of {DynamicalSystem.__name__}'
@@ -87,19 +94,19 @@ class DelayRegister(MixIn):
     ):
         """Get delay data according to the provided delay steps.
 
-        Parameters::
+        Parameters
+        ----------
+        identifier : str
+            The delay variable name.
+        delay_pos : str
+            The delay length.
+        indices : optional, int, slice, ArrayType
+            The indices of the delay.
 
-        identifier: str
-          The delay variable name.
-        delay_pos: str
-          The delay length.
-        indices: optional, int, slice, ArrayType
-          The indices of the delay.
-
-        Returns::
-
-        delay_data: ArrayType
-          The delay data at the given time.
+        Returns
+        -------
+        delay_data : ArrayType
+            The delay data at the given time.
         """
         _delay_identifier, _init_delay_by_return = _get_delay_tool()
         _delay_identifier = _delay_identifier + identifier
@@ -113,10 +120,10 @@ class DelayRegister(MixIn):
         For example, in a network model,
 
 
-        Parameters::
-
-        nodes: sequence, dict
-          The nodes to update their delay variables.
+        Parameters
+        ----------
+        nodes : sequence, dict
+            The nodes to update their delay variables.
         """
         warnings.warn('.update_local_delays() has been removed since brainpy>=2.4.6',
                       DeprecationWarning)
@@ -124,10 +131,10 @@ class DelayRegister(MixIn):
     def reset_local_delays(self, nodes: Union[Sequence, Dict] = None):
         """Reset local delay variables.
 
-        Parameters::
-
-        nodes: sequence, dict
-          The nodes to Reset their delay variables.
+        Parameters
+        ----------
+        nodes : sequence, dict
+            The nodes to Reset their delay variables.
         """
         warnings.warn('.reset_local_delays() has been removed since brainpy>=2.4.6',
                       DeprecationWarning)
@@ -167,12 +174,12 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
        - ``.update_local_delays()``
        - ``.reset_local_delays()``
 
-    Parameters::
-
+    Parameters
+    ----------
     name : optional, str
-      The name of the dynamical system.
-    mode: optional, Mode
-      The model computation mode. It should be an instance of :py:class:`~.Mode`.
+        The name of the dynamical system.
+    mode : optional, Mode
+        The model computation mode. It should be an instance of :py:class:`~.Mode`.
     """
 
     supported_modes: Optional[Sequence[bm.Mode]] = None
@@ -303,13 +310,19 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
         This function can be directly applied to run the dynamical system.
         Particularly, ``i`` denotes the running index.
 
-        Args:
-          i: The current running index.
-          *args: The arguments of ``update()`` function.
-          **kwargs: The arguments of ``update()`` function.
+        Parameters
+        ----------
+        i
+            The current running index.
+        *args
+            The arguments of ``update()`` function.
+        **kwargs
+            The arguments of ``update()`` function.
 
-        Returns:
-          out: The update function returns.
+        Returns
+        -------
+        out
+            The update function returns.
         """
         global clear_input
         if clear_input is None:
@@ -323,13 +336,19 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
     def jit_step_run(self, i, *args, **kwargs):
         """The jitted step function for running.
 
-        Args:
-          i: The current running index.
-          *args: The arguments of ``update()`` function.
-          **kwargs: The arguments of ``update()`` function.
+        Parameters
+        ----------
+        i
+            The current running index.
+        *args
+            The arguments of ``update()`` function.
+        **kwargs
+            The arguments of ``update()`` function.
 
-        Returns:
-          out: The update function returns.
+        Returns
+        -------
+        out
+            The update function returns.
         """
         return self.step_run(i, *args, **kwargs)
 
@@ -354,11 +373,16 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
     ):
         """Register local relay at the given delay time.
 
-        Args:
-          var_name: str. The name of the delay target variable.
-          delay_name: str. The name of the current delay data.
-          delay_time: The delay time. Float.
-          delay_step: The delay step. Int. ``delay_step`` and ``delay_time`` are exclusive. ``delay_step = delay_time / dt``.
+        Parameters
+        ----------
+        var_name : str
+            The name of the delay target variable.
+        delay_name : str
+            The name of the current delay data.
+        delay_time
+            The delay time. Float.
+        delay_step
+            The delay step. Int. ``delay_step`` and ``delay_time`` are exclusive. ``delay_step = delay_time / dt``.
         """
         delay_identifier, init_delay_by_return = _get_delay_tool()
         delay_identifier = delay_identifier + var_name
@@ -379,12 +403,16 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
     def get_local_delay(self, var_name, delay_name):
         """Get the delay at the given identifier (`name`).
 
-        Args:
-          var_name: The name of the target delay variable.
-          delay_name: The identifier of the delay.
+        Parameters
+        ----------
+        var_name
+            The name of the target delay variable.
+        delay_name
+            The identifier of the delay.
 
-        Returns:
-          The delayed data at the given delay position.
+        Returns
+        -------
+        The delayed data at the given delay position.
         """
         delay_identifier, init_delay_by_return = _get_delay_tool()
         delay_identifier = delay_identifier + var_name
@@ -536,12 +564,15 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
     def __rrshift__(self, other):
         """Support using right shift operator to call modules.
 
-        Examples::
+        Examples
+        --------
 
-        >>> import brainpy as bp
-        >>> x = bp.math.random.rand((10, 10))
-        >>> l = bp.layers.Activation(bm.tanh)
-        >>> y = x >> l
+        .. code-block:: python
+
+            >>> import brainpy as bp
+            >>> x = bp.math.random.rand((10, 10))
+            >>> l = bp.layers.Activation(bm.tanh)
+            >>> y = x >> l
         """
         return self.__call__(other)
 
@@ -549,12 +580,18 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
 class DynSysGroup(DynamicalSystem, Container):
     """A group of :py:class:`~.DynamicalSystem`s in which the updating order does not matter.
 
-    Args:
-      children_as_tuple: The children objects.
-      children_as_dict: The children objects.
-      name: The object name.
-      mode: The mode which controls the model computation.
-      child_type: The type of the children object. Default is :py:class:`DynamicalSystem`.
+    Parameters
+    ----------
+    children_as_tuple
+        The children objects.
+    children_as_dict
+        The children objects.
+    name
+        The object name.
+    mode
+        The mode which controls the model computation.
+    child_type
+        The type of the children object. Default is :py:class:`DynamicalSystem`.
     """
 
     def __init__(
@@ -619,30 +656,37 @@ class Sequential(DynamicalSystem, SupportAutoDelay, Container):
     On the other hand, the layers in a ``Sequential`` are connected
     in a cascading way.
 
-    Examples::
+    Parameters
+    ----------
+    modules_as_tuple
+        The children modules.
+    modules_as_dict
+        The children modules.
+    name
+        The object name.
+    mode
+        The object computing context/mode. Default is ``None``.
 
-    >>> import brainpy as bp
-    >>> import brainpy.math as bm
-    >>>
-    >>> # composing ANN models
-    >>> l = bp.Sequential(bp.layers.Dense(100, 10),
-    >>>                   bm.relu,
-    >>>                   bp.layers.Dense(10, 2))
-    >>> l(bm.random.random((256, 100)))
-    >>>
-    >>> # Using Sequential with Dict. This is functionally the
-    >>> # same as the above code
-    >>> l = bp.Sequential(l1=bp.layers.Dense(100, 10),
-    >>>                   l2=bm.relu,
-    >>>                   l3=bp.layers.Dense(10, 2))
-    >>> l(bm.random.random((256, 100)))
+    Examples
+    --------
 
+    .. code-block:: python
 
-    Args:
-      modules_as_tuple: The children modules.
-      modules_as_dict: The children modules.
-      name: The object name.
-      mode: The object computing context/mode. Default is ``None``.
+        >>> import brainpy as bp
+        >>> import brainpy.math as bm
+        >>>
+        >>> # composing ANN models
+        >>> l = bp.Sequential(bp.layers.Dense(100, 10),
+        >>>                   bm.relu,
+        >>>                   bp.layers.Dense(10, 2))
+        >>> l(bm.random.random((256, 100)))
+        >>>
+        >>> # Using Sequential with Dict. This is functionally the
+        >>> # same as the above code
+        >>> l = bp.Sequential(l1=bp.layers.Dense(100, 10),
+        >>>                   l2=bm.relu,
+        >>>                   l3=bp.layers.Dense(10, 2))
+        >>> l(bm.random.random((256, 100)))
     """
 
     def __init__(
@@ -696,9 +740,12 @@ class Sequential(DynamicalSystem, SupportAutoDelay, Container):
 class Projection(DynamicalSystem):
     """Base class to model synaptic projections.
 
-    Args:
-      name: The name of the dynamic system.
-      mode: The computing mode. It should be an instance of :py:class:`~.Mode`.
+    Parameters
+    ----------
+    name
+        The name of the dynamic system.
+    mode
+        The computing mode. It should be an instance of :py:class:`~.Mode`.
     """
 
     def update(self, *args, **kwargs):
@@ -728,11 +775,16 @@ class Dynamic(DynamicalSystem):
     - ``num``: the flattened number of neurons in the group. For example, `size=(10, )` => \
       `num=10`, `size=(10, 10)` => `num=100`, `size=(10, 15, 4)` => `num=600`.
 
-    Args:
-      size: The neuron group geometry.
-      name: The name of the dynamic system.
-      keep_size: Whether keep the geometry information.
-      mode: The computing mode.
+    Parameters
+    ----------
+    size
+        The neuron group geometry.
+    name
+        The name of the dynamic system.
+    keep_size
+        Whether keep the geometry information.
+    mode
+        The computing mode.
     """
 
     def __init__(

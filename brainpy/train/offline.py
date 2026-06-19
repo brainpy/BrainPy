@@ -42,11 +42,12 @@ class OfflineTrainer(DSTrainer):
 
     For more parameters, users should refer to :py:class:`~.DSRunner`.
 
-    Parameters::
+    Parameters
+    ----------
 
-    target: DynamicalSystem
+    target : DynamicalSystem
       The target model to train.
-    fit_method: OfflineAlgorithm, Callable, dict, str
+    fit_method : OfflineAlgorithm, Callable, dict, str
       The fitting method applied to the target model.
       - It can be a string, which specify the shortcut name of the training algorithm.
         Like, ``fit_method='ridge'`` means using the Ridge regression method.
@@ -60,7 +61,7 @@ class OfflineTrainer(DSTrainer):
       - It can also be a callable function, which receives three arguments "targets", "x" and "y".
         For example, ``fit_method=lambda targets, x, y: numpy.linalg.lstsq(x, targets)[0]``.
 
-    kwargs: Any
+    kwargs : Any
       Other general parameters please see :py:class:`~.DSRunner`.
     """
 
@@ -120,20 +121,22 @@ class OfflineTrainer(DSTrainer):
         What's different from `predict()` function in :py:class:`~.DynamicalSystem` is that
         the `inputs_are_batching` is default `True`.
 
-        Parameters::
+        Parameters
+        ----------
 
-        inputs: ArrayType
+        inputs : ArrayType
           The input values.
-        reset_state: bool
+        reset_state : bool
           Reset the target state before running.
-        eval_time: bool
+        eval_time : bool
           Whether we evaluate the running time or not?
-        shared_args: dict
+        shared_args : dict
           The shared arguments across nodes.
 
-        Returns::
+        Returns
+        -------
 
-        output: ArrayType
+        output : ArrayType
           The running output.
         """
         outs = super().predict(inputs=inputs, reset_state=reset_state,
@@ -150,9 +153,10 @@ class OfflineTrainer(DSTrainer):
     ) -> Output:
         """Fit the target model according to the given training and testing data.
 
-        Parameters::
+        Parameters
+        ----------
 
-        train_data: sequence of data
+        train_data : sequence of data
           It should be a pair of `(X, Y)` train set.
           - ``X``: should be a tensor or a dict of tensors with the shape of
             `(num_sample, num_time, num_feature)`, where `num_sample` is
@@ -163,9 +167,9 @@ class OfflineTrainer(DSTrainer):
               then we will only fit the model with the only last output.
             - If the shape of each tensor is `(num_sample, num_time, num_feature)`,
               then the fitting happens on the whole data series.
-        reset_state: bool
+        reset_state : bool
           Whether reset the initial states of the target model.
-        shared_args: dict
+        shared_args : dict
           The shared keyword arguments for the target models.
         """
         with brainstate.environ.context(fit=True):
@@ -276,11 +280,12 @@ class RidgeTrainer(OfflineTrainer):
 
     For more parameters, users should refer to :py:class:`~.DSRunner`.
 
-    Parameters::
+    Parameters
+    ----------
 
-    target: TrainingSystem, DynamicalSystem
+    target : TrainingSystem, DynamicalSystem
       The target model.
-    alpha: float
+    alpha : float
       The regularization coefficient.
     """
 

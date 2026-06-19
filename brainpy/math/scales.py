@@ -34,12 +34,16 @@ class Scaling(object):
     ) -> 'Scaling':
         """Transform the membrane potential range to a ``Scaling`` instance.
 
-        Args:
-          V_range:   [V_min, V_max]
-          scaled_V_range:  [scaled_V_min, scaled_V_max]
+        Parameters
+        ----------
+        V_range : Sequence[Union[float, int]]
+            [V_min, V_max]
+        scaled_V_range : Sequence[Union[float, int]]
+            [scaled_V_min, scaled_V_max]
 
-        Returns:
-          The instanced scaling object.
+        Returns
+        -------
+        The instanced scaling object.
         """
         V_min, V_max = V_range
         scaled_V_min, scaled_V_max = scaled_V_range

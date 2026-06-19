@@ -65,34 +65,36 @@ class BatchNorm(Layer):
         where :math:`\hat{x}` is the estimated statistic and :math:`x_t` is the
         new observed value.
 
-    Parameters::
+    Parameters
+    ----------
 
-    num_features: int
+    num_features : int
       ``C`` from an expected input of size ``(..., C)``.
-    axis: int, tuple, list
+    axis : int, tuple, list
       Axes where the data will be normalized. The feature (channel) axis should be excluded.
-    momentum: float
+    momentum : float
       The value used for the ``running_mean`` and ``running_var`` computation. Default: 0.99
-    epsilon: float
+    epsilon : float
       A value added to the denominator for numerical stability. Default: 1e-5
-    affine: bool
+    affine : bool
       A boolean value that when set to ``True``, this module has
       learnable affine parameters. Default: ``True``
-    bias_initializer: Initializer, ArrayType, Callable
+    bias_initializer : Initializer, ArrayType, Callable
       An initializer generating the original translation matrix
-    scale_initializer: Initializer, ArrayType, Callable
+    scale_initializer : Initializer, ArrayType, Callable
       An initializer generating the original scaling matrix
-    axis_name: optional, str, sequence of str
+    axis_name : optional, str, sequence of str
       If not ``None``, it should be a string (or sequence of
       strings) representing the axis name(s) over which this module is being
       run within a jax map (e.g. ``jax.pmap`` or ``jax.vmap``). Supplying this
       argument means that batch statistics are calculated across all replicas
       on the named axes.
-    axis_index_groups: optional, sequence
+    axis_index_groups : optional, sequence
       Specifies how devices are grouped. Valid
       only within ``jax.pmap`` collectives.
 
-    References::
+    References
+    ----------
 
     .. [1] Ioffe, Sergey and Christian Szegedy. “Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift.” ArXiv abs/1502.03167 (2015): n. pag.
 
@@ -218,34 +220,36 @@ class BatchNorm1d(BatchNorm):
         where :math:`\hat{x}` is the estimated statistic and :math:`x_t` is the
         new observed value.
 
-    Parameters::
+    Parameters
+    ----------
 
-    num_features: int
+    num_features : int
       ``C`` from an expected input of size ``(B, L, C)``.
-    axis: int, tuple, list
+    axis : int, tuple, list
       axes where the data will be normalized. The feature (channel) axis should be excluded.
-    epsilon: float
+    epsilon : float
       A value added to the denominator for numerical stability. Default: 1e-5
-    momentum: float
+    momentum : float
       The value used for the ``running_mean`` and ``running_var`` computation. Default: 0.99
-    affine: bool
+    affine : bool
       A boolean value that when set to ``True``, this module has
       learnable affine parameters. Default: ``True``
-    bias_initializer: Initializer, ArrayType, Callable
+    bias_initializer : Initializer, ArrayType, Callable
       an initializer generating the original translation matrix
-    scale_initializer: Initializer, ArrayType, Callable
+    scale_initializer : Initializer, ArrayType, Callable
       an initializer generating the original scaling matrix
-    axis_name: optional, str, sequence of str
+    axis_name : optional, str, sequence of str
       If not ``None``, it should be a string (or sequence of
       strings) representing the axis name(s) over which this module is being
       run within a jax map (e.g. ``jax.pmap`` or ``jax.vmap``). Supplying this
       argument means that batch statistics are calculated across all replicas
       on the named axes.
-    axis_index_groups: optional, sequence
+    axis_index_groups : optional, sequence
       Specifies how devices are grouped. Valid
       only within ``jax.pmap`` collectives.
 
-    References::
+    References
+    ----------
 
     .. [1] Ioffe, Sergey and Christian Szegedy. “Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift.” ArXiv abs/1502.03167 (2015): n. pag.
 
@@ -301,34 +305,36 @@ class BatchNorm2d(BatchNorm):
         where :math:`\hat{x}` is the estimated statistic and :math:`x_t` is the
         new observed value.
 
-    Parameters::
+    Parameters
+    ----------
 
-    num_features: int
+    num_features : int
       ``C`` from an expected input of size ``(B, H, W, C)``.
-    axis: int, tuple, list
+    axis : int, tuple, list
       axes where the data will be normalized. The feature (channel) axis should be excluded.
-    epsilon: float
+    epsilon : float
       a value added to the denominator for numerical stability. Default: 1e-5
-    momentum: float
+    momentum : float
       The value used for the ``running_mean`` and ``running_var`` computation. Default: 0.99
-    affine: bool
+    affine : bool
       A boolean value that when set to ``True``, this module has
       learnable affine parameters. Default: ``True``
-    bias_initializer: Initializer, ArrayType, Callable
+    bias_initializer : Initializer, ArrayType, Callable
       an initializer generating the original translation matrix
-    scale_initializer: Initializer, ArrayType, Callable
+    scale_initializer : Initializer, ArrayType, Callable
       an initializer generating the original scaling matrix
-    axis_name: optional, str, sequence of str
+    axis_name : optional, str, sequence of str
       If not ``None``, it should be a string (or sequence of
       strings) representing the axis name(s) over which this module is being
       run within a jax map (e.g. ``jax.pmap`` or ``jax.vmap``). Supplying this
       argument means that batch statistics are calculated across all replicas
       on the named axes.
-    axis_index_groups: optional, sequence
+    axis_index_groups : optional, sequence
       Specifies how devices are grouped. Valid
       only within ``jax.pmap`` collectives.
 
-    References::
+    References
+    ----------
 
     .. [1] Ioffe, Sergey and Christian Szegedy. “Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift.” ArXiv abs/1502.03167 (2015): n. pag.
 
@@ -384,34 +390,36 @@ class BatchNorm3d(BatchNorm):
         where :math:`\hat{x}` is the estimated statistic and :math:`x_t` is the
         new observed value.
 
-    Parameters::
+    Parameters
+    ----------
 
-    num_features: int
+    num_features : int
       ``C`` from an expected input of size ``(B, H, W, D, C)``.
-    axis: int, tuple, list
+    axis : int, tuple, list
       axes where the data will be normalized. The feature (channel) axis should be excluded.
-    epsilon: float
+    epsilon : float
       a value added to the denominator for numerical stability. Default: 1e-5
-    momentum: float
+    momentum : float
       The value used for the ``running_mean`` and ``running_var`` computation. Default: 0.99
-    affine: bool
+    affine : bool
       A boolean value that when set to ``True``, this module has
       learnable affine parameters. Default: ``True``
-    bias_initializer: Initializer, ArrayType, Callable
+    bias_initializer : Initializer, ArrayType, Callable
       an initializer generating the original translation matrix
-    scale_initializer: Initializer, ArrayType, Callable
+    scale_initializer : Initializer, ArrayType, Callable
       an initializer generating the original scaling matrix
-    axis_name: optional, str, sequence of str
+    axis_name : optional, str, sequence of str
       If not ``None``, it should be a string (or sequence of
       strings) representing the axis name(s) over which this module is being
       run within a jax map (e.g. ``jax.pmap`` or ``jax.vmap``). Supplying this
       argument means that batch statistics are calculated across all replicas
       on the named axes.
-    axis_index_groups: optional, sequence
+    axis_index_groups : optional, sequence
       Specifies how devices are grouped. Valid
       only within ``jax.pmap`` collectives.
 
-    References::
+    References
+    ----------
 
     .. [1] Ioffe, Sergey and Christian Szegedy. “Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift.” ArXiv abs/1502.03167 (2015): n. pag.
 
@@ -463,9 +471,10 @@ class LayerNorm(Layer):
     scale and bias to a whole example/whole channel, please use GroupNorm/
     InstanceNorm.
 
-    Parameters::
+    Parameters
+    ----------
 
-    normalized_shape: int, sequence of int
+    normalized_shape : int, sequence of int
       The input shape from an expected input of size
 
       .. math::
@@ -474,18 +483,19 @@ class LayerNorm(Layer):
 
       If a single integer is used, it is treated as a singleton list, and this module will
       normalize over the last dimension which is expected to be of that specific size.
-    epsilon: float
+    epsilon : float
       a value added to the denominator for numerical stability. Default: 1e-5
-    bias_initializer: Initializer, ArrayType, Callable
+    bias_initializer : Initializer, ArrayType, Callable
       an initializer generating the original translation matrix
-    scale_initializer: Initializer, ArrayType, Callable
+    scale_initializer : Initializer, ArrayType, Callable
       an initializer generating the original scaling matrix
-    elementwise_affine: bool
+    elementwise_affine : bool
       A boolean value that when set to ``True``, this module
       has learnable per-element affine parameters initialized to ones (for weights)
       and zeros (for biases). Default: ``True``.
 
-    Examples::
+    Examples
+    --------
 
     >>> import brainpy as bp
     >>> import brainpy.math as bm
@@ -571,24 +581,26 @@ class GroupNorm(Layer):
     The shape of the data should be (b, d1, d2, ..., c), where `d` denotes the batch
     size and `c` denotes the feature (channel) size.
 
-    Parameters::
+    Parameters
+    ----------
 
-    num_groups: int
+    num_groups : int
       The number of groups. It should be a factor of the number of channels.
-    num_channels: int
+    num_channels : int
       The number of channels expected in input.
-    epsilon: float
+    epsilon : float
       a value added to the denominator for numerical stability. Default: 1e-5
-    affine: bool
+    affine : bool
       A boolean value that when set to ``True``, this module
       has learnable per-channel affine parameters initialized to ones (for weights)
       and zeros (for biases). Default: ``True``.
-    bias_initializer: Initializer, ArrayType, Callable
+    bias_initializer : Initializer, ArrayType, Callable
       An initializer generating the original translation matrix
-    scale_initializer: Initializer, ArrayType, Callable
+    scale_initializer : Initializer, ArrayType, Callable
       An initializer generating the original scaling matrix
 
-    Examples::
+    Examples
+    --------
 
     >>> import brainpy as bp
     >>> import brainpy.math as bm
@@ -666,19 +678,20 @@ class InstanceNorm(GroupNorm):
     This layer normalizes the data within each feature. It can be regarded as
     a group normalization layer in which `group_size` equals to 1.
 
-    Parameters::
+    Parameters
+    ----------
 
-    num_channels: int
+    num_channels : int
       The number of channels expected in input.
-    epsilon: float
+    epsilon : float
       a value added to the denominator for numerical stability. Default: 1e-5
-    affine: bool
+    affine : bool
       A boolean value that when set to ``True``, this module
       has learnable per-channel affine parameters initialized to ones (for weights)
       and zeros (for biases). Default: ``True``.
-    bias_initializer: Initializer, ArrayType, Callable
+    bias_initializer : Initializer, ArrayType, Callable
       an initializer generating the original translation matrix
-    scale_initializer: Initializer, ArrayType, Callable
+    scale_initializer : Initializer, ArrayType, Callable
       an initializer generating the original scaling matrix
     """
 

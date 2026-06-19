@@ -51,23 +51,23 @@ class RNNCell(Layer):
     The output is equal to the new state, :math:`h_t`.
 
 
-    Parameters::
-
-    num_in: int
-      The dimension of the input vector
-    num_out: int
-      The number of hidden unit in the node.
-    state_initializer: callable, Initializer, bm.ndarray, jax.numpy.ndarray
-      The state initializer.
-    Wi_initializer: callable, Initializer, bm.ndarray, jax.numpy.ndarray
-      The input weight initializer.
-    Wh_initializer: callable, Initializer, bm.ndarray, jax.numpy.ndarray
-      The hidden weight initializer.
-    b_initializer: optional, callable, Initializer, bm.ndarray, jax.numpy.ndarray
-      The bias weight initializer.
-    activation: str, callable
-      The activation function. It can be a string or a callable function.
-      See ``brainpy.math.activations`` for more details.
+    Parameters
+    ----------
+    num_in : int
+        The dimension of the input vector
+    num_out : int
+        The number of hidden unit in the node.
+    state_initializer : callable, Initializer, bm.ndarray, jax.numpy.ndarray
+        The state initializer.
+    Wi_initializer : callable, Initializer, bm.ndarray, jax.numpy.ndarray
+        The input weight initializer.
+    Wh_initializer : callable, Initializer, bm.ndarray, jax.numpy.ndarray
+        The hidden weight initializer.
+    b_initializer : optional, callable, Initializer, bm.ndarray, jax.numpy.ndarray
+        The bias weight initializer.
+    activation : str, callable
+        The activation function. It can be a string or a callable function.
+        See ``brainpy.math.activations`` for more details.
 
     """
 
@@ -160,26 +160,26 @@ class GRUCell(Layer):
 
     Warning: Backwards compatibility of GRU weights is currently unsupported.
 
-    Parameters::
+    Parameters
+    ----------
+    num_in : int
+        The dimension of the input vector
+    num_out : int
+        The number of hidden unit in the node.
+    state_initializer : callable, Initializer, bm.ndarray, jax.numpy.ndarray
+        The state initializer.
+    Wi_initializer : callable, Initializer, bm.ndarray, jax.numpy.ndarray
+        The input weight initializer.
+    Wh_initializer : callable, Initializer, bm.ndarray, jax.numpy.ndarray
+        The hidden weight initializer.
+    b_initializer : optional, callable, Initializer, bm.ndarray, jax.numpy.ndarray
+        The bias weight initializer.
+    activation : str, callable
+        The activation function. It can be a string or a callable function.
+        See ``brainpy.math.activations`` for more details.
 
-    num_in: int
-      The dimension of the input vector
-    num_out: int
-      The number of hidden unit in the node.
-    state_initializer: callable, Initializer, bm.ndarray, jax.numpy.ndarray
-      The state initializer.
-    Wi_initializer: callable, Initializer, bm.ndarray, jax.numpy.ndarray
-      The input weight initializer.
-    Wh_initializer: callable, Initializer, bm.ndarray, jax.numpy.ndarray
-      The hidden weight initializer.
-    b_initializer: optional, callable, Initializer, bm.ndarray, jax.numpy.ndarray
-      The bias weight initializer.
-    activation: str, callable
-      The activation function. It can be a string or a callable function.
-      See ``brainpy.math.activations`` for more details.
-
-    References::
-
+    References
+    ----------
     .. [1] Chung, J., Gulcehre, C., Cho, K. and Bengio, Y., 2014. Empirical
            evaluation of gated recurrent neural networks on sequence modeling.
            arXiv preprint arXiv:1412.3555.
@@ -285,33 +285,32 @@ class LSTMCell(Layer):
 
     The output is equal to the new hidden, :math:`h_t`.
 
-    Notes::
+    Parameters
+    ----------
+    num_in : int
+        The dimension of the input vector
+    num_out : int
+        The number of hidden unit in the node.
+    state_initializer : callable, Initializer, bm.ndarray, jax.numpy.ndarray
+        The state initializer.
+    Wi_initializer : callable, Initializer, bm.ndarray, jax.numpy.ndarray
+        The input weight initializer.
+    Wh_initializer : callable, Initializer, bm.ndarray, jax.numpy.ndarray
+        The hidden weight initializer.
+    b_initializer : optional, callable, Initializer, bm.ndarray, jax.numpy.ndarray
+        The bias weight initializer.
+    activation : str, callable
+        The activation function. It can be a string or a callable function.
+        See ``brainpy.math.activations`` for more details.
 
+    Notes
+    -----
     Forget gate initialization: Following (Jozefowicz, et al., 2015) [2]_ we add 1.0
     to :math:`b_f` after initialization in order to reduce the scale of forgetting in
     the beginning of the training.
 
-
-    Parameters::
-
-    num_in: int
-      The dimension of the input vector
-    num_out: int
-      The number of hidden unit in the node.
-    state_initializer: callable, Initializer, bm.ndarray, jax.numpy.ndarray
-      The state initializer.
-    Wi_initializer: callable, Initializer, bm.ndarray, jax.numpy.ndarray
-      The input weight initializer.
-    Wh_initializer: callable, Initializer, bm.ndarray, jax.numpy.ndarray
-      The hidden weight initializer.
-    b_initializer: optional, callable, Initializer, bm.ndarray, jax.numpy.ndarray
-      The bias weight initializer.
-    activation: str, callable
-      The activation function. It can be a string or a callable function.
-      See ``brainpy.math.activations`` for more details.
-
-    References::
-
+    References
+    ----------
     .. [1] Zaremba, Wojciech, Ilya Sutskever, and Oriol Vinyals. "Recurrent neural
            network regularization." arXiv preprint arXiv:1409.2329 (2014).
     .. [2] Jozefowicz, Rafal, Wojciech Zaremba, and Ilya Sutskever. "An empirical
@@ -436,8 +435,9 @@ class _ConvNDLSTMCell(Layer):
 
     The output is equal to the new hidden state, :math:`h_t`.
 
-    Notes:
-      Forget gate initialization:
+    Notes
+    -----
+    Forget gate initialization:
         Following :cite:`jozefowicz2015empirical` we add 1.0 to :math:`b_f`
         after initialization in order to reduce the scale of forgetting in
         the beginning of the training.
@@ -470,14 +470,20 @@ class _ConvNDLSTMCell(Layer):
     ):
         """Constructs a convolutional LSTM.
 
-        Args:
-          num_spatial_dims: Number of spatial dimensions of the input.
-          input_shape: Shape of the inputs excluding batch size.
-          out_channels: Number of output channels.
-          kernel_size: Sequence of kernel sizes (of length ``num_spatial_dims``),
+        Parameters
+        ----------
+        num_spatial_dims : int
+            Number of spatial dimensions of the input.
+        input_shape : Tuple[int, ...]
+            Shape of the inputs excluding batch size.
+        out_channels : int
+            Number of output channels.
+        kernel_size : Union[int, Sequence[int]]
+            Sequence of kernel sizes (of length ``num_spatial_dims``),
             or an int. ``kernel_shape`` will be expanded to define a kernel size in
             all dimensions.
-          name: Name of the module.
+        name : Optional[str]
+            Name of the module.
         """
         super().__init__(name=name, mode=mode)
 
@@ -577,13 +583,18 @@ class Conv1dLSTMCell(_ConvNDLSTMCell):  # pylint: disable=empty-docstring
 
         Output: [Batch_Size, Output_Data_Size, Output_Channel_Size]
 
-        Args:
-          input_shape: Shape of the inputs excluding batch size.
-          out_channels: Number of output channels.
-          kernel_size: Sequence of kernel sizes (of length 1), or an int.
+        Parameters
+        ----------
+        input_shape : Tuple[int, ...]
+            Shape of the inputs excluding batch size.
+        out_channels : int
+            Number of output channels.
+        kernel_size : Union[int, Sequence[int]]
+            Sequence of kernel sizes (of length 1), or an int.
             ``kernel_shape`` will be expanded to define a kernel size in all
             dimensions.
-          name: Name of the module.
+        name : Optional[str]
+            Name of the module.
         """
         super().__init__(
             num_spatial_dims=1,
@@ -638,13 +649,18 @@ class Conv2dLSTMCell(_ConvNDLSTMCell):  # pylint: disable=empty-docstring
 
         Output: [Batch_Size, Output_Data_Size_Dim1,Output_Data_Size_Dim2 , Output_Channel_Size]
 
-        Args:
-          input_shape: Shape of the inputs excluding batch size.
-          out_channels: Number of output channels.
-          kernel_size: Sequence of kernel sizes (of length 2), or an int.
+        Parameters
+        ----------
+        input_shape : Tuple[int, ...]
+            Shape of the inputs excluding batch size.
+        out_channels : int
+            Number of output channels.
+        kernel_size : Union[int, Sequence[int]]
+            Sequence of kernel sizes (of length 2), or an int.
             ``kernel_shape`` will be expanded to define a kernel size in all
             dimensions.
-          name: Name of the module.
+        name : Optional[str]
+            Name of the module.
         """
         super().__init__(
             num_spatial_dims=2,
@@ -699,13 +715,18 @@ class Conv3dLSTMCell(_ConvNDLSTMCell):  # pylint: disable=empty-docstring
 
         Output: [Batch_Size, Output_Data_Size_Dim1,Output_Data_Size_Dim2,Output_Data_Size_Dim3,Output_Channel_Size]
 
-        Args:
-          input_shape: Shape of the inputs excluding batch size.
-          out_channels: Number of output channels.
-          kernel_size: Sequence of kernel sizes (of length 3), or an int.
+        Parameters
+        ----------
+        input_shape : Tuple[int, ...]
+            Shape of the inputs excluding batch size.
+        out_channels : int
+            Number of output channels.
+        kernel_size : Union[int, Sequence[int]]
+            Sequence of kernel sizes (of length 3), or an int.
             ``kernel_shape`` will be expanded to define a kernel size in all
             dimensions.
-          name: Name of the module.
+        name : Optional[str]
+            Name of the module.
         """
         super().__init__(
             num_spatial_dims=3,

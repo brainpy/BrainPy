@@ -100,9 +100,11 @@ class Expon(SynDyn, AlignPost):
                   )
 
 
-    Args:
-      tau: float. The time constant of decay. [ms]
-      %s
+    Parameters
+    ----------
+    tau : float
+        The time constant of decay. [ms]
+    %s
     """
 
     def __init__(
@@ -272,17 +274,19 @@ class DualExpon(SynDyn):
           plt.title('Post V')
           plt.show()
 
-    See Also:
-      DualExponV2
+    See Also
+    --------
+    DualExponV2
 
     .. note::
 
        The implementation of this model can only be used in ``AlignPre`` projections.
        One the contrary, to seek the ``AlignPost`` projection, please use ``DualExponV2``.
 
-    Args:
-      %s
-      %s
+    Parameters
+    ----------
+    %s
+    %s
     """
 
     def __init__(
@@ -428,12 +432,14 @@ class DualExponV2(SynDyn, AlignPost):
                       post=post,
                   )
 
-    See Also:
-      DualExpon
+    See Also
+    --------
+    DualExpon
 
-    Args:
-      %s
-      %s
+    Parameters
+    ----------
+    %s
+    %s
     """
 
     def __init__(
@@ -555,9 +561,11 @@ class Alpha(SynDyn):
           plt.show()
 
 
-    Args:
-      %s
-      tau_decay: float, ArrayType, Callable. The time constant [ms] of the synaptic decay phase.
+    Parameters
+    ----------
+    %s
+    tau_decay : float, ArrayType, Callable
+        The time constant [ms] of the synaptic decay phase.
     """
 
     def __init__(
@@ -735,11 +743,15 @@ class NMDA(SynDyn):
            England journal of medicine, 361(3), p.302.
     .. [4] https://en.wikipedia.org/wiki/NMDA_receptor
 
-    Args:
-      tau_decay: float, ArrayType, Callable. The time constant of the synaptic decay phase. Default 100 [ms]
-      tau_rise: float, ArrayType, Callable. The time constant of the synaptic rise phase. Default 2 [ms]
-      a: float, ArrayType, Callable. Default 0.5 ms^-1.
-      %s
+    Parameters
+    ----------
+    tau_decay : float, ArrayType, Callable
+        The time constant of the synaptic decay phase. Default 100 [ms]
+    tau_rise : float, ArrayType, Callable
+        The time constant of the synaptic rise phase. Default 2 [ms]
+    a : float, ArrayType, Callable
+        Default 0.5 ms^-1.
+    %s
     """
 
     def __init__(
@@ -801,10 +813,13 @@ class STD(SynDyn):
 
     %s
 
-    Args:
-      tau: float, ArrayType, Callable. The time constant of recovery of the synaptic vesicles.
-      U: float, ArrayType, Callable. The fraction of resources used per action potential.
-      %s
+    Parameters
+    ----------
+    tau : float, ArrayType, Callable
+        The time constant of recovery of the synaptic vesicles.
+    U : float, ArrayType, Callable
+        The fraction of resources used per action potential.
+    %s
     """
 
     def __init__(
@@ -863,11 +878,15 @@ class STP(SynDyn):
 
     %s
 
-    Args:
-      tau_f: float, ArrayType, Callable. The time constant of short-term facilitation.
-      tau_d: float, ArrayType, Callable. The time constant of short-term depression.
-      U: float, ArrayType, Callable. The fraction of resources used per action potential.
-      %s
+    Parameters
+    ----------
+    tau_f : float, ArrayType, Callable
+        The time constant of short-term facilitation.
+    tau_d : float, ArrayType, Callable
+        The time constant of short-term depression.
+    U : float, ArrayType, Callable
+        The fraction of resources used per action potential.
+    %s
     """
 
     def __init__(

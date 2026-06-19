@@ -36,7 +36,22 @@ class PoissonEncoder(Encoder):
     spikes whose firing probability is :math:`x_{\text{normalize}}`.
 
 
-    Examples::
+    Parameters
+    ----------
+    min_val : float
+        The minimal value in the given data `x`, used to the data normalization.
+    max_val : float
+        The maximum value in the given data `x`, used to the data normalization.
+    gain : float
+        Scale input features by the gain, defaults to ``1``.
+    offset : float
+        Shift input features by the offset, defaults to ``0``.
+    first_spk_time : float
+        The time to first spike, defaults to ``0``.
+
+    Examples
+    --------
+    .. code-block:: python
 
        import brainpy as bp
        import brainpy.math as bm
@@ -51,14 +66,6 @@ class PoissonEncoder(Encoder):
 
        # or, encode the image at multiple times once
        spikes = encoder.multi_steps(img, n_time=10.)
-
-
-    Args:
-      min_val: float. The minimal value in the given data `x`, used to the data normalization.
-      max_val: float. The maximum value in the given data `x`, used to the data normalization.
-      gain: float. Scale input features by the gain, defaults to ``1``.
-      offset: float. Shift input features by the offset, defaults to ``0``.
-      first_spk_time: float. The time to first spike, defaults to ``0``.
     """
 
     def __init__(
@@ -81,12 +88,17 @@ class PoissonEncoder(Encoder):
     def single_step(self, x, i_step: int = None):
         """Generate spikes at the single step according to the inputs.
 
-        Args:
-          x: Array. The rate input.
-          i_step: int. The time step to generate spikes.
+        Parameters
+        ----------
+        x : Array
+            The rate input.
+        i_step : int
+            The time step to generate spikes.
 
-        Returns:
-          out: Array. The encoded spike train.
+        Returns
+        -------
+        out : Array
+            The encoded spike train.
         """
         # Draw a single Bernoulli sample for one step. (Delegating to
         # ``multi_steps`` with ``n_time=None`` would crash on ``int(None / dt)``,
@@ -108,17 +120,22 @@ class PoissonEncoder(Encoder):
     def multi_steps(self, x, n_time: Optional[float]):
         """Generate spikes at multiple steps according to the inputs.
 
-        Args:
-          x: Array. The rate input.
-          n_time: float. Encode rate values as spike trains in the given time length.
+        Parameters
+        ----------
+        x : Array
+            The rate input.
+        n_time : float
+            Encode rate values as spike trains in the given time length.
             ``n_time`` is converted into the ``n_step`` according to `n_step = int(n_time / brainpy.math.dt)`.
             - If ``n_time=None``, encode the rate values at the current time step.
               Users should repeatedly call it to encode `x` as a spike train.
             - Else, given the ``x`` with shape ``(S, ...)``, the encoded
               spike train is the array with shape ``(n_step, S, ...)``.
 
-        Returns:
-          out: Array. The encoded spike train.
+        Returns
+        -------
+        out : Array
+            The encoded spike train.
         """
         # ``n_time=None`` means "encode the current single step" (see docstring);
         # only convert to a step count when an actual duration is given.
@@ -144,7 +161,24 @@ class DiffEncoder(Encoder):
 
     Optionally include `off_spikes` for negative changes.
 
-    Example::
+    Parameters
+    ----------
+    threshold : float
+        Input features with a change greater than the thresold
+        across one timestep will generate a spike, defaults to ``0.1``.
+    padding : bool
+        Used to change how the first time step of spikes are
+        measured. If ``True``, the first time step will be repeated with itself
+        resulting in ``0``'s for the output spikes.
+        If ``False``, the first time step will be padded with ``0``'s, defaults
+        to ``False``.
+    off_spike : bool
+        If ``True``, negative spikes for changes less than
+        ``-threshold``, defaults to ``False``.
+
+    Examples
+    --------
+    .. code-block:: python
 
       >>> a = bm.array([1, 2, 2.9, 3, 3.9])
       >>> encoder = DiffEncoder(threshold=1)
@@ -163,17 +197,6 @@ class DiffEncoder(Encoder):
       >>> encoder = DiffEncoder(threshold=1, padding=True, off_spike=True)
       >>> encoder.multi_steps(b)
       Array([ 0.,  1., -1.,  1.,  0.])
-
-    Args:
-      threshold: float. Input features with a change greater than the thresold
-        across one timestep will generate a spike, defaults to ``0.1``.
-      padding: bool. Used to change how the first time step of spikes are
-        measured. If ``True``, the first time step will be repeated with itself
-        resulting in ``0``'s for the output spikes.
-        If ``False``, the first time step will be padded with ``0``'s, defaults
-        to ``False``.
-      off_spike: bool. If ``True``, negative spikes for changes less than
-        ``-threshold``, defaults to ``False``.
     """
 
     def __init__(
@@ -194,11 +217,15 @@ class DiffEncoder(Encoder):
     def multi_steps(self, x):
         """Encoding multistep inputs with the spiking trains.
 
-        Args:
-          x: Array. The array with the shape of `(num_step, ....)`.
+        Parameters
+        ----------
+        x : Array
+            The array with the shape of `(num_step, ....)`.
 
-        Returns:
-          out: Array. The spike train.
+        Returns
+        -------
+        out : Array
+            The spike train.
         """
         if self.padding:
             diff = bm.diff(x, axis=0, prepend=x[:1])

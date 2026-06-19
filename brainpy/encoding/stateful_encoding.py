@@ -36,19 +36,19 @@ class WeightedPhaseEncoder(Encoder):
     more information into the spikes. This is the major difference from
     a conventional rate coding scheme that assigns the same weight to every spike [1]_.
 
-    Parameters::
+    Parameters
+    ----------
+    min_val : float
+        The minimal value in the given data `x`, used to the data normalization.
+    max_val : float
+        The maximum value in the given data `x`, used to the data normalization.
+    num_phase : int
+        The number of the encoding period.
+    weight_fun : Callable
+        The function to generate weight at the phase :math:`i`.
 
-    min_val: float
-      The minimal value in the given data `x`, used to the data normalization.
-    max_val: float
-      The maximum value in the given data `x`, used to the data normalization.
-    num_phase: int
-      The number of the encoding period.
-    weight_fun: Callable
-      The function to generate weight at the phase :math:`i`.
-
-    References::
-
+    References
+    ----------
     .. [1] Kim, Jaehyun et al. “Deep neural networks with weighted spikes.” Neurocomputing 311 (2018): 373-386.
     """
 
@@ -69,17 +69,17 @@ class WeightedPhaseEncoder(Encoder):
     def __call__(self, x: ArrayType, num_step: int):
         """Encoding function.
 
-        Parameters::
+        Parameters
+        ----------
+        x : ArrayType
+            The input rate value.
+        num_step : int
+            The number of time steps.
 
-        x: ArrayType
-          The input rate value.
-        num_step: int
-          The number of time steps.
-
-        Returns::
-
-        out: ArrayType
-          The encoded spike train.
+        Returns
+        -------
+        out : ArrayType
+            The encoded spike train.
         """
         # normalize all input signals to fit into the range [1, 1-2^K]
         x = (x - self.min_val) * self.scale
@@ -108,7 +108,39 @@ class LatencyEncoder(Encoder):
     A larger ``x`` will cause the earlier firing time.
 
 
-    Example::
+    Parameters
+    ----------
+    min_val : float
+        The minimal value in the given data `x`, used to the data normalization.
+    max_val : float
+        The maximum value in the given data `x`, used to the data normalization.
+    method : str
+        How to convert intensity to firing time. Currently, we support `linear` or `log`.
+        - If ``method='linear'``, the firing rate is calculated as
+          :math:`t_f(x) = (\text{num_period} - 1)(1 - x)`.
+        - If ``method='log'``, the firing rate is calculated as
+          :math:`t_f(x) = (\text{num_period} - 1) - ln(\alpha * x + 1)`,
+          where :math:`\alpha` satisfies :math:`t_f(1) = \text{num_period} - 1`.
+    threshold : float
+        Input features below the threhold will fire at the
+        final time step unless ``clip=True`` in which case they will not
+        fire at all, defaults to ``0.01``.
+    clip : bool
+        Option to remove spikes from features that fall
+        below the threshold, defaults to ``False``.
+    tau : float
+        RC Time constant for LIF model used to calculate
+        firing time, defaults to ``1``.
+    normalize : bool
+        Option to normalize the latency code such that
+        the final spike(s) occur within num_steps, defaults to ``False``.
+    epsilon : float
+        A tiny positive value to avoid rounding errors when
+        using torch.arange, defaults to ``1e-7``.
+
+    Examples
+    --------
+    .. code-block:: python
 
       >>> a = bm.array([0.02, 0.5, 1])
       >>> encoder = LatencyEncoder(method='linear', normalize=True)
@@ -118,28 +150,6 @@ class LatencyEncoder(Encoder):
              [0., 1., 0.],
              [0., 0., 0.],
              [1., 0., 0.]])
-
-
-    Args:
-      min_val: float. The minimal value in the given data `x`, used to the data normalization.
-      max_val: float. The maximum value in the given data `x`, used to the data normalization.
-      method: str. How to convert intensity to firing time. Currently, we support `linear` or `log`.
-        - If ``method='linear'``, the firing rate is calculated as
-          :math:`t_f(x) = (\text{num_period} - 1)(1 - x)`.
-        - If ``method='log'``, the firing rate is calculated as
-          :math:`t_f(x) = (\text{num_period} - 1) - ln(\alpha * x + 1)`,
-          where :math:`\alpha` satisfies :math:`t_f(1) = \text{num_period} - 1`.
-      threshold: float. Input features below the threhold will fire at the
-        final time step unless ``clip=True`` in which case they will not
-        fire at all, defaults to ``0.01``.
-      clip: bool. Option to remove spikes from features that fall
-          below the threshold, defaults to ``False``.
-      tau: float. RC Time constant for LIF model used to calculate
-        firing time, defaults to ``1``.
-      normalize: bool. Option to normalize the latency code such that
-        the final spike(s) occur within num_steps, defaults to ``False``.
-      epsilon: float. A tiny positive value to avoid rounding errors when
-        using torch.arange, defaults to ``1e-7``.
     """
 
     def __init__(
@@ -179,12 +189,17 @@ class LatencyEncoder(Encoder):
 
         Ensuring x in [0., 1.].
 
-        Args:
-          data: The rate-based input.
-          n_time: float. The total time to generate data. If None, use ``tau`` instead.
+        Parameters
+        ----------
+        data
+            The rate-based input.
+        n_time : float
+            The total time to generate data. If None, use ``tau`` instead.
 
-        Returns:
-          out: array. The output spiking trains.
+        Returns
+        -------
+        out : array
+            The output spiking trains.
         """
         if n_time is None:
             n_time = self.tau

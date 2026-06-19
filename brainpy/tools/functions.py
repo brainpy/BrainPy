@@ -96,7 +96,8 @@ class InstanceProperty(property):
 class Compose(object):
     """ A composition of functions
 
-    See Also:
+    See Also
+    --------
         compose
     """
     __slots__ = 'first', 'funcs'

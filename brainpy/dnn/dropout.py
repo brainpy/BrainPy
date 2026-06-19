@@ -33,14 +33,20 @@ class Dropout(Layer):
     This layer is active only during training (``mode=brainpy.math.training_mode``). In other
     circumstances it is a no-op.
 
+    Parameters
+    ----------
+    prob : float
+        Probability to keep element of the tensor.
+    mode : Mode
+        The computation mode of the object.
+    name : str
+        The name of the dynamic system.
+
+    References
+    ----------
     .. [1] Srivastava, Nitish, et al. "Dropout: a simple way to prevent
            neural networks from overfitting." The journal of machine learning
            research 15.1 (2014): 1929-1958.
-
-    Args:
-      prob: Probability to keep element of the tensor.
-      mode: Mode. The computation mode of the object.
-      name: str. The name of the dynamic system.
 
     """
 

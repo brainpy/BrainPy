@@ -54,25 +54,27 @@ class FHN(RateModel):
        \frac{dx}{dt} = -\alpha V^3 + \beta V^2 + \gamma V - w + I_{ext}\\
        \tau \frac{dy}{dt} = (V - \delta  - \epsilon w)
 
-    Parameters::
+    Parameters
+    ----------
 
-    size: Shape
+    size : Shape
       The model size.
-    x_ou_mean: Parameter
+    x_ou_mean : Parameter
       The noise mean of the :math:`x` variable, [mV/ms]
-    y_ou_mean: Parameter
+    y_ou_mean : Parameter
       The noise mean of the :math:`y` variable, [mV/ms].
-    x_ou_sigma: Parameter
+    x_ou_sigma : Parameter
       The noise intensity of the :math:`x` variable, [mV/ms/sqrt(ms)].
-    y_ou_sigma: Parameter
+    y_ou_sigma : Parameter
       The noise intensity of the :math:`y` variable, [mV/ms/sqrt(ms)].
-    x_ou_tau: Parameter
+    x_ou_tau : Parameter
       The timescale of the Ornstein-Uhlenbeck noise process of :math:`x` variable, [ms].
-    y_ou_tau: Parameter
+    y_ou_tau : Parameter
       The timescale of the Ornstein-Uhlenbeck noise process of :math:`y` variable, [ms].
 
 
-    References::
+    References
+    ----------
 
     .. [1] Kostova, T., Ravindran, R., & Schonbek, M. (2004). FitzHugh–Nagumo
            revisited: Types of bifurcations, periodical forcing and stability
@@ -252,22 +254,24 @@ class FeedbackFHN(RateModel):
                                           when negative, it is a inhibitory feedback.
     ============= ============== ======== ========================
 
-    Parameters::
+    Parameters
+    ----------
 
-    x_ou_mean: Parameter
+    x_ou_mean : Parameter
       The noise mean of the :math:`x` variable, [mV/ms]
-    y_ou_mean: Parameter
+    y_ou_mean : Parameter
       The noise mean of the :math:`y` variable, [mV/ms].
-    x_ou_sigma: Parameter
+    x_ou_sigma : Parameter
       The noise intensity of the :math:`x` variable, [mV/ms/sqrt(ms)].
-    y_ou_sigma: Parameter
+    y_ou_sigma : Parameter
       The noise intensity of the :math:`y` variable, [mV/ms/sqrt(ms)].
-    x_ou_tau: Parameter
+    x_ou_tau : Parameter
       The timescale of the Ornstein-Uhlenbeck noise process of :math:`x` variable, [ms].
-    y_ou_tau: Parameter
+    y_ou_tau : Parameter
       The timescale of the Ornstein-Uhlenbeck noise process of :math:`y` variable, [ms].
 
-    References::
+    References
+    ----------
 
     .. [4] Plant, Richard E. (1981). *A FitzHugh Differential-Difference
            Equation Modeling Recurrent Neural Feedback. SIAM Journal on
@@ -448,23 +452,25 @@ class QIF(RateModel):
     J             15             \        the strength of the recurrent coupling inside the population
     ============= ============== ======== ========================
 
-    Parameters::
+    Parameters
+    ----------
 
-    x_ou_mean: Parameter
+    x_ou_mean : Parameter
       The noise mean of the :math:`x` variable, [mV/ms]
-    y_ou_mean: Parameter
+    y_ou_mean : Parameter
       The noise mean of the :math:`y` variable, [mV/ms].
-    x_ou_sigma: Parameter
+    x_ou_sigma : Parameter
       The noise intensity of the :math:`x` variable, [mV/ms/sqrt(ms)].
-    y_ou_sigma: Parameter
+    y_ou_sigma : Parameter
       The noise intensity of the :math:`y` variable, [mV/ms/sqrt(ms)].
-    x_ou_tau: Parameter
+    x_ou_tau : Parameter
       The timescale of the Ornstein-Uhlenbeck noise process of :math:`x` variable, [ms].
-    y_ou_tau: Parameter
+    y_ou_tau : Parameter
       The timescale of the Ornstein-Uhlenbeck noise process of :math:`y` variable, [ms].
 
 
-    References::
+    References
+    ----------
 
     .. [5] E. Montbrió, D. Pazó, A. Roxin (2015) Macroscopic description for
            networks of spiking neurons. Physical Review X, 5:021028,
@@ -614,19 +620,20 @@ class StuartLandauOscillator(RateModel):
        \frac{dx}{dt} = (a - x^2 - y^2) * x - w*y + I^x_{ext} \\
        \frac{dy}{dt} = (a - x^2 - y^2) * y + w*x + I^y_{ext}
 
-    Parameters::
+    Parameters
+    ----------
 
-    x_ou_mean: Parameter
+    x_ou_mean : Parameter
       The noise mean of the :math:`x` variable, [mV/ms]
-    y_ou_mean: Parameter
+    y_ou_mean : Parameter
       The noise mean of the :math:`y` variable, [mV/ms].
-    x_ou_sigma: Parameter
+    x_ou_sigma : Parameter
       The noise intensity of the :math:`x` variable, [mV/ms/sqrt(ms)].
-    y_ou_sigma: Parameter
+    y_ou_sigma : Parameter
       The noise intensity of the :math:`y` variable, [mV/ms/sqrt(ms)].
-    x_ou_tau: Parameter
+    x_ou_tau : Parameter
       The timescale of the Ornstein-Uhlenbeck noise process of :math:`x` variable, [ms].
-    y_ou_tau: Parameter
+    y_ou_tau : Parameter
       The timescale of the Ornstein-Uhlenbeck noise process of :math:`y` variable, [ms].
 
     """
@@ -764,19 +771,20 @@ class WilsonCowanModel(RateModel):
     """Wilson-Cowan population model.
 
 
-    Parameters::
+    Parameters
+    ----------
 
-    x_ou_mean: Parameter
+    x_ou_mean : Parameter
       The noise mean of the :math:`x` variable, [mV/ms]
-    y_ou_mean: Parameter
+    y_ou_mean : Parameter
       The noise mean of the :math:`y` variable, [mV/ms].
-    x_ou_sigma: Parameter
+    x_ou_sigma : Parameter
       The noise intensity of the :math:`x` variable, [mV/ms/sqrt(ms)].
-    y_ou_sigma: Parameter
+    y_ou_sigma : Parameter
       The noise intensity of the :math:`y` variable, [mV/ms/sqrt(ms)].
-    x_ou_tau: Parameter
+    x_ou_tau : Parameter
       The timescale of the Ornstein-Uhlenbeck noise process of :math:`x` variable, [ms].
-    y_ou_tau: Parameter
+    y_ou_tau : Parameter
       The timescale of the Ornstein-Uhlenbeck noise process of :math:`y` variable, [ms].
 
 

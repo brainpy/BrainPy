@@ -60,8 +60,10 @@ def reset_state(target: DynamicalSystem, *args, **kwargs):
 
     See https://brainpy.readthedocs.io/en/latest/tutorial_toolbox/state_resetting.html for details.
 
-    Args:
-      target: The target DynamicalSystem.
+    Parameters
+    ----------
+    target
+        The target DynamicalSystem.
     """
     dynsys.the_top_layer_reset_state = False
 
@@ -89,8 +91,10 @@ def reset_state(target: DynamicalSystem, *args, **kwargs):
 def clear_input(target: DynamicalSystem, *args, **kwargs):
     """Clear all inputs in the given target.
 
-    Args:
-      target:The target DynamicalSystem.
+    Parameters
+    ----------
+    target
+        The target DynamicalSystem.
 
     """
     for node in target.nodes().subset(DynamicalSystem).not_subset(DynView).unique().values():
@@ -101,16 +105,19 @@ def load_state(target: DynamicalSystem, state_dict: Dict, **kwargs):
     """Copy parameters and buffers from :attr:`state_dict` into
     this module and its descendants.
 
-    Args:
-      target: DynamicalSystem. The dynamical system to load its states.
-      state_dict: dict. A dict containing parameters and persistent buffers.
+    Parameters
+    ----------
+    target : DynamicalSystem
+        The dynamical system to load its states.
+    state_dict : dict
+        A dict containing parameters and persistent buffers.
 
-    Returns:
+    Returns
     -------
-      ``NamedTuple``  with ``missing_keys`` and ``unexpected_keys`` fields:
+    ``NamedTuple``  with ``missing_keys`` and ``unexpected_keys`` fields:
 
-      * **missing_keys** is a list of str containing the missing keys
-      * **unexpected_keys** is a list of str containing the unexpected keys
+    * **missing_keys** is a list of str containing the missing keys
+    * **unexpected_keys** is a list of str containing the unexpected keys
     """
     nodes = target.nodes().subset(DynamicalSystem).not_subset(DynView).unique()
     missing_keys = []
@@ -130,11 +137,14 @@ def load_state(target: DynamicalSystem, state_dict: Dict, **kwargs):
 def save_state(target: DynamicalSystem, **kwargs) -> Dict:
     """Save all states in the ``target`` as a dictionary for later disk serialization.
 
-    Args:
-      target: DynamicalSystem. The node to save its states.
+    Parameters
+    ----------
+    target : DynamicalSystem
+        The node to save its states.
 
-    Returns:
-      Dict. The state dict for serialization.
+    Returns
+    -------
+    Dict. The state dict for serialization.
     """
     nodes = target.nodes().subset(DynamicalSystem).not_subset(DynView).unique()  # retrieve all nodes
     return {key: node.save_state(**kwargs) for key, node in nodes.items()}

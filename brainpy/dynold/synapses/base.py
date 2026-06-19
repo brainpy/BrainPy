@@ -138,7 +138,8 @@ class _NullSynOut(_SynOut):
 class TwoEndConn(SynConn):
     """Base class to model synaptic connections.
 
-    Parameters::
+    Parameters
+    ----------
 
     pre : NeuGroup
       Pre-synaptic neuron group.
@@ -146,25 +147,25 @@ class TwoEndConn(SynConn):
       Post-synaptic neuron group.
     conn : optional, ndarray, ArrayType, dict, TwoEndConnector
       The connection method between pre- and post-synaptic groups.
-    output: Optional, SynOutput
+    output : Optional, SynOutput
       The output for the synaptic current.
 
       .. versionadded:: 2.1.13
          The output component for a two-end connection model.
 
-    stp: Optional, SynSTP
+    stp : Optional, SynSTP
       The short-term plasticity model for the synaptic variables.
 
       .. versionadded:: 2.1.13
          The short-term plasticity component for a two-end connection model.
 
-    ltp: Optional, SynLTP
+    ltp : Optional, SynLTP
       The long-term plasticity model for the synaptic variables.
 
       .. versionadded:: 2.1.13
          The long-term plasticity component for a two-end connection model.
 
-    name: Optional, str
+    name : Optional, str
       The name of the dynamic system.
     """
 

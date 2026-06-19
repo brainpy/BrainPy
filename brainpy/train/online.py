@@ -44,12 +44,13 @@ class OnlineTrainer(DSTrainer):
 
     For more parameters, users should refer to :py:class:`~.DSRunner`.
 
-    Parameters::
+    Parameters
+    ----------
 
-    target: DynamicalSystem
+    target : DynamicalSystem
       The target model to train.
 
-    fit_method: OnlineAlgorithm, Callable, dict, str
+    fit_method : OnlineAlgorithm, Callable, dict, str
       The fitting method applied to the target model.
 
       - It can be a string, which specify the shortcut name of the training algorithm.
@@ -63,7 +64,7 @@ class OnlineTrainer(DSTrainer):
         For example, ``fit_meth=bp.algorithms.RLS(alpha=1e-5)``.
       - It can also be a callable function.
 
-    kwargs: Any
+    kwargs : Any
       Other general parameters please see :py:class:`~.DSRunner`.
     """
 
@@ -128,20 +129,22 @@ class OnlineTrainer(DSTrainer):
         What's different from `predict()` function in :py:class:`~.DynamicalSystem` is that
         the `inputs_are_batching` is default `True`.
 
-        Parameters::
+        Parameters
+        ----------
 
-        inputs: ArrayType
+        inputs : ArrayType
           The input values.
-        reset_state: bool
+        reset_state : bool
           Reset the target state before running.
-        shared_args: dict
+        shared_args : dict
           The shared arguments across nodes.
-        eval_time: bool
+        eval_time : bool
           Whether we evaluate the running time or not?
 
-        Returns::
+        Returns
+        -------
 
-        output: ArrayType
+        output : ArrayType
           The running output.
         """
         outs = super().predict(inputs=inputs,
@@ -225,16 +228,18 @@ class OnlineTrainer(DSTrainer):
              shared_args: Dict = None):
         """Predict the output according to the inputs.
 
-        Parameters::
+        Parameters
+        ----------
 
-        indices: ArrayType
+        indices : ArrayType
           The running indices.
-        ys: dict
+        ys : dict
           Each tensor should have the shape of `(num_time, num_batch, num_feature)`.
-        shared_args: optional, dict
+        shared_args : optional, dict
           The shared keyword arguments.
 
-        Returns::
+        Returns
+        -------
 
         outputs, hists
           A tuple of pair of (outputs, hists).

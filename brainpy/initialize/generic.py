@@ -56,29 +56,32 @@ def parameter(
 ):
     """Initialize parameters.
 
-    Parameters::
+    Parameters
+    ----------
 
-    param: callable, Initializer, bm.ndarray, jnp.ndarray, onp.ndarray, float, int, bool
+    param : callable, Initializer, bm.ndarray, jnp.ndarray, onp.ndarray, float, int, bool
       The initialization of the parameter.
       - If it is None, the created parameter will be None.
       - If it is a callable function :math:`f`, the ``f(size)`` will be returned.
       - If it is an instance of :py:class:`brainpy.init.Initializer``, the ``f(size)`` will be returned.
       - If it is a tensor, then this function check whether ``tensor.shape`` is equal to the given ``size``.
-    sizes: int, sequence of int
+    sizes : int, sequence of int
       The shape of the parameter.
-    allow_none: bool
+    allow_none : bool
       Whether allow the parameter is None.
-    allow_scalar: bool
+    allow_scalar : bool
       Whether allow the parameter is a scalar value.
-    sharding: Sharding
+    sharding : Sharding
       The axes for automatic array sharding.
 
-    Returns::
+    Returns
+    -------
 
-    param: ArrayType, float, int, bool, None
+    param : ArrayType, float, int, bool, None
       The initialized parameter.
 
-    See Also::
+    See Also
+    --------
 
     variable_, noise, delay
     """
@@ -125,7 +128,8 @@ def variable_(
 ):
     """Initialize a :math:`~.Variable` from a callable function or a data.
 
-    See Also::
+    See Also
+    --------
 
     variable
 
@@ -148,30 +152,33 @@ def variable(
 ):
     """Initialize variables.
 
-    Parameters::
+    Parameters
+    ----------
 
-    init: callable, ArrayType
+    init : callable, ArrayType
       The data to be initialized as a ``Variable``.
-    batch_or_mode: int, bool, Mode, optional
+    batch_or_mode : int, bool, Mode, optional
       The batch size, mode ``Mode``, boolean state.
       This is used to specify the batch size of this variable.
       If it is a boolean or an instance of ``Mode``, the batch size will be 1.
       If it is None, the variable has no batch axis.
-    sizes: Shape
+    sizes : Shape
       The shape of the variable.
-    batch_axis: int
+    batch_axis : int
       The batch axis.
-    axis_names: sequence of str
+    axis_names : sequence of str
       The name for each axis. These names should match the given ``axes``.
-    batch_axis_name: str
+    batch_axis_name : str
       The name for the batch axis. The name will be used if ``batch_size_or_mode`` is given.
 
-    Returns::
+    Returns
+    -------
 
-    variable: bm.Variable
+    variable : bm.Variable
       The target ``Variable`` instance.
 
-    See Also::
+    See Also
+    --------
 
     variable_, parameter, noise, delay
 
@@ -233,22 +240,25 @@ def noise(
 ) -> Optional[Callable]:
     """Initialize a noise function.
 
-    Parameters::
+    Parameters
+    ----------
 
-    noises: Any
-    size: Shape
+    noises : Any
+    size : Shape
       The size of the noise.
-    num_vars: int
+    num_vars : int
       The number of variables.
-    noise_idx: int
+    noise_idx : int
       The index of the current noise among all noise variables.
 
-    Returns::
+    Returns
+    -------
 
-    noise_func: function, None
+    noise_func : function, None
       The noise function.
 
-    See Also::
+    See Also
+    --------
 
     variable_, parameter, delay
 
@@ -273,21 +283,24 @@ def delay(
 ):
     """Initialize delay variable.
 
-    Parameters::
+    Parameters
+    ----------
 
-    delay_step: int, ndarray, ArrayType
+    delay_step : int, ndarray, ArrayType
       The number of delay steps. It can an integer of an array of integers.
-    delay_target: ndarray, ArrayType
+    delay_target : ndarray, ArrayType
       The target variable to delay.
-    delay_data: optional, ndarray, ArrayType
+    delay_data : optional, ndarray, ArrayType
       The initial delay data.
 
-    Returns::
+    Returns
+    -------
 
-    info: tuple
+    info : tuple
       The triple of delay type, delay steps, and delay variable.
 
-    See Also::
+    See Also
+    --------
 
     variable_, parameter, noise
     """

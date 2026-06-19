@@ -107,12 +107,12 @@ def celu(x, alpha=1.0):
     `Continuously Differentiable Exponential Linear Units
     <https://arxiv.org/pdf/1704.07483.pdf>`_.
 
-    Parameters::
-
+    Parameters
+    ----------
     x : ArrayType
-      The input array.
+        The input array.
     alpha : ndarray, float
-      The default is 1.0.
+        The default is 1.0.
     """
     x = x.value if isinstance(x, Array) else x
     alpha = alpha.value if isinstance(alpha, Array) else alpha
@@ -130,12 +130,12 @@ def elu(x, alpha=1.0):
         \alpha \left(\exp(x) - 1\right), & x \le 0
       \end{cases}
 
-    Parameters::
-
-    x: JaxArray, jnp.ndarray
-      The input array.
+    Parameters
+    ----------
+    x : JaxArray, jnp.ndarray
+        The input array.
     alpha : scalar or Array
-      default: 1.0.
+        default: 1.0.
     """
     x = x.value if isinstance(x, Array) else x
     alpha = alpha.value if isinstance(alpha, Array) else alpha
@@ -161,12 +161,12 @@ def gelu(x, approximate=True):
     For more information, see `Gaussian Error Linear Units (GELUs)
     <https://arxiv.org/abs/1606.08415>`_, section 2.
 
-    Parameters::
-
-    x: ArrayType
-      The input array.
-    approximate: bool
-      whether to use the approximate or exact formulation.
+    Parameters
+    ----------
+    x : ArrayType
+        The input array.
+    approximate : bool
+        whether to use the approximate or exact formulation.
     """
     x = x.value if isinstance(x, Array) else x
     # Promote integer / boolean inputs to a floating dtype before computing.
@@ -190,12 +190,12 @@ def gelu(x, approximate=True):
 def glu(x, axis=-1):
     r"""Gated linear unit activation function.
 
-    Parameters::
-
-    x: ArrayType
-      The input array.
-    axis: int
-      The axis along which the split should be computed (default: -1)
+    Parameters
+    ----------
+    x : ArrayType
+        The input array.
+    axis : int
+        The axis along which the split should be computed (default: -1)
     """
     size = x.shape[axis]
     assert size % 2 == 0, "axis size must be divisible by 2"
@@ -216,14 +216,14 @@ def hard_tanh(x, min_val=- 1.0, max_val=1.0):
         1, & 1 < x
       \end{cases}
 
-    Parameters::
-
-    x: ArrayType
-      The input array.
-    min_val: float
-      minimum value of the linear region range. Default: -1
-    max_val: float
-      maximum value of the linear region range. Default: 1
+    Parameters
+    ----------
+    x : ArrayType
+        The input array.
+    min_val : float
+        minimum value of the linear region range. Default: -1
+    max_val : float
+        maximum value of the linear region range. Default: 1
     """
     x = x.value if isinstance(x, Array) else x
     return jnp.where(x > max_val, max_val, jnp.where(x < min_val, min_val, x))
@@ -237,10 +237,10 @@ def hard_sigmoid(x):
     .. math::
       \mathrm{hard\_sigmoid}(x) = \frac{\mathrm{relu6}(x + 3)}{6}
 
-    Parameters::
-
-    x: ArrayType
-      The input array.
+    Parameters
+    ----------
+    x : ArrayType
+        The input array.
     """
     return relu6(x + 3.) / 6.
 
@@ -263,10 +263,10 @@ def hard_silu(x):
     .. math::
       \mathrm{hard\_silu}(x) = x \cdot \mathrm{hard\_sigmoid}(x)
 
-    Parameters::
-
-    x: ArrayType
-      The input array.
+    Parameters
+    ----------
+    x : ArrayType
+        The input array.
     """
     return x * hard_sigmoid(x)
 
@@ -287,9 +287,13 @@ def hard_shrink(x, lambd=0.5):
         0, & \text{ otherwise }
         \end{cases}
 
-    Args:
-        lambd: the :math:`\lambda` value for the Hardshrink formulation. Default: 0.5
+    Parameters
+    ----------
+    lambd
+        the :math:`\lambda` value for the Hardshrink formulation. Default: 0.5
 
+    Notes
+    -----
     Shape:
         - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
         - Output: :math:`(*)`, same shape as the input.
@@ -312,12 +316,12 @@ def leaky_relu(x, negative_slope=1e-2):
 
     where :math:`\alpha` = :code:`negative_slope`.
 
-    Parameters::
-
-    x: ArrayType
-      The input array.
+    Parameters
+    ----------
+    x : ArrayType
+        The input array.
     negative_slope : float
-      The scalar specifying the negative slope (default: 0.01)
+        The scalar specifying the negative slope (default: 0.01)
     """
     x = x.value if isinstance(x, Array) else x
     return jnp.where(x >= 0, x, negative_slope * x)
@@ -337,11 +341,14 @@ def softplus(x, beta: float = 1., threshold: float = 20.):
     For numerical stability the implementation reverts to the linear function
     when :math:`input \times \beta > threshold`.
 
-    Parameters::
-
-    x: The input array.
-    beta: the :math:`\beta` value for the Softplus formulation. Default: 1.
-    threshold: values above this revert to a linear function. Default: 20.
+    Parameters
+    ----------
+    x
+        The input array.
+    beta : float
+        the :math:`\beta` value for the Softplus formulation. Default: 1.
+    threshold : float
+        values above this revert to a linear function. Default: 20.
 
     """
     x = x.value if isinstance(x, Array) else x
@@ -356,10 +363,10 @@ def log_sigmoid(x):
     .. math::
       \mathrm{log\_sigmoid}(x) = \log(\mathrm{sigmoid}(x)) = -\log(1 + e^{-x})
 
-    Parameters::
-
-    x: ArrayType
-      The input array.
+    Parameters
+    ----------
+    x : ArrayType
+        The input array.
     """
     return -softplus(-x)
 
@@ -375,9 +382,13 @@ def soft_shrink(x, lambd=0.5):
         0, & \text{ otherwise }
         \end{cases}
 
-    Args:
-        lambd: the :math:`\lambda` (must be no less than zero) value for the Softshrink formulation. Default: 0.5
+    Parameters
+    ----------
+    lambd
+        the :math:`\lambda` (must be no less than zero) value for the Softshrink formulation. Default: 0.5
 
+    Notes
+    -----
     Shape:
         - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
         - Output: :math:`(*)`, same shape as the input.
@@ -396,13 +407,13 @@ def log_softmax(x, axis=-1):
       \mathrm{log\_softmax}(x) = \log \left( \frac{\exp(x_i)}{\sum_j \exp(x_j)}
       \right)
 
-    Parameters::
-
-    x: ArrayType
-      The input array.
-    axis: int
-      The axis or axes along which the :code:`log_softmax` should be
-      computed. Either an integer or a tuple of integers.
+    Parameters
+    ----------
+    x : ArrayType
+        The input array.
+    axis : int
+        The axis or axes along which the :code:`log_softmax` should be
+        computed. Either an integer or a tuple of integers.
     """
     x = x.value if isinstance(x, Array) else x
     shifted = x - jax.lax.stop_gradient(x.max(axis, keepdims=True))
@@ -442,12 +453,17 @@ def one_hot(x, num_classes, *, dtype=None, axis=-1):
       Array([[0., 0., 0.],
              [0., 0., 0.]], dtype=float32)
 
-    Args:
-      x: A tensor of indices.
-      num_classes: Number of classes in the one-hot dimension.
-      dtype: optional, a float dtype for the returned values (default float64 if
+    Parameters
+    ----------
+    x
+        A tensor of indices.
+    num_classes
+        Number of classes in the one-hot dimension.
+    dtype
+        optional, a float dtype for the returned values (default float64 if
         jax_enable_x64 is true, otherwise float32).
-      axis: the axis or axes along which the function should be
+    axis
+        the axis or axes along which the function should be
         computed.
     """
     num_classes = jax.core.concrete_or_error(
@@ -511,8 +527,10 @@ def _relu(x: Array) -> Array:
     `Numerical influence of ReLU’(0) on backpropagation
     <https://openreview.net/forum?id=urrcVI-_jRm>`_.
 
-    Args:
-      x : input array
+    Parameters
+    ----------
+    x
+        input array
     """
     return jnp.maximum(x, 0)
 
@@ -529,10 +547,10 @@ def relu6(x):
     .. math::
       \mathrm{relu6}(x) = \min(\max(x, 0), 6)
 
-    Parameters::
-
-    x: ArrayType
-      The input array.
+    Parameters
+    ----------
+    x : ArrayType
+        The input array.
     """
     x = x.value if isinstance(x, Array) else x
     return jnp.minimum(jnp.maximum(x, 0), 6.)
@@ -558,10 +576,15 @@ def rrelu(x, lower=0.125, upper=0.3333333333333333, ):
 
      See: https://arxiv.org/pdf/1505.00853.pdf
 
-    Args:
-        lower: lower bound of the uniform distribution. Default: :math:`\frac{1}{8}`
-        upper: upper bound of the uniform distribution. Default: :math:`\frac{1}{3}`
+    Parameters
+    ----------
+    lower
+        lower bound of the uniform distribution. Default: :math:`\frac{1}{8}`
+    upper
+        upper bound of the uniform distribution. Default: :math:`\frac{1}{3}`
 
+    Notes
+    -----
     Shape:
         - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
         - Output: :math:`(*)`, same shape as the input.
@@ -605,10 +628,10 @@ def sigmoid(x):
     .. math::
       \mathrm{sigmoid}(x) = \frac{1}{1 + e^{-x}}
 
-    Parameters::
-
-    x: ArrayType
-      The input array.
+    Parameters
+    ----------
+    x : ArrayType
+        The input array.
     """
     x = x.value if isinstance(x, Array) else x
     return jax.scipy.special.expit(x)
@@ -622,10 +645,10 @@ def soft_sign(x):
     .. math::
       \mathrm{soft\_sign}(x) = \frac{x}{|x| + 1}
 
-    Parameters::
-
-    x: ArrayType
-      The input array.
+    Parameters
+    ----------
+    x : ArrayType
+        The input array.
     """
     x = x.value if isinstance(x, Array) else x
     return x / (jnp.abs(x) + 1)
@@ -640,14 +663,14 @@ def softmax(x, axis=-1):
     .. math ::
       \mathrm{softmax}(x) = \frac{\exp(x_i)}{\sum_j \exp(x_j)}
 
-    Parameters::
-
-    x: ArrayType
-      The input array.
-    axis: int
-      The axis or axes along which the softmax should be computed. The
-      softmax output summed across these dimensions should sum to :math:`1`.
-      Either an integer or a tuple of integers.
+    Parameters
+    ----------
+    x : ArrayType
+        The input array.
+    axis : int
+        The axis or axes along which the softmax should be computed. The
+        softmax output summed across these dimensions should sum to :math:`1`.
+        Either an integer or a tuple of integers.
     """
     x = x.value if isinstance(x, Array) else x
     unnormalized = jnp.exp(x - jax.lax.stop_gradient(x.max(axis, keepdims=True)))
@@ -664,14 +687,18 @@ def softmin(x, axis=-1):
     .. math::
         \text{Softmin}(x_{i}) = \frac{\exp(-x_i)}{\sum_j \exp(-x_j)}
 
+    Parameters
+    ----------
+    axis : int
+        A dimension along which Softmin will be computed (so every slice
+        along dim will sum to 1).
+
+    Notes
+    -----
     Shape:
         - Input: :math:`(*)` where `*` means, any number of additional
           dimensions
         - Output: :math:`(*)`, same shape as the input
-
-    Args:
-        axis (int): A dimension along which Softmin will be computed (so every slice
-            along dim will sum to 1).
     """
     x = x.value if isinstance(x, Array) else x
     neg_x = -x
@@ -690,10 +717,10 @@ def silu(x):
     .. math::
       \mathrm{silu}(x) = x \cdot \mathrm{sigmoid}(x) = \frac{x}{1 + e^{-x}}
 
-    Parameters::
-
-    x: ArrayType
-      The input array.
+    Parameters
+    ----------
+    x : ArrayType
+        The input array.
     """
     x = x.value if isinstance(x, Array) else x
     return x * sigmoid(x)
@@ -713,6 +740,8 @@ def mish(x):
     .. note::
         See `Mish: A Self Regularized Non-Monotonic Neural Activation Function <https://arxiv.org/abs/1908.08681>`_
 
+    Notes
+    -----
     Shape:
         - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
         - Output: :math:`(*)`, same shape as the input.
@@ -739,10 +768,10 @@ def selu(x):
     `Self-Normalizing Neural Networks
     <https://papers.nips.cc/paper/6698-self-normalizing-neural-networks.pdf>`_.
 
-    Parameters::
-
-    x: ArrayType
-      The input array.
+    Parameters
+    ----------
+    x : ArrayType
+        The input array.
     """
     alpha = 1.6732632423543772848170429916717
     scale = 1.0507009873554804934193349852946

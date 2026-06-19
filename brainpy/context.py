@@ -54,10 +54,14 @@ class _ShareContext:
     def load(self, key, value: Any = None, desc: str = None):
         """Load the shared data by the ``key``.
 
-        Args:
-          key (str): the key to indicate the data.
-          value (Any): the default value when ``key`` is not defined in the shared.
-          desc: (str): the description of the key.
+        Parameters
+        ----------
+        key : str
+            the key to indicate the data.
+        value : Any
+            the default value when ``key`` is not defined in the shared.
+        desc : str
+            the description of the key.
         """
         return brainstate.environ.get(key, value, desc, env=env)
 

@@ -32,12 +32,13 @@ class DSTrainer(DSRunner):
 
     For more parameters, users should refer to :py:class:`~.DSRunner`.
 
-    Parameters::
+    Parameters
+    ----------
 
-    target: DynamicalSystem
+    target : DynamicalSystem
       The training target.
 
-    kwargs: Any
+    kwargs : Any
       Other general parameters in :py:class:`~.DSRunner`.
 
     """
@@ -81,20 +82,22 @@ class DSTrainer(DSRunner):
     ) -> Output:
         """Prediction function.
 
-        Parameters::
+        Parameters
+        ----------
 
-        inputs: ArrayType, sequence of ArrayType, dict of ArrayType
+        inputs : ArrayType, sequence of ArrayType, dict of ArrayType
           The input values.
-        reset_state: bool
+        reset_state : bool
           Reset the target state before running.
-        eval_time: bool
+        eval_time : bool
           Whether we evaluate the running time or not?
-        shared_args: dict
+        shared_args : dict
           The shared arguments across nodes.
 
-        Returns::
+        Returns
+        -------
 
-        output: ArrayType, sequence of ArrayType, dict of ArrayType
+        output : ArrayType, sequence of ArrayType, dict of ArrayType
           The running output.
         """
         if shared_args is None:

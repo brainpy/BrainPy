@@ -52,14 +52,14 @@ class FromFlax(Layer):
     """
     Transform a Flax module as a BrainPy :py:class:`~.DynamicalSystem`.
 
-    Parameters::
-
-    flax_module: Any
-      The flax Module.
-    module_args: Any
-      The module arguments, used to initialize model parameters.
-    module_kwargs: Any
-      The module arguments, used to initialize model parameters.
+    Parameters
+    ----------
+    flax_module : Any
+        The flax Module.
+    module_args : Any
+        The module arguments, used to initialize model parameters.
+    module_kwargs : Any
+        The module arguments, used to initialize model parameters.
     """
 
     def __init__(self, flax_module, *module_args, **module_kwargs):
@@ -110,14 +110,18 @@ if flax is not None:
         def __call__(self, carry, *inputs):
             """A recurrent cell that transformed from a BrainPy :py:class:`~.DynamicalSystem`.
 
-            Args:
-              carry: the hidden state of the transformed recurrent cell, initialized using
+            Parameters
+            ----------
+            carry
+                the hidden state of the transformed recurrent cell, initialized using
                 `.initialize_carry()` function in which the original `.reset_state()` is called.
-              inputs: an ndarray with the input for the current time step. All
+            inputs
+                an ndarray with the input for the current time step. All
                 dimensions except the final are considered batch dimensions.
 
-            Returns:
-              A tuple with the new carry and the output.
+            Returns
+            -------
+                A tuple with the new carry and the output.
             """
             # shared arguments
             i, t = carry[1], carry[2]

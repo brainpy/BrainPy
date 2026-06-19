@@ -57,7 +57,8 @@ class GaussianDecay(_IntraLayerInitializer):
 
     where :math:`v_k^i` is the $i$-th neuron's encoded value at dimension $k$.
 
-    Parameters::
+    Parameters
+    ----------
 
     sigma : float
       Width of the Gaussian function.
@@ -98,7 +99,8 @@ class GaussianDecay(_IntraLayerInitializer):
     def __call__(self, shape, dtype=None):
         """Build the weights.
 
-        Parameters::
+        Parameters
+        ----------
 
         shape : tuple of int, list of int, int
           The network shape. Note, this is not the weight shape.
@@ -230,7 +232,8 @@ class DOGDecay(_IntraLayerInitializer):
     where weights smaller than :math:`0.005 * max(w_{max}, w_{min})` are not created and
     self-connections are avoided by default (parameter allow_self_connections).
 
-    Parameters::
+    Parameters
+    ----------
 
     sigmas : tuple
         Widths of the positive and negative Gaussian functions.
@@ -271,7 +274,8 @@ class DOGDecay(_IntraLayerInitializer):
     def __call__(self, shape, dtype=None):
         """Build the weights.
 
-        Parameters::
+        Parameters
+        ----------
 
         shape : tuple of int, list of int, int
           The network shape. Note, this is not the weight shape.

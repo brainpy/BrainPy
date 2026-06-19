@@ -44,23 +44,23 @@ __all__ = [
 class Pool(Layer):
     """Pooling functions are implemented using the ReduceWindow XLA op.
 
-    Parameters::
-
-    kernel_size: int, sequence of int
-      An integer, or a sequence of integers defining the window to reduce over.
-    stride: int, sequence of int
-      An integer, or a sequence of integers, representing the inter-window stride (default: `(1, ..., 1)`).
-    padding: str, sequence of tuple
-      Either the string `'SAME'`, the string `'VALID'`, or a sequence
-      of n `(low, high)` integer pairs that give the padding to apply before
-      and after each spatial dimension.
-    channel_axis: int, optional
-      Axis of the spatial channels for which pooling is skipped,
-      used to infer ``kernel_size`` or ``stride`` if they are an integer.
-    mode: Mode
-      The computation mode.
-    name: optional, str
-      The object name.
+    Parameters
+    ----------
+    kernel_size : int, sequence of int
+        An integer, or a sequence of integers defining the window to reduce over.
+    stride : int, sequence of int
+        An integer, or a sequence of integers, representing the inter-window stride (default: `(1, ..., 1)`).
+    padding : str, sequence of tuple
+        Either the string `'SAME'`, the string `'VALID'`, or a sequence
+        of n `(low, high)` integer pairs that give the padding to apply before
+        and after each spatial dimension.
+    channel_axis : int, optional
+        Axis of the spatial channels for which pooling is skipped,
+        used to infer ``kernel_size`` or ``stride`` if they are an integer.
+    mode : Mode
+        The computation mode.
+    name : optional, str
+        The object name.
 
     """
 
@@ -148,23 +148,23 @@ class Pool(Layer):
 class MaxPool(Pool):
     """Pools the input by taking the maximum over a window.
 
-    Parameters::
-
-    kernel_size: int, sequence of int
-      An integer, or a sequence of integers defining the window to reduce over.
-    stride: int, sequence of int
-      An integer, or a sequence of integers, representing the inter-window stride (default: `(1, ..., 1)`).
-    padding: str, sequence of tuple
-      Either the string `'SAME'`, the string `'VALID'`, or a sequence
-      of n `(low, high)` integer pairs that give the padding to apply before
-      and after each spatial dimension.
-    channel_axis: int, optional
-      Axis of the spatial channels for which pooling is skipped,
-      used to infer ``kernel_size`` or ``stride`` if they are an integer.
-    mode: Mode
-      The computation mode.
-    name: optional, str
-      The object name.
+    Parameters
+    ----------
+    kernel_size : int, sequence of int
+        An integer, or a sequence of integers defining the window to reduce over.
+    stride : int, sequence of int
+        An integer, or a sequence of integers, representing the inter-window stride (default: `(1, ..., 1)`).
+    padding : str, sequence of tuple
+        Either the string `'SAME'`, the string `'VALID'`, or a sequence
+        of n `(low, high)` integer pairs that give the padding to apply before
+        and after each spatial dimension.
+    channel_axis : int, optional
+        Axis of the spatial channels for which pooling is skipped,
+        used to infer ``kernel_size`` or ``stride`` if they are an integer.
+    mode : Mode
+        The computation mode.
+    name : optional, str
+        The object name.
 
     """
 
@@ -190,23 +190,23 @@ class MaxPool(Pool):
 class MinPool(Pool):
     """Pools the input by taking the minimum over a window.
 
-    Parameters::
-
-    kernel_size: int, sequence of int
-      An integer, or a sequence of integers defining the window to reduce over.
-    stride: int, sequence of int
-      An integer, or a sequence of integers, representing the inter-window stride (default: `(1, ..., 1)`).
-    padding: str, sequence of tuple
-      Either the string `'SAME'`, the string `'VALID'`, or a sequence
-      of n `(low, high)` integer pairs that give the padding to apply before
-      and after each spatial dimension.
-    channel_axis: int, optional
-      Axis of the spatial channels for which pooling is skipped,
-      used to infer ``kernel_size`` or ``stride`` if they are an integer.
-    mode: Mode
-      The computation mode.
-    name: optional, str
-      The object name.
+    Parameters
+    ----------
+    kernel_size : int, sequence of int
+        An integer, or a sequence of integers defining the window to reduce over.
+    stride : int, sequence of int
+        An integer, or a sequence of integers, representing the inter-window stride (default: `(1, ..., 1)`).
+    padding : str, sequence of tuple
+        Either the string `'SAME'`, the string `'VALID'`, or a sequence
+        of n `(low, high)` integer pairs that give the padding to apply before
+        and after each spatial dimension.
+    channel_axis : int, optional
+        Axis of the spatial channels for which pooling is skipped,
+        used to infer ``kernel_size`` or ``stride`` if they are an integer.
+    mode : Mode
+        The computation mode.
+    name : optional, str
+        The object name.
 
     """
 
@@ -232,23 +232,23 @@ class MinPool(Pool):
 class AvgPool(Pool):
     """Pools the input by taking the average over a window.
 
-    Parameters::
-
-    kernel_size: int, sequence of int
-      An integer, or a sequence of integers defining the window to reduce over.
-    stride: int, sequence of int
-      An integer, or a sequence of integers, representing the inter-window stride (default: `(1, ..., 1)`).
-    padding: str, sequence of tuple
-      Either the string `'SAME'`, the string `'VALID'`, or a sequence
-      of n `(low, high)` integer pairs that give the padding to apply before
-      and after each spatial dimension.
-    channel_axis: int, optional
-      Axis of the spatial channels for which pooling is skipped,
-      used to infer ``kernel_size`` or ``stride`` if they are an integer.
-    mode: Mode
-      The computation mode.
-    name: optional, str
-      The object name.
+    Parameters
+    ----------
+    kernel_size : int, sequence of int
+        An integer, or a sequence of integers defining the window to reduce over.
+    stride : int, sequence of int
+        An integer, or a sequence of integers, representing the inter-window stride (default: `(1, ..., 1)`).
+    padding : str, sequence of tuple
+        Either the string `'SAME'`, the string `'VALID'`, or a sequence
+        of n `(low, high)` integer pairs that give the padding to apply before
+        and after each spatial dimension.
+    channel_axis : int, optional
+        Axis of the spatial channels for which pooling is skipped,
+        used to infer ``kernel_size`` or ``stride`` if they are an integer.
+    mode : Mode
+        The computation mode.
+    name : optional, str
+        The object name.
     """
 
     def __init__(
@@ -409,23 +409,23 @@ class MaxPool1d(_MaxPoolNd):
     """Applies a 1D max pooling over an input signal composed of several input
       planes.
 
-    Parameters::
-
-    kernel_size: int, sequence of int
-      An integer, or a sequence of integers defining the window to reduce over.
-    stride: int, sequence of int
-      An integer, or a sequence of integers, representing the inter-window stride (default: `(1, ..., 1)`).
-    padding: str, int, sequence of tuple
-      Either the string `'SAME'`, the string `'VALID'`, or a sequence
-      of n `(low, high)` integer pairs that give the padding to apply before
-      and after each spatial dimension.
-    channel_axis: int, optional
-      Axis of the spatial channels for which pooling is skipped.
-      If ``None``, there is no channel axis.
-    mode: Mode
-      The computation mode.
-    name: optional, str
-      The object name.
+    Parameters
+    ----------
+    kernel_size : int, sequence of int
+        An integer, or a sequence of integers defining the window to reduce over.
+    stride : int, sequence of int
+        An integer, or a sequence of integers, representing the inter-window stride (default: `(1, ..., 1)`).
+    padding : str, int, sequence of tuple
+        Either the string `'SAME'`, the string `'VALID'`, or a sequence
+        of n `(low, high)` integer pairs that give the padding to apply before
+        and after each spatial dimension.
+    channel_axis : int, optional
+        Axis of the spatial channels for which pooling is skipped.
+        If ``None``, there is no channel axis.
+    mode : Mode
+        The computation mode.
+    name : optional, str
+        The object name.
 
     """
 
@@ -453,23 +453,23 @@ class MaxPool2d(_MaxPoolNd):
     """Applies a 1D max pooling over an input signal composed of several input
         planes.
 
-      Parameters::
-
-      kernel_size: int, sequence of int
-        An integer, or a sequence of integers defining the window to reduce over.
-      stride: int, sequence of int
-        An integer, or a sequence of integers, representing the inter-window stride (default: `(1, ..., 1)`).
-      padding: str, int, sequence of tuple
-        Either the string `'SAME'`, the string `'VALID'`, or a sequence
-        of n `(low, high)` integer pairs that give the padding to apply before
-        and after each spatial dimension.
-      channel_axis: int, optional
-        Axis of the spatial channels for which pooling is skipped.
-        If ``None``, there is no channel axis.
-      mode: Mode
-        The computation mode.
-      name: optional, str
-        The object name.
+      Parameters
+      ----------
+      kernel_size : int, sequence of int
+          An integer, or a sequence of integers defining the window to reduce over.
+      stride : int, sequence of int
+          An integer, or a sequence of integers, representing the inter-window stride (default: `(1, ..., 1)`).
+      padding : str, int, sequence of tuple
+          Either the string `'SAME'`, the string `'VALID'`, or a sequence
+          of n `(low, high)` integer pairs that give the padding to apply before
+          and after each spatial dimension.
+      channel_axis : int, optional
+          Axis of the spatial channels for which pooling is skipped.
+          If ``None``, there is no channel axis.
+      mode : Mode
+          The computation mode.
+      name : optional, str
+          The object name.
 
       """
 
@@ -496,23 +496,23 @@ class MaxPool3d(_MaxPoolNd):
     """Applies a 1D max pooling over an input signal composed of several input
         planes.
 
-      Parameters::
-
-      kernel_size: int, sequence of int
-        An integer, or a sequence of integers defining the window to reduce over.
-      stride: int, sequence of int
-        An integer, or a sequence of integers, representing the inter-window stride (default: `(1, ..., 1)`).
-      padding: str, int, sequence of tuple
-        Either the string `'SAME'`, the string `'VALID'`, or a sequence
-        of n `(low, high)` integer pairs that give the padding to apply before
-        and after each spatial dimension.
-      channel_axis: int, optional
-        Axis of the spatial channels for which pooling is skipped.
-        If ``None``, there is no channel axis.
-      mode: Mode
-        The computation mode.
-      name: optional, str
-        The object name.
+      Parameters
+      ----------
+      kernel_size : int, sequence of int
+          An integer, or a sequence of integers defining the window to reduce over.
+      stride : int, sequence of int
+          An integer, or a sequence of integers, representing the inter-window stride (default: `(1, ..., 1)`).
+      padding : str, int, sequence of tuple
+          Either the string `'SAME'`, the string `'VALID'`, or a sequence
+          of n `(low, high)` integer pairs that give the padding to apply before
+          and after each spatial dimension.
+      channel_axis : int, optional
+          Axis of the spatial channels for which pooling is skipped.
+          If ``None``, there is no channel axis.
+      mode : Mode
+          The computation mode.
+      name : optional, str
+          The object name.
 
       """
 
@@ -573,23 +573,23 @@ class AvgPool1d(_AvgPoolNd):
     """Applies a 1D average pooling over an input signal composed of several input
       planes.
 
-    Parameters::
-
-    kernel_size: int, sequence of int
-      An integer, or a sequence of integers defining the window to reduce over.
-    stride: int, sequence of int
-      An integer, or a sequence of integers, representing the inter-window stride (default: `(1, ..., 1)`).
-    padding: str, int, sequence of tuple
-      Either the string `'SAME'`, the string `'VALID'`, or a sequence
-      of n `(low, high)` integer pairs that give the padding to apply before
-      and after each spatial dimension.
-    channel_axis: int, optional
-      Axis of the spatial channels for which pooling is skipped.
-      If ``None``, there is no channel axis.
-    mode: Mode
-      The computation mode.
-    name: optional, str
-      The object name.
+    Parameters
+    ----------
+    kernel_size : int, sequence of int
+        An integer, or a sequence of integers defining the window to reduce over.
+    stride : int, sequence of int
+        An integer, or a sequence of integers, representing the inter-window stride (default: `(1, ..., 1)`).
+    padding : str, int, sequence of tuple
+        Either the string `'SAME'`, the string `'VALID'`, or a sequence
+        of n `(low, high)` integer pairs that give the padding to apply before
+        and after each spatial dimension.
+    channel_axis : int, optional
+        Axis of the spatial channels for which pooling is skipped.
+        If ``None``, there is no channel axis.
+    mode : Mode
+        The computation mode.
+    name : optional, str
+        The object name.
 
     """
 
@@ -617,23 +617,23 @@ class AvgPool2d(_AvgPoolNd):
     """Applies a 2D average pooling over an input signal composed of several input
       planes.
 
-    Parameters::
-
-    kernel_size: int, sequence of int
-      An integer, or a sequence of integers defining the window to reduce over.
-    stride: int, sequence of int
-      An integer, or a sequence of integers, representing the inter-window stride (default: `(1, ..., 1)`).
-    padding: str, int, sequence of tuple
-      Either the string `'SAME'`, the string `'VALID'`, or a sequence
-      of n `(low, high)` integer pairs that give the padding to apply before
-      and after each spatial dimension.
-    channel_axis: int, optional
-      Axis of the spatial channels for which pooling is skipped.
-      If ``None``, there is no channel axis.
-    mode: Mode
-      The computation mode.
-    name: optional, str
-      The object name.
+    Parameters
+    ----------
+    kernel_size : int, sequence of int
+        An integer, or a sequence of integers defining the window to reduce over.
+    stride : int, sequence of int
+        An integer, or a sequence of integers, representing the inter-window stride (default: `(1, ..., 1)`).
+    padding : str, int, sequence of tuple
+        Either the string `'SAME'`, the string `'VALID'`, or a sequence
+        of n `(low, high)` integer pairs that give the padding to apply before
+        and after each spatial dimension.
+    channel_axis : int, optional
+        Axis of the spatial channels for which pooling is skipped.
+        If ``None``, there is no channel axis.
+    mode : Mode
+        The computation mode.
+    name : optional, str
+        The object name.
     """
 
     def __init__(
@@ -660,23 +660,23 @@ class AvgPool3d(_AvgPoolNd):
     """Applies a 3D average pooling over an input signal composed of several input
       planes.
 
-    Parameters::
-
-    kernel_size: int, sequence of int
-      An integer, or a sequence of integers defining the window to reduce over.
-    stride: int, sequence of int
-      An integer, or a sequence of integers, representing the inter-window stride (default: `(1, ..., 1)`).
-    padding: str, int, sequence of tuple
-      Either the string `'SAME'`, the string `'VALID'`, or a sequence
-      of n `(low, high)` integer pairs that give the padding to apply before
-      and after each spatial dimension.
-    channel_axis: int, optional
-      Axis of the spatial channels for which pooling is skipped.
-      If ``None``, there is no channel axis.
-    mode: Mode
-      The computation mode.
-    name: optional, str
-      The object name.
+    Parameters
+    ----------
+    kernel_size : int, sequence of int
+        An integer, or a sequence of integers defining the window to reduce over.
+    stride : int, sequence of int
+        An integer, or a sequence of integers, representing the inter-window stride (default: `(1, ..., 1)`).
+    padding : str, int, sequence of tuple
+        Either the string `'SAME'`, the string `'VALID'`, or a sequence
+        of n `(low, high)` integer pairs that give the padding to apply before
+        and after each spatial dimension.
+    channel_axis : int, optional
+        Axis of the spatial channels for which pooling is skipped.
+        If ``None``, there is no channel axis.
+    mode : Mode
+        The computation mode.
+    name : optional, str
+        The object name.
 
     """
 
@@ -703,13 +703,18 @@ class AvgPool3d(_AvgPoolNd):
 def _adaptive_pool1d(x, target_size: int, operation: Callable):
     """Adaptive pool 1D.
 
-    Args:
-      x: The input. Should be a JAX array of shape `(dim,)`.
-      target_size: The shape of the output after the pooling operation `(target_size,)`.
-      operation: The pooling operation to be performed on the input array.
+    Parameters
+    ----------
+    x
+        The input. Should be a JAX array of shape `(dim,)`.
+    target_size : int
+        The shape of the output after the pooling operation `(target_size,)`.
+    operation : Callable
+        The pooling operation to be performed on the input array.
 
-    Returns:
-      A JAX array of shape `(target_size, )`.
+    Returns
+    -------
+        A JAX array of shape `(target_size, )`.
     """
     x = bm.as_jax(x)
     size = jnp.size(x)
@@ -735,21 +740,21 @@ def _generate_vmap(fun: Callable, map_axes: List[int]):
 class AdaptivePool(Layer):
     """General N dimensional adaptive down-sampling to a target shape.
 
-    Parameters::
-
-    target_shape: int, sequence of int
-      The target output shape.
-    num_spatial_dims: int
-      The number of spatial dimensions.
-    channel_axis: int, optional
-      Axis of the spatial channels for which pooling is skipped.
-      If ``None``, there is no channel axis.
-    operation: Callable
-      The down-sampling operation.
-    name: str
-      The class name.
-    mode: Mode
-      The computing mode.
+    Parameters
+    ----------
+    target_shape : int, sequence of int
+        The target output shape.
+    num_spatial_dims : int
+        The number of spatial dimensions.
+    channel_axis : int, optional
+        Axis of the spatial channels for which pooling is skipped.
+        If ``None``, there is no channel axis.
+    operation : Callable
+        The down-sampling operation.
+    name : str
+        The class name.
+    mode : Mode
+        The computing mode.
     """
 
     def __init__(
@@ -776,11 +781,11 @@ class AdaptivePool(Layer):
     def update(self, x):
         """Input-output mapping.
 
-        Parameters::
-
-        x: Array
-          Inputs. Should be a JAX array of shape `(..., dim_1, dim_2, channels)`
-          or `(..., dim_1, dim_2)`.
+        Parameters
+        ----------
+        x : Array
+            Inputs. Should be a JAX array of shape `(..., dim_1, dim_2, channels)`
+            or `(..., dim_1, dim_2)`.
         """
         x = bm.as_jax(x)
 
@@ -815,17 +820,17 @@ class AdaptivePool(Layer):
 class AdaptiveAvgPool1d(AdaptivePool):
     """Adaptive one-dimensional average down-sampling.
 
-    Parameters::
-
-    target_shape: int, sequence of int
-      The target output shape.
-    channel_axis: int, optional
-      Axis of the spatial channels for which pooling is skipped.
-      If ``None``, there is no channel axis.
-    name: str
-      The class name.
-    mode: Mode
-      The computing mode.
+    Parameters
+    ----------
+    target_shape : int, sequence of int
+        The target output shape.
+    channel_axis : int, optional
+        Axis of the spatial channels for which pooling is skipped.
+        If ``None``, there is no channel axis.
+    name : str
+        The class name.
+    mode : Mode
+        The computing mode.
     """
 
     def __init__(self,
@@ -845,17 +850,17 @@ class AdaptiveAvgPool2d(AdaptivePool):
     """Adaptive two-dimensional average down-sampling.
 
 
-    Parameters::
-
-    target_shape: int, sequence of int
-      The target output shape.
-    channel_axis: int, optional
-      Axis of the spatial channels for which pooling is skipped.
-      If ``None``, there is no channel axis.
-    name: str
-      The class name.
-    mode: Mode
-      The computing mode.
+    Parameters
+    ----------
+    target_shape : int, sequence of int
+        The target output shape.
+    channel_axis : int, optional
+        Axis of the spatial channels for which pooling is skipped.
+        If ``None``, there is no channel axis.
+    name : str
+        The class name.
+    mode : Mode
+        The computing mode.
     """
 
     def __init__(self,
@@ -875,17 +880,17 @@ class AdaptiveAvgPool3d(AdaptivePool):
     """Adaptive three-dimensional average down-sampling.
 
 
-    Parameters::
-
-    target_shape: int, sequence of int
-      The target output shape.
-    channel_axis: int, optional
-      Axis of the spatial channels for which pooling is skipped.
-      If ``None``, there is no channel axis.
-    name: str
-      The class name.
-    mode: Mode
-      The computing mode.
+    Parameters
+    ----------
+    target_shape : int, sequence of int
+        The target output shape.
+    channel_axis : int, optional
+        Axis of the spatial channels for which pooling is skipped.
+        If ``None``, there is no channel axis.
+    name : str
+        The class name.
+    mode : Mode
+        The computing mode.
     """
 
     def __init__(self,
@@ -904,17 +909,17 @@ class AdaptiveAvgPool3d(AdaptivePool):
 class AdaptiveMaxPool1d(AdaptivePool):
     """Adaptive one-dimensional maximum down-sampling.
 
-    Parameters::
-
-    target_shape: int, sequence of int
-      The target output shape.
-    channel_axis: int, optional
-      Axis of the spatial channels for which pooling is skipped.
-      If ``None``, there is no channel axis.
-    name: str
-      The class name.
-    mode: Mode
-      The computing mode.
+    Parameters
+    ----------
+    target_shape : int, sequence of int
+        The target output shape.
+    channel_axis : int, optional
+        Axis of the spatial channels for which pooling is skipped.
+        If ``None``, there is no channel axis.
+    name : str
+        The class name.
+    mode : Mode
+        The computing mode.
     """
 
     def __init__(self,
@@ -933,17 +938,17 @@ class AdaptiveMaxPool1d(AdaptivePool):
 class AdaptiveMaxPool2d(AdaptivePool):
     """Adaptive two-dimensional maximum down-sampling.
 
-    Parameters::
-
-    target_shape: int, sequence of int
-      The target output shape.
-    channel_axis: int, optional
-      Axis of the spatial channels for which pooling is skipped.
-      If ``None``, there is no channel axis.
-    name: str
-      The class name.
-    mode: Mode
-      The computing mode.
+    Parameters
+    ----------
+    target_shape : int, sequence of int
+        The target output shape.
+    channel_axis : int, optional
+        Axis of the spatial channels for which pooling is skipped.
+        If ``None``, there is no channel axis.
+    name : str
+        The class name.
+    mode : Mode
+        The computing mode.
     """
 
     def __init__(self,
@@ -962,17 +967,17 @@ class AdaptiveMaxPool2d(AdaptivePool):
 class AdaptiveMaxPool3d(AdaptivePool):
     """Adaptive three-dimensional maximum down-sampling.
 
-    Parameters::
-
-    target_shape: int, sequence of int
-      The target output shape.
-    channel_axis: int, optional
-      Axis of the spatial channels for which pooling is skipped.
-      If ``None``, there is no channel axis.
-    name: str
-      The class name.
-    mode: Mode
-      The computing mode.
+    Parameters
+    ----------
+    target_shape : int, sequence of int
+        The target output shape.
+    channel_axis : int, optional
+        Axis of the spatial channels for which pooling is skipped.
+        If ``None``, there is no channel axis.
+    name : str
+        The class name.
+    mode : Mode
+        The computing mode.
     """
 
     def __init__(self,

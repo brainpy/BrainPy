@@ -47,16 +47,21 @@ class Threshold(Layer):
         \text{value}, &\text{ otherwise }
         \end{cases}
 
-    Args:
-        threshold: The value to threshold at
-        value: The value to replace with
-        inplace: can optionally do the operation in-place. Default: ``False``
+    Parameters
+    ----------
+    threshold : float
+        The value to threshold at
+    value : float
+        The value to replace with
+    inplace : bool
+        can optionally do the operation in-place. Default: ``False``
 
     Shape:
         - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
         - Output: :math:`(*)`, same shape as the input.
 
-    Examples::
+    Examples
+    --------
 
         >>> import brainpy as bp
         >>> import brainpy.math as bm
@@ -92,14 +97,17 @@ class ReLU(Layer):
 
     :math:`\text{ReLU}(x) = (x)^+ = \max(0, x)`
 
-    Args:
-        inplace: can optionally do the operation in-place. Default: ``False``
+    Parameters
+    ----------
+    inplace : bool
+        can optionally do the operation in-place. Default: ``False``
 
     Shape:
         - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
         - Output: :math:`(*)`, same shape as the input.
 
-    Examples::
+    Examples
+    --------
 
         >>> import brainpy as bp
         >>> import brainpy.math as bm
@@ -152,16 +160,21 @@ class RReLU(Layer):
 
      See: https://arxiv.org/pdf/1505.00853.pdf
 
-    Args:
-        lower: lower bound of the uniform distribution. Default: :math:`\frac{1}{8}`
-        upper: upper bound of the uniform distribution. Default: :math:`\frac{1}{3}`
-        inplace: can optionally do the operation in-place. Default: ``False``
+    Parameters
+    ----------
+    lower : float
+        lower bound of the uniform distribution. Default: :math:`\frac{1}{8}`
+    upper : float
+        upper bound of the uniform distribution. Default: :math:`\frac{1}{3}`
+    inplace : bool
+        can optionally do the operation in-place. Default: ``False``
 
     Shape:
         - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
         - Output: :math:`(*)`, same shape as the input.
 
-    Examples::
+    Examples
+    --------
 
         >>> import brainpy as bp
         >>> import brainpy.math as bm
@@ -210,10 +223,14 @@ class Hardtanh(Layer):
             x & \text{ otherwise } \\
         \end{cases}
 
-    Args:
-        min_val: minimum value of the linear region range. Default: -1
-        max_val: maximum value of the linear region range. Default: 1
-        inplace: can optionally do the operation in-place. Default: ``False``
+    Parameters
+    ----------
+    min_val : float
+        minimum value of the linear region range. Default: -1
+    max_val : float
+        maximum value of the linear region range. Default: 1
+    inplace : bool
+        can optionally do the operation in-place. Default: ``False``
 
     Keyword arguments :attr:`min_value` and :attr:`max_value`
     have been deprecated in favor of :attr:`min_val` and :attr:`max_val`.
@@ -222,7 +239,8 @@ class Hardtanh(Layer):
         - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
         - Output: :math:`(*)`, same shape as the input.
 
-    Examples::
+    Examples
+    --------
 
         >>> import brainpy as bp
         >>> import brainpy.math as bm
@@ -265,14 +283,17 @@ class ReLU6(Hardtanh):
     .. math::
         \text{ReLU6}(x) = \min(\max(0,x), 6)
 
-    Args:
-        inplace: can optionally do the operation in-place. Default: ``False``
+    Parameters
+    ----------
+    inplace : bool
+        can optionally do the operation in-place. Default: ``False``
 
     Shape:
         - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
         - Output: :math:`(*)`, same shape as the input.
 
-    Examples::
+    Examples
+    --------
 
         >>> import brainpy as bp
         >>> import brainpy.math as bm
@@ -300,7 +321,8 @@ class Sigmoid(Layer):
         - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
         - Output: :math:`(*)`, same shape as the input.
 
-    Examples::
+    Examples
+    --------
 
         >>> import brainpy as bp
         >>> import brainpy.math as bm
@@ -325,14 +347,17 @@ class Hardsigmoid(Layer):
             x / 6 + 1 / 2 & \text{otherwise}
         \end{cases}
 
-    Args:
-        inplace: can optionally do the operation in-place. Default: ``False``
+    Parameters
+    ----------
+    inplace : bool
+        can optionally do the operation in-place. Default: ``False``
 
     Shape:
         - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
         - Output: :math:`(*)`, same shape as the input.
 
-    Examples::
+    Examples
+    --------
 
         >>> import brainpy as bp
         >>> import brainpy.math as bm
@@ -365,7 +390,8 @@ class Tanh(Layer):
         - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
         - Output: :math:`(*)`, same shape as the input.
 
-    Examples::
+    Examples
+    --------
 
         >>> import brainpy as bp
         >>> import brainpy.math as bm
@@ -392,14 +418,18 @@ class SiLU(Layer):
         in Reinforcement Learning <https://arxiv.org/abs/1702.03118>`_ and `Swish:
         a Self-Gated Activation Function <https://arxiv.org/abs/1710.05941v1>`_
         where the SiLU was experimented with later.
-    Args:
-        inplace: can optionally do the operation in-place. Default: ``False``
+
+    Parameters
+    ----------
+    inplace : bool
+        can optionally do the operation in-place. Default: ``False``
 
     Shape:
         - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
         - Output: :math:`(*)`, same shape as the input.
 
-    Examples::
+    Examples
+    --------
 
         >>> import brainpy as bp
         >>> import brainpy.math as bm
@@ -432,14 +462,17 @@ class Mish(Layer):
     .. note::
         See `Mish: A Self Regularized Non-Monotonic Neural Activation Function <https://arxiv.org/abs/1908.08681>`_
 
-    Args:
-        inplace: can optionally do the operation in-place. Default: ``False``
+    Parameters
+    ----------
+    inplace : bool
+        can optionally do the operation in-place. Default: ``False``
 
     Shape:
         - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
         - Output: :math:`(*)`, same shape as the input.
 
-    Examples::
+    Examples
+    --------
 
         >>> import brainpy as bp
         >>> import brainpy.math as bm
@@ -475,14 +508,17 @@ class Hardswish(Layer):
             x \cdot (x + 3) /6 & \text{otherwise}
         \end{cases}
 
-    Args:
-        inplace: can optionally do the operation in-place. Default: ``False``
+    Parameters
+    ----------
+    inplace : bool
+        can optionally do the operation in-place. Default: ``False``
 
     Shape:
         - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
         - Output: :math:`(*)`, same shape as the input.
 
-    Examples::
+    Examples
+    --------
 
         >>> import brainpy as bp
         >>> import brainpy.math as bm
@@ -515,15 +551,19 @@ class ELU(Layer):
         \alpha * (\exp(x) - 1), & \text{ if } x \leq 0
         \end{cases}
 
-    Args:
-        alpha: the :math:`\alpha` value for the ELU formulation. Default: 1.0
-        inplace: can optionally do the operation in-place. Default: ``False``
+    Parameters
+    ----------
+    alpha : float
+        the :math:`\alpha` value for the ELU formulation. Default: 1.0
+    inplace : bool
+        can optionally do the operation in-place. Default: ``False``
 
     Shape:
         - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
         - Output: :math:`(*)`, same shape as the input.
 
-    Examples::
+    Examples
+    --------
 
         >>> import brainpy as bp
         >>> import brainpy.math as bm
@@ -556,15 +596,19 @@ class CELU(Layer):
 
     More details can be found in the paper `Continuously Differentiable Exponential Linear Units`_ .
 
-    Args:
-        alpha: the :math:`\alpha` value for the CELU formulation. Default: 1.0
-        inplace: can optionally do the operation in-place. Default: ``False``
+    Parameters
+    ----------
+    alpha : float
+        the :math:`\alpha` value for the CELU formulation. Default: 1.0
+    inplace : bool
+        can optionally do the operation in-place. Default: ``False``
 
     Shape:
         - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
         - Output: :math:`(*)`, same shape as the input.
 
-    Examples::
+    Examples
+    --------
 
         >>> import brainpy as bp
         >>> import brainpy.math as bm
@@ -603,14 +647,17 @@ class SELU(Layer):
 
     More details can be found in the paper `Self-Normalizing Neural Networks`_ .
 
-    Args:
-        inplace (bool, optional): can optionally do the operation in-place. Default: ``False``
+    Parameters
+    ----------
+    inplace : bool, optional
+        can optionally do the operation in-place. Default: ``False``
 
     Shape:
         - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
         - Output: :math:`(*)`, same shape as the input.
 
-    Examples::
+    Examples
+    --------
 
         >>> import brainpy as bp
         >>> import brainpy.math as bm
@@ -640,15 +687,18 @@ class GLU(Layer):
     :math:`{GLU}(a, b)= a \otimes \sigma(b)` where :math:`a` is the first half
     of the input matrices and :math:`b` is the second half.
 
-    Args:
-        dim (int): the dimension on which to split the input. Default: -1
+    Parameters
+    ----------
+    dim : int
+        the dimension on which to split the input. Default: -1
 
     Shape:
         - Input: :math:`(\ast_1, N, \ast_2)` where `*` means, any number of additional
           dimensions
         - Output: :math:`(\ast_1, M, \ast_2)` where :math:`M=N/2`
 
-    Examples::
+    Examples
+    --------
 
         >>> import brainpy as bp
         >>> import brainpy.math as bm
@@ -681,15 +731,18 @@ class GELU(Layer):
 
     .. math:: \text{GELU}(x) = 0.5 * x * (1 + \text{Tanh}(\sqrt(2 / \pi) * (x + 0.044715 * x^3)))
 
-    Args:
-        approximate (str, optional): the gelu approximation algorithm to use:
-            ``'none'`` | ``'tanh'``. Default: ``'none'``
+    Parameters
+    ----------
+    approximate : str, optional
+        the gelu approximation algorithm to use:
+        ``'none'`` | ``'tanh'``. Default: ``'none'``
 
     Shape:
         - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
         - Output: :math:`(*)`, same shape as the input.
 
-    Examples::
+    Examples
+    --------
 
         >>> import brainpy as bp
         >>> import brainpy.math as bm
@@ -724,14 +777,17 @@ class Hardshrink(Layer):
         0, & \text{ otherwise }
         \end{cases}
 
-    Args:
-        lambd: the :math:`\lambda` value for the Hardshrink formulation. Default: 0.5
+    Parameters
+    ----------
+    lambd : float
+        the :math:`\lambda` value for the Hardshrink formulation. Default: 0.5
 
     Shape:
         - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
         - Output: :math:`(*)`, same shape as the input.
 
-    Examples::
+    Examples
+    --------
 
         >>> import brainpy as bp
         >>> import brainpy.math as bm
@@ -769,17 +825,21 @@ class LeakyReLU(Layer):
         \text{negative\_slope} \times x, & \text{ otherwise }
         \end{cases}
 
-    Args:
-        negative_slope: Controls the angle of the negative slope (which is used for
-          negative input values). Default: 1e-2
-        inplace: can optionally do the operation in-place. Default: ``False``
+    Parameters
+    ----------
+    negative_slope : float
+        Controls the angle of the negative slope (which is used for
+        negative input values). Default: 1e-2
+    inplace : bool
+        can optionally do the operation in-place. Default: ``False``
 
     Shape:
         - Input: :math:`(*)` where `*` means, any number of additional
           dimensions
         - Output: :math:`(*)`, same shape as the input
 
-    Examples::
+    Examples
+    --------
 
         >>> import brainpy as bp
         >>> import brainpy.math as bm
@@ -814,7 +874,8 @@ class LogSigmoid(Layer):
         - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
         - Output: :math:`(*)`, same shape as the input.
 
-    Examples::
+    Examples
+    --------
 
         >>> import brainpy as bp
         >>> import brainpy.math as bm
@@ -837,15 +898,19 @@ class Softplus(Layer):
     For numerical stability the implementation reverts to the linear function
     when :math:`input \times \beta > threshold`.
 
-    Args:
-        beta: the :math:`\beta` value for the Softplus formulation. Default: 1
-        threshold: values above this revert to a linear function. Default: 20
+    Parameters
+    ----------
+    beta : float
+        the :math:`\beta` value for the Softplus formulation. Default: 1
+    threshold : float
+        values above this revert to a linear function. Default: 20
 
     Shape:
         - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
         - Output: :math:`(*)`, same shape as the input.
 
-    Examples::
+    Examples
+    --------
 
         >>> import brainpy as bp
         >>> import brainpy.math as bm
@@ -880,14 +945,17 @@ class Softshrink(Layer):
         0, & \text{ otherwise }
         \end{cases}
 
-    Args:
-        lambd: the :math:`\lambda` (must be no less than zero) value for the Softshrink formulation. Default: 0.5
+    Parameters
+    ----------
+    lambd : float
+        the :math:`\lambda` (must be no less than zero) value for the Softshrink formulation. Default: 0.5
 
     Shape:
         - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
         - Output: :math:`(*)`, same shape as the input.
 
-    Examples::
+    Examples
+    --------
 
         >>> import brainpy as bp
         >>> import brainpy.math as bm
@@ -936,21 +1004,26 @@ class PReLU(Layer):
         Channel dim is the 2nd dim of input. When input has dims < 2, then there is
         no channel dim and the number of channels = 1.
 
-    Args:
-        num_parameters (int): number of :math:`a` to learn.
-            Although it takes an int as input, there is only two values are legitimate:
-            1, or the number of channels at input. Default: 1
-        init (float): the initial value of :math:`a`. Default: 0.25
+    Parameters
+    ----------
+    num_parameters : int
+        number of :math:`a` to learn.
+        Although it takes an int as input, there is only two values are legitimate:
+        1, or the number of channels at input. Default: 1
+    init : float
+        the initial value of :math:`a`. Default: 0.25
 
     Shape:
         - Input: :math:`( *)` where `*` means, any number of additional
           dimensions.
         - Output: :math:`(*)`, same shape as the input.
 
-    Attributes:
+    Attributes
+    ----------
         weight (Tensor): the learnable weights of shape (:attr:`num_parameters`).
 
-    Examples::
+    Examples
+    --------
 
         >>> import brainpy as bp
         >>> import brainpy.math as bm
@@ -983,7 +1056,8 @@ class Softsign(Layer):
         - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
         - Output: :math:`(*)`, same shape as the input.
 
-    Examples::
+    Examples
+    --------
 
         >>> import brainpy as bp
         >>> import brainpy.math as bm
@@ -1006,7 +1080,8 @@ class Tanhshrink(Layer):
         - Input: :math:`(*)`, where :math:`*` means any number of dimensions.
         - Output: :math:`(*)`, same shape as the input.
 
-    Examples::
+    Examples
+    --------
 
         >>> import brainpy as bp
         >>> import brainpy.math as bm
@@ -1034,15 +1109,19 @@ class Softmin(Layer):
           dimensions
         - Output: :math:`(*)`, same shape as the input
 
-    Args:
-        dim (int): A dimension along which Softmin will be computed (so every slice
-            along dim will sum to 1).
+    Parameters
+    ----------
+    dim : int
+        A dimension along which Softmin will be computed (so every slice
+        along dim will sum to 1).
 
-    Returns:
+    Returns
+    -------
         a Tensor of the same dimension and shape as the input, with
         values in the range [0, 1]
 
-    Examples::
+    Examples
+    --------
 
         >>> import brainpy as bp
         >>> import brainpy.math as bm
@@ -1082,20 +1161,24 @@ class Softmax(Layer):
           dimensions
         - Output: :math:`(*)`, same shape as the input
 
-    Returns:
+    Returns
+    -------
         a Tensor of the same dimension and shape as the input with
         values in the range [0, 1]
 
-    Args:
-        dim (int): A dimension along which Softmax will be computed (so every slice
-            along dim will sum to 1).
+    Parameters
+    ----------
+    dim : int
+        A dimension along which Softmax will be computed (so every slice
+        along dim will sum to 1).
 
     .. note::
         This module doesn't work directly with NLLLoss,
         which expects the Log to be computed between the Softmax and itself.
         Use `LogSoftmax` instead (it's faster and has better numerical properties).
 
-    Examples::
+    Examples
+    --------
 
         >>> import brainpy as bp
         >>> import brainpy.math as bm
@@ -1128,11 +1211,13 @@ class Softmax2d(Layer):
         - Input: :math:`(N, C, H, W)` or :math:`(C, H, W)`.
         - Output: :math:`(N, C, H, W)` or :math:`(C, H, W)` (same shape as input)
 
-    Returns:
+    Returns
+    -------
         a Tensor of the same dimension and shape as the input with
         values in the range [0, 1]
 
-    Examples::
+    Examples
+    --------
 
         >>> import brainpy as bp
         >>> import brainpy.math as bm
@@ -1159,14 +1244,18 @@ class LogSoftmax(Layer):
           dimensions
         - Output: :math:`(*)`, same shape as the input
 
-    Args:
-        dim (int): A dimension along which LogSoftmax will be computed.
+    Parameters
+    ----------
+    dim : int
+        A dimension along which LogSoftmax will be computed.
 
-    Returns:
+    Returns
+    -------
         a Tensor of the same dimension and shape as the input with
         values in the range [-inf, 0)
 
-    Examples::
+    Examples
+    --------
 
         >>> import brainpy as bp
         >>> import brainpy.math as bm

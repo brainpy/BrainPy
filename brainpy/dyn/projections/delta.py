@@ -84,11 +84,16 @@ class HalfProjDelta(Projection):
         vs = bm.for_loop(net.step_run, indices, progress_bar=True)
         bp.visualize.line_plot(indices, vs, show=True)
 
-    Args:
-      comm: DynamicalSystem. The synaptic communication.
-      post: DynamicalSystem. The post-synaptic neuron group.
-      name: str. The projection name.
-      mode: Mode. The computing mode.
+    Parameters
+    ----------
+    comm : DynamicalSystem
+        The synaptic communication.
+    post : DynamicalSystem
+        The post-synaptic neuron group.
+    name : str
+        The projection name.
+    mode : Mode
+        The computing mode.
     """
 
     def __init__(
@@ -174,13 +179,20 @@ class FullProjDelta(Projection):
         bp.visualize.line_plot(indices, vs, show=True)
 
 
-    Args:
-      pre: The pre-synaptic neuron group.
-      delay: The synaptic delay.
-      comm: DynamicalSystem. The synaptic communication.
-      post: DynamicalSystem. The post-synaptic neuron group.
-      name: str. The projection name.
-      mode: Mode. The computing mode.
+    Parameters
+    ----------
+    pre : JointType[DynamicalSystem, SupportAutoDelay]
+        The pre-synaptic neuron group.
+    delay : Union[None, int, float]
+        The synaptic delay.
+    comm : DynamicalSystem
+        The synaptic communication.
+    post : DynamicalSystem
+        The post-synaptic neuron group.
+    name : str
+        The projection name.
+    mode : Mode
+        The computing mode.
     """
 
     def __init__(

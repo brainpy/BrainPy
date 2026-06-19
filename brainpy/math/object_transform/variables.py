@@ -52,11 +52,16 @@ class Variable(brainstate.State, Array):
     Note that when initializing a `Variable` by the data shape,
     all values in this `Variable` will be initialized as zeros.
 
-    Args:
-      value_or_size: Shape, Array, int. The value or the size of the value.
-      dtype: Any. The type of the data.
-      batch_axis: optional, int. The batch axis.
-      axis_names: sequence of str. The name for each axis.
+    Parameters
+    ----------
+    value_or_size : Shape, Array, int
+        The value or the size of the value.
+    dtype : Any
+        The type of the data.
+    batch_axis : optional, int
+        The batch axis.
+    axis_names : sequence of str
+        The name for each axis.
     """
 
     def __init__(

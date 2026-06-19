@@ -69,8 +69,10 @@ def warp_to_no_state_input_output(fn):
 
     where `inputs` is a list of all input arguments, and `states` is a list of all state arguments.
 
-    Args:
-        fn: The function to be decorated.
+    Parameters
+    ----------
+    fn
+        The function to be decorated.
     """
 
     if isinstance(fn, brainstate.typing.Missing):

@@ -44,7 +44,8 @@ def odeint(
 ):
     """Numerical integration for ODEs.
 
-    Examples::
+    Examples
+    --------
 
     .. plot::
       :include-source: True
@@ -69,28 +70,30 @@ def odeint(
       >>> plt.show()
 
 
-    Parameters::
+    Parameters
+    ----------
 
     f : callable, function
       The derivative function.
     method : str
       The shortcut name of the numerical integrator.
-    var_type: str
+    var_type : str
       The type of the variable defined in the equation.
-    dt: float
+    dt : float
       The numerical integration precision.
-    name: str
+    name : str
       The integrator node.
-    state_delays: dict
+    state_delays : dict
       The state delay variable.
-    show_code: bool
+    show_code : bool
       Show the formated code.
-    adaptive: bool
+    adaptive : bool
       The use adaptive mode.
-    tol: float
+    tol : float
       The tolerence to adapt new step size.
 
-    Returns::
+    Returns
+    -------
 
     integral : ODEIntegrator
         The numerical solver of `f`.
@@ -123,7 +126,8 @@ def odeint(
 def set_default_odeint(method):
     """Set the default ODE numerical integrator method for differential equations.
 
-    Parameters::
+    Parameters
+    ----------
 
     method : str, callable
         Numerical integrator method.
@@ -140,7 +144,8 @@ def set_default_odeint(method):
 def get_default_odeint():
     """Get the default ODE numerical integrator method.
 
-    Returns::
+    Returns
+    -------
 
     method : str
         The default numerical integrator method.
@@ -151,10 +156,11 @@ def get_default_odeint():
 def register_ode_integrator(name, integrator):
     """Register a new ODE integrator.
 
-    Parameters::
+    Parameters
+    ----------
 
-    name: ste
-    integrator: type
+    name : ste
+    integrator : type
     """
     if name in name2method:
         raise ValueError(f'"{name}" has been registered in ODE integrators.')

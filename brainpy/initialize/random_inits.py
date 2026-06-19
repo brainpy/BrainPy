@@ -62,9 +62,12 @@ def calculate_gain(nonlinearity, param=None):
         In contrast, the default gain for ``SELU`` sacrifices the normalisation
         effect for more stable gradient flow in rectangular layers.
 
-    Args:
-        nonlinearity: the non-linear function (`nn.functional` name)
-        param: optional parameter for the non-linear function
+    Parameters
+    ----------
+    nonlinearity
+        the non-linear function (`nn.functional` name)
+    param
+        optional parameter for the non-linear function
 
     .. _Self-Normalizing Neural Networks: https://papers.nips.cc/paper/2017/hash/5d44ee6f2c3f71b73125876103c8f6c4-Abstract.html
     """
@@ -114,10 +117,10 @@ def _compute_fans(shape, in_axis=-2, out_axis=-1):
 class Normal(_InterLayerInitializer):
     """Initialize weights with normal distribution.
 
-    Parameters::
-
+    Parameters
+    ----------
     scale : float
-      The gain of the derivation of the normal distribution.
+        The gain of the derivation of the normal distribution.
 
     """
 
@@ -139,20 +142,20 @@ class Normal(_InterLayerInitializer):
 class TruncatedNormal(_InterLayerInitializer):
     """Initialize weights with truncated normal distribution.
 
-    Parameters::
-
+    Parameters
+    ----------
     loc : float, ndarray
-      Mean ("centre") of the distribution before truncating. Note that
-      the mean of the truncated distribution will not be exactly equal
-      to ``loc``.
+        Mean ("centre") of the distribution before truncating. Note that
+        the mean of the truncated distribution will not be exactly equal
+        to ``loc``.
     scale : float
-      The standard deviation of the normal distribution before truncating.
+        The standard deviation of the normal distribution before truncating.
     lower : float, ndarray
-      A float or array of floats representing the lower bound for
+        A float or array of floats representing the lower bound for
         truncation. Must be broadcast-compatible with ``upper``.
     upper : float, ndarray
-      A float or array of floats representing the  upper bound for
-      truncation. Must be broadcast-compatible with ``lower``.
+        A float or array of floats representing the  upper bound for
+        truncation. Must be broadcast-compatible with ``lower``.
 
     """
 
@@ -183,12 +186,12 @@ class TruncatedNormal(_InterLayerInitializer):
 class Gamma(_InterLayerInitializer):
     """Initialize weights with Gamma distribution.
 
-    Parameters::
-
-    shape: float, Array
-      Shape parameter.
-    scale: float, Array
-      The gain of the derivation of the Gamma distribution.
+    Parameters
+    ----------
+    shape : float, Array
+        Shape parameter.
+    scale : float, Array
+        The gain of the derivation of the Gamma distribution.
 
     """
 
@@ -208,10 +211,10 @@ class Gamma(_InterLayerInitializer):
 class Exponential(_InterLayerInitializer):
     """Initialize weights with Gamma distribution.
 
-    Parameters::
-
-    scale: float, Array
-      The gain of the derivation of the Exponential distribution.
+    Parameters
+    ----------
+    scale : float, Array
+        The gain of the derivation of the Exponential distribution.
 
     """
 
@@ -230,12 +233,12 @@ class Exponential(_InterLayerInitializer):
 class Uniform(_InterLayerInitializer):
     """Initialize weights with uniform distribution.
 
-    Parameters::
-
+    Parameters
+    ----------
     min_val : float
-      The lower limit of the uniform distribution.
+        The lower limit of the uniform distribution.
     max_val : float
-      The upper limit of the uniform distribution.
+        The upper limit of the uniform distribution.
     """
 
     def __init__(self, min_val: float = 0., max_val: float = 1., seed=None):

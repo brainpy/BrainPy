@@ -42,9 +42,10 @@ __all__ = [
 class Optimizer(BrainPyObject):
     """Base Optimizer Class.
 
-    Parameters::
+    Parameters
+    ----------
 
-    lr: float, Scheduler
+    lr : float, Scheduler
       learning rate.
     """
 
@@ -110,9 +111,10 @@ class SGD(CommonOpt):
         \theta = \theta - \eta \cdot \nabla_\theta J(\theta; x; y)
 
 
-    Parameters::
+    Parameters
+    ----------
 
-    lr: float, Scheduler
+    lr : float, Scheduler
       learning rate.
 
     """
@@ -165,12 +167,14 @@ class Momentum(CommonOpt):
       \end{split}
       \end{align}
 
-    Parameters::
+    Parameters
+    ----------
 
-    lr: float, Scheduler
+    lr : float, Scheduler
       learning rate.
 
-    References::
+    References
+    ----------
 
     .. [1] Qian, N. (1999). On the momentum term in gradient descent learning
            algorithms. Neural Networks : The Official Journal of the International
@@ -231,12 +235,14 @@ class MomentumNesterov(CommonOpt):
         \end{split}
         \end{align}
 
-    Parameters::
+    Parameters
+    ----------
 
-    lr: float, Scheduler
+    lr : float, Scheduler
       learning rate.
 
-    References::
+    References
+    ----------
 
     .. [2] Nesterov, Y. (1983). A method for unconstrained convex minimization problem with the rate of convergence o(1/k2). Doklady ANSSSR (translated as Soviet.Math.Docl.), vol. 269, pp. 543– 547.
 
@@ -303,12 +309,14 @@ class Adagrad(CommonOpt):
     This in turn causes the learning rate to shrink and eventually become infinitesimally
     small, at which point the algorithm is no longer able to acquire additional knowledge.
 
-    Parameters::
+    Parameters
+    ----------
 
-    lr: float, Scheduler
+    lr : float, Scheduler
       learning rate.
 
-    References::
+    References
+    ----------
 
     .. [3] Duchi, J., Hazan, E., & Singer, Y. (2011). Adaptive Subgradient Methods for Online Learning and Stochastic Optimization. Journal of Machine Learning Research, 12, 2121–2159. Retrieved from http://jmlr.org/papers/v12/duchi11a.html
 
@@ -387,12 +395,14 @@ class Adadelta(CommonOpt):
     keep it at this value. epsilon is important for the very first update (so the
     numerator does not become 0).
 
-    Parameters::
+    Parameters
+    ----------
 
-    lr: float, Scheduler
+    lr : float, Scheduler
       learning rate.
 
-    References::
+    References
+    ----------
 
     .. [4] Zeiler, M. D. (2012). ADADELTA: An Adaptive Learning Rate Method. Retrieved from http://arxiv.org/abs/1212.5701
 
@@ -466,12 +476,14 @@ class RMSProp(CommonOpt):
     The centered version additionally maintains a moving average of the gradients,
     and uses that average to estimate the variance.
 
-    Parameters::
+    Parameters
+    ----------
 
-    lr: float, Scheduler
+    lr : float, Scheduler
       learning rate.
 
-    References::
+    References
+    ----------
 
     .. [5] Tieleman, T. and Hinton, G. (2012):
            Neural Networks for Machine Learning, Lecture 6.5 - rmsprop.
@@ -530,23 +542,25 @@ class Adam(CommonOpt):
     individual adaptive learning rates for different parameters from estimates of
     first- and second-order moments of the gradients.
 
-    Parameters::
+    Parameters
+    ----------
 
-    lr: float, Scheduler
+    lr : float, Scheduler
       learning rate.
-    beta1: optional, float
+    beta1 : optional, float
       A positive scalar value for beta_1, the exponential decay rate
       for the first moment estimates (default 0.9).
-    beta2: optional, float
+    beta2 : optional, float
       A positive scalar value for beta_2, the exponential decay rate
       for the second moment estimates (default 0.999).
-    eps: optional, float
+    eps : optional, float
       A positive scalar value for epsilon, a small constant for
       numerical stability (default 1e-8).
     name : optional, str
       The optimizer name.
 
-    References::
+    References
+    ----------
 
     .. [6] Kingma, D. P., & Ba, J. (2014). Adam: A method for stochastic optimization. arXiv preprint arXiv:1412.6980.
     """
@@ -632,20 +646,22 @@ class LARS(CommonOpt):
        m_{t} = \beta_{1}m_{t-1} + \left(1-\beta_{1}\right)\left(g_{t} + \lambda{x_{t}}\right) \\
        x_{t+1}^{\left(i\right)} = x_{t}^{\left(i\right)}  - \eta_{t}\frac{\phi\left(|| x_{t}^{\left(i\right)} ||\right)}{|| m_{t}^{\left(i\right)} || }m_{t}^{\left(i\right)}
 
-    Parameters::
+    Parameters
+    ----------
 
-    lr: float, Scheduler
+    lr : float, Scheduler
       learning rate.
-    momentum: float
+    momentum : float
       coefficient used for the moving average of the gradient.
-    weight_decay: float
+    weight_decay : float
       weight decay coefficient.
-    tc: float
+    tc : float
       trust coefficient eta ( < 1) for trust ratio computation.
-    eps: float
+    eps : float
       epsilon used for trust ratio computation.
 
-    References::
+    References
+    ----------
 
     .. [1] You, Yang, Igor Gitman and Boris Ginsburg. “Large Batch Training of Convolutional Networks.” arXiv: Computer Vision and Pattern Recognition (2017): n. pag.
     """
@@ -712,9 +728,10 @@ class Adan(CommonOpt):
         \end{aligned}
         \end{equation}
 
-    Parameters::
+    Parameters
+    ----------
 
-    lr: float, Scheduler
+    lr : float, Scheduler
       learning rate. Can be much higher than Adam, up to 5-10x. (default: 1e-3)
     betas : tuple
        Coefficients used for computing running averages of gradient and its norm. (default: (0.02, 0.08, 0.01))
@@ -722,7 +739,7 @@ class Adan(CommonOpt):
       The term added to the denominator to improve numerical stability. (default: 1e-8)
     weight_decay : float
       decoupled weight decay (L2 penalty) (default: 0)
-    no_prox: bool
+    no_prox : bool
       how to perform the decoupled weight decay (default: False).
       It determines the update rule of parameters with weight decay.
       By default, Adan updates the parameters in the way presented in Algorithm 1 in the paper:
@@ -735,7 +752,8 @@ class Adan(CommonOpt):
       .. math::
          \boldsymbol{\theta}_{k+1} = ( 1-\lambda \eta)\boldsymbol{\theta}_k - \boldsymbol{\eta}_k \circ (\mathbf{m}_k+(1-{\color{blue}\beta_2})\mathbf{v}_k).
 
-    References::
+    References
+    ----------
 
     .. [1] Xie, Xingyu, Pan Zhou, Huan Li, Zhouchen Lin and Shuicheng Yan.
            “Adan: Adaptive Nesterov Momentum Algorithm for Faster Optimizing
@@ -893,29 +911,31 @@ class AdamW(CommonOpt):
        \end{aligned}
 
 
-    Parameters::
+    Parameters
+    ----------
 
-    lr: float, Scheduler
+    lr : float, Scheduler
       learning rate.
-    beta1: optional, float
+    beta1 : optional, float
       A positive scalar value for beta_1, the exponential decay rate
       for the first moment estimates. Generally close to 1.
-    beta2: optional, float
+    beta2 : optional, float
       A positive scalar value for beta_2, the exponential decay rate
       for the second moment estimates. Generally close to 1.
-    eps: optional, float
+    eps : optional, float
       A positive scalar value for epsilon, a small constant for
       numerical stability.
-    weight_decay: float
+    weight_decay : float
       Strength of the weight decay regularization. Note that this
       weight decay is multiplied with the learning rate.
-    amsgrad: bool
+    amsgrad : bool
       whether to use the AMSGrad variant of this algorithm
       from the paper `On the Convergence of Adam and Beyond`.
     name : optional, str
       The optimizer name.
 
-    References::
+    References
+    ----------
 
     .. [1] Loshchilov, Ilya and Frank Hutter. “Decoupled Weight Decay Regularization.” International Conference on Learning Representations (2019).
 
@@ -1031,21 +1051,23 @@ class SM3(CommonOpt):
     momentum, SM3 will use just over half as much memory as Adam, and a bit more
     than Adagrad.
 
-    Parameters::
+    Parameters
+    ----------
 
-    lr: float, Scheduler
+    lr : float, Scheduler
       learning rate.
-    momentum: float
+    momentum : float
       coefficient used to scale prior updates
       before adding. This drastically increases memory usage if
       `momentum > 0.0`. (default: 0.0)
-    beta: float
+    beta : float
       coefficient used for exponential moving averages (default: 0.0)
-    eps: float
+    eps : float
       Term added to square-root in denominator to
       improve numerical stability (default: 1e-30).
 
-    References::
+    References
+    ----------
 
     .. [1] Anil, Rohan, Vineet Gupta, Tomer Koren and Yoram Singer. “Memory Efficient Adaptive Optimization.” Neural Information Processing Systems (2019).
 

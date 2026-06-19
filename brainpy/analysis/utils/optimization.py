@@ -237,18 +237,19 @@ def scipy_minimize_with_jax(fun, x0,
     """
     A simple wrapper for scipy.optimize.minimize using JAX.
 
-    Parameters::
+    Parameters
+    ----------
 
-    fun: function
+    fun : function
       The objective function to be minimized, written in JAX code
       so that it is automatically differentiable.  It is of type,
       ```fun: x, *args -> float``` where `x` is a PyTree and args
       is a tuple of the fixed parameters needed to completely specify the function.
 
-    x0: jnp.ndarray
+    x0 : jnp.ndarray
       Initial guess represented as a JAX PyTree.
 
-    args: tuple, optional.
+    args : tuple, optional.
       Extra arguments passed to the objective function
       and its derivative.  Must consist of valid JAX types; e.g. the leaves
       of the PyTree must be floats.
@@ -334,7 +335,8 @@ def scipy_minimize_with_jax(fun, x0,
             ```callback(xk)```
         where `xk` is the current parameter vector, represented as a PyTree.
 
-    Returns::
+    Returns
+    -------
 
     res : The optimization result represented as a ``OptimizeResult`` object.
       Important attributes are:
@@ -431,7 +433,8 @@ def numpy_brentq(f, a, b, args=(), xtol=2e-14, maxiter=200, rtol=4 * np.finfo(fl
     Uses the classic Brent's method to find a zero of the function `f` on
     the sign changing interval [a , b].
 
-    Parameters::
+    Parameters
+    ----------
 
     f : callable
         Python function returning a number.  `f` must be continuous.
@@ -553,14 +556,16 @@ def numpy_brentq(f, a, b, args=(), xtol=2e-14, maxiter=200, rtol=4 * np.finfo(fl
 def find_root_of_1d_numpy(f, f_points, args=(), tol=1e-8):
     """Find the roots of the given function by numerical methods.
 
-    Parameters::
+    Parameters
+    ----------
 
     f : callable
         The function.
     f_points : np.ndarray, list, tuple
         The value points.
 
-    Returns::
+    Returns
+    -------
 
     roots : list
         The roots.

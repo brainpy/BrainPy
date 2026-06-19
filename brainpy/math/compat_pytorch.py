@@ -66,18 +66,18 @@ def flatten(input: Union[jax.Array, Array],
     .. note::
        Flattening a zero-dimensional tensor will return a one-dimensional view.
 
-    Parameters::
+    Parameters
+    ----------
+    input : Array
+        The input array.
+    start_dim : int
+        the first dim to flatten
+    end_dim : int
+        the last dim to flatten
 
-    input: Array
-      The input array.
-    start_dim: int
-      the first dim to flatten
-    end_dim: int
-      the last dim to flatten
-
-    Returns::
-
-    out: Array
+    Returns
+    -------
+    out : Array
     """
     input = _as_jax_array_(input)
     shape = input.shape
@@ -105,17 +105,22 @@ def unflatten(x: Union[jax.Array, Array], dim: int, sizes: Sequence[int]) -> Arr
     """
     Expands a dimension of the input tensor over multiple dimensions.
 
-    Args:
-      x: input tensor.
-      dim: Dimension to be unflattened, specified as an index into ``x.shape``.
-      sizes: New shape of the unflattened dimension. One of its elements can be -1
-          in which case the corresponding output dimension is inferred.
-          Otherwise, the product of ``sizes`` must equal ``input.shape[dim]``.
+    Parameters
+    ----------
+    x : Union[jax.Array, Array]
+        input tensor.
+    dim : int
+        Dimension to be unflattened, specified as an index into ``x.shape``.
+    sizes : Sequence[int]
+        New shape of the unflattened dimension. One of its elements can be -1
+        in which case the corresponding output dimension is inferred.
+        Otherwise, the product of ``sizes`` must equal ``input.shape[dim]``.
 
-    Returns:
-      A tensor with the same data as ``input``, but with ``dim`` split into multiple dimensions.
-      The returned tensor has one more dimension than the input tensor.
-      The returned tensor shares the same underlying data with this tensor.
+    Returns
+    -------
+    A tensor with the same data as ``input``, but with ``dim`` split into multiple dimensions.
+    The returned tensor has one more dimension than the input tensor.
+    The returned tensor shares the same underlying data with this tensor.
     """
     x = _as_jax_array_(x)
     ndim = x.ndim
@@ -140,16 +145,16 @@ def unsqueeze(x: Union[jax.Array, Array], dim: int) -> Array:
     A dim value within the range ``[-input.dim() - 1, input.dim() + 1)`` can be used.
     Negative dim will correspond to unsqueeze() applied at ``dim = dim + input.dim() + 1``.
 
-    Parameters::
+    Parameters
+    ----------
+    x : Array
+        The input Array
+    dim : int
+        The index at which to insert the singleton dimension
 
-    x: Array
-      The input Array
-    dim: int
-      The index at which to insert the singleton dimension
-
-    Returns::
-
-    out: Array
+    Returns
+    -------
+    out : Array
     """
     x = _as_jax_array_(x)
     r = jnp.expand_dims(x, dim)

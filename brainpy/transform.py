@@ -46,7 +46,8 @@ class LoopOverTime(DynamicalSystem):
     For more flexible customization, we recommend users to use :py:func:`~.for_loop`,
     or :py:class:`~.DSRunner`.
 
-    Examples::
+    Examples
+    --------
 
     This model can be used for network training:
 
@@ -96,11 +97,12 @@ class LoopOverTime(DynamicalSystem):
        >>> plt.show()
 
 
-    Parameters::
+    Parameters
+    ----------
 
-    target: DynamicalSystem
+    target : DynamicalSystem
       The target to transform.
-    no_state: bool
+    no_state : bool
       Denoting whether the `target` has the shared argument or not.
 
       - For ANN layers which are no_state, like :py:class:`~.Dense` or :py:class:`~.Conv2d`,
@@ -110,23 +112,23 @@ class LoopOverTime(DynamicalSystem):
         send data to the object, and reshape output to `shape = [T, N, *]`.
         In this way, the calculation over different time is parralelized.
 
-    out_vars: PyTree
+    out_vars : PyTree
       The variables to monitor over the time loop.
-    t0: float, optional
+    t0 : float, optional
       The start time to run the system. If None, ``t`` will be no longer generated in the loop.
-    i0: int, optional
+    i0 : int, optional
       The start index to run the system. If None, ``i`` will be no longer generated in the loop.
-    dt: float
+    dt : float
       The time step.
-    shared_arg: dict
+    shared_arg : dict
       The shared arguments across the nodes.
       For instance, `shared_arg={'fit': False}` for the prediction phase.
-    data_first_axis: str
+    data_first_axis : str
       Denoting the type of the first axis of input data.
       If ``'T'``, we treat the data as `(time, ...)`.
       If ``'B'``, we treat the data as `(batch, time, ...)` when the `target` is in Batching mode.
       Default is ``'T'``.
-    name: str
+    name : str
       The transformed object name.
     """
 
@@ -194,15 +196,17 @@ class LoopOverTime(DynamicalSystem):
     ):
         """Forward propagation along the time or inputs.
 
-        Parameters::
+        Parameters
+        ----------
 
-        duration_or_xs: float, PyTree
+        duration_or_xs : float, PyTree
           If `float`, it indicates a running duration.
           If a PyTree, it is the given inputs.
 
-        Returns::
+        Returns
+        -------
 
-        out: PyTree
+        out : PyTree
           The accumulated outputs over time.
         """
         # inputs

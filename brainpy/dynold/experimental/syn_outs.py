@@ -35,14 +35,16 @@ class COBA(SynOutNS):
 
        I_{syn}(t) = g_{\mathrm{syn}}(t) (E - V(t))
 
-    Parameters::
+    Parameters
+    ----------
 
-    E: float, ArrayType, ndarray
+    E : float, ArrayType, ndarray
       The reversal potential.
-    name: str
+    name : str
       The model name.
 
-    See Also::
+    See Also
+    --------
 
     CUBA
     """
@@ -64,13 +66,15 @@ class CUBA(SynOutNS):
 
        I_{\mathrm{syn}}(t) = g_{\mathrm{syn}}(t)
 
-    Parameters::
+    Parameters
+    ----------
 
-    name: str
+    name : str
       The model name.
 
 
-    See Also::
+    See Also
+    --------
 
     COBA
     """
@@ -99,17 +103,18 @@ class MgBlock(SynOutNS):
 
     Here :math:`[{Mg}^{2+}]_{o}` is the extracellular magnesium concentration.
 
-    Parameters::
+    Parameters
+    ----------
 
-    E: float, ArrayType
+    E : float, ArrayType
       The reversal potential for the synaptic current. [mV]
-    alpha: float, ArrayType
+    alpha : float, ArrayType
       Binding constant. Default 0.062
-    beta: float, ArrayType
+    beta : float, ArrayType
       Unbinding constant. Default 3.57
-    cc_Mg: float, ArrayType
+    cc_Mg : float, ArrayType
       Concentration of Magnesium ion. Default 1.2 [mM].
-    name: str
+    name : str
       The model name.
     """
 
