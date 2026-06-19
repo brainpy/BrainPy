@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import os
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -26,11 +28,11 @@ class Network(bp.DynSysGroup):
     def __init__(self, noise=0.14):
         super(Network, self).__init__()
 
-        # Please download the processed data "hcp.npz" of the
-        # ConnectomeDB of the Human Connectome Project (HCP)
-        # from the following link:
-        # - https://share.weiyun.com/wkPpARKy
-        hcp = np.load('../../tests/simulation/data/hcp.npz')
+        # HCP connectome data ("hcp.npz", processed from the ConnectomeDB of
+        # the Human Connectome Project) is bundled with BrainPy at
+        # ``brainpy/dyn/rates/data/hcp.npz``.
+        hcp_path = os.path.join(os.path.dirname(bp.__file__), 'dyn', 'rates', 'data', 'hcp.npz')
+        hcp = np.load(hcp_path)
         conn_mat = bm.asarray(hcp['Cmat'])
         bm.fill_diagonal(conn_mat, 0)
         gc = 0.6  # global coupling strength
