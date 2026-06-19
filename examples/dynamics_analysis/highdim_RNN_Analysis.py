@@ -36,7 +36,7 @@ class RNNNet(bp.DynamicalSystem):
             self.alpha = 1
         else:
             self.alpha = dt / self.tau
-        self.rng = bm.random.RandomState(seed=seed)
+        self.rng = bm.random.RandomState(seed)
 
         # input weight
         self.w_ir = bm.TrainVar(bp.init.parameter(w_ir, (num_input, num_hidden)))

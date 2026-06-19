@@ -89,11 +89,11 @@ class Bottleneck(bp.DynamicalSystem):
 
 
 class ResNet(bp.DynamicalSystem):
-    def __init__(self, block, num_blocks, num_classes=10, zero_init_residual=False):
+    def __init__(self, block, num_blocks, num_classes=10, in_channels=3, zero_init_residual=False):
         super(ResNet, self).__init__()
         self.in_planes = 64
 
-        self.conv1 = bp.layers.Conv2D(3, 64, kernel_size=(3, 3), strides=(1, 1), padding=(1, 1),
+        self.conv1 = bp.layers.Conv2D(in_channels, 64, kernel_size=(3, 3), strides=(1, 1), padding=(1, 1),
                                       w_initializer=weight_init)
         self.bn1 = bp.layers.BatchNorm2D(64)
         self.layer1 = self._make_layer(block, 64, num_blocks[0], stride=1)
@@ -208,7 +208,7 @@ def main():
     y_test = bm.asarray(test_set.targets, dtype=bm.int_)
 
     with bm.training_environment():
-        net = ResNet18(num_classes=10)
+        net = ResNet18(num_classes=10, in_channels=1)
 
     # loss function
     def loss_fun(X, Y, fit=True):

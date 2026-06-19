@@ -30,7 +30,7 @@ class Network(bp.DynamicalSystem):
     def __init__(self):
         super(Network, self).__init__()
         self.cnn = bp.layers.FromFlax(CNN(), bm.ones([1, 4, 28, 1]))
-        self.rnn = bp.layers.GRUCell(256, 100)
+        self.rnn = bp.dyn.GRUCell(256, 100)
         self.linear = bp.layers.Dense(100, 10)
 
     def update(self, x):
