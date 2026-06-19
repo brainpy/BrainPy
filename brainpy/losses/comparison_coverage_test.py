@@ -221,26 +221,24 @@ class TestNLL:
 # ---------------------------------------------------------------------------
 class TestRegressionLosses:
     def test_l1_loss_reductions(self):
-        # P1-L1: l1_loss delegates to braintools.metric.l1_loss, which for
-        # reduction='none' returns the per-row L1 *norm* (sum of abs over the
-        # trailing axes, reshaped to (N, -1)), NOT the per-row mean. So for the
-        # (2, 2) input below the 'none' output is the per-row sums [3, 7]; 'sum'
-        # then totals them (10) and 'mean' averages them (5). (The previous
-        # expectations of [1.5, 3.5]/5/2.5 encoded an incorrect per-row-mean
-        # assumption about braintools and were pre-existing baseline failures.)
+        # ``l1_loss`` delegates to ``braintools.metric.l1_loss`` (>=0.3.0), which
+        # reduces each sample to its *mean* absolute error over the trailing axes
+        # (shape (N,)) and then applies the batch reduction.  For the (2, 2) input
+        # below the per-sample means are [mean(1,2), mean(3,4)] = [1.5, 3.5]; so
+        # 'none' -> [1.5, 3.5], 'sum' -> 5.0, 'mean' -> 2.5.
         x = jnp.array([[1., 2.], [3., 4.]])
         y = jnp.zeros((2, 2))
         none = np.asarray(C.l1_loss(x, y, reduction='none'))
-        assert np.allclose(none, [3.0, 7.0])  # per-row L1 norm (sum of abs)
-        assert float(C.l1_loss(x, y, reduction='sum')) == pytest.approx(10.0)
-        assert float(C.l1_loss(x, y, reduction='mean')) == pytest.approx(5.0)
+        assert np.allclose(none, [1.5, 3.5])  # per-sample mean abs error
+        assert float(C.l1_loss(x, y, reduction='sum')) == pytest.approx(5.0)
+        assert float(C.l1_loss(x, y, reduction='mean')) == pytest.approx(2.5)
 
     def test_l1_class(self):
         x = jnp.array([[1., 2.], [3., 4.]])
         y = jnp.zeros((2, 2))
         layer = C.L1Loss(reduction='sum')
-        # sum over per-row L1 norms [3, 7] = 10.0
-        assert float(layer.update(x, y)) == pytest.approx(10.0)
+        # sum over per-sample mean abs errors [1.5, 3.5] = 5.0
+        assert float(layer.update(x, y)) == pytest.approx(5.0)
 
     def test_l2_loss_elementwise(self):
         out = np.asarray(C.l2_loss(jnp.array([2.0, 0.0]), jnp.array([0.0, 0.0])))

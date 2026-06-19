@@ -125,13 +125,21 @@ class Dense(Layer, SupportSTDP, SupportOnline, SupportOffline):
         if self.b is not None:
             res += self.b
 
-        # online fitting data
-        if share.load('fit', False) and self.online_fit_by is not None:
+        # Online/offline fitting data recording.
+        #
+        # The (static, Python-level) ``*_fit_by`` configuration is checked *first*
+        # so that the ``fit`` share value is only consulted when online/offline
+        # fitting is actually enabled.  Inside a grad-/jit-traced fit step (e.g.
+        # ``BPFF.fit`` / ``BPTT.fit``) the ``fit`` flag is a JAX tracer; converting
+        # it to a Python bool would raise ``TracerBoolConversionError``.  Because a
+        # plain ``Dense`` used for back-prop training leaves both ``*_fit_by`` as
+        # ``None``, the ``and`` short-circuits on the static check and never forces
+        # the tracer, letting the canonical RNNCell/Dense BPTT example train.
+        if self.online_fit_by is not None and share.load('fit', False):
             self.fit_record['input'] = x
             self.fit_record['output'] = res
 
-        # offline fitting data
-        if share.load('fit', False) and self.offline_fit_by is not None:
+        if self.offline_fit_by is not None and share.load('fit', False):
             self.fit_record['input'] = x
             self.fit_record['output'] = res
         return res

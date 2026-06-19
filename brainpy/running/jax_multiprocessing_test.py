@@ -56,7 +56,18 @@ def test_vectorize_map_partial_chunk():
 
 def test_vectorize_map_partial_chunk_clear_buffer():
     args = [np.arange(5.0)]
-    r = np.asarray(jax_vectorize_map(_double, args, num_parallel=2, clear_buffer=True))
+    # NOTE: clear_buffer=True calls the process-global ``bm.clear_buffer_memory()``,
+    # which deletes EVERY live device array -- including module-level constants and
+    # persistent Variables in *other* test modules -- poisoning the rest of the
+    # shared pytest session (later tests then hit "deleted/donated buffer" errors).
+    # Patch it to a no-op so the clear_buffer code path is still exercised for
+    # coverage without nuking the session.
+    _orig_clear = bm.clear_buffer_memory
+    bm.clear_buffer_memory = lambda *a, **k: None
+    try:
+        r = np.asarray(jax_vectorize_map(_double, args, num_parallel=2, clear_buffer=True))
+    finally:
+        bm.clear_buffer_memory = _orig_clear
     np.testing.assert_allclose(r, np.arange(5.0) * 2.0)
 
 

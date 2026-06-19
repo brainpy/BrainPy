@@ -487,22 +487,28 @@ def test_bptrainer_abstract_step_funcs_raise():
 
 
 # ---------------------------------------------------------------------------
-# Pinned defect (NOT in fix scope -- documents current behavior)
+# Regression: ``Dense`` trains cleanly under a BPFF/BPTT fit loop
 # ---------------------------------------------------------------------------
 
-def test_dense_layer_fit_flag_is_traced_defect():
-    """PIN: ``bp.dnn.Dense`` under a BPFF/BPTT fit loop raises on the ``fit`` flag.
+def test_dense_layer_fit_flag_under_grad_trace():
+    """``bp.dnn.Dense`` must train under a BPFF fit loop without a tracer error.
 
-    ``brainpy/dnn/linear.py:129`` does
-    ``if share.load('fit', False) and self.online_fit_by is not None:``.
-    Under the installed ``brainstate`` (0.5.x), inside the jitted / grad-traced
-    fit step the ``fit`` flag is a JAX *tracer*, so the boolean ``and`` raises
-    ``jax.errors.TracerBoolConversionError``.  This blocks the canonical
-    ``RNNCell``/``Dense`` BPTT example.  It is an API-drift defect in the layer,
-    not in ``back_propagation.py``; pinned here so the regression is visible.
+    Inside the grad-/jit-traced fit step the ``fit`` flag is a JAX *tracer*.
+    ``Dense.update`` previously did
+    ``if share.load('fit', False) and self.online_fit_by is not None:`` which
+    converted that tracer to a Python bool and raised
+    ``jax.errors.TracerBoolConversionError``, blocking the canonical
+    ``RNNCell``/``Dense`` BPTT example.  ``Dense.update`` now checks the static
+    ``*_fit_by`` configuration first so the tracer is only consulted when online
+    /offline fitting is enabled.  This regression test trains a plain ``Dense``
+    for a couple of epochs and asserts the fit completes with finite losses and
+    an updated weight.
+
+    A *pollution guard* is included: a stale traced ``fit`` left in the global
+    ``share`` store by a previous (broken) fit used to make the next forward
+    pass through a ``Dense`` raise.  Running a plain forward pass after the fit
+    confirms no traced state leaked.
     """
-    import jax
-
     class DenseFF(bp.DynamicalSystem):
         def __init__(self):
             super().__init__()
@@ -516,11 +522,23 @@ def test_dense_layer_fit_flag_is_traced_defect():
 
     with bm.training_environment():
         model = DenseFF()
+    w_before = np.asarray(model.lin.W).copy()
     trainer = bp.BPFF(model, loss_fun=_mse, optimizer=bp.optim.Adam(lr=0.01),
                       progress_bar=False)
-    with pytest.raises(jax.errors.TracerBoolConversionError):
-        trainer.fit([(bm.random.random((4, 3)), bm.random.random((4, 2)))],
-                    num_epoch=1)
+    trainer.fit([(bm.random.random((4, 3)), bm.random.random((4, 2)))],
+                num_epoch=2)
+
+    # the fit ran: losses are recorded and finite, and the weight moved.
+    losses = trainer.get_hist_metric(phase='fit', metric='loss')
+    assert len(losses) > 0
+    assert all(np.isfinite(float(v)) for v in losses)
+    assert not np.allclose(np.asarray(model.lin.W), w_before)
+
+    # pollution guard: a plain forward pass through a Dense must not raise from
+    # a stale traced ``fit`` value left in the global ``share`` store.
+    out = model(bm.random.random((4, 3)))
+    assert tuple(out.shape) == (4, 2)
+    assert bool(np.all(np.isfinite(np.asarray(out))))
 
 
 if __name__ == '__main__':

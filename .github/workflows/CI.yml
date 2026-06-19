@@ -54,9 +54,11 @@ jobs:
           MPLBACKEND: Agg  # Use non-interactive backend for matplotlib
         run: |
           pytest --cov=brainpy --cov-report=xml brainpy/
-      - name: Upload coverage to Codecov
+      - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: brainpy/BrainPy
           files: ./coverage.xml
           fail_ci_if_error: false
 
