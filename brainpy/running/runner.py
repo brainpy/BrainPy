@@ -33,12 +33,13 @@ __all__ = [
 class Runner(BrainPyObject):
     """Base Runner.
 
-    Parameters::
+    Parameters
+    ----------
 
-    target: Any
+    target : Any
       The target model.
 
-    monitors: None, sequence of str, dict, Monitor
+    monitors : None, sequence of str, dict, Monitor
       Variables to monitor.
 
       - A list of string. Like ``monitors=['a', 'b', 'c']``
@@ -50,20 +51,20 @@ class Runner(BrainPyObject):
       .. versionchanged:: 2.3.1
          ``func_monitors`` are merged into ``monitors``.
 
-    fun_monitors: dict
+    fun_monitors : dict
       Monitoring variables by a dict of callable functions.
       The `key` should be a string for later retrieval by `runner.mon[key]`.
       The `value` should be a callable function which receives two arguments: `t` and `dt`.
 
       .. deprecated:: 2.3.1
          Use ``monitors`` instead.
-    jit: bool, dict
+    jit : bool, dict
       The JIT settings.
 
-    progress_bar: bool
+    progress_bar : bool
       Use progress bar to report the running progress or not?
 
-    dyn_vars: Optional, Variable, sequence of Variable, dict
+    dyn_vars : Optional, Variable, sequence of Variable, dict
       The dynamically changed variables. Instance of :py:class:`~.Variable`.
 
     numpy_mon_after_run : bool

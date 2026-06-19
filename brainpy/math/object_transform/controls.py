@@ -115,36 +115,38 @@ def cond(
     >>> a, b
     Variable([1., 1.], dtype=float32), Variable([0., 0.], dtype=float32)
 
-    Parameters::
+    Parameters
+    ----------
     
-    pred: bool
+    pred : bool
       Boolean scalar type, indicating which branch function to apply.
-    true_fun: callable, ArrayType, float, int, bool
+    true_fun : callable, ArrayType, float, int, bool
       Function to be applied if ``pred`` is True.
       This function must receive one arguement for ``operands``.
-    false_fun: callable, ArrayType, float, int, bool
+    false_fun : callable, ArrayType, float, int, bool
       Function to be applied if ``pred`` is False.
       This function must receive one arguement for ``operands``.
-    operands: Any
+    operands : Any
       Operands (A) input to branching function depending on ``pred``. The type
       can be a scalar, array, or any pytree (nested Python tuple/list/dict) thereof.
 
-    dyn_vars: optional, Variable, sequence of Variable, dict
+    dyn_vars : optional, Variable, sequence of Variable, dict
       The dynamically changed variables.
 
       .. deprecated:: 2.4.0
          No longer need to provide ``dyn_vars``. This function is capable of automatically
          collecting the dynamical variables used in the target ``func``.
-    child_objs: optional, dict, sequence of BrainPyObject, BrainPyObject
+    child_objs : optional, dict, sequence of BrainPyObject, BrainPyObject
       The children objects used in the target function.
 
       .. deprecated:: 2.4.0
          No longer need to provide ``dyn_vars``. This function is capable of automatically
          collecting the dynamical variables used in the target ``func``.
 
-    Returns::
+    Returns
+    -------
     
-    res: Any
+    res : Any
       The conditional results.
     """
     if not isinstance(operands, (tuple, list)):
@@ -177,7 +179,8 @@ def ifelse(
 ):
     """``If-else`` control flows looks like native Pythonic programming.
 
-    Examples::
+    Examples
+    --------
     
     >>> import brainpy.math as bm
     >>> def f(a):
@@ -196,35 +199,37 @@ def ifelse(
     >>> f(3)
     3
 
-    Parameters::
+    Parameters
+    ----------
     
-    conditions: bool, sequence of bool
+    conditions : bool, sequence of bool
       The boolean conditions.
-    branches: Any
+    branches : Any
       The branches, at least has two elements. Elements can be functions,
       arrays, or numbers. The number of ``branches`` and ``conditions`` has
       the relationship of `len(branches) == len(conditions) + 1`.
       Each branch should receive one arguement for ``operands``.
-    operands: optional, Any
+    operands : optional, Any
       The operands for each branch.
-    show_code: bool
+    show_code : bool
       Whether show the formatted code.
-    dyn_vars: Variable, sequence of Variable, dict
+    dyn_vars : Variable, sequence of Variable, dict
       The dynamically changed variables.
 
       .. deprecated:: 2.4.0
          No longer need to provide ``dyn_vars``. This function is capable of automatically
          collecting the dynamical variables used in the target ``func``.
-    child_objs: optional, dict, sequence of BrainPyObject, BrainPyObject
+    child_objs : optional, dict, sequence of BrainPyObject, BrainPyObject
       The children objects used in the target function.
 
       .. deprecated:: 2.4.0
          No longer need to provide ``dyn_vars``. This function is capable of automatically
          collecting the dynamical variables used in the target ``func``.
 
-    Returns::
+    Returns
+    -------
     
-    res: Any
+    res : Any
       The results of the control flow.
     """
     if operands is None:
@@ -338,28 +343,29 @@ def for_loop(
      [16.]
      [20.]]
 
-    Parameters::
+    Parameters
+    ----------
     
-    body_fun: callable
+    body_fun : callable
       A Python function to be scanned. This function accepts one argument and returns one output.
       The argument denotes a slice of ``operands`` along its leading axis, and that
       output represents a slice of the return value.
-    operands: Any
+    operands : Any
       The value over which to scan along the leading axis,
       where ``operands`` can be an array or any pytree (nested Python
       tuple/list/dict) thereof with consistent leading axis sizes.
       If body function `body_func` receives multiple arguments,
       `operands` should be a tuple/list whose length is equal to the
       number of arguments.
-    reverse: bool
+    reverse : bool
       Optional boolean specifying whether to run the scan iteration
       forward (the default) or in reverse, equivalent to reversing the leading
       axes of the arrays in both ``xs`` and in ``ys``.
-    unroll: int
+    unroll : int
       Optional positive int specifying, in the underlying operation of the
       scan primitive, how many scan iterations to unroll within a single
       iteration of a loop.
-    jit: bool
+    jit : bool
       Whether to just-in-time compile the function. Set to ``False`` to disable JIT compilation.
 
       .. note::
@@ -367,7 +373,7 @@ def for_loop(
          manager. Consequently it has no effect when ``for_loop`` is called inside an
          enclosing trace (e.g. within another jitted/scanned function): JAX is already
          tracing, so the loop runs as a compiled ``scan`` regardless of this flag.
-    progress_bar: bool, ProgressBar, int
+    progress_bar : bool, ProgressBar, int
       Whether and how to display a progress bar during execution:
 
       - ``False`` (default): No progress bar
@@ -396,13 +402,13 @@ def for_loop(
       .. versionadded:: 2.4.2
       .. versionchanged:: 2.7.3
          Now accepts ProgressBar instances and integers for advanced customization.
-    dyn_vars: Variable, sequence of Variable, dict
+    dyn_vars : Variable, sequence of Variable, dict
       The instances of :py:class:`~.Variable`.
 
       .. deprecated:: 2.4.0
          No longer need to provide ``dyn_vars``. This function is capable of automatically
          collecting the dynamical variables used in the target ``func``.
-    child_objs: optional, dict, sequence of BrainPyObject, BrainPyObject
+    child_objs : optional, dict, sequence of BrainPyObject, BrainPyObject
       The children objects used in the target function.
 
       .. versionadded:: 2.3.1
@@ -411,9 +417,10 @@ def for_loop(
          No longer need to provide ``child_objs``. This function is capable of automatically
          collecting the children objects used in the target ``func``.
 
-    Returns::
+    Returns
+    -------
     
-    outs: Any
+    outs : Any
       The stacked outputs of ``body_fun`` when scanned over the leading axis of the inputs.
     """
     if not isinstance(operands, (tuple, list)):
@@ -479,35 +486,36 @@ def scan(
     All returns in body function will be gathered
     as the return of the whole loop.
 
-    Parameters::
+    Parameters
+    ----------
     
-    body_fun: callable
+    body_fun : callable
       A Python function to be scanned. This function accepts one argument and returns one output.
       The argument denotes a slice of ``operands`` along its leading axis, and that
       output represents a slice of the return value.
-    init: Any
+    init : Any
       An initial loop carry value of type ``c``, which can be a scalar, array, or any pytree
       (nested Python tuple/list/dict) thereof, representing the initial loop carry value.
       This value must have the same structure as the first element of the pair returned
       by ``body_fun``.
-    operands: Any
+    operands : Any
       The value over which to scan along the leading axis,
       where ``operands`` can be an array or any pytree (nested Python
       tuple/list/dict) thereof with consistent leading axis sizes.
       If body function `body_func` receives multiple arguments,
       `operands` should be a tuple/list whose length is equal to the
       number of arguments.
-    remat: bool
+    remat : bool
       Make ``fun`` recompute internal linearization points when differentiated.
-    reverse: bool
+    reverse : bool
       Optional boolean specifying whether to run the scan iteration
       forward (the default) or in reverse, equivalent to reversing the leading
       axes of the arrays in both ``xs`` and in ``ys``.
-    unroll: int
+    unroll : int
       Optional positive int specifying, in the underlying operation of the
       scan primitive, how many scan iterations to unroll within a single
       iteration of a loop.
-    progress_bar: bool, ProgressBar, int
+    progress_bar : bool, ProgressBar, int
       Whether and how to display a progress bar during execution:
 
       - ``False`` (default): No progress bar
@@ -521,9 +529,10 @@ def scan(
       .. versionchanged:: 2.7.3
          Now accepts ProgressBar instances and integers for advanced customization.
 
-    Returns::
+    Returns
+    -------
 
-    outs: tuple
+    outs : tuple
       A two-element tuple ``(final_carry, stacked_ys)``:
 
       - ``final_carry``: the loop carry value returned by the last iteration of
@@ -586,22 +595,23 @@ def while_loop(
 
     .. versionadded:: 2.1.11
 
-    Parameters::
+    Parameters
+    ----------
     
-    body_fun: callable
+    body_fun : callable
       A function which define the updating logic. It receives one argument for ``operands``, without returns.
-    cond_fun: callable
+    cond_fun : callable
       A function which define the stop condition. It receives one argument for ``operands``,
       with one boolean value return.
-    operands: Any
+    operands : Any
       The operands for ``body_fun`` and ``cond_fun`` functions.
-    dyn_vars: Variable, sequence of Variable, dict
+    dyn_vars : Variable, sequence of Variable, dict
       The dynamically changed variables.
 
       .. deprecated:: 2.4.0
          No longer need to provide ``dyn_vars``. This function is capable of automatically
          collecting the dynamical variables used in the target ``func``.
-    child_objs: optional, dict, sequence of BrainPyObject, BrainPyObject
+    child_objs : optional, dict, sequence of BrainPyObject, BrainPyObject
       The children objects used in the target function.
 
       .. deprecated:: 2.4.0

@@ -12,43 +12,64 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-pneu_doc = '''    
-    size: int, or sequence of int. The neuronal population size.
-    sharding: The sharding strategy. 
-    keep_size: bool. Keep the neuron group size.
-    mode: Mode. The computing mode.
-    name: str. The group name.
+pneu_doc = '''
+size : int, or sequence of int
+    The neuronal population size.
+sharding
+    The sharding strategy.
+keep_size : bool
+    Keep the neuron group size.
+mode : Mode
+    The computing mode.
+name : str
+    The group name.
 '''.strip()
 
 dpneu_doc = '''
-    spk_fun: callable. The spike activation function.
-    detach_spk: bool.
-    method: str. The numerical integration method.
-    spk_type: The spike data type.
-    spk_reset: The way to reset the membrane potential when the neuron generates spikes.
-        This parameter only works when the computing mode is ``TrainingMode``.
-        It can be ``soft`` and ``hard``. Default is ``soft``.
+spk_fun : callable
+    The spike activation function.
+detach_spk : bool
+method : str
+    The numerical integration method.
+spk_type
+    The spike data type.
+spk_reset
+    The way to reset the membrane potential when the neuron generates spikes.
+    This parameter only works when the computing mode is ``TrainingMode``.
+    It can be ``soft`` and ``hard``. Default is ``soft``.
 '''.strip()
 
 ref_doc = '''
-    tau_ref: float, ArrayType, callable. Refractory period length (ms).
-    has_ref_var: bool. Whether has the refractory variable. Default is ``False``.
+tau_ref : float, ArrayType, callable
+    Refractory period length (ms).
+has_ref_var : bool
+    Whether has the refractory variable. Default is ``False``.
 '''.strip()
 
 if_doc = '''
-    V_rest: float, ArrayType, callable. Resting membrane potential.
-    R: float, ArrayType, callable. Membrane resistance.
-    tau: float, ArrayType, callable. Membrane time constant.
-    V_initializer: ArrayType, callable. The initializer of membrane potential.
+V_rest : float, ArrayType, callable
+    Resting membrane potential.
+R : float, ArrayType, callable
+    Membrane resistance.
+tau : float, ArrayType, callable
+    Membrane time constant.
+V_initializer : ArrayType, callable
+    The initializer of membrane potential.
 '''.strip()
 
 lif_doc = '''
-    V_rest: float, ArrayType, callable. Resting membrane potential.
-    V_reset: float, ArrayType, callable. Reset potential after spike.
-    V_th: float, ArrayType, callable. Threshold potential of spike.
-    R: float, ArrayType, callable. Membrane resistance.
-    tau: float, ArrayType, callable. Membrane time constant.
-    V_initializer: ArrayType, callable. The initializer of membrane potential.
+V_rest : float, ArrayType, callable
+    Resting membrane potential.
+V_reset : float, ArrayType, callable
+    Reset potential after spike.
+V_th : float, ArrayType, callable
+    Threshold potential of spike.
+R : float, ArrayType, callable
+    Membrane resistance.
+tau : float, ArrayType, callable
+    Membrane time constant.
+V_initializer : ArrayType, callable
+    The initializer of membrane potential.
 '''.strip()
 
 ltc_doc = 'with liquid time-constant'
@@ -94,9 +115,12 @@ dual_exp_syn_doc = r'''
 '''
 
 dual_exp_args = '''
-    tau_decay: float, ArrayArray, Callable. The time constant of the synaptic decay phase. [ms]
-    tau_rise: float, ArrayArray, Callable. The time constant of the synaptic rise phase. [ms]
-    A: float. The normalization factor. Default None.
+tau_decay : float, ArrayArray, Callable
+    The time constant of the synaptic decay phase. [ms]
+tau_rise : float, ArrayArray, Callable
+    The time constant of the synaptic rise phase. [ms]
+A : float
+    The normalization factor. Default None.
 
 '''
 

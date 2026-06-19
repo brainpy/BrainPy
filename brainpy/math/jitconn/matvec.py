@@ -65,17 +65,18 @@ def mv_prob_homo(
        matrix generation, you should set ``outdim_parallel=True``, with the sacrifice of
        the speed compared with ``outdim_parallel=False``.
 
-    Parameters::
+    Parameters
+    ----------
 
-    vector: Array, ndarray
+    vector : Array, ndarray
       The vector.
-    weight: float
+    weight : float
       The value of the random matrix.
-    conn_prob: float
+    conn_prob : float
       The connection probability.
-    shape: tuple of int
+    shape : tuple of int
       The matrix shape.
-    seed: int
+    seed : int
       The random number generation seed.
 
       .. warning::
@@ -88,16 +89,17 @@ def mv_prob_homo(
          jitted call reuses that single seed. For reproducible and correct
          behaviour under JAX transformations, always pass an explicit integer
          ``seed``.
-    transpose: bool
+    transpose : bool
       Transpose the random matrix or not.
-    outdim_parallel: bool
+    outdim_parallel : bool
       Perform the parallel random generations along the out dimension or not.
       It can be used to set the just-in-time generated :math:M^T: is the same
       as the just-in-time generated :math:`M` when ``transpose=True``.
 
-    Returns::
+    Returns
+    -------
 
-    out: Array, ndarray
+    out : Array, ndarray
       The output of :math:`y = M @ v`.
     """
     if seed is None:
@@ -149,19 +151,20 @@ def mv_prob_uniform(
        matrix generation, you should set ``outdim_parallel=True``, with the sacrifice of
        the speed compared with ``outdim_parallel=False``.
 
-    Parameters::
+    Parameters
+    ----------
 
-    vector: Array, ndarray
+    vector : Array, ndarray
       The vector.
-    w_low: float
+    w_low : float
       Lower boundary of the output interval.
-    w_high: float
+    w_high : float
       Upper boundary of the output interval.
-    conn_prob: float
+    conn_prob : float
       The connection probability.
-    shape: tuple of int
+    shape : tuple of int
       The matrix shape.
-    seed: int
+    seed : int
       The random number generation seed.
 
       .. warning::
@@ -174,16 +177,17 @@ def mv_prob_uniform(
          jitted call reuses that single seed. For reproducible and correct
          behaviour under JAX transformations, always pass an explicit integer
          ``seed``.
-    transpose: bool
+    transpose : bool
       Transpose the random matrix or not.
-    outdim_parallel: bool
+    outdim_parallel : bool
       Perform the parallel random generations along the out dimension or not.
       It can be used to set the just-in-time generated :math:M^T: is the same
       as the just-in-time generated :math:`M` when ``transpose=True``.
 
-    Returns::
+    Returns
+    -------
 
-    out: Array, ndarray
+    out : Array, ndarray
       The output of :math:`y = M @ v`.
     """
     if seed is None:
@@ -237,19 +241,20 @@ def mv_prob_normal(
        matrix generation, you should set ``outdim_parallel=True``, with the sacrifice of
        the speed compared with ``outdim_parallel=False``.
 
-    Parameters::
+    Parameters
+    ----------
 
-    vector: Array, ndarray
+    vector : Array, ndarray
       The vector.
-    w_mu: float
+    w_mu : float
       Mean (centre) of the distribution.
-    w_sigma: float
+    w_sigma : float
       Standard deviation (spread or “width”) of the distribution. Must be non-negative.
-    conn_prob: float
+    conn_prob : float
       The connection probability.
-    shape: tuple of int
+    shape : tuple of int
       The matrix shape.
-    seed: int
+    seed : int
       The random number generation seed.
 
       .. warning::
@@ -262,16 +267,17 @@ def mv_prob_normal(
          jitted call reuses that single seed. For reproducible and correct
          behaviour under JAX transformations, always pass an explicit integer
          ``seed``.
-    transpose: bool
+    transpose : bool
       Transpose the random matrix or not.
-    outdim_parallel: bool
+    outdim_parallel : bool
       Perform the parallel random generations along the out dimension or not.
       It can be used to set the just-in-time generated :math:M^T: is the same
       as the just-in-time generated :math:`M` when ``transpose=True``.
 
-    Returns::
+    Returns
+    -------
 
-    out: Array, ndarray
+    out : Array, ndarray
       The output of :math:`y = M @ v`.
     """
     if seed is None:
@@ -301,13 +307,14 @@ def get_homo_weight_matrix(
 ) -> jax.Array:
     r"""Get the connection matrix :math:`M` with a connection probability `conn_prob`.
 
-    Parameters::
+    Parameters
+    ----------
 
-    conn_prob: float
+    conn_prob : float
       The connection probability.
-    shape: tuple of int
+    shape : tuple of int
       The matrix shape.
-    seed: int
+    seed : int
       The random number generation seed.
 
       .. warning::
@@ -320,16 +327,17 @@ def get_homo_weight_matrix(
          jitted call reuses that single seed. For reproducible and correct
          behaviour under JAX transformations, always pass an explicit integer
          ``seed``.
-    transpose: bool
+    transpose : bool
       Transpose the random matrix or not.
-    outdim_parallel: bool
+    outdim_parallel : bool
       Perform the parallel random generations along the out dimension or not.
       It can be used to set the just-in-time generated :math:M^T: is the same
       as the just-in-time generated :math:`M` when ``transpose=True``.
 
-    Returns::
+    Returns
+    -------
 
-    out: Array, ndarray
+    out : Array, ndarray
       The connection matrix :math:`M`.
     """
     if seed is None:
@@ -352,17 +360,18 @@ def get_uniform_weight_matrix(
 ) -> jax.Array:
     r"""Get the weight matrix :math:`M` with a uniform distribution for its value.
 
-    Parameters::
+    Parameters
+    ----------
 
-    w_low: float
+    w_low : float
       Lower boundary of the output interval.
-    w_high: float
+    w_high : float
       Upper boundary of the output interval.
-    conn_prob: float
+    conn_prob : float
       The connection probability.
-    shape: tuple of int
+    shape : tuple of int
       The matrix shape.
-    seed: int
+    seed : int
       The random number generation seed.
 
       .. warning::
@@ -375,16 +384,17 @@ def get_uniform_weight_matrix(
          jitted call reuses that single seed. For reproducible and correct
          behaviour under JAX transformations, always pass an explicit integer
          ``seed``.
-    transpose: bool
+    transpose : bool
       Transpose the random matrix or not.
-    outdim_parallel: bool
+    outdim_parallel : bool
       Perform the parallel random generations along the out dimension or not.
       It can be used to set the just-in-time generated :math:M^T: is the same
       as the just-in-time generated :math:`M` when ``transpose=True``.
 
-    Returns::
+    Returns
+    -------
 
-    out: Array, ndarray
+    out : Array, ndarray
       The weight matrix :math:`M`.
     """
     if seed is None:
@@ -412,15 +422,16 @@ def get_normal_weight_matrix(
 ) -> jax.Array:
     r"""Get the weight matrix :math:`M` with a normal distribution for its value.
 
-    Parameters::
+    Parameters
+    ----------
 
-    w_mu: float
+    w_mu : float
       Mean (centre) of the distribution.
-    w_sigma: float
+    w_sigma : float
       Standard deviation (spread or “width”) of the distribution. Must be non-negative.
-    shape: tuple of int
+    shape : tuple of int
       The matrix shape.
-    seed: int
+    seed : int
       The random number generation seed.
 
       .. warning::
@@ -433,16 +444,17 @@ def get_normal_weight_matrix(
          jitted call reuses that single seed. For reproducible and correct
          behaviour under JAX transformations, always pass an explicit integer
          ``seed``.
-    transpose: bool
+    transpose : bool
       Transpose the random matrix or not.
-    outdim_parallel: bool
+    outdim_parallel : bool
       Perform the parallel random generations along the out dimension or not.
       It can be used to set the just-in-time generated :math:M^T: is the same
       as the just-in-time generated :math:`M` when ``transpose=True``.
 
-    Returns::
+    Returns
+    -------
 
-    out: Array, ndarray
+    out : Array, ndarray
       The weight matrix :math:`M`.
     """
     if seed is None:

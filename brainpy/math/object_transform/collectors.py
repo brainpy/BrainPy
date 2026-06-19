@@ -59,14 +59,16 @@ class Collector(dict):
     def __add__(self, other):
         """Merging two dicts.
 
-        Parameters::
+        Parameters
+        ----------
 
-        other: dict
+        other : dict
           The other dict instance.
 
-        Returns::
+        Returns
+        -------
 
-        gather: Collector
+        gather : Collector
           The new collector.
         """
         gather = type(self)(self)
@@ -76,14 +78,16 @@ class Collector(dict):
     def __sub__(self, other: Union[Dict, Sequence]):
         """Remove other item in the collector.
 
-        Parameters::
+        Parameters
+        ----------
 
-        other: dict, sequence
+        other : dict, sequence
           The items to remove.
 
-        Returns::
+        Returns
+        -------
 
-        gather: Collector
+        gather : Collector
           The new collector.
         """
         if not isinstance(other, (dict, tuple, list)):
@@ -152,7 +156,8 @@ class Collector(dict):
         >>> # get all ODE integrators
         >>> some_collector.subset(bp.ode.ODEIntegrator)
 
-        Parameters::
+        Parameters
+        ----------
 
         var_type : type
           The type/class to match.

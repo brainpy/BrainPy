@@ -160,40 +160,42 @@ class HH(hh.HH):
     >>> plt.yticks([])
     >>> plt.show()
 
-    Parameters::
+    Parameters
+    ----------
 
-    size: sequence of int, int
+    size : sequence of int, int
       The size of the neuron group.
-    ENa: float, ArrayType, Initializer, callable
+    ENa : float, ArrayType, Initializer, callable
       The reversal potential of sodium. Default is 50 mV.
-    gNa: float, ArrayType, Initializer, callable
+    gNa : float, ArrayType, Initializer, callable
       The maximum conductance of sodium channel. Default is 120 msiemens.
-    EK: float, ArrayType, Initializer, callable
+    EK : float, ArrayType, Initializer, callable
       The reversal potential of potassium. Default is -77 mV.
-    gK: float, ArrayType, Initializer, callable
+    gK : float, ArrayType, Initializer, callable
       The maximum conductance of potassium channel. Default is 36 msiemens.
-    EL: float, ArrayType, Initializer, callable
+    EL : float, ArrayType, Initializer, callable
       The reversal potential of learky channel. Default is -54.387 mV.
-    gL: float, ArrayType, Initializer, callable
+    gL : float, ArrayType, Initializer, callable
       The conductance of learky channel. Default is 0.03 msiemens.
-    V_th: float, ArrayType, Initializer, callable
+    V_th : float, ArrayType, Initializer, callable
       The threshold of the membrane spike. Default is 20 mV.
-    C: float, ArrayType, Initializer, callable
+    C : float, ArrayType, Initializer, callable
       The membrane capacitance. Default is 1 ufarad.
-    V_initializer: ArrayType, Initializer, callable
+    V_initializer : ArrayType, Initializer, callable
       The initializer of membrane potential.
-    m_initializer: ArrayType, Initializer, callable
+    m_initializer : ArrayType, Initializer, callable
       The initializer of m channel.
-    h_initializer: ArrayType, Initializer, callable
+    h_initializer : ArrayType, Initializer, callable
       The initializer of h channel.
-    n_initializer: ArrayType, Initializer, callable
+    n_initializer : ArrayType, Initializer, callable
       The initializer of n channel.
-    method: str
+    method : str
       The numerical integration method.
-    name: str
+    name : str
       The group name.
 
-    References::
+    References
+    ----------
 
     .. [1] Hodgkin, Alan L., and Andrew F. Huxley. "A quantitative description
            of membrane current and its application to conduction and excitation
@@ -298,7 +300,8 @@ class MorrisLecar(hh.MorrisLecar):
     V_th          10             mV       The spike threshold.
     ============= ============== ======== =======================================================
 
-    References::
+    References
+    ----------
 
     .. [4] Lecar, Harold. "Morris-lecar model." Scholarpedia 2.10 (2007): 1333.
     .. [5] http://www.scholarpedia.org/article/Morris-Lecar_model
@@ -427,52 +430,54 @@ class PinskyRinzelModel(NeuDyn):
     Values for these parameters, and these function definitions, are taken from Traub et al, 1991.
 
 
-    Parameters::
+    Parameters
+    ----------
 
-    size: sequence of int, int
+    size : sequence of int, int
       The size of the neuron group.
-    gNa: float, ArrayType, Initializer, callable
+    gNa : float, ArrayType, Initializer, callable
       The maximum conductance of sodium channel.
-    gK: float, ArrayType, Initializer, callable
+    gK : float, ArrayType, Initializer, callable
       The maximum conductance of potassium delayed-rectifier channel.
-    gCa: float, ArrayType, Initializer, callable
+    gCa : float, ArrayType, Initializer, callable
       The maximum conductance of calcium channel.
-    gAHP: float, ArrayType, Initializer, callable
+    gAHP : float, ArrayType, Initializer, callable
       The maximum conductance of potassium after-hyper-polarization channel.
-    gC: float, ArrayType, Initializer, callable
+    gC : float, ArrayType, Initializer, callable
       The maximum conductance of calcium activated potassium channel.
-    gL: float, ArrayType, Initializer, callable
+    gL : float, ArrayType, Initializer, callable
       The conductance of leaky channel.
-    ENa: float, ArrayType, Initializer, callable
+    ENa : float, ArrayType, Initializer, callable
       The reversal potential of sodium channel.
-    EK: float, ArrayType, Initializer, callable
+    EK : float, ArrayType, Initializer, callable
       The reversal potential of potassium delayed-rectifier channel.
-    ECa: float, ArrayType, Initializer, callable
+    ECa : float, ArrayType, Initializer, callable
       The reversal potential of calcium channel.
-    EL: float, ArrayType, Initializer, callable
+    EL : float, ArrayType, Initializer, callable
       The reversal potential of leaky channel.
-    gc: float, ArrayType, Initializer, callable
+    gc : float, ArrayType, Initializer, callable
       The coupling strength between the soma and dendrite.
-    V_th: float, ArrayType, Initializer, callable
+    V_th : float, ArrayType, Initializer, callable
       The threshold of the membrane spike.
-    Cm: float, ArrayType, Initializer, callable
+    Cm : float, ArrayType, Initializer, callable
       The threshold of the membrane spike.
-    A: float, ArrayType, Initializer, callable
+    A : float, ArrayType, Initializer, callable
       The total cell membrane area, which is normalized to 1.
-    p: float, ArrayType, Initializer, callable
+    p : float, ArrayType, Initializer, callable
       The proportion of cell area taken up by the soma.
-    Vs_initializer: ArrayType, Initializer, callable
+    Vs_initializer : ArrayType, Initializer, callable
       The initializer of somatic membrane potential.
-    Vd_initializer: ArrayType, Initializer, callable
+    Vd_initializer : ArrayType, Initializer, callable
       The initializer of dendritic membrane potential.
-    Ca_initializer: ArrayType, Initializer, callable
+    Ca_initializer : ArrayType, Initializer, callable
       The initializer of Calcium concentration.
-    method: str
+    method : str
       The numerical integration method.
-    name: str
+    name : str
       The group name.
 
-    References::
+    References
+    ----------
 
     .. [7] Pinsky, Paul F., and John Rinzel. "Intrinsic and network
            rhythmogenesis in a reduced Traub model for CA3 neurons."
@@ -766,40 +771,42 @@ class WangBuzsakiModel(hh.WangBuzsakiHH):
     :math:`E_{\mathrm{K}}=-90 \mathrm{mV}`.
 
 
-    Parameters::
+    Parameters
+    ----------
 
-    size: sequence of int, int
+    size : sequence of int, int
       The size of the neuron group.
-    ENa: float, ArrayType, Initializer, callable
+    ENa : float, ArrayType, Initializer, callable
       The reversal potential of sodium. Default is 50 mV.
-    gNa: float, ArrayType, Initializer, callable
+    gNa : float, ArrayType, Initializer, callable
       The maximum conductance of sodium channel. Default is 120 msiemens.
-    EK: float, ArrayType, Initializer, callable
+    EK : float, ArrayType, Initializer, callable
       The reversal potential of potassium. Default is -77 mV.
-    gK: float, ArrayType, Initializer, callable
+    gK : float, ArrayType, Initializer, callable
       The maximum conductance of potassium channel. Default is 36 msiemens.
-    EL: float, ArrayType, Initializer, callable
+    EL : float, ArrayType, Initializer, callable
       The reversal potential of learky channel. Default is -54.387 mV.
-    gL: float, ArrayType, Initializer, callable
+    gL : float, ArrayType, Initializer, callable
       The conductance of learky channel. Default is 0.03 msiemens.
-    V_th: float, ArrayType, Initializer, callable
+    V_th : float, ArrayType, Initializer, callable
       The threshold of the membrane spike. Default is 20 mV.
-    C: float, ArrayType, Initializer, callable
+    C : float, ArrayType, Initializer, callable
       The membrane capacitance. Default is 1 ufarad.
-    phi: float, ArrayType, Initializer, callable
+    phi : float, ArrayType, Initializer, callable
       The temperature regulator constant.
-    V_initializer: ArrayType, Initializer, callable
+    V_initializer : ArrayType, Initializer, callable
       The initializer of membrane potential.
-    h_initializer: ArrayType, Initializer, callable
+    h_initializer : ArrayType, Initializer, callable
       The initializer of h channel.
-    n_initializer: ArrayType, Initializer, callable
+    n_initializer : ArrayType, Initializer, callable
       The initializer of n channel.
-    method: str
+    method : str
       The numerical integration method.
-    name: str
+    name : str
       The group name.
 
-    References::
+    References
+    ----------
 
     .. [9] Wang, X.J. and Buzsaki, G., (1996) Gamma oscillation by synaptic
            inhibition in a hippocampal interneuronal network model. Journal of

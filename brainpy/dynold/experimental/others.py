@@ -31,13 +31,14 @@ class PoissonInput(DynamicalSystem):
     All neurons in the target variable receive independent realizations of
     Poisson spike trains.
 
-    Parameters::
+    Parameters
+    ----------
 
-    num_input: int
+    num_input : int
       The number of inputs.
-    freq: float
+    freq : float
       The frequency of each of the inputs. Must be a scalar.
-    weight: float
+    weight : float
       The synaptic weight. Must be a scalar.
     """
 

@@ -42,11 +42,15 @@ class Leaky(NeuDyn):
 
        x(t + \Delta t) = \exp{-\Delta t/\tau} x(t) + I
 
-    Args:
-      tau: float, ArrayType, Initializer, callable. Membrane time constant.
-      method: str. The numerical integration method. Default "exp_auto".
-      init_var: Initialize the variable or not.
-      %s
+    Parameters
+    ----------
+    tau : float, ArrayType, Initializer, callable
+        Membrane time constant.
+    method : str
+        The numerical integration method. Default "exp_auto".
+    init_var
+        Initialize the variable or not.
+    %s
     """
 
     supported_modes = (bm.TrainingMode, bm.NonBatchingMode)
@@ -114,11 +118,15 @@ class Integrator(NeuDyn):
 
     where :math:`x` is the integrator value, and :math:`\tau` is the time constant.
 
-    Args:
-      tau: float, ArrayType, Initializer, callable. Membrane time constant.
-      method: str. The numerical integration method. Default "exp_auto".
-      x_initializer: ArrayType, Initializer, callable. The initializer of :math:`x`.
-      %s
+    Parameters
+    ----------
+    tau : float, ArrayType, Initializer, callable
+        Membrane time constant.
+    method : str
+        The numerical integration method. Default "exp_auto".
+    x_initializer : ArrayType, Initializer, callable
+        The initializer of :math:`x`.
+    %s
     """
 
     supported_modes = (bm.TrainingMode, bm.NonBatchingMode)

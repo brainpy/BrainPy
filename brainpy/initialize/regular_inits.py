@@ -45,7 +45,8 @@ class Constant(_InterLayerInitializer):
 
     Initialize the weights with the given values.
 
-    Parameters::
+    Parameters
+    ----------
 
     value : float, int, bm.ndarray
       The value to specify.
@@ -74,17 +75,20 @@ class Identity(_InterLayerInitializer):
 
     This initializer was proposed in (Le, et al., 2015) [1]_.
 
-    Parameters::
+    Parameters
+    ----------
 
     value : float
       The optional scaling factor.
 
-    Returns::
+    Returns
+    -------
 
-    shape: tuple of int
+    shape : tuple of int
       The weight shape/size.
 
-    References::
+    References
+    ----------
 
     .. [1] Le, Quoc V., Navdeep Jaitly, and Geoffrey E. Hinton. "A simple way to
            initialize recurrent networks of rectified linear units." arXiv preprint

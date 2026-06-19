@@ -104,14 +104,16 @@ def keep_unique(candidates: Union[np.ndarray, Dict[str, np.ndarray]],
                 tolerance: float = 2.5e-2):
     """Filter unique fixed points by choosing a representative within tolerance.
 
-    Parameters::
+    Parameters
+    ----------
 
-    candidates: np.ndarray, dict
+    candidates : np.ndarray, dict
       The fixed points with the shape of (num_point, num_dim).
-    tolerance: float
+    tolerance : float
       tolerance.
 
-    Returns::
+    Returns
+    -------
 
     fps_and_ids : tuple
       A 2-tuple of (kept fixed points, ids of kept fixed points).
@@ -150,12 +152,14 @@ def keep_unique(candidates: Union[np.ndarray, Dict[str, np.ndarray]],
 def keep_unique_jax(candidates, tolerance=2.5e-2):
     """Filter unique fixed points by choosing a representative within tolerance.
 
-    Parameters::
+    Parameters
+    ----------
 
-    candidates: Tesnor
+    candidates : Tesnor
       The fixed points with the shape of (num_point, num_dim).
 
-    Returns::
+    Returns
+    -------
 
     fps_and_ids : tuple
       A 2-tuple of (kept fixed points, ids of kept fixed points).

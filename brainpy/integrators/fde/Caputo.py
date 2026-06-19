@@ -77,7 +77,8 @@ class CaputoEuler(FDEIntegrator):
        b_{j, k+1}=\frac{h^{\alpha}}{\alpha}\left((k+1-j)^{\alpha}-(k-j)^{\alpha}\right).
 
 
-    Examples::
+    Examples
+    --------
 
     >>> import brainpy as bp
     >>>
@@ -100,22 +101,24 @@ class CaputoEuler(FDEIntegrator):
     >>> plt.show()
 
 
-    Parameters::
+    Parameters
+    ----------
 
     f : callable
       The derivative function.
-    alpha: int, float, jnp.ndarray, bm.ndarray, sequence
+    alpha : int, float, jnp.ndarray, bm.ndarray, sequence
       The fractional-order of the derivative function. Should be in the range of ``(0., 1.)``.
-    num_memory: int
+    num_memory : int
       The total time step of the simulation.
-    inits: sequence
+    inits : sequence
       A sequence of the initial values for variables.
-    dt: float, int
+    dt : float, int
       The numerical precision.
-    name: str
+    name : str
       The integrator name.
 
-    References::
+    References
+    ----------
 
     .. [1] Li, Changpin, and Fanhai Zeng. "The finite difference methods for fractional
            ordinary differential equations." Numerical Functional Analysis and
@@ -280,7 +283,8 @@ class CaputoL1Schema(FDEIntegrator):
     from the first order dynamics.
 
 
-    Examples::
+    Examples
+    --------
 
     >>> import brainpy as bp
     >>>
@@ -303,22 +307,24 @@ class CaputoL1Schema(FDEIntegrator):
     >>> plt.show()
 
 
-    Parameters::
+    Parameters
+    ----------
 
     f : callable
       The derivative function.
-    alpha: int, float, jnp.ndarray, bm.ndarray, sequence
+    alpha : int, float, jnp.ndarray, bm.ndarray, sequence
       The fractional-order of the derivative function. Should be in the range of ``(0., 1.]``.
-    num_memory: int
+    num_memory : int
       The total time step of the simulation.
-    inits: sequence
+    inits : sequence
       A sequence of the initial values for variables.
-    dt: float, int
+    dt : float, int
       The numerical precision.
-    name: str
+    name : str
       The integrator name.
 
-    References::
+    References
+    ----------
 
     .. [3] Oldham, K., & Spanier, J. (1974). The fractional calculus theory
            and applications of differentiation and integration to arbitrary

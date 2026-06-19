@@ -77,10 +77,11 @@ class IFLTC(GradNeuDyn):
     resistance.
 
 
-    Args:
-      %s
-      %s
-      %s
+    Parameters
+    ----------
+    %s
+    %s
+    %s
     """
 
     def __init__(
@@ -205,10 +206,11 @@ class LifLTC(GradNeuDyn):
 
         bp.visualize.line_plot(runner.mon['ts'], runner.mon['V'], show=True)
 
-    Args:
-      %s
-      %s
-      %s
+    Parameters
+    ----------
+    %s
+    %s
+    %s
 
     """
 
@@ -348,10 +350,11 @@ class Lif(LifLTC):
         bp.visualize.line_plot(runner.mon['ts'], runner.mon['V'], show=True)
 
 
-    Args:
-      %s
-      %s
-      %s
+    Parameters
+    ----------
+    %s
+    %s
+    %s
 
     """
 
@@ -407,11 +410,12 @@ class LifRefLTC(LifLTC):
 
         bp.visualize.line_plot(runner.mon['ts'], runner.mon['V'], show=True)
 
-    Args:
-      %s
-      %s
-      %s
-      %s
+    Parameters
+    ----------
+    %s
+    %s
+    %s
+    %s
 
     """
 
@@ -567,11 +571,12 @@ class LifRef(LifRefLTC):
 
         bp.visualize.line_plot(runner.mon['ts'], runner.mon['V'], show=True)
 
-    Args:
-      %s
-      %s
-      %s
-      %s
+    Parameters
+    ----------
+    %s
+    %s
+    %s
+    %s
 
     """
 
@@ -908,9 +913,10 @@ class ExpIF(ExpIFLTC):
 
 
 
-    Args:
-      %s
-      %s
+    Parameters
+    ----------
+    %s
+    %s
       """
 
     def derivative(self, V, t, I):
@@ -1032,10 +1038,11 @@ class ExpIFRefLTC(ExpIFLTC):
 
 
 
-    Args:
-      %s
-      %s
-      %s
+    Parameters
+    ----------
+    %s
+    %s
+    %s
 
     """
 
@@ -1272,10 +1279,11 @@ class ExpIFRef(ExpIFRefLTC):
 
 
 
-    Args:
-      %s
-      %s
-      %s
+    Parameters
+    ----------
+    %s
+    %s
+    %s
     """
 
     def derivative(self, V, t, I):
@@ -1616,9 +1624,10 @@ class AdExIF(AdExIFLTC):
 
 
 
-    Args:
-      %s
-      %s
+    Parameters
+    ----------
+    %s
+    %s
     """
 
     def dV(self, V, t, w, I):
@@ -1728,10 +1737,11 @@ class AdExIFRefLTC(AdExIFLTC):
 
 
 
-    Args:
-      %s
-      %s
-      %s
+    Parameters
+    ----------
+    %s
+    %s
+    %s
     """
 
     def __init__(
@@ -1965,10 +1975,11 @@ class AdExIFRef(AdExIFRefLTC):
     t_last_spike        -1e7              Last spike time stamp.
     ================== ================= =========================================================
 
-    Args:
-      %s
-      %s
-      %s
+    Parameters
+    ----------
+    %s
+    %s
+    %s
     """
 
     def dV(self, V, t, w, I):
@@ -2239,9 +2250,10 @@ class QuaIF(QuaIFLTC):
 
 
 
-    Args:
-      %s
-      %s
+    Parameters
+    ----------
+    %s
+    %s
     """
 
     def derivative(self, V, t, I):
@@ -2326,10 +2338,11 @@ class QuaIFRefLTC(QuaIFLTC):
     t_last_spike       -1e7               Last spike time stamp.
     ================== ================= =========================================================
 
-    Args:
-      %s
-      %s
-      %s
+    Parameters
+    ----------
+    %s
+    %s
+    %s
     """
 
     def __init__(
@@ -2529,10 +2542,11 @@ class QuaIFRef(QuaIFRefLTC):
     t_last_spike       -1e7               Last spike time stamp.
     ================== ================= =========================================================
 
-    Args:
-      %s
-      %s
-      %s
+    Parameters
+    ----------
+    %s
+    %s
+    %s
     """
 
     def derivative(self, V, t, I):
@@ -2843,9 +2857,10 @@ class AdQuaIF(AdQuaIFLTC):
 
 
 
-    Args:
-      %s
-      %s
+    Parameters
+    ----------
+    %s
+    %s
     """
 
     def dV(self, V, t, w, I):
@@ -2941,10 +2956,11 @@ class AdQuaIFRefLTC(AdQuaIFLTC):
     t_last_spike        -1e7              Last spike time stamp.
     ================== ================= ==========================================================
 
-    Args:
-      %s
-      %s
-      %s
+    Parameters
+    ----------
+    %s
+    %s
+    %s
     """
 
     def __init__(
@@ -3166,10 +3182,11 @@ class AdQuaIFRef(AdQuaIFRefLTC):
 
 
 
-    Args:
-      %s
-      %s
-      %s
+    Parameters
+    ----------
+    %s
+    %s
+    %s
     """
 
     def dV(self, V, t, w, I):
@@ -3556,9 +3573,10 @@ class Gif(GifLTC):
 
 
 
-    Args:
-      %s
-      %s
+    Parameters
+    ----------
+    %s
+    %s
     """
 
     def dV(self, V, t, I1, I2, I):
@@ -3681,10 +3699,11 @@ class GifRefLTC(GifLTC):
 
 
 
-    Args:
-      %s
-      %s
-      %s
+    Parameters
+    ----------
+    %s
+    %s
+    %s
   """
 
     def __init__(
@@ -3958,10 +3977,11 @@ class GifRef(GifRefLTC):
 
 
 
-    Args:
-      %s
-      %s
-      %s
+    Parameters
+    ----------
+    %s
+    %s
+    %s
   """
 
     def dV(self, V, t, I1, I2, I):
@@ -4281,9 +4301,10 @@ class Izhikevich(IzhikevichLTC):
     ================== ================= =========================================================
 
 
-    Args:
-      %s
-      %s
+    Parameters
+    ----------
+    %s
+    %s
 
     """
 
@@ -4384,10 +4405,11 @@ class IzhikevichRefLTC(IzhikevichLTC):
 
 
 
-    Args:
-      %s
-      %s
-      %s
+    Parameters
+    ----------
+    %s
+    %s
+    %s
 
     """
 
@@ -4616,10 +4638,11 @@ class IzhikevichRef(IzhikevichRefLTC):
 
 
 
-    Args:
-      %s
-      %s
-      %s
+    Parameters
+    ----------
+    %s
+    %s
+    %s
    """
 
     def dV(self, V, t, u, I):

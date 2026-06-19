@@ -85,6 +85,16 @@ exclude = [
 version = { attr = "brainpy.__version__" }
 
 
+# ---------------------------------------------------------------------------
+# Docstring style
+# ---------------------------------------------------------------------------
+# BrainPy standardizes on NumPy-style docstrings (see CLAUDE.md and the napoleon
+# settings in docs/conf.py). This records the convention as a single source of
+# truth so ``pydocstyle`` / ``ruff --select D`` enforce the NumPy style on demand.
+[tool.pydocstyle]
+convention = "numpy"
+
+
 [tool.coverage.run]
 # Measure coverage of the library source only -- never of the test files
 # themselves (a test file's lines are not "product code", and several

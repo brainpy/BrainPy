@@ -111,25 +111,26 @@ class TimeDelay(AbstractDelay):
      [[-0.8]
       [-0.8]]]
 
-    Parameters::
+    Parameters
+    ----------
 
-    delay_target: ArrayType
+    delay_target : ArrayType
       The initial delay data.
-    t0: float, int
+    t0 : float, int
       The zero time.
-    delay_len: float, int
+    delay_len : float, int
       The maximum delay length.
-    dt: float, int
+    dt : float, int
       The time precesion.
-    before_t0: callable, bm.ndarray, jnp.ndarray, float, int
+    before_t0 : callable, bm.ndarray, jnp.ndarray, float, int
       The delay data before ::math`t_0`.
       - when `before_t0` is a function, it should receive a time argument `t`
       - when `before_to` is a tensor, it should be a tensor with shape
         of :math:`(num_delay, ...)`, where the longest delay data is aranged in
         the first index.
-    name: str
+    name : str
       The delay instance name.
-    interp_method: str
+    interp_method : str
       The way to deal with the delay at the time which is not integer times of the time step.
       For exameple, if the time step ``dt=0.1``, the time delay length ``delay\_len=1.``,
       when users require the delay data at ``t-0.53``, we can deal this situation with
@@ -143,7 +144,8 @@ class TimeDelay(AbstractDelay):
 
       .. versionadded:: 2.1.1
 
-    See Also::
+    See Also
+    --------
 
     LengthDelay
     """
@@ -215,15 +217,16 @@ class TimeDelay(AbstractDelay):
               before_t0=None):
         """Reset the delay variable.
 
-        Parameters::
+        Parameters
+        ----------
 
-        delay_target: ArrayType
+        delay_target : ArrayType
           The delay target.
-        delay_len: float, int
+        delay_len : float, int
           The maximum delay length. The unit is the time.
-        t0: int, float
+        t0 : int, float
           The zero time.
-        before_t0: callable, int, float, ArrayType
+        before_t0 : callable, int, float, ArrayType
           The data before t0.
           - when ``before_t0`` is a function, it should receive a time argument ``t``
             (mirroring the behaviour of ``__init__``).
@@ -324,13 +327,14 @@ CONCAT_UPDATE = 'concat'
 class LengthDelay(AbstractDelay):
     """Delay variable which has a fixed delay length.
 
-    Parameters::
+    Parameters
+    ----------
 
-    delay_target: int, sequence of int
+    delay_target : int, sequence of int
       The initial delay data.
-    delay_len: int
+    delay_len : int
       The maximum delay length.
-    initial_delay_data: Any
+    initial_delay_data : Any
       The delay data. It can be a Python number, like float, int, boolean values.
       It can also be arrays. Or a callable function or instance of ``Connector``.
       A callable will be invoked as ``initial_delay_data(shape, dtype=...)`` when its
@@ -358,14 +362,15 @@ class LengthDelay(AbstractDelay):
            delay = 1               data ]
 
 
-    name: str
+    name : str
       The delay object name.
-    batch_axis: int
+    batch_axis : int
       The batch axis. If not provided, it will be inferred from the `delay_target`.
-    update_method: str
+    update_method : str
       The method used for updating delay.
 
-    See Also::
+    See Also
+    --------
 
     TimeDelay
     """
@@ -481,9 +486,10 @@ class LengthDelay(AbstractDelay):
     def retrieve(self, delay_len, *indices):
         """Retrieve the delay data acoording to the delay length.
 
-        Parameters::
+        Parameters
+        ----------
 
-        delay_len: int, ArrayType
+        delay_len : int, ArrayType
           The delay length used to retrieve the data.
         """
         if check.is_checking():
@@ -511,9 +517,10 @@ class LengthDelay(AbstractDelay):
     def update(self, value: Union[numbers.Number, Array, jax.Array] = None):
         """Update delay variable with the new data.
 
-        Parameters::
+        Parameters
+        ----------
 
-        value: Any
+        value : Any
           The value of the latest data, used to update this delay variable.
         """
         if value is None:

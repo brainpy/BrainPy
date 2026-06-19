@@ -60,25 +60,27 @@ def save_pytree(
     commit will happen inside an async callback, which can be explicitly waited
     by calling `async_manager.wait_previous_save()`.
 
-    Parameters::
+    Parameters
+    ----------
 
-    filename: str
+    filename : str
       str or pathlib-like path to store checkpoint files in.
-    target: Any
+    target : Any
       serializable flax object, usually a flax optimizer.
-    overwrite: bool
+    overwrite : bool
       overwrite existing checkpoint files if a checkpoint at the
       current or a later step already exits (default: False).
-    async_manager: optional, AsyncManager
+    async_manager : optional, AsyncManager
       if defined, the save will run without blocking the main
       thread. Only works for single host. Note that an ongoing save will still
       block subsequent saves, to make sure overwrite/keep logic works correctly.
-    verbose: bool
+    verbose : bool
       Whether output the print information.
 
-    Returns::
+    Returns
+    -------
 
-    out: str
+    out : str
       Filename of saved checkpoint.
     """
     return braintools.file.msgpack_save(
@@ -97,16 +99,18 @@ def load_pytree(
 ) -> PyTree:
     """Load the checkpoint from the given checkpoint path.
 
-    Parameters::
+    Parameters
+    ----------
 
-    filename: str
+    filename : str
       checkpoint file or directory of checkpoints to restore from.
-    parallel: bool
+    parallel : bool
       whether to load seekable checkpoints in parallel, for speed.
 
-    Returns::
+    Returns
+    -------
 
-    out: Any
+    out : Any
       Restored `target` updated from checkpoint file, or if no step specified and
       no checkpoint files present, returns the passed-in `target` unchanged.
       If a file path is specified and is not found, the passed-in `target` will be

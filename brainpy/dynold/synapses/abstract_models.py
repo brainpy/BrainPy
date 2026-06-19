@@ -75,22 +75,23 @@ class Delta(TwoEndConn):
     >>> plt.legend()
     >>> plt.show()
 
-    Parameters::
+    Parameters
+    ----------
 
-    pre: NeuDyn
+    pre : NeuDyn
       The pre-synaptic neuron group.
-    post: NeuDyn
+    post : NeuDyn
       The post-synaptic neuron group.
-    conn: optional, ArrayType, dict of (str, ndarray), TwoEndConnector
+    conn : optional, ArrayType, dict of (str, ndarray), TwoEndConnector
       The synaptic connections.
-    comp_method: str
+    comp_method : str
       The connection type used for model speed optimization. It can be
       `sparse` and `dense`. The default is `sparse`.
-    delay_step: int, ArrayType, Initializer, Callable
+    delay_step : int, ArrayType, Initializer, Callable
       The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
-    g_max: float, ArrayType, Initializer, Callable
+    g_max : float, ArrayType, Initializer, Callable
       The synaptic strength. Default is 1.
-    post_ref_key: str
+    post_ref_key : str
       Whether the post-synaptic group has refractory period.
     """
 
@@ -218,26 +219,27 @@ class Exponential(TwoEndConn):
     >>> plt.legend()
     >>> plt.show()
 
-    Parameters::
+    Parameters
+    ----------
 
-    pre: NeuGroup
+    pre : NeuGroup
       The pre-synaptic neuron group.
-    post: NeuGroup
+    post : NeuGroup
       The post-synaptic neuron group.
-    conn: optional, ArrayType, dict of (str, ndarray), TwoEndConnector
+    conn : optional, ArrayType, dict of (str, ndarray), TwoEndConnector
       The synaptic connections.
-    comp_method: str
+    comp_method : str
       The connection type used for model speed optimization. It can be
       `sparse` and `dense`. The default is `sparse`.
-    delay_step: int, ArrayType, Initializer, Callable
+    delay_step : int, ArrayType, Initializer, Callable
       The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
-    tau: float, ArrayType
+    tau : float, ArrayType
       The time constant of decay. [ms]
-    g_max: float, ArrayType, Initializer, Callable
+    g_max : float, ArrayType, Initializer, Callable
       The synaptic strength (the maximum conductance). Default is 1.
-    name: str
+    name : str
       The name of this synaptic projection.
-    method: str
+    method : str
       The numerical integration methods.
 
     """
@@ -356,28 +358,29 @@ class DualExponential(_TwoEndConnAlignPre):
     >>> plt.legend()
     >>> plt.show()
 
-    Parameters::
+    Parameters
+    ----------
 
-    pre: NeuDyn
+    pre : NeuDyn
       The pre-synaptic neuron group.
-    post: NeuDyn
+    post : NeuDyn
       The post-synaptic neuron group.
-    conn: optional, ArrayType, dict of (str, ndarray), TwoEndConnector
+    conn : optional, ArrayType, dict of (str, ndarray), TwoEndConnector
       The synaptic connections.
-    comp_method: str
+    comp_method : str
       The connection type used for model speed optimization. It can be
       `sparse` and `dense`. The default is `sparse`.
-    delay_step: int, ArrayType, Initializer, Callable
+    delay_step : int, ArrayType, Initializer, Callable
       The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
-    tau_decay: float, ArrayArray, ndarray
+    tau_decay : float, ArrayArray, ndarray
       The time constant of the synaptic decay phase. [ms]
-    tau_rise: float, ArrayArray, ndarray
+    tau_rise : float, ArrayArray, ndarray
       The time constant of the synaptic rise phase. [ms]
-    g_max: float, ArrayType, Initializer, Callable
+    g_max : float, ArrayType, Initializer, Callable
       The synaptic strength (the maximum conductance). Default is 1.
-    name: str
+    name : str
       The name of this synaptic projection.
-    method: str
+    method : str
       The numerical integration methods.
 
     """
@@ -477,26 +480,27 @@ class Alpha(_TwoEndConnAlignPre):
     >>> plt.legend()
     >>> plt.show()
 
-    Parameters::
+    Parameters
+    ----------
 
-    pre: NeuDyn
+    pre : NeuDyn
       The pre-synaptic neuron group.
-    post: NeuDyn
+    post : NeuDyn
       The post-synaptic neuron group.
-    conn: optional, ArrayType, dict of (str, ndarray), TwoEndConnector
+    conn : optional, ArrayType, dict of (str, ndarray), TwoEndConnector
       The synaptic connections.
-    comp_method: str
+    comp_method : str
       The connection type used for model speed optimization. It can be
       `sparse` and `dense`. The default is `sparse`.
-    delay_step: int, ArrayType, Initializer, Callable
+    delay_step : int, ArrayType, Initializer, Callable
       The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
-    tau_decay: float, ArrayType
+    tau_decay : float, ArrayType
       The time constant of the synaptic decay phase. [ms]
-    g_max: float, ArrayType, Initializer, Callable
+    g_max : float, ArrayType, Initializer, Callable
       The synaptic strength (the maximum conductance). Default is 1.
-    name: str
+    name : str
       The name of this synaptic projection.
-    method: str
+    method : str
       The numerical integration methods.
 
     """
@@ -639,33 +643,35 @@ class NMDA(_TwoEndConnAlignPre):
     >>> plt.legend()
     >>> plt.show()
 
-    Parameters::
+    Parameters
+    ----------
 
-    pre: NeuDyn
+    pre : NeuDyn
       The pre-synaptic neuron group.
-    post: NeuDyn
+    post : NeuDyn
       The post-synaptic neuron group.
-    conn: optional, ArrayType, dict of (str, ndarray), TwoEndConnector
+    conn : optional, ArrayType, dict of (str, ndarray), TwoEndConnector
       The synaptic connections.
-    comp_method: str
+    comp_method : str
       The connection type used for model speed optimization. It can be
       `sparse` and `dense`. The default is `dense`.
-    delay_step: int, ArrayType, Initializer, Callable
+    delay_step : int, ArrayType, Initializer, Callable
       The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
-    g_max: float, ArrayType, Initializer, Callable
+    g_max : float, ArrayType, Initializer, Callable
       The synaptic strength (the maximum conductance). Default is 1.
-    tau_decay: float, ArrayType
+    tau_decay : float, ArrayType
       The time constant of the synaptic decay phase. Default 100 [ms]
-    tau_rise: float, ArrayType
+    tau_rise : float, ArrayType
       The time constant of the synaptic rise phase. Default 2 [ms]
-    a: float, ArrayType
+    a : float, ArrayType
       Default 0.5 ms^-1.
-    name: str
+    name : str
       The name of this synaptic projection.
-    method: str
+    method : str
       The numerical integration methods.
 
-    References::
+    References
+    ----------
 
     .. [1] Brunel N, Wang X J. Effects of neuromodulation in a
            cortical network model of object working memory dominated

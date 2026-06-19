@@ -53,7 +53,8 @@ class LowDimAnalyzer(DSAnalyzer):
     .. note::
       ``LowDimAnalyzer`` cannot analyze dynamical system depends on time :math:`t`.
 
-    Parameters::
+    Parameters
+    ----------
 
     model : Any, ODEIntegrator, sequence of ODEIntegrator, DynamicalSystem
         A model of the population, the integrator function,
@@ -78,7 +79,7 @@ class LowDimAnalyzer(DSAnalyzer):
         - Moreover, you can also set ``resolutions={var1: Array([...]), var2: 0.1}``
           to specify the search points need to explore for variable `var1`.
           This will be useful to set sense search points at some inflection points.
-    lim_scale: float
+    lim_scale : float
       The axis limit scale factor. Default is 1.05. The setting means
       the axes will be clipped to ``[var_min * (1-lim_scale)/2, var_max * (var_max-1)/2]``.
     options : optional, dict
@@ -360,14 +361,16 @@ class Num1DAnalyzer(LowDimAnalyzer):
         >>>     all_par1.append(jnp.ones_like(xs) * p1)
         >>>     all_par2.append(jnp.ones_like(xs) * p2)
 
-        Parameters::
+        Parameters
+        ----------
 
         candidates
         args
         tol_aux
         loss_screen
 
-        Returns::
+        Returns
+        -------
 
         """
         # candidates: xs, a vector with the length of self.resolutions[self.x_var]
@@ -927,9 +930,10 @@ class Num2DAnalyzer(Num1DAnalyzer):
         >>>     all_par1.append(jnp.ones_like(nullcline_points) * p1)
         >>>     all_par2.append(jnp.ones_like(nullcline_points) * p2)
 
-        Parameters::
+        Parameters
+        ----------
 
-        candidates: np.ndarray, jnp.ndarray
+        candidates : np.ndarray, jnp.ndarray
           The candidate points (batched) to optimize, like the nullcline points.
         args : tuple
           The parameters (batched).
@@ -937,7 +941,8 @@ class Num2DAnalyzer(Num1DAnalyzer):
         tol_unique : float
         tol_opt_candidate : float, optional
 
-        Returns::
+        Returns
+        -------
 
         res : tuple
           The fixed point results.

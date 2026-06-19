@@ -38,11 +38,12 @@ __all__ = [
 class InputGroup(NeuDyn):
     """Input neuron group for place holder.
 
-    Args:
-      size: int, tuple of int
-      keep_size: bool
-      mode: Mode
-      name: str
+    Parameters
+    ----------
+    size : int, tuple of int
+    keep_size : bool
+    mode : Mode
+    name : str
     """
 
     def __init__(
@@ -72,11 +73,12 @@ class InputGroup(NeuDyn):
 class OutputGroup(NeuDyn):
     """Output neuron group for place holder.
 
-    Args:
-      size: int, tuple of int
-      keep_size: bool
-      mode: Mode
-      name: str
+    Parameters
+    ----------
+    size : int, tuple of int
+    keep_size : bool
+    mode : Mode
+    name : str
     """
 
     def __init__(
@@ -119,8 +121,8 @@ class SpikeTimeGroup(NeuDyn):
     >>> # at 30 ms, neuron 1 fires.
     >>> SpikeTimeGroup(2, times=[10, 20, 20, 30], indices=[0, 0, 1, 1])
 
-    Parameters::
-
+    Parameters
+    ----------
     size : int, tuple, list
         The neuron group geometry.
     indices : list, tuple, ArrayType

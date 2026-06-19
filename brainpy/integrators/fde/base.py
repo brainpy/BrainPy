@@ -31,15 +31,16 @@ __all__ = [
 class FDEIntegrator(Integrator):
     """Numerical integrator for fractional differential equations (FEDs).
 
-    Parameters::
+    Parameters
+    ----------
 
     f : callable
       The derivative function.
-    alpha: int, float, jnp.ndarray, bm.ndarray, sequence
+    alpha : int, float, jnp.ndarray, bm.ndarray, sequence
       The fractional-order of the derivative function.
-    dt: float, int
+    dt : float, int
       The numerical precision.
-    name: str
+    name : str
       The integrator name.
     """
 

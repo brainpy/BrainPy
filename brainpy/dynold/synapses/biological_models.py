@@ -115,36 +115,38 @@ class GABAa(AMPA):
     - `Gamma oscillation network model <https://brainpy-examples.readthedocs.io/en/latest/oscillation_synchronization/Wang_1996_gamma_oscillation.html>`_
 
 
-    Parameters::
+    Parameters
+    ----------
 
-    pre: NeuDyn
+    pre : NeuDyn
       The pre-synaptic neuron group.
-    post: NeuDyn
+    post : NeuDyn
       The post-synaptic neuron group.
-    conn: optional, ArrayType, dict of (str, ndarray), TwoEndConnector
+    conn : optional, ArrayType, dict of (str, ndarray), TwoEndConnector
       The synaptic connections.
-    comp_method: str
+    comp_method : str
       The connection type used for model speed optimization. It can be
       `sparse` and `dense`. The default is `dense`.
-    delay_step: int, ArrayType, Callable
+    delay_step : int, ArrayType, Callable
       The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
-    g_max: float, ArrayType, Callable
+    g_max : float, ArrayType, Callable
       The synaptic strength (the maximum conductance). Default is 1.
-    alpha: float, ArrayType
+    alpha : float, ArrayType
       Binding constant. Default 0.062
-    beta: float, ArrayType
+    beta : float, ArrayType
       Unbinding constant. Default 3.57
-    T: float, ArrayType
+    T : float, ArrayType
       Transmitter concentration when synapse is triggered by
       a pre-synaptic spike.. Default 1 [mM].
-    T_duration: float, ArrayType
+    T_duration : float, ArrayType
       Transmitter concentration duration time after being triggered. Default 1 [ms]
-    name: str
+    name : str
       The name of this synaptic projection.
-    method: str
+    method : str
       The numerical integration methods.
 
-    References::
+    References
+    ----------
 
     .. [1] Destexhe, Alain, and Denis Paré. "Impact of network activity
            on the integrative properties of neocortical pyramidal neurons
@@ -266,35 +268,37 @@ class BioNMDA(_TwoEndConnAlignPre):
     >>> plt.legend()
     >>> plt.show()
 
-    Parameters::
+    Parameters
+    ----------
 
-    pre: NeuDyn
+    pre : NeuDyn
       The pre-synaptic neuron group.
-    post: NeuDyn
+    post : NeuDyn
       The post-synaptic neuron group.
-    conn: optional, ArrayType, dict of (str, ndarray), TwoEndConnector
+    conn : optional, ArrayType, dict of (str, ndarray), TwoEndConnector
       The synaptic connections.
-    comp_method: str
+    comp_method : str
       The connection type used for model speed optimization. It can be
       `sparse` and `dense`. The default is `dense`.
-    delay_step: int, ArrayType, Callable
+    delay_step : int, ArrayType, Callable
       The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
-    g_max: float, ArrayType, Callable
+    g_max : float, ArrayType, Callable
       The synaptic strength (the maximum conductance). Default is 1.
-    alpha1: float, ArrayType
+    alpha1 : float, ArrayType
       The conversion rate of g from inactive to active. Default 2 ms^-1.
-    beta1: float, ArrayType
+    beta1 : float, ArrayType
       The conversion rate of g from active to inactive. Default 0.01 ms^-1.
-    alpha2: float, ArrayType
+    alpha2 : float, ArrayType
       The conversion rate of x from inactive to active. Default 1 ms^-1.
-    beta2: float, ArrayType
+    beta2 : float, ArrayType
       The conversion rate of x from active to inactive. Default 0.5 ms^-1.
-    name: str
+    name : str
       The name of this synaptic projection.
-    method: str
+    method : str
       The numerical integration methods.
 
-    References::
+    References
+    ----------
 
     .. [1] Devaney A J . Mathematical Foundations of Neuroscience[M].
            Springer New York, 2010: 162.

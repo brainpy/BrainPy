@@ -92,11 +92,12 @@ class _IK_p4_markov_v2(PotassiumChannel):
 
     where :math:`\phi` is a temperature-dependent factor.
 
-    Parameters::
+    Parameters
+    ----------
 
-    size: int, sequence of int
+    size : int, sequence of int
       The object size.
-    keep_size: bool
+    keep_size : bool
       Whether we use `size` to initialize the variable. Otherwise, variable shape
       will be initialized as `num`.
     g_max : float, ArrayType, Initializer, Callable
@@ -105,9 +106,9 @@ class _IK_p4_markov_v2(PotassiumChannel):
       The reversal potential (mV).
     phi : float, ArrayType, Initializer, Callable
       The temperature-dependent factor.
-    method: str
+    method : str
       The numerical integration method.
-    name: str
+    name : str
       The object name.
 
     """
@@ -177,11 +178,12 @@ class IKDR_Ba2002v2(_IK_p4_markov_v2):
     where :math:`\phi` is a temperature-dependent factor, which is given by
     :math:`\phi=3^{\frac{T-36}{10}}` (:math:`T` is the temperature in Celsius).
 
-    Parameters::
+    Parameters
+    ----------
 
-    size: int, sequence of int
+    size : int, sequence of int
       The object size.
-    keep_size: bool
+    keep_size : bool
       Whether we use `size` to initialize the variable. Otherwise, variable shape
       will be initialized as `num`.
     g_max : float, ArrayType, Initializer, Callable
@@ -194,12 +196,13 @@ class IKDR_Ba2002v2(_IK_p4_markov_v2):
       The temperature (Celsius, :math:`^{\circ}C`).
     V_sh : float, ArrayType, Initializer, Callable
       The shift of the membrane potential to spike.
-    method: str
+    method : str
       The numerical integration method.
-    name: str
+    name : str
       The object name.
 
-    References::
+    References
+    ----------
 
     .. [1] Bazhenov, Maxim, et al. "Model of thalamocortical slow-wave sleep oscillations
            and transitions to activated states." Journal of neuroscience 22.19 (2002): 8691-8704.
@@ -259,25 +262,28 @@ class IK_TM1991v2(_IK_p4_markov_v2):
     where :math:`V_{sh}` is the membrane shift (default -63 mV), and
     :math:`\phi` is the temperature-dependent factor (default 1.).
 
-    Parameters::
+    Parameters
+    ----------
 
-    size: int, sequence of int
+    size : int, sequence of int
       The geometry size.
     g_max : float, ArrayType, Initializer, Callable
       The maximal conductance density (:math:`mS/cm^2`).
     E : float, ArrayType, Initializer, Callable
       The reversal potential (mV).
-    method: str
+    method : str
       The numerical integration method.
-    name: str
+    name : str
       The object name.
 
-    References::
+    References
+    ----------
 
     .. [1] Traub, Roger D., and Richard Miles. Neuronal networks of the hippocampus.
            Vol. 777. Cambridge University Press, 1991.
 
-    See Also::
+    See Also
+    --------
 
     INa_TM1991
     """
@@ -328,26 +334,29 @@ class IK_HH1952v2(_IK_p4_markov_v2):
     where :math:`V_{sh}` is the membrane shift (default -45 mV), and
     :math:`\phi` is the temperature-dependent factor (default 1.).
 
-    Parameters::
+    Parameters
+    ----------
 
-    size: int, sequence of int
+    size : int, sequence of int
       The geometry size.
     g_max : float, ArrayType, Initializer, Callable
       The maximal conductance density (:math:`mS/cm^2`).
     E : float, ArrayType, Initializer, Callable
       The reversal potential (mV).
-    method: str
+    method : str
       The numerical integration method.
-    name: str
+    name : str
       The object name.
 
-    References::
+    References
+    ----------
 
     .. [1] Hodgkin, Alan L., and Andrew F. Huxley. "A quantitative description of
            membrane current and its application to conduction and excitation in
            nerve." The Journal of physiology 117.4 (1952): 500.
 
-    See Also::
+    See Also
+    --------
 
     INa_HH1952
     """
@@ -396,13 +405,14 @@ class _IKA_p4q_ss_v2(PotassiumChannel):
 
     where :math:`\phi_p` and :math:`\phi_q` are the temperature dependent factors (default 1.).
 
-    Parameters::
+    Parameters
+    ----------
 
-    size: int, sequence of int
+    size : int, sequence of int
       The geometry size.
-    method: str
+    method : str
       The numerical integration method.
-    name: str
+    name : str
       The object name.
     g_max : float, ArrayType, Initializer, Callable
       The maximal conductance density (:math:`mS/cm^2`).
@@ -413,7 +423,8 @@ class _IKA_p4q_ss_v2(PotassiumChannel):
     phi_q : optional, float, ArrayType, Callable, Initializer
       The temperature factor for channel :math:`q`.
 
-    References::
+    References
+    ----------
 
     .. [2] Huguenard, John R., and David A. McCormick. "Simulation of the
            currents involved in rhythmic oscillations in thalamic relay
@@ -502,13 +513,14 @@ class IKA1_HM1992v2(_IKA_p4q_ss_v2):
 
     where :math:`\phi_p` and :math:`\phi_q` are the temperature dependent factors (default 1.).
 
-    Parameters::
+    Parameters
+    ----------
 
-    size: int, sequence of int
+    size : int, sequence of int
       The geometry size.
-    method: str
+    method : str
       The numerical integration method.
-    name: str
+    name : str
       The object name.
     g_max : float, ArrayType, Initializer, Callable
       The maximal conductance density (:math:`mS/cm^2`).
@@ -521,7 +533,8 @@ class IKA1_HM1992v2(_IKA_p4q_ss_v2):
     phi_q : optional, float, ArrayType, Callable, Initializer
       The temperature factor for channel :math:`q`.
 
-    References::
+    References
+    ----------
 
     .. [2] Huguenard, John R., and David A. McCormick. "Simulation of the
            currents involved in rhythmic oscillations in thalamic relay
@@ -530,7 +543,8 @@ class IKA1_HM1992v2(_IKA_p4q_ss_v2):
            TEA-sensitive K current in acutely isolated rat thalamic relay
            neurons." Journal of neurophysiology 66.4 (1991): 1316-1328.
 
-    See Also::
+    See Also
+    --------
 
     IKA2_HM1992
     """
@@ -595,13 +609,14 @@ class IKA2_HM1992v2(_IKA_p4q_ss_v2):
 
     where :math:`\phi_p` and :math:`\phi_q` are the temperature dependent factors (default 1.).
 
-    Parameters::
+    Parameters
+    ----------
 
-    size: int, sequence of int
+    size : int, sequence of int
       The geometry size.
-    method: str
+    method : str
       The numerical integration method.
-    name: str
+    name : str
       The object name.
     g_max : float, ArrayType, Initializer, Callable
       The maximal conductance density (:math:`mS/cm^2`).
@@ -614,7 +629,8 @@ class IKA2_HM1992v2(_IKA_p4q_ss_v2):
     phi_q : optional, float, ArrayType, Callable, Initializer
       The temperature factor for channel :math:`q`.
 
-    References::
+    References
+    ----------
 
     .. [2] Huguenard, John R., and David A. McCormick. "Simulation of the
            currents involved in rhythmic oscillations in thalamic relay
@@ -623,7 +639,8 @@ class IKA2_HM1992v2(_IKA_p4q_ss_v2):
            TEA-sensitive K current in acutely isolated rat thalamic relay
            neurons." Journal of neurophysiology 66.4 (1991): 1316-1328.
 
-    See Also::
+    See Also
+    --------
 
     IKA1_HM1992
     """
@@ -683,13 +700,14 @@ class _IKK2_pq_ss_v2(PotassiumChannel):
 
     where :math:`\phi_p` and :math:`\phi_q` are the temperature dependent factors (default 1.).
 
-    Parameters::
+    Parameters
+    ----------
 
-    size: int, sequence of int
+    size : int, sequence of int
       The geometry size.
-    method: str
+    method : str
       The numerical integration method.
-    name: str
+    name : str
       The object name.
     g_max : float, ArrayType, Initializer, Callable
       The maximal conductance density (:math:`mS/cm^2`).
@@ -700,7 +718,8 @@ class _IKK2_pq_ss_v2(PotassiumChannel):
     phi_q : optional, float, ArrayType, Callable, Initializer
       The temperature factor for channel :math:`q`.
 
-    References::
+    References
+    ----------
 
     .. [2] Huguenard, John R., and David A. McCormick. "Simulation of the
            currents involved in rhythmic oscillations in thalamic relay
@@ -789,13 +808,14 @@ class IKK2A_HM1992v2(_IKK2_pq_ss_v2):
 
     where :math:`\phi_p` and :math:`\phi_q` are the temperature dependent factors (default 1.).
 
-    Parameters::
+    Parameters
+    ----------
 
-    size: int, sequence of int
+    size : int, sequence of int
       The geometry size.
-    method: str
+    method : str
       The numerical integration method.
-    name: str
+    name : str
       The object name.
     g_max : float, ArrayType, Initializer, Callable
       The maximal conductance density (:math:`mS/cm^2`).
@@ -808,7 +828,8 @@ class IKK2A_HM1992v2(_IKK2_pq_ss_v2):
     phi_q : optional, float, ArrayType, Callable, Initializer
       The temperature factor for channel :math:`q`.
 
-    References::
+    References
+    ----------
 
     .. [2] Huguenard, John R., and David A. McCormick. "Simulation of the
            currents involved in rhythmic oscillations in thalamic relay
@@ -878,13 +899,14 @@ class IKK2B_HM1992v2(_IKK2_pq_ss_v2):
 
     where :math:`\phi_p` and :math:`\phi_q` are the temperature dependent factors (default 1.).
 
-    Parameters::
+    Parameters
+    ----------
 
-    size: int, sequence of int
+    size : int, sequence of int
       The geometry size.
-    method: str
+    method : str
       The numerical integration method.
-    name: str
+    name : str
       The object name.
     g_max : float, ArrayType, Initializer, Callable
       The maximal conductance density (:math:`mS/cm^2`).
@@ -897,7 +919,8 @@ class IKK2B_HM1992v2(_IKK2_pq_ss_v2):
     phi_q : optional, float, ArrayType, Callable, Initializer
       The temperature factor for channel :math:`q`.
 
-    References::
+    References
+    ----------
 
     .. [2] Huguenard, John R., and David A. McCormick. "Simulation of the
            currents involved in rhythmic oscillations in thalamic relay
@@ -966,13 +989,14 @@ class IKNI_Ya1989v2(PotassiumChannel):
     where :math:`\bar{g}_{M}` was :math:`0.004 \mathrm{mS} / \mathrm{cm}^{2}` and
     :math:`\tau_{\max }=4 \mathrm{~s}`, unless stated otherwise.
 
-    Parameters::
+    Parameters
+    ----------
 
-    size: int, sequence of int
+    size : int, sequence of int
       The geometry size.
-    method: str
+    method : str
       The numerical integration method.
-    name: str
+    name : str
       The object name.
     g_max : float, ArrayType, Initializer, Callable
       The maximal conductance density (:math:`mS/cm^2`).
@@ -982,10 +1006,11 @@ class IKNI_Ya1989v2(PotassiumChannel):
       The membrane potential shift.
     phi_p : optional, float, ArrayType, Callable, Initializer
       The temperature factor for channel :math:`p`.
-    tau_max: float, ArrayType, Callable, Initializer
+    tau_max : float, ArrayType, Callable, Initializer
       The :math:`tau_{\max}` parameter.
 
-    References::
+    References
+    ----------
 
     .. [1] Yamada, Walter M. "Multiple channels and calcium dynamics." Methods in neuronal modeling (1989): 97-133.
 
@@ -1059,11 +1084,12 @@ class _IK_p4_markov(PotassiumChannel):
 
     where :math:`\phi` is a temperature-dependent factor.
 
-    Parameters::
+    Parameters
+    ----------
 
-    size: int, sequence of int
+    size : int, sequence of int
       The object size.
-    keep_size: bool
+    keep_size : bool
       Whether we use `size` to initialize the variable. Otherwise, variable shape
       will be initialized as `num`.
     g_max : float, ArrayType, Initializer, Callable
@@ -1072,9 +1098,9 @@ class _IK_p4_markov(PotassiumChannel):
       The reversal potential (mV).
     phi : float, ArrayType, Initializer, Callable
       The temperature-dependent factor.
-    method: str
+    method : str
       The numerical integration method.
-    name: str
+    name : str
       The object name.
 
     """
@@ -1147,11 +1173,12 @@ class IKDR_Ba2002(_IK_p4_markov):
     where :math:`\phi` is a temperature-dependent factor, which is given by
     :math:`\phi=3^{\frac{T-36}{10}}` (:math:`T` is the temperature in Celsius).
 
-    Parameters::
+    Parameters
+    ----------
 
-    size: int, sequence of int
+    size : int, sequence of int
       The object size.
-    keep_size: bool
+    keep_size : bool
       Whether we use `size` to initialize the variable. Otherwise, variable shape
       will be initialized as `num`.
     g_max : float, ArrayType, Initializer, Callable
@@ -1164,12 +1191,13 @@ class IKDR_Ba2002(_IK_p4_markov):
       The temperature (Celsius, :math:`^{\circ}C`).
     V_sh : float, ArrayType, Initializer, Callable
       The shift of the membrane potential to spike.
-    method: str
+    method : str
       The numerical integration method.
-    name: str
+    name : str
       The object name.
 
-    References::
+    References
+    ----------
 
     .. [1] Bazhenov, Maxim, et al. "Model of thalamocortical slow-wave sleep oscillations
            and transitions to activated states." Journal of neuroscience 22.19 (2002): 8691-8704.
@@ -1231,25 +1259,28 @@ class IK_TM1991(_IK_p4_markov):
     where :math:`V_{sh}` is the membrane shift (default -63 mV), and
     :math:`\phi` is the temperature-dependent factor (default 1.).
 
-    Parameters::
+    Parameters
+    ----------
 
-    size: int, sequence of int
+    size : int, sequence of int
       The geometry size.
     g_max : float, ArrayType, Initializer, Callable
       The maximal conductance density (:math:`mS/cm^2`).
     E : float, ArrayType, Initializer, Callable
       The reversal potential (mV).
-    method: str
+    method : str
       The numerical integration method.
-    name: str
+    name : str
       The object name.
 
-    References::
+    References
+    ----------
 
     .. [1] Traub, Roger D., and Richard Miles. Neuronal networks of the hippocampus.
            Vol. 777. Cambridge University Press, 1991.
 
-    See Also::
+    See Also
+    --------
 
     INa_TM1991
     """
@@ -1302,26 +1333,29 @@ class IK_HH1952(_IK_p4_markov):
     where :math:`V_{sh}` is the membrane shift (default -45 mV), and
     :math:`\phi` is the temperature-dependent factor (default 1.).
 
-    Parameters::
+    Parameters
+    ----------
 
-    size: int, sequence of int
+    size : int, sequence of int
       The geometry size.
     g_max : float, ArrayType, Initializer, Callable
       The maximal conductance density (:math:`mS/cm^2`).
     E : float, ArrayType, Initializer, Callable
       The reversal potential (mV).
-    method: str
+    method : str
       The numerical integration method.
-    name: str
+    name : str
       The object name.
 
-    References::
+    References
+    ----------
 
     .. [1] Hodgkin, Alan L., and Andrew F. Huxley. "A quantitative description of
            membrane current and its application to conduction and excitation in
            nerve." The Journal of physiology 117.4 (1952): 500.
 
-    See Also::
+    See Also
+    --------
 
     INa_HH1952
     """
@@ -1372,13 +1406,14 @@ class _IKA_p4q_ss(PotassiumChannel):
 
     where :math:`\phi_p` and :math:`\phi_q` are the temperature dependent factors (default 1.).
 
-    Parameters::
+    Parameters
+    ----------
 
-    size: int, sequence of int
+    size : int, sequence of int
       The geometry size.
-    method: str
+    method : str
       The numerical integration method.
-    name: str
+    name : str
       The object name.
     g_max : float, ArrayType, Initializer, Callable
       The maximal conductance density (:math:`mS/cm^2`).
@@ -1389,7 +1424,8 @@ class _IKA_p4q_ss(PotassiumChannel):
     phi_q : optional, float, ArrayType, Callable, Initializer
       The temperature factor for channel :math:`q`.
 
-    References::
+    References
+    ----------
 
     .. [2] Huguenard, John R., and David A. McCormick. "Simulation of the
            currents involved in rhythmic oscillations in thalamic relay
@@ -1481,13 +1517,14 @@ class IKA1_HM1992(_IKA_p4q_ss):
 
     where :math:`\phi_p` and :math:`\phi_q` are the temperature dependent factors (default 1.).
 
-    Parameters::
+    Parameters
+    ----------
 
-    size: int, sequence of int
+    size : int, sequence of int
       The geometry size.
-    method: str
+    method : str
       The numerical integration method.
-    name: str
+    name : str
       The object name.
     g_max : float, ArrayType, Initializer, Callable
       The maximal conductance density (:math:`mS/cm^2`).
@@ -1500,7 +1537,8 @@ class IKA1_HM1992(_IKA_p4q_ss):
     phi_q : optional, float, ArrayType, Callable, Initializer
       The temperature factor for channel :math:`q`.
 
-    References::
+    References
+    ----------
 
     .. [2] Huguenard, John R., and David A. McCormick. "Simulation of the
            currents involved in rhythmic oscillations in thalamic relay
@@ -1509,7 +1547,8 @@ class IKA1_HM1992(_IKA_p4q_ss):
            TEA-sensitive K current in acutely isolated rat thalamic relay
            neurons." Journal of neurophysiology 66.4 (1991): 1316-1328.
 
-    See Also::
+    See Also
+    --------
 
     IKA2_HM1992
     """
@@ -1576,13 +1615,14 @@ class IKA2_HM1992(_IKA_p4q_ss):
 
     where :math:`\phi_p` and :math:`\phi_q` are the temperature dependent factors (default 1.).
 
-    Parameters::
+    Parameters
+    ----------
 
-    size: int, sequence of int
+    size : int, sequence of int
       The geometry size.
-    method: str
+    method : str
       The numerical integration method.
-    name: str
+    name : str
       The object name.
     g_max : float, ArrayType, Initializer, Callable
       The maximal conductance density (:math:`mS/cm^2`).
@@ -1595,7 +1635,8 @@ class IKA2_HM1992(_IKA_p4q_ss):
     phi_q : optional, float, ArrayType, Callable, Initializer
       The temperature factor for channel :math:`q`.
 
-    References::
+    References
+    ----------
 
     .. [2] Huguenard, John R., and David A. McCormick. "Simulation of the
            currents involved in rhythmic oscillations in thalamic relay
@@ -1604,7 +1645,8 @@ class IKA2_HM1992(_IKA_p4q_ss):
            TEA-sensitive K current in acutely isolated rat thalamic relay
            neurons." Journal of neurophysiology 66.4 (1991): 1316-1328.
 
-    See Also::
+    See Also
+    --------
 
     IKA1_HM1992
     """
@@ -1666,13 +1708,14 @@ class _IKK2_pq_ss(PotassiumChannel):
 
     where :math:`\phi_p` and :math:`\phi_q` are the temperature dependent factors (default 1.).
 
-    Parameters::
+    Parameters
+    ----------
 
-    size: int, sequence of int
+    size : int, sequence of int
       The geometry size.
-    method: str
+    method : str
       The numerical integration method.
-    name: str
+    name : str
       The object name.
     g_max : float, ArrayType, Initializer, Callable
       The maximal conductance density (:math:`mS/cm^2`).
@@ -1683,7 +1726,8 @@ class _IKK2_pq_ss(PotassiumChannel):
     phi_q : optional, float, ArrayType, Callable, Initializer
       The temperature factor for channel :math:`q`.
 
-    References::
+    References
+    ----------
 
     .. [2] Huguenard, John R., and David A. McCormick. "Simulation of the
            currents involved in rhythmic oscillations in thalamic relay
@@ -1775,13 +1819,14 @@ class IKK2A_HM1992(_IKK2_pq_ss):
 
     where :math:`\phi_p` and :math:`\phi_q` are the temperature dependent factors (default 1.).
 
-    Parameters::
+    Parameters
+    ----------
 
-    size: int, sequence of int
+    size : int, sequence of int
       The geometry size.
-    method: str
+    method : str
       The numerical integration method.
-    name: str
+    name : str
       The object name.
     g_max : float, ArrayType, Initializer, Callable
       The maximal conductance density (:math:`mS/cm^2`).
@@ -1794,7 +1839,8 @@ class IKK2A_HM1992(_IKK2_pq_ss):
     phi_q : optional, float, ArrayType, Callable, Initializer
       The temperature factor for channel :math:`q`.
 
-    References::
+    References
+    ----------
 
     .. [2] Huguenard, John R., and David A. McCormick. "Simulation of the
            currents involved in rhythmic oscillations in thalamic relay
@@ -1866,13 +1912,14 @@ class IKK2B_HM1992(_IKK2_pq_ss):
 
     where :math:`\phi_p` and :math:`\phi_q` are the temperature dependent factors (default 1.).
 
-    Parameters::
+    Parameters
+    ----------
 
-    size: int, sequence of int
+    size : int, sequence of int
       The geometry size.
-    method: str
+    method : str
       The numerical integration method.
-    name: str
+    name : str
       The object name.
     g_max : float, ArrayType, Initializer, Callable
       The maximal conductance density (:math:`mS/cm^2`).
@@ -1885,7 +1932,8 @@ class IKK2B_HM1992(_IKK2_pq_ss):
     phi_q : optional, float, ArrayType, Callable, Initializer
       The temperature factor for channel :math:`q`.
 
-    References::
+    References
+    ----------
 
     .. [2] Huguenard, John R., and David A. McCormick. "Simulation of the
            currents involved in rhythmic oscillations in thalamic relay
@@ -1956,13 +2004,14 @@ class IKNI_Ya1989(PotassiumChannel):
     where :math:`\bar{g}_{M}` was :math:`0.004 \mathrm{mS} / \mathrm{cm}^{2}` and
     :math:`\tau_{\max }=4 \mathrm{~s}`, unless stated otherwise.
 
-    Parameters::
+    Parameters
+    ----------
 
-    size: int, sequence of int
+    size : int, sequence of int
       The geometry size.
-    method: str
+    method : str
       The numerical integration method.
-    name: str
+    name : str
       The object name.
     g_max : float, ArrayType, Initializer, Callable
       The maximal conductance density (:math:`mS/cm^2`).
@@ -1972,10 +2021,11 @@ class IKNI_Ya1989(PotassiumChannel):
       The membrane potential shift.
     phi_p : optional, float, ArrayType, Callable, Initializer
       The temperature factor for channel :math:`p`.
-    tau_max: float, ArrayType, Callable, Initializer
+    tau_max : float, ArrayType, Callable, Initializer
       The :math:`tau_{\max}` parameter.
 
-    References::
+    References
+    ----------
 
     .. [1] Yamada, Walter M. "Multiple channels and calcium dynamics." Methods in neuronal modeling (1989): 97-133.
 
@@ -2040,7 +2090,8 @@ class IKNI_Ya1989(PotassiumChannel):
 class IK_Leak(PotassiumChannel):
     """The potassium leak channel current.
 
-    Parameters::
+    Parameters
+    ----------
 
     g_max : float
       The potassium leakage conductance which is modulated by both

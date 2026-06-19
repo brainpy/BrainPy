@@ -101,7 +101,8 @@ def set_default_dtype(mat_dtype=None, idx_dtype=None):
            [0., 1., 0., 1.],
            [0., 0., 1., 0.]], dtype=float32)
 
-    Parameters::
+    Parameters
+    ----------
 
     mat_dtype : type
       The default dtype for connection matrix.
@@ -186,14 +187,16 @@ class TwoEndConnector(Connector):
     def __call__(self, pre_size, post_size):
         """Create the concrete connections between two end objects.
 
-        Parameters::
+        Parameters
+        ----------
 
         pre_size : int, tuple of int, list of int
             The size of the pre-synaptic group.
         post_size : int, tuple of int, list of int
             The size of the post-synaptic group.
 
-        Returns::
+        Returns
+        -------
 
         conn : TwoEndConnector
             Return the self.
@@ -214,7 +217,8 @@ class TwoEndConnector(Connector):
     def _reset_conn(self, pre_size, post_size):
         """Reset connection attributes.
 
-        Parameters::
+        Parameters
+        ----------
 
         pre_size : int, tuple of int, list of int
             The size of the pre-synaptic group.
@@ -395,7 +399,8 @@ class TwoEndConnector(Connector):
     def require(self, *structures):
         """Require all the connection data needed.
 
-        Examples::
+        Examples
+        --------
 
         >>> import brainpy as bp
         >>> conn = bp.connect.FixedProb(0.1)
@@ -526,9 +531,10 @@ class TwoEndConnector(Connector):
         - ``build_coo()``: build a coo sparse connection data.
         - ``build_conn()``: deprecated.
 
-        Returns::
+        Returns
+        -------
 
-        conn: tuple, dict
+        conn : tuple, dict
           A tuple with two elements: connection type (str) and connection data.
           For example: ``return 'csr', (ind, indptr)``
           Or a dict with three elements: csr, mat and coo. For example:
@@ -549,9 +555,10 @@ class TwoEndConnector(Connector):
         - ``build_coo()``: build a coo sparse connection data.
         - ``build_conn()``: deprecated.
 
-        Returns::
+        Returns
+        -------
 
-        conn: Array
+        conn : Array
           A binary matrix with the shape ``(num_pre, num_post)``.
         """
         pass
@@ -560,9 +567,10 @@ class TwoEndConnector(Connector):
     def build_csr(self):
         """Build a csr sparse connection data.
 
-        Returns::
+        Returns
+        -------
 
-        conn: tuple
+        conn : tuple
           A tuple denoting the ``(indices, indptr)``.
         """
         pass
@@ -571,9 +579,10 @@ class TwoEndConnector(Connector):
     def build_coo(self):
         """Build a coo sparse connection data.
 
-        Returns::
+        Returns
+        -------
 
-        conn: tuple
+        conn : tuple
           A tuple denoting the ``(pre_ids, post_ids)``.
         """
         pass

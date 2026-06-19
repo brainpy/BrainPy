@@ -33,9 +33,12 @@ __all__ = [
 class MixIons(IonChaDyn, Container, TreeNode):
     """Mixing Ions.
 
-    Args:
-      ions: Instances of ions. This option defines the master types of all children objects.
-      channels: Instance of channels.
+    Parameters
+    ----------
+    ions
+        Instances of ions. This option defines the master types of all children objects.
+    channels
+        Instance of channels.
     """
     master_type = HHTypedNeuron
 
@@ -64,11 +67,14 @@ class MixIons(IonChaDyn, Container, TreeNode):
     def current(self, V):
         """Generate ion channel current.
 
-        Args:
-          V: The membrane potential.
+        Parameters
+        ----------
+        V
+            The membrane potential.
 
-        Returns:
-          Current.
+        Returns
+        -------
+        Current.
         """
         nodes = tuple(self.nodes(level=1, include_self=False).unique().subset(IonChaDyn).values())
         self.check_hierarchies(self._ion_classes, *nodes)
@@ -100,8 +106,10 @@ class MixIons(IonChaDyn, Container, TreeNode):
     def add_elem(self, *elems, **elements):
         """Add new elements.
 
-        Args:
-          elements: children objects.
+        Parameters
+        ----------
+        elements
+            children objects.
         """
         self.check_hierarchies(self._ion_classes, *elems, **elements)
         self.children.update(self.format_elements(IonChaDyn, *elems, **elements))
@@ -136,11 +144,14 @@ class MixIons(IonChaDyn, Container, TreeNode):
 def mix_ions(*ions) -> MixIons:
     """Create mixed ions.
 
-    Args:
-      ions: Ion instances.
+    Parameters
+    ----------
+    ions
+        Ion instances.
 
-    Returns:
-      Instance of MixIons.
+    Returns
+    -------
+    Instance of MixIons.
     """
     for ion in ions:
         assert isinstance(ion, Ion), f'Must be instance of {Ion.__name__}. But got {type(ion)}'
@@ -151,11 +162,16 @@ def mix_ions(*ions) -> MixIons:
 class Ion(IonChaDyn, Container, TreeNode):
     """The brainpy_object calcium dynamics.
 
-    Args:
-      size: The size of the simulation target.
-      method: The numerical integration method.
-      name: The name of the object.
-      channels: The calcium dependent channels.
+    Parameters
+    ----------
+    size : Shape
+        The size of the simulation target.
+    method : str
+        The numerical integration method.
+    name : Optional[str]
+        The name of the object.
+    channels
+        The calcium dependent channels.
     """
 
     '''The type of the master object.'''
@@ -189,14 +205,20 @@ class Ion(IonChaDyn, Container, TreeNode):
     def current(self, V, C=None, E=None, external: bool = False):
         """Generate ion channel current.
 
-        Args:
-          V: The membrane potential.
-          C: The given ion concentration.
-          E: The given reversal potential.
-          external: Include the external current.
+        Parameters
+        ----------
+        V
+            The membrane potential.
+        C
+            The given ion concentration.
+        E
+            The given reversal potential.
+        external : bool
+            Include the external current.
 
-        Returns:
-          Current.
+        Returns
+        -------
+        Current.
         """
         C = self.C if (C is None) else C
         E = self.E if (E is None) else E

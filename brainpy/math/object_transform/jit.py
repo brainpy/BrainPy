@@ -99,7 +99,8 @@ def jit(
     but it can also JIT compile a :py:class:`brainpy.DynamicalSystem`, or a
     :py:class:`brainpy.BrainPyObject` object.
 
-    Examples::
+    Examples
+    --------
     
     You can JIT any object in which all dynamical variables are defined as :py:class:`~.Variable`.
 
@@ -122,11 +123,13 @@ def jit(
     >>>   return lmbda * bp.math.where(x > 0, x, alpha * bp.math.exp(x) - alpha)
 
 
-    Parameters::
+    Parameters
+    ----------
 
     {jit_par}
 
-    Returns::
+    Returns
+    -------
 
     func : JITTransform
       A callable jitted function, set up for just-in-time compilation.
@@ -169,7 +172,8 @@ def cls_jit(
 ) -> Callable:
     """Just-in-time compile a function and then the jitted function as the bound method for a class.
 
-    Examples::
+    Examples
+    --------
     
     This transformation can be put on any class function. For example,
 
@@ -191,11 +195,13 @@ def cls_jit(
     >>> program = SomeProgram()
     >>> program()
 
-    Parameters::
+    Parameters
+    ----------
     
     {jit_pars}
 
-    Returns::
+    Returns
+    -------
     
     func : JITTransform
       A callable jitted function, set up for just-in-time compilation.

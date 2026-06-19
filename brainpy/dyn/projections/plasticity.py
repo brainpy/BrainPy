@@ -119,21 +119,36 @@ class STDP_Song2000(Projection):
       indices = bm.arange(0, duration, bm.dt)
       pre_spike, post_spike, g, Apre, Apost, current, W = bm.for_loop(run, [indices, I_pre, I_post])
 
-    Args:
-      tau_s: float. The time constant of :math:`A_{pre}`.
-      tau_t: float. The time constant of :math:`A_{post}`.
-      A1: float. The increment of :math:`A_{pre}` produced by a spike. Must be a positive value.
-      A2: float. The increment of :math:`A_{post}` produced by a spike. Must be a positive value.
-      W_max: float. The maximum weight.
-      W_min: float. The minimum weight.
-      pre: DynamicalSystem. The pre-synaptic neuron group.
-      delay: int, float. The pre spike delay length. (ms)
-      syn: DynamicalSystem. The synapse model.
-      comm: DynamicalSystem. The communication model, for example, dense or sparse connection layers.
-      out: DynamicalSystem. The synaptic current output models.
-      post: DynamicalSystem. The post-synaptic neuron group.
-      out_label: str. The output label.
-      name: str. The model name.
+    Parameters
+    ----------
+    tau_s : float
+        The time constant of :math:`A_{pre}`.
+    tau_t : float
+        The time constant of :math:`A_{post}`.
+    A1 : float
+        The increment of :math:`A_{pre}` produced by a spike. Must be a positive value.
+    A2 : float
+        The increment of :math:`A_{post}` produced by a spike. Must be a positive value.
+    W_max : float
+        The maximum weight.
+    W_min : float
+        The minimum weight.
+    pre : DynamicalSystem
+        The pre-synaptic neuron group.
+    delay : int, float
+        The pre spike delay length. (ms)
+    syn : DynamicalSystem
+        The synapse model.
+    comm : DynamicalSystem
+        The communication model, for example, dense or sparse connection layers.
+    out : DynamicalSystem
+        The synaptic current output models.
+    post : DynamicalSystem
+        The post-synaptic neuron group.
+    out_label : str
+        The output label.
+    name : str
+        The model name.
     """
 
     def __init__(

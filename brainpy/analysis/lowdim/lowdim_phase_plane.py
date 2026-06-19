@@ -42,7 +42,8 @@ class PhasePlane1D(Num1DAnalyzer):
     - Vector fields
     - Fixed points
 
-    Parameters::
+    Parameters
+    ----------
 
     model : Any
         A model of the population, the integrator function,
@@ -138,7 +139,8 @@ class PhasePlane1D(Num1DAnalyzer):
 class PhasePlane2D(Num2DAnalyzer):
     """Phase plane analyzer for 2D dynamical system.
 
-    Parameters::
+    Parameters
+    ----------
 
     model : Any
       A model of the population, the integrator function,
@@ -184,9 +186,10 @@ class PhasePlane2D(Num2DAnalyzer):
                           plot_method='streamplot', plot_style=None, show=False):
         """Plot the vector field.
 
-        Parameters::
+        Parameters
+        ----------
 
-        with_plot: bool
+        with_plot : bool
         with_return : bool
         show : bool
         plot_method : str
@@ -382,7 +385,8 @@ class PhasePlane2D(Num2DAnalyzer):
                         dt=None, show=False, with_plot=True, with_return=False, **kwargs):
         """Plot trajectories according to the settings.
 
-        Parameters::
+        Parameters
+        ----------
 
         initials : list, tuple, dict
             The initial value setting of the targets. It can be a tuple/list of floats to specify
@@ -478,7 +482,8 @@ class PhasePlane2D(Num2DAnalyzer):
     def plot_limit_cycle_by_sim(self, initials, duration, tol=0.01, show=False, dt=None):
         """Plot trajectories according to the settings.
 
-        Parameters::
+        Parameters
+        ----------
 
         initials : list, tuple
             The initial value setting of the targets.

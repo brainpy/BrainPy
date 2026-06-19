@@ -80,7 +80,8 @@ class GLShortMemory(FDEIntegrator):
     is the memory window with a width defined by :math:`M=\frac{L_{m}}{h}`.
     As was reported in [2]_, the accuracy increases by increaing the width of memory window.
 
-    Examples::
+    Examples
+    --------
 
     >>> import brainpy as bp
     >>>
@@ -106,25 +107,27 @@ class GLShortMemory(FDEIntegrator):
     >>> plt.show()
 
 
-    Parameters::
+    Parameters
+    ----------
 
     f : callable
       The derivative function.
-    alpha: int, float, jnp.ndarray, bm.ndarray, sequence
+    alpha : int, float, jnp.ndarray, bm.ndarray, sequence
       The fractional-order of the derivative function. Should be in the range of ``(0., 1.)``.
-    num_memory: int
+    num_memory : int
       The length of the short memory.
 
       .. versionchanged:: 2.1.11
 
-    inits: sequence
+    inits : sequence
       A sequence of the initial values for variables.
-    dt: float, int
+    dt : float, int
       The numerical precision.
-    name: str
+    name : str
       The integrator name.
 
-    References::
+    References
+    ----------
 
     .. [1] Clemente-López, D., et al. "Efficient computation of the
            Grünwald-Letnikov method for arm-based implementations of

@@ -132,13 +132,18 @@ class AMPA(SynDyn):
            and implications for stimulus processing[J]. Proceedings of the
            National Academy of Sciences, 2012, 109(45): 18553-18558.
 
-    Args:
-      alpha: float, ArrayType, Callable. Binding constant.
-      beta: float, ArrayType, Callable. Unbinding constant.
-      T: float, ArrayType, Callable. Transmitter concentration when synapse is triggered by
+    Parameters
+    ----------
+    alpha : float, ArrayType, Callable
+        Binding constant.
+    beta : float, ArrayType, Callable
+        Unbinding constant.
+    T : float, ArrayType, Callable
+        Transmitter concentration when synapse is triggered by
         a pre-synaptic spike.. Default 1 [mM].
-      T_dur: float, ArrayType, Callable. Transmitter concentration duration time after being triggered. Default 1 [ms]
-      %s
+    T_dur : float, ArrayType, Callable
+        Transmitter concentration duration time after being triggered. Default 1 [ms]
+    %s
     """
 
     supported_modes = (bm.NonBatchingMode, bm.BatchingMode)
@@ -282,14 +287,19 @@ class GABAa(AMPA):
            on the integrative properties of neocortical pyramidal neurons
            in vivo." Journal of neurophysiology 81.4 (1999): 1531-1547.
 
-    Args:
-      alpha: float, ArrayType, Callable. Binding constant. Default 0.062
-      beta: float, ArrayType, Callable. Unbinding constant. Default 3.57
-      T: float, ArrayType, Callable. Transmitter concentration when synapse is triggered by
+    Parameters
+    ----------
+    alpha : float, ArrayType, Callable
+        Binding constant. Default 0.062
+    beta : float, ArrayType, Callable
+        Unbinding constant. Default 3.57
+    T : float, ArrayType, Callable
+        Transmitter concentration when synapse is triggered by
         a pre-synaptic spike.. Default 1 [mM].
-      T_dur: float, ArrayType, Callable. Transmitter concentration duration time
+    T_dur : float, ArrayType, Callable
+        Transmitter concentration duration time
         after being triggered. Default 1 [ms]
-      %s
+    %s
     """
 
     def __init__(
@@ -442,15 +452,22 @@ class BioNMDA(SynDyn):
     .. [4] https://en.wikipedia.org/wiki/NMDA_receptor
 
 
-    Args:
-      alpha1: float, ArrayType, Callable. The conversion rate of g from inactive to active. Default 2 ms^-1.
-      beta1: float, ArrayType, Callable. The conversion rate of g from active to inactive. Default 0.01 ms^-1.
-      alpha2: float, ArrayType, Callable. The conversion rate of x from inactive to active. Default 1 ms^-1.
-      beta2: float, ArrayType, Callable. The conversion rate of x from active to inactive. Default 0.5 ms^-1.
-      T: float, ArrayType, Callable. Transmitter concentration when synapse is
+    Parameters
+    ----------
+    alpha1 : float, ArrayType, Callable
+        The conversion rate of g from inactive to active. Default 2 ms^-1.
+    beta1 : float, ArrayType, Callable
+        The conversion rate of g from active to inactive. Default 0.01 ms^-1.
+    alpha2 : float, ArrayType, Callable
+        The conversion rate of x from inactive to active. Default 1 ms^-1.
+    beta2 : float, ArrayType, Callable
+        The conversion rate of x from active to inactive. Default 0.5 ms^-1.
+    T : float, ArrayType, Callable
+        Transmitter concentration when synapse is
         triggered by a pre-synaptic spike. Default 1 [mM].
-      T_dur: float, ArrayType, Callable. Transmitter concentration duration time after being triggered. Default 1 [ms]
-      %s
+    T_dur : float, ArrayType, Callable
+        Transmitter concentration duration time after being triggered. Default 1 [ms]
+    %s
     """
     supported_modes = (bm.NonBatchingMode, bm.BatchingMode)
 

@@ -56,23 +56,25 @@ class Exponential(SynConnNS):
 
     where :math:`\mathrm{STP}` is used to model the short-term plasticity effect.
 
-    Parameters::
+    Parameters
+    ----------
 
-    conn: optional, ArrayType, dict of (str, ndarray), TwoEndConnector
+    conn : optional, ArrayType, dict of (str, ndarray), TwoEndConnector
       The synaptic connections.
-    comp_method: str
+    comp_method : str
       The connection type used for model speed optimization. It can be
       `sparse` and `dense`. The default is `sparse`.
-    tau: float, ArrayType
+    tau : float, ArrayType
       The time constant of decay. [ms]
-    g_max: float, ArrayType, Initializer, Callable
+    g_max : float, ArrayType, Initializer, Callable
       The synaptic strength (the maximum conductance). Default is 1.
-    name: str
+    name : str
       The name of this synaptic projection.
-    method: str
+    method : str
       The numerical integration methods.
 
-    References::
+    References
+    ----------
 
     .. [1] Sterratt, David, Bruce Graham, Andrew Gillies, and David Willshaw.
             "The Synapse." Principles of Computational Modelling in Neuroscience.
@@ -198,25 +200,27 @@ class DualExponential(SynConnNS):
 
     where :math:`\mathrm{STP}` is used to model the short-term plasticity effect of synapses.
 
-    Parameters::
+    Parameters
+    ----------
 
-    conn: optional, ArrayType, dict of (str, ndarray), TwoEndConnector
+    conn : optional, ArrayType, dict of (str, ndarray), TwoEndConnector
       The synaptic connections.
-    comp_method: str
+    comp_method : str
       The connection type used for model speed optimization. It can be
       `sparse` and `dense`. The default is `sparse`.
-    tau_decay: float, ArrayArray, ndarray
+    tau_decay : float, ArrayArray, ndarray
       The time constant of the synaptic decay phase. [ms]
-    tau_rise: float, ArrayArray, ndarray
+    tau_rise : float, ArrayArray, ndarray
       The time constant of the synaptic rise phase. [ms]
-    g_max: float, ArrayType, Initializer, Callable
+    g_max : float, ArrayType, Initializer, Callable
       The synaptic strength (the maximum conductance). Default is 1.
-    name: str
+    name : str
       The name of this synaptic projection.
-    method: str
+    method : str
       The numerical integration methods.
 
-    References::
+    References
+    ----------
 
     .. [1] Sterratt, David, Bruce Graham, Andrew Gillies, and David Willshaw.
            "The Synapse." Principles of Computational Modelling in Neuroscience.
@@ -362,25 +366,27 @@ class Alpha(DualExponential):
       >>> plt.legend()
       >>> plt.show()
 
-    Parameters::
+    Parameters
+    ----------
 
-    conn: optional, ArrayType, dict of (str, ndarray), TwoEndConnector
+    conn : optional, ArrayType, dict of (str, ndarray), TwoEndConnector
       The synaptic connections.
-    comp_method: str
+    comp_method : str
       The connection type used for model speed optimization. It can be
       `sparse` and `dense`. The default is `sparse`.
-    delay_step: int, ArrayType, Initializer, Callable
+    delay_step : int, ArrayType, Initializer, Callable
       The delay length. It should be the value of :math:`\mathrm{delay\_time / dt}`.
-    tau_decay: float, ArrayType
+    tau_decay : float, ArrayType
       The time constant of the synaptic decay phase. [ms]
-    g_max: float, ArrayType, Initializer, Callable
+    g_max : float, ArrayType, Initializer, Callable
       The synaptic strength (the maximum conductance). Default is 1.
-    name: str
+    name : str
       The name of this synaptic projection.
-    method: str
+    method : str
       The numerical integration methods.
 
-    References::
+    References
+    ----------
 
     .. [1] Sterratt, David, Bruce Graham, Andrew Gillies, and David Willshaw.
             "The Synapse." Principles of Computational Modelling in Neuroscience.

@@ -55,18 +55,20 @@ class NVAR(Layer):
     - it supports batch size,
     - it supports multiple orders,
 
-    Parameters::
+    Parameters
+    ----------
 
-    delay: int
+    delay : int
       The number of delay step.
-    order: int, sequence of int
+    order : int, sequence of int
       The nonlinear order.
-    stride: int
+    stride : int
       The stride to sample linear part vector in the delays.
-    constant: optional, float
+    constant : optional, float
       The constant value.
 
-    References::
+    References
+    ----------
 
     .. [1] Gauthier, D.J., Bollt, E., Griffith, A. et al. Next generation
            reservoir computing. Nat Commun 12, 5564 (2021).
@@ -183,9 +185,10 @@ class NVAR(Layer):
     def get_feature_names(self, for_plot=False) -> List[str]:
         """Get output feature names for transformation.
 
-        Parameters::
+        Parameters
+        ----------
 
-        for_plot: bool
+        for_plot : bool
           Use the feature names for plotting or not? (Default False)
         """
         if for_plot:

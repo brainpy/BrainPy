@@ -45,7 +45,8 @@ def section_input(values, durations, dt=None, return_length=False):
 
     >>> section_input(values=[0, 1], durations=[100, 100])
 
-    Parameters::
+    Parameters
+    ----------
 
     values : list, np.ndarray
         The current values for each period duration.
@@ -56,7 +57,8 @@ def section_input(values, durations, dt=None, return_length=False):
     return_length : bool
         Return the final duration length.
 
-    Returns::
+    Returns
+    -------
 
     current_and_duration
     """
@@ -76,7 +78,8 @@ def constant_input(I_and_duration, dt=None):
     >>> constant_input([(0, 100), (1, 100)])
     >>> constant_input([(bm.zeros(100), 100), (bm.random.rand(100), 100)])
 
-    Parameters::
+    Parameters
+    ----------
 
     I_and_duration : list
         This parameter receives the current size and the current
@@ -84,7 +87,8 @@ def constant_input(I_and_duration, dt=None):
     dt : float
         Default is None.
 
-    Returns::
+    Returns
+    -------
 
     current_and_duration : tuple
         (The formatted current, total duration)
@@ -119,7 +123,8 @@ def spike_input(sp_times, sp_lens, sp_sizes, duration, dt=None):
     >>>             sp_sizes=0.5,  # can be a list to specify the current size at each point
     >>>             duration=400.)
 
-    Parameters::
+    Parameters
+    ----------
 
     sp_times : list, tuple
         The spike time-points. Must be an iterable object.
@@ -132,7 +137,8 @@ def spike_input(sp_times, sp_lens, sp_sizes, duration, dt=None):
     dt : float
         The default is None.
 
-    Returns::
+    Returns
+    -------
 
     current : bm.ndarray
         The formatted input current.
@@ -156,7 +162,8 @@ def spike_current(*args, **kwargs):
 def ramp_input(c_start, c_end, duration, t_start=0, t_end=None, dt=None):
     """Get the gradually changed input current.
 
-    Parameters::
+    Parameters
+    ----------
 
     c_start : float
         The minimum (or maximum) current size.
@@ -171,7 +178,8 @@ def ramp_input(c_start, c_end, duration, t_start=0, t_end=None, dt=None):
     dt : float, int, optional
         The numerical precision.
 
-    Returns::
+    Returns
+    -------
 
     current : bm.ndarray
       The formatted current
@@ -196,19 +204,20 @@ def wiener_process(duration, dt=None, n=1, t_start=0., t_end=None, seed=None):
     """Stimulus sampled from a Wiener process, i.e.
     drawn from standard normal distribution N(0, sqrt(dt)).
 
-    Parameters::
+    Parameters
+    ----------
 
-    duration: float
+    duration : float
       The input duration.
-    dt: float
+    dt : float
       The numerical precision.
-    n: int
+    n : int
       The variable number.
-    t_start: float
+    t_start : float
       The start time.
-    t_end: float
+    t_end : float
       The end time.
-    seed: int
+    seed : int
       The noise seed.
     """
     with brainstate.environ.context(dt=brainpy.math.get_dt() if dt is None else dt):
@@ -222,25 +231,26 @@ def ou_process(mean, sigma, tau, duration, dt=None, n=1, t_start=0., t_end=None,
 
        dX = (mu - X)/\tau * dt + \sigma*dW
 
-    Parameters::
+    Parameters
+    ----------
 
-    mean: float
+    mean : float
       Drift of the OU process.
-    sigma: float
+    sigma : float
       Standard deviation of the Wiener process, i.e. strength of the noise.
-    tau: float
+    tau : float
       Timescale of the OU process, in ms.
-    duration: float
+    duration : float
       The input duration.
-    dt: float
+    dt : float
       The numerical precision.
-    n: int
+    n : int
       The variable number.
-    t_start: float
+    t_start : float
       The start time.
-    t_end: float
+    t_end : float
       The end time.
-    seed: optional, int
+    seed : optional, int
       The random seed.
     """
     with brainstate.environ.context(dt=brainpy.math.get_dt() if dt is None else dt):
@@ -250,21 +260,22 @@ def ou_process(mean, sigma, tau, duration, dt=None, n=1, t_start=0., t_end=None,
 def sinusoidal_input(amplitude, frequency, duration, dt=None, t_start=0., t_end=None, bias=False):
     """Sinusoidal input.
 
-    Parameters::
+    Parameters
+    ----------
 
-    amplitude: float
+    amplitude : float
       Amplitude of the sinusoid.
-    frequency: float
+    frequency : float
       Frequency of the sinus oscillation, in Hz
-    duration: float
+    duration : float
       The input duration.
-    t_start: float
+    t_start : float
       The start time.
-    t_end: float
+    t_end : float
       The end time.
-    dt: float
+    dt : float
       The numerical precision.
-    bias: bool
+    bias : bool
       Whether the sinusoid oscillates around 0 (False), or
       has a positive DC bias, thus non-negative (True).
     """
@@ -275,21 +286,22 @@ def sinusoidal_input(amplitude, frequency, duration, dt=None, t_start=0., t_end=
 def square_input(amplitude, frequency, duration, dt=None, bias=False, t_start=0., t_end=None):
     """Oscillatory square input.
 
-    Parameters::
+    Parameters
+    ----------
 
-    amplitude: float
+    amplitude : float
       Amplitude of the square oscillation.
-    frequency: float
+    frequency : float
       Frequency of the square oscillation, in Hz.
-    duration: float
+    duration : float
       The input duration.
-    t_start: float
+    t_start : float
       The start time.
-    t_end: float
+    t_end : float
       The end time.
-    dt: float
+    dt : float
       The numerical precision.
-    bias: bool
+    bias : bool
       Whether the sinusoid oscillates around 0 (False), or
       has a positive DC bias, thus non-negative (True).
     """

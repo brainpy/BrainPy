@@ -49,26 +49,28 @@ def csrmv(
     This function supports JAX transformations, including `jit()`, `grad()`,
     `vmap()` and `pmap()`.
 
-    Parameters::
+    Parameters
+    ----------
 
-    data: ndarray, float
+    data : ndarray, float
       An array of shape ``(nse,)``.
-    indices: ndarray
+    indices : ndarray
       An array of shape ``(nse,)``.
-    indptr: ndarray
+    indptr : ndarray
       An array of shape ``(shape[0] + 1,)`` and dtype ``indices.dtype``.
-    events: ndarray
+    events : ndarray
       An array of shape ``(shape[0] if transpose else shape[1],)``
       and dtype ``data.dtype``.
-    shape: tuple
+    shape : tuple
       A length-2 tuple representing the matrix shape.
-    transpose: bool
+    transpose : bool
       A boolean specifying whether to transpose the sparse matrix
       before computing.
       If ``transpose=True``, the operator will compute based on the
       event-driven property of the ``events`` vector.
 
-    Returns::
+    Returns
+    -------
 
     y : Array
       The array of shape ``(shape[1] if transpose else shape[0],)`` representing

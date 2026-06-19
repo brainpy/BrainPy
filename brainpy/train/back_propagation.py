@@ -51,33 +51,34 @@ class BPTrainer(DSTrainer):
 
     For more parameters, users should refer to :py:class:`~.DSRunner`.
 
-    Parameters::
+    Parameters
+    ----------
 
-    target: DynamicalSystem
+    target : DynamicalSystem
       The target model to train.
-    loss_fun: str, callable
+    loss_fun : str, callable
       The loss function. If it is a string, it should be the
       function chosen from ``brainpy.losses`` module. Otherwise,
       a callable function which receives argument of `(predicts, targets)`
       should be provided.
-    loss_has_aux: bool
+    loss_has_aux : bool
       To indicate whether the `loss_fun` returns auxiliary data.
-    loss_auto_run: bool
+    loss_auto_run : bool
       pass
-    optimizer: optim.Optimizer
+    optimizer : optim.Optimizer
       The optimizer used for training.
-    numpy_mon_after_run: bool
+    numpy_mon_after_run : bool
       Make the monitored results as NumPy arrays.
-    logger: Any
+    logger : Any
       A file-like object (stream); defaults to the current `sys.stdout`.
-    shuffle_data: bool
+    shuffle_data : bool
       .. deprecated:: 2.2.4.1
          Control the data shuffling by user self.
-    seed: int
+    seed : int
       .. deprecated:: 2.2.4.1
          Control the data shuffling by user self.
 
-    kwargs: Any
+    kwargs : Any
       Other general parameters please see :py:class:`~.DSRunner`.
     """
 
@@ -201,9 +202,10 @@ class BPTrainer(DSTrainer):
     ):
         """Fit the target model according to the given training data.
 
-        Parameters::
+        Parameters
+        ----------
 
-        train_data: callable, iterable
+        train_data : callable, iterable
           It can be a callable function, or a tuple/list representing `(X, Y)` data.
           - Callable. This function should return a pair of `(X, Y)` data.
           - Iterable. It should be a pair of `(X, Y)` train set.
@@ -217,18 +219,18 @@ class BPTrainer(DSTrainer):
                 then we will only fit the model with the only last output.
               - If the shape of each tensor is `(num_sample, num_time, num_feature)`,
                 then the fitting happens on the whole data series.
-        test_data: callable, iterable, optional
+        test_data : callable, iterable, optional
           Same as ``train_data``.
-        num_epoch: int
+        num_epoch : int
           The number of training epoch. Default 100.
-        num_report: int
+        num_report : int
           The number of step to report the progress.
           If `num_report=-1`, it will report the training progress each epoch.
-        reset_state: bool
+        reset_state : bool
           Whether reset the initial states of the target model.
-        shared_args: dict
+        shared_args : dict
           The shared keyword arguments for the target models.
-        fun_after_report: optional, Callable
+        fun_after_report : optional, Callable
           The function to call after each report of `fit` phase or `test` phase.
           The function should receive three arguments:
           - ``idx`` for the indicator the current the running index. (If ``report=-1``,
@@ -238,7 +240,7 @@ class BPTrainer(DSTrainer):
           - ``phase``: to indicate the phase of 'fit' or 'test'.
 
           .. versionadded:: 2.3.1
-        batch_size: int
+        batch_size : int
 
           .. deprecated:: 2.2.4.1
              Please set batch size in your dataset.
@@ -480,12 +482,13 @@ class BPTT(BPTrainer):
 
     For more parameters, users should refer to :py:class:`~.DSRunner`.
 
-    Parameters::
+    Parameters
+    ----------
 
-    target: DynamicalSystem
+    target : DynamicalSystem
       The target model to train.
 
-    loss_fun: str, callable
+    loss_fun : str, callable
       The loss function.
 
       - If it is a string, it should be the function chosen from ``brainpy.losses`` module.
@@ -497,7 +500,7 @@ class BPTT(BPTrainer):
          parts: the network history prediction outputs, and the monitored values.
 
          see BrainPy examples for more information.
-    loss_has_aux: bool
+    loss_has_aux : bool
       To indicate whether the loss function returns auxiliary data expect the loss.
       Moreover, all auxiliary data should be a dict, whose key is used for logging
       item name and its data is used for the corresponding value.
@@ -507,13 +510,13 @@ class BPTT(BPTrainer):
 
          def loss_fun(predicts, targets):
              return loss, {'acc': acc, 'spike_num': spike_num}
-    optimizer: Optimizer
+    optimizer : Optimizer
       The optimizer used for training. Should be an instance of :py:class:`~.Optimizer`.
-    numpy_mon_after_run: bool
+    numpy_mon_after_run : bool
       Make the monitored results as NumPy arrays.
-    logger: Any
+    logger : Any
       A file-like object (stream). Used to output the running results. Default is the current `sys.stdout`.
-    data_first_axis: str
+    data_first_axis : str
       To indicate whether the first axis is the batch size (``data_first_axis='B'``) or the
       time length (``data_first_axis='T'``).
     """
@@ -596,21 +599,23 @@ class BPFF(BPTrainer):
         Moreover, it can automatically monitor the node variables, states, inputs,
         feedbacks and its output.
 
-        Parameters::
+        Parameters
+        ----------
 
-        inputs: ArrayType, dict
+        inputs : ArrayType, dict
           The feedforward input data. It must be a 3-dimensional data
           which has the shape of `(num_sample, num_time, num_feature)`.
-        reset_state: bool
+        reset_state : bool
           Whether reset the model states.
-        shared_args: optional, dict
+        shared_args : optional, dict
           The shared arguments across different layers.
-        eval_time: bool
+        eval_time : bool
           Evaluate the time used for running.
 
-        Returns::
+        Returns
+        -------
 
-        output: ArrayType, dict
+        output : ArrayType, dict
           The model output.
         """
         if shared_args is None:

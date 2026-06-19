@@ -62,23 +62,24 @@ class LeakyIntegrator(NeuDyn):
     membrane potential, :math:`\tau` is the time constant, and :math:`R` is the
     resistance.
 
-    Parameters::
+    Parameters
+    ----------
 
-    size: sequence of int, int
+    size : sequence of int, int
       The size of the neuron group.
-    V_rest: float, ArrayType, Initializer, callable
+    V_rest : float, ArrayType, Initializer, callable
       Resting membrane potential.
-    R: float, ArrayType, Initializer, callable
+    R : float, ArrayType, Initializer, callable
       Membrane resistance.
-    tau: float, ArrayType, Initializer, callable
+    tau : float, ArrayType, Initializer, callable
       Membrane time constant.
-    V_initializer: ArrayType, Initializer, callable
+    V_initializer : ArrayType, Initializer, callable
       The initializer of membrane potential.
-    noise: ArrayType, Initializer, callable
+    noise : ArrayType, Initializer, callable
       The noise added onto the membrane potential
-    method: str
+    method : str
       The numerical integration method.
-    name: str
+    name : str
       The group name.
     """
 
@@ -176,32 +177,34 @@ class LIF(lif.LifRef):
     - `(Brette, Romain. 2004) LIF phase locking <https://brainpy-examples.readthedocs.io/en/latest/neurons/Romain_2004_LIF_phase_locking.html>`_
 
 
-    Parameters::
+    Parameters
+    ----------
 
-    size: sequence of int, int
+    size : sequence of int, int
       The size of the neuron group.
-    V_rest: float, ArrayType, Initializer, callable
+    V_rest : float, ArrayType, Initializer, callable
       Resting membrane potential.
-    V_reset: float, ArrayType, Initializer, callable
+    V_reset : float, ArrayType, Initializer, callable
       Reset potential after spike.
-    V_th: float, ArrayType, Initializer, callable
+    V_th : float, ArrayType, Initializer, callable
       Threshold potential of spike.
-    R: float, ArrayType, Initializer, callable
+    R : float, ArrayType, Initializer, callable
       Membrane resistance.
-    tau: float, ArrayType, Initializer, callable
+    tau : float, ArrayType, Initializer, callable
       Membrane time constant.
-    tau_ref: float, ArrayType, Initializer, callable
+    tau_ref : float, ArrayType, Initializer, callable
       Refractory period length.(ms)
-    V_initializer: ArrayType, Initializer, callable
+    V_initializer : ArrayType, Initializer, callable
       The initializer of membrane potential.
-    noise: ArrayType, Initializer, callable
+    noise : ArrayType, Initializer, callable
       The noise added onto the membrane potential
-    method: str
+    method : str
       The numerical integration method.
-    name: str
+    name : str
       The group name.
 
-    References::
+    References
+    ----------
 
     .. [1] Abbott, Larry F. "Lapicque’s introduction of the integrate-and-fire model
            neuron (1907)." Brain research bulletin 50, no. 5-6 (1999): 303-304.
@@ -1282,7 +1285,8 @@ class ALIFBellec2020(NeuDyn):
        a \gets a + 1
 
 
-    References::
+    References
+    ----------
 
     .. [1] Bellec, Guillaume, et al. "A solution to the learning dilemma for
            recurrent networks of spiking neurons."
@@ -1446,7 +1450,8 @@ class LIF_SFA_Bellec2020(NeuDyn):
        a \gets a + 1
 
 
-    References::
+    References
+    ----------
 
     .. [1] Bellec, Guillaume, et al. "A solution to the learning dilemma for
            recurrent networks of spiking neurons."

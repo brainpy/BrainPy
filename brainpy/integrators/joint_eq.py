@@ -128,9 +128,10 @@ class JointEq(object):
     >>> eq2 = bp.JointEq(eqs=(eq, dw))
 
 
-    Parameters::
+    Parameters
+    ----------
 
-    *eqs :
+    *eqs
       The elements of derivative function to compose.
     """
 

@@ -34,11 +34,14 @@ import numpy as np
 def func_dump(func: python_types.FunctionType) -> Tuple[str, Optional[Tuple[Any, ...]], Optional[Tuple[Any, ...]]]:
     """Serializes a user defined function.
 
-    Args:
-        func: the function to serialize.
+    Parameters
+    ----------
+    func : python_types.FunctionType
+        the function to serialize.
 
-    Returns:
-        A tuple `(code, defaults, closure)`.
+    Returns
+    -------
+    A tuple `(code, defaults, closure)`.
     """
     if os.name == "nt":
         raw_code = marshal.dumps(func.__code__).replace(b"\\", b"/")
@@ -58,14 +61,20 @@ def func_load(code: Any, defaults: Any = None, closure: Any = None,
               globs: Optional[Dict[str, Any]] = None) -> python_types.FunctionType:
     """Deserializes a user defined function.
 
-    Args:
-        code: bytecode of the function.
-        defaults: defaults of the function.
-        closure: closure of the function.
-        globs: dictionary of global objects.
+    Parameters
+    ----------
+    code : Any
+        bytecode of the function.
+    defaults : Any
+        defaults of the function.
+    closure : Any
+        closure of the function.
+    globs : Optional[Dict[str, Any]]
+        dictionary of global objects.
 
-    Returns:
-        A function object.
+    Returns
+    -------
+    A function object.
     """
     if isinstance(code, (tuple, list)):  # unpack previous dump
         code, defaults, closure = code
@@ -75,11 +84,14 @@ def func_load(code: Any, defaults: Any = None, closure: Any = None,
     def ensure_value_to_cell(value: Any) -> Any:
         """Ensures that a value is converted to a python cell object.
 
-        Args:
-            value: Any value that needs to be casted to the cell type
+        Parameters
+        ----------
+        value : Any
+            Any value that needs to be casted to the cell type
 
-        Returns:
-            A value wrapped as a cell object (see function "func_load")
+        Returns
+        -------
+        A value wrapped as a cell object (see function "func_load")
         """
 
         def dummy_fn() -> None:
@@ -107,15 +119,22 @@ def func_load(code: Any, defaults: Any = None, closure: Any = None,
 class Progbar:
     """Displays a progress bar.
 
-    Args:
-        target: Total number of steps expected, None if unknown.
-        width: Progress bar width on screen.
-        verbose: Verbosity mode, 0 (silent), 1 (verbose), 2 (semi-verbose)
-        stateful_metrics: Iterable of string names of metrics that should *not*
-          be averaged over time. Metrics in this list will be displayed as-is.
-          All others will be averaged by the progbar before display.
-        interval: Minimum visual progress update interval (in seconds).
-        unit_name: Display name for step counts (usually "step" or "sample").
+    Parameters
+    ----------
+    target : Optional[int]
+        Total number of steps expected, None if unknown.
+    width : int
+        Progress bar width on screen.
+    verbose : int
+        Verbosity mode, 0 (silent), 1 (verbose), 2 (semi-verbose)
+    stateful_metrics : Optional[Iterable[str]]
+        Iterable of string names of metrics that should *not*
+        be averaged over time. Metrics in this list will be displayed as-is.
+        All others will be averaged by the progbar before display.
+    interval : float
+        Minimum visual progress update interval (in seconds).
+    unit_name : str
+        Display name for step counts (usually "step" or "sample").
     """
 
     def __init__(
@@ -159,14 +178,18 @@ class Progbar:
                finalize: Optional[bool] = None) -> None:
         """Updates the progress bar.
 
-        Args:
-            current: Index of current step.
-            values: List of tuples: `(name, value_for_last_step)`. If `name` is
-              in `stateful_metrics`, `value_for_last_step` will be displayed
-              as-is. Else, an average of the metric over time will be
-              displayed.
-            finalize: Whether this is the last update for the progress bar. If
-              `None`, uses `current >= self.target`. Defaults to `None`.
+        Parameters
+        ----------
+        current : int
+            Index of current step.
+        values : Optional[Sequence[Tuple[str, float]]]
+            List of tuples: `(name, value_for_last_step)`. If `name` is
+            in `stateful_metrics`, `value_for_last_step` will be displayed
+            as-is. Else, an average of the metric over time will be
+            displayed.
+        finalize : Optional[bool]
+            Whether this is the last update for the progress bar. If
+            `None`, uses `current >= self.target`. Defaults to `None`.
         """
         if finalize is None:
             if self.target is None:
@@ -316,11 +339,17 @@ class Progbar:
 
         Given the duration, this function formats it in either milliseconds
         or seconds and displays the unit (i.e. ms/step or s/epoch)
-        Args:
-          time_per_unit: the duration to display
-          unit_name: the name of the unit to display
-        Returns:
-          a string with the correctly formatted duration and units
+
+        Parameters
+        ----------
+        time_per_unit : float
+            the duration to display
+        unit_name : str
+            the name of the unit to display
+
+        Returns
+        -------
+        a string with the correctly formatted duration and units
         """
         formatted = ""
         if time_per_unit >= 1 or time_per_unit == 0:
@@ -341,11 +370,16 @@ class Progbar:
         of the (assumed to be non-representative) first step for estimates when
         more steps are available (i.e. `current>1`).
 
-        Args:
-          current: Index of current step.
-          now: The current time.
+        Parameters
+        ----------
+        current : int
+            Index of current step.
+        now : float
+            The current time.
 
-        Returns: Estimate of the duration of a single step.
+        Returns
+        -------
+        Estimate of the duration of a single step.
         """
         if current:
             # there are a few special scenarios here:
@@ -374,12 +408,16 @@ class Progbar:
 def make_batches(size: int, batch_size: int) -> List[Tuple[int, int]]:
     """Returns a list of batch indices (tuples of indices).
 
-    Args:
-        size: Integer, total size of the data to slice into batches.
-        batch_size: Integer, batch size.
+    Parameters
+    ----------
+    size : int
+        Integer, total size of the data to slice into batches.
+    batch_size : int
+        Integer, batch size.
 
-    Returns:
-        A list of tuples of array indices.
+    Returns
+    -------
+    A list of tuples of array indices.
     """
     num_batches = int(np.ceil(size / float(batch_size)))
     return [
@@ -398,16 +436,23 @@ def slice_arrays(arrays: Any, start: Any = None, stop: Any = None) -> Any:
 
     Can also work on list/array of indices: `slice_arrays(x, indices)`
 
-    Args:
-        arrays: Single array or list of arrays.
-        start: can be an integer index (start index) or a list/array of indices
-        stop: integer (stop index); should be None if `start` was a list.
+    Parameters
+    ----------
+    arrays : Any
+        Single array or list of arrays.
+    start : Any
+        can be an integer index (start index) or a list/array of indices
+    stop : Any
+        integer (stop index); should be None if `start` was a list.
 
-    Returns:
-        A slice of the array(s).
+    Returns
+    -------
+    A slice of the array(s).
 
-    Raises:
-        ValueError: If the value of start is a list and stop is not None.
+    Raises
+    ------
+    ValueError
+        If the value of start is a list and stop is not None.
     """
     if arrays is None:
         return [None]
@@ -446,11 +491,14 @@ def to_list(x: Any) -> List[Any]:
     If a tensor is passed, we return
     a list of size 1 containing the tensor.
 
-    Args:
-        x: target object to be normalized.
+    Parameters
+    ----------
+    x : Any
+        target object to be normalized.
 
-    Returns:
-        A list.
+    Returns
+    -------
+    A list.
     """
     if isinstance(x, list):
         return x

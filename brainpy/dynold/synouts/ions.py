@@ -44,17 +44,18 @@ class MgBlock(_SynOut):
 
     Here :math:`[{Mg}^{2+}]_{o}` is the extracellular magnesium concentration.
 
-    Parameters::
+    Parameters
+    ----------
 
-    E: float, ArrayType, callable, Initializer
+    E : float, ArrayType, callable, Initializer
       The reversal potential for the synaptic current. [mV]
-    alpha: float, ArrayType
+    alpha : float, ArrayType
       Binding constant. Default 0.062
-    beta: float, ArrayType, callable, Initializer
+    beta : float, ArrayType, callable, Initializer
       Unbinding constant. Default 3.57
-    cc_Mg: float, ArrayType, callable, Initializer
+    cc_Mg : float, ArrayType, callable, Initializer
       Concentration of Magnesium ion. Default 1.2 [mM].
-    name: str
+    name : str
       The model name.
     """
 

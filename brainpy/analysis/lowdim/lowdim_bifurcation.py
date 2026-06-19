@@ -187,44 +187,46 @@ class Bifurcation2D(Num2DAnalyzer):
                          select_candidates='aux_rank', num_rank=100):
         r"""Make the bifurcation analysis.
 
-        Parameters::
+        Parameters
+        ----------
 
-        with_plot: bool
+        with_plot : bool
           Whether plot the bifurcation figure.
-        show: bool
+        show : bool
           Whether show the figure.
-        with_return: bool
+        with_return : bool
           Whether return the computed bifurcation results.
-        tol_aux: float
+        tol_aux : float
           The loss tolerance of auxiliary function :math:`f_{aux}` to confirm the fixed
           point. Default is 1e-7. Once :math:`f_{aux}(x_1) < \mathrm{tol\_aux}`,
           :math:`x_1` will be a fixed point.
-        tol_unique: float
+        tol_unique : float
           The tolerance of distance between candidate fixed points to confirm they are
           the same. Default is 1e-2. If :math:`|x_1 - x_2| > \mathrm{tol\_unique}`,
           then :math:`x_1` and :math:`x_2` are unique fixed points. Otherwise,
           :math:`x_1` and :math:`x_2` will be treated as a same fixed point.
-        tol_opt_candidate: float, optional
+        tol_opt_candidate : float, optional
           The tolerance of auxiliary function :math:`f_{aux}` to select candidate
           initial points for fixed point optimization.
-        num_par_segments: int, sequence of int
+        num_par_segments : int, sequence of int
           How to segment parameters.
-        num_fp_segment: int
+        num_fp_segment : int
           How to segment fixed points.
-        nullcline_aux_filter: float
+        nullcline_aux_filter : float
           The
-        select_candidates: str
+        select_candidates : str
           The method to select candidate fixed points. It can be:
 
           - ``fx-nullcline``: use the points of fx-nullcline.
           - ``fy-nullcline``: use the points of fy-nullcline.
           - ``nullclines``: use the points in both of fx-nullcline and fy-nullcline.
           - ``aux_rank``: use the minimal value of points for the auxiliary function.
-        num_rank: int
+        num_rank : int
           The number of candidates to be used to optimize the fixed points.
           rank to use.
 
-        Returns::
+        Returns
+        -------
 
         results : tuple
           Return a tuple of analyzed results:

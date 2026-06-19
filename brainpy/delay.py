@@ -59,12 +59,18 @@ def _get_delay(delay_time, delay_step):
 class Delay(DynamicalSystem, ParamDesc):
     """Base class for delay variables.
 
-    Args:
-      time: The delay time.
-      init: The initial delay data.
-      method: The delay method. Can be ``rotation`` and ``concat``.
-      name: The delay name.
-      mode: The computing mode.
+    Parameters
+    ----------
+    time
+        The delay time.
+    init
+        The initial delay data.
+    method
+        The delay method. Can be ``rotation`` and ``concat``.
+    name
+        The delay name.
+    mode
+        The computing mode.
     """
 
     max_time: float
@@ -127,35 +133,44 @@ class Delay(DynamicalSystem, ParamDesc):
     ) -> 'Delay':
         """Register an entry to access the data.
 
-        Args:
-          entry: str. The entry to access the delay data.
-          delay_time: The delay time of the entry (can be a float).
-          delay_step: The delay step of the entry (must be an int). ``delay_step = delay_time / dt``.
+        Parameters
+        ----------
+        entry : str
+            The entry to access the delay data.
+        delay_time
+            The delay time of the entry (can be a float).
+        delay_step
+            The delay step of the entry (must be an int). ``delay_step = delay_time / dt``.
 
-        Returns:
-          Return the self.
+        Returns
+        -------
+        Return the self.
         """
         raise NotImplementedError
 
     def at(self, entry: str, *indices) -> bm.Array:
         """Get the data at the given entry.
 
-        Args:
-          entry: str. The entry to access the data.
-          *indices: The slicing indices.
+        Parameters
+        ----------
+        entry : str
+            The entry to access the data.
+        *indices
+            The slicing indices.
 
-        Returns:
-          The data.
+        Returns
+        -------
+        The data.
         """
         raise NotImplementedError
 
     def retrieve(self, delay_step, *indices):
         """Retrieve the delay data according to the delay length.
 
-        Parameters::
-
-        delay_step: int, ArrayType
-          The delay length used to retrieve the data.
+        Parameters
+        ----------
+        delay_step : int, ArrayType
+            The delay length used to retrieve the data.
         """
         raise NotImplementedError()
 
@@ -185,10 +200,14 @@ class VarDelay(Delay):
          delay = length-1        data
          delay = length          data ]
 
-    Args:
-      target: Variable. The delay target.
-      time: int, float. The delay time.
-      init: Any. The delay data. It can be a Python number, like float, int, boolean values.
+    Parameters
+    ----------
+    target : Variable
+        The delay target.
+    time : int, float
+        The delay time.
+    init : Any
+        The delay data. It can be a Python number, like float, int, boolean values.
         It can also be arrays. Or a callable function or instance of ``Connector``.
         Note that ``initial_delay_data`` should be arranged as the following way::
 
@@ -198,10 +217,14 @@ class VarDelay(Delay):
            ...                     ....
            delay = length-1        data
            delay = length          data ]
-      entries: optional, dict. The delay access entries.
-      name: str. The delay name.
-      method: str. The method used for updating delay. Default None.
-      mode: Mode. The computing mode. Default None.
+    entries : optional, dict
+        The delay access entries.
+    name : str
+        The delay name.
+    method : str
+        The method used for updating delay. Default None.
+    mode : Mode
+        The computing mode. Default None.
 
     """
 
@@ -272,13 +295,18 @@ class VarDelay(Delay):
     ) -> 'Delay':
         """Register an entry to access the data.
 
-        Args:
-          entry: str. The entry to access the delay data.
-          delay_time: The delay time of the entry (can be a float).
-          delay_step: The delay step of the entry (must be an int). ``delat_step = delay_time / dt``.
+        Parameters
+        ----------
+        entry : str
+            The entry to access the delay data.
+        delay_time
+            The delay time of the entry (can be a float).
+        delay_step
+            The delay step of the entry (must be an int). ``delat_step = delay_time / dt``.
 
-        Returns:
-          Return the self.
+        Returns
+        -------
+        Return the self.
         """
         if entry in self._registered_entries:
             raise KeyError(f'Entry {entry} has been registered. '
@@ -304,12 +332,16 @@ class VarDelay(Delay):
     def at(self, entry: str, *indices) -> bm.Array:
         """Get the data at the given entry.
 
-        Args:
-          entry: str. The entry to access the data.
-          *indices: The slicing indices. Not include the slice at the batch dimension.
+        Parameters
+        ----------
+        entry : str
+            The entry to access the data.
+        *indices
+            The slicing indices. Not include the slice at the batch dimension.
 
-        Returns:
-          The data.
+        Returns
+        -------
+        The data.
         """
         assert isinstance(entry, str), 'entry should be a string for describing the '
         if entry not in self._registered_entries:
@@ -345,10 +377,10 @@ class VarDelay(Delay):
     def retrieve(self, delay_step, *indices):
         """Retrieve the delay data according to the delay length.
 
-        Parameters::
-
-        delay_step: int, Array
-          The delay length used to retrieve the data.
+        Parameters
+        ----------
+        delay_step : int, Array
+            The delay length used to retrieve the data.
         """
         assert self.data is not None
         assert delay_step is not None
@@ -520,12 +552,16 @@ class DelayAccess(DynamicalSystem):
 def init_delay_by_return(info: Union[bm.Variable, ReturnInfo], initial_delay_data=None) -> Delay:
     """Initialize a delay class by the return info (usually is created by ``.return_info()`` function).
 
-    Args:
-      info: the return information.
-      initial_delay_data: The initial delay data.
+    Parameters
+    ----------
+    info
+        the return information.
+    initial_delay_data
+        The initial delay data.
 
-    Returns:
-      The decay instance.
+    Returns
+    -------
+    The decay instance.
     """
     if isinstance(info, bm.Variable):
         return VarDelay(info, init=initial_delay_data)
@@ -568,11 +604,14 @@ def init_delay_by_return(info: Union[bm.Variable, ReturnInfo], initial_delay_dat
 def register_delay_by_return(target: JointType[DynamicalSystem, SupportAutoDelay]):
     """Register delay class for the given target.
 
-    Args:
-      target: The target class to register delay.
+    Parameters
+    ----------
+    target
+        The target class to register delay.
 
-    Returns:
-      The delay registered for the given target.
+    Returns
+    -------
+    The delay registered for the given target.
     """
     if not target.has_aft_update(delay_identifier):
         delay_ins = init_delay_by_return(target.return_info())

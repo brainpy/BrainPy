@@ -108,12 +108,14 @@ def to_size(x: Union[int, Sequence[int], None]) -> Optional[Tuple[int, ...]]:
 def timeout(s: float) -> Callable[[Callable[..., T]], Callable[..., T]]:
     """Add a timeout parameter to a function and return it.
 
-    Parameters::
+    Parameters
+    ----------
 
     s : float
         Time limit in seconds.
 
-    Returns::
+    Returns
+    -------
 
     func : callable
         Functional results. Or, raise an error of KeyboardInterrupt.

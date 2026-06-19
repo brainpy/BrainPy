@@ -287,21 +287,25 @@ def msort(a):
     """
     Return a copy of an array sorted along the first axis.
 
-    Parameters::
+    Parameters
+    ----------
 
     a : array_like
         Array to be sorted.
 
-    Returns::
+    Returns
+    -------
 
     sorted_array : ndarray
         Array of the same type and shape as `a`.
 
-    See Also::
+    See Also
+    --------
 
     sort
 
-    Notes::
+    Notes
+    -----
 
     ``brainpy.math.msort(a)`` is equivalent to  ``brainpy.math.sort(a, axis=0)``.
 
@@ -466,24 +470,28 @@ def shape(a):
     """
     Return the shape of an array.
 
-    Parameters::
+    Parameters
+    ----------
 
     a : array_like
         Input array.
 
-    Returns::
+    Returns
+    -------
 
     shape : tuple of ints
         The elements of the shape tuple give the lengths of the
         corresponding array dimensions.
 
-    See Also::
+    See Also
+    --------
 
     len : ``len(a)`` is equivalent to ``np.shape(a)[0]`` for N-D arrays with
           ``N>=1``.
     ndarray.shape : Equivalent array method.
 
-    Examples::
+    Examples
+    --------
 
     >>> import brainpy
     >>> brainpy.math.shape(brainpy.math.eye(3))
@@ -506,7 +514,8 @@ def size(a, axis=None):
     """
     Return the number of elements along a given axis.
 
-    Parameters::
+    Parameters
+    ----------
 
     a : array_like
         Input data.
@@ -514,18 +523,21 @@ def size(a, axis=None):
         Axis along which the elements are counted.  By default, give
         the total number of elements.
 
-    Returns::
+    Returns
+    -------
 
     element_count : int
         Number of elements along the specified axis.
 
-    See Also::
+    See Also
+    --------
 
     shape : dimensions of array
     Array.shape : dimensions of array
     Array.size : number of elements in array
 
-    Examples::
+    Examples
+    --------
 
     >>> import brainpy
     >>> a = brainpy.math.array([[1,2,3], [4,5,6]])

@@ -45,20 +45,22 @@ class OnlineAlgorithm(BrainPyObject):
     def __call__(self, *args, **kwargs):
         """The training procedure.
 
-        Parameters::
+        Parameters
+        ----------
 
-        identifier: str
+        identifier : str
           The variable name.
-        target: ArrayType
+        target : ArrayType
           The 2d target data with the shape of `(num_batch, num_output)`.
-        input: ArrayType
+        input : ArrayType
           The 2d input data with the shape of `(num_batch, num_input)`.
-        output: ArrayType
+        output : ArrayType
           The 2d output data with the shape of `(num_batch, num_output)`.
 
-        Returns::
+        Returns
+        -------
 
-        weight: ArrayType
+        weight : ArrayType
           The weights after fit.
         """
         return self.call(*args, **kwargs)
@@ -69,20 +71,22 @@ class OnlineAlgorithm(BrainPyObject):
     def call(self, target, input, output, identifier: str = ''):
         """The training procedure.
 
-        Parameters::
+        Parameters
+        ----------
 
-        identifier: str
+        identifier : str
           The variable name.
-        target: ArrayType
+        target : ArrayType
           The 2d target data with the shape of `(num_batch, num_output)`.
-        input: ArrayType
+        input : ArrayType
           The 2d input data with the shape of `(num_batch, num_input)`.
-        output: ArrayType
+        output : ArrayType
           The 2d output data with the shape of `(num_batch, num_output)`.
 
-        Returns::
+        Returns
+        -------
 
-        weight: ArrayType
+        weight : ArrayType
           The weights after fit.
         """
         raise NotImplementedError('Must implement the call() function by the subclass itself.')
@@ -100,15 +104,17 @@ class RLS(OnlineAlgorithm):
     contrast to other algorithms such as the least mean squares
     (LMS) that aim to reduce the mean square error.
 
-    See Also::
+    See Also
+    --------
 
     LMS, ForceLearning
 
-    Parameters::
+    Parameters
+    ----------
 
-    alpha: float
+    alpha : float
       The learning rate.
-    name: str
+    name : str
       The algorithm name.
 
     """
@@ -176,11 +182,12 @@ class LMS(OnlineAlgorithm):
     based on the error at the current time. It was invented in 1960 by
     Stanford University professor Bernard Widrow and his first Ph.D. student, Ted Hoff.
 
-    Parameters::
+    Parameters
+    ----------
 
-    alpha: float
+    alpha : float
       The learning rate.
-    name: str
+    name : str
       The target name.
     """
 
@@ -211,11 +218,12 @@ def get_supported_online_methods():
 def register_online_method(name: str, method: OnlineAlgorithm):
     """Register a new oneline learning method.
 
-    Parameters::
+    Parameters
+    ----------
 
-    name: str
+    name : str
       The method name.
-    method: callable
+    method : callable
       The function method.
     """
     if name in name2func:

@@ -200,8 +200,10 @@ class Array(u.CustomArray):
     def fill_(self, fill_value):
         """Fill the array with a scalar value.
 
-        Args:
-          fill_value: the scalar value to fill the array.
+        Parameters
+        ----------
+        fill_value
+            the scalar value to fill the array.
         """
         if isinstance(fill_value, Array):
             fill_value = fill_value.value
@@ -231,10 +233,14 @@ class ShardedArray(Array):
 
     A drawback of sharding is that the data may not be evenly distributed on shards.
 
-    Args:
-      value: the array value.
-      dtype: the array type.
-      keep_sharding: keep the array sharding information using ``jax.lax.with_sharding_constraint``. Default True.
+    Parameters
+    ----------
+    value
+        the array value.
+    dtype : Any
+        the array type.
+    keep_sharding : bool
+        keep the array sharding information using ``jax.lax.with_sharding_constraint``. Default True.
     """
 
     __slots__ = ('_value', '_keep_sharding')
@@ -265,8 +271,9 @@ class ShardedArray(Array):
     def value(self):
         """The value stored in this array.
 
-        Returns:
-          The stored data.
+        Returns
+        -------
+        The stored data.
         """
         v = self._value
         # Keep sharding constraints, but only for genuinely multi-device

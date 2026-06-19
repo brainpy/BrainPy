@@ -39,16 +39,18 @@ def is_bp_array(x):
 def as_device_array(tensor, dtype=None):
     """Convert the input to a ``jax.numpy.DeviceArray``.
 
-    Parameters::
+    Parameters
+    ----------
 
-    tensor: array_like
+    tensor : array_like
       Input data, in any form that can be converted to an array.  This
       includes lists, lists of tuples, tuples, tuples of tuples, tuples
       of lists, ArrayType.
-    dtype: data-type, optional
+    dtype : data-type, optional
       By default, the data-type is inferred from the input data.
 
-    Returns::
+    Returns
+    -------
 
     out : ArrayType
       Array interpretation of `tensor`.  No copy is performed if the input
@@ -70,16 +72,18 @@ as_jax = as_device_array
 def as_ndarray(tensor, dtype=None):
     """Convert the input to a ``numpy.ndarray``.
 
-    Parameters::
+    Parameters
+    ----------
 
-    tensor: array_like
+    tensor : array_like
       Input data, in any form that can be converted to an array.  This
       includes lists, lists of tuples, tuples, tuples of tuples, tuples
       of lists, ArrayType.
-    dtype: data-type, optional
+    dtype : data-type, optional
       By default, the data-type is inferred from the input data.
 
-    Returns::
+    Returns
+    -------
 
     out : ndarray
       Array interpretation of `tensor`.  No copy is performed if the input
@@ -97,16 +101,18 @@ as_numpy = as_ndarray
 def as_variable(tensor, dtype=None):
     """Convert the input to a ``brainpy.math.Variable``.
 
-    Parameters::
+    Parameters
+    ----------
 
-    tensor: array_like
+    tensor : array_like
       Input data, in any form that can be converted to an array.  This
       includes lists, lists of tuples, tuples, tuples of tuples, tuples
       of lists, ArrayType.
-    dtype: data-type, optional
+    dtype : data-type, optional
       By default, the data-type is inferred from the input data.
 
-    Returns::
+    Returns
+    -------
 
     out : ndarray
       Array interpretation of `tensor`.  No copy is performed if the input

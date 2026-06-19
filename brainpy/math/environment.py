@@ -365,28 +365,28 @@ def set(
 ):
     """Set the default computation environment.
 
-    Parameters::
-
-    mode: Mode
-      The computing mode.
-    membrane_scaling: Scaling
-      The numerical membrane_scaling.
-    dt: float
-      The numerical integration precision.
-    x64: bool
-      Enable x64 computation.
-    complex_: type
-      The complex data type.
-    float_
-      The floating data type.
-    int_
-      The integer data type.
-    bool_
-      The bool data type.
-    bp_object_as_pytree: bool
-      Whether to register brainpy object as pytree.
-    numpy_func_return: str
-      The array to return in all numpy functions. Support 'bp_array' and 'jax_array'.
+    Parameters
+    ----------
+    mode : Mode
+        The computing mode.
+    membrane_scaling : Scaling
+        The numerical membrane_scaling.
+    dt : float
+        The numerical integration precision.
+    x64 : bool
+        Enable x64 computation.
+    complex_ : type
+        The complex data type.
+    float_ : type
+        The floating data type.
+    int_ : type
+        The integer data type.
+    bool_ : type
+        The bool data type.
+    bp_object_as_pytree : bool
+        Whether to register brainpy object as pytree.
+    numpy_func_return : str
+        The array to return in all numpy functions. Support 'bp_array' and 'jax_array'.
     """
     # Validate all arguments BEFORE mutating any global state, so that an
     # invalid argument cannot leave the environment in a half-updated state.
@@ -475,10 +475,10 @@ def dftype():
 def set_float(dtype: type):
     """Set global default float type.
 
-    Parameters::
-
-    dtype: type
-      The float type.
+    Parameters
+    ----------
+    dtype : type
+        The float type.
     """
     defaults.float_ = dtype
 
@@ -486,10 +486,10 @@ def set_float(dtype: type):
 def get_float():
     """Get the default float data type.
 
-    Returns::
-
-    dftype: type
-      The default float data type.
+    Returns
+    -------
+    dftype : type
+        The default float data type.
     """
     return defaults.float_
 
@@ -497,10 +497,10 @@ def get_float():
 def set_int(dtype: type):
     """Set global default integer type.
 
-    Parameters::
-
-    dtype: type
-      The integer type.
+    Parameters
+    ----------
+    dtype : type
+        The integer type.
     """
     defaults.int_ = dtype
 
@@ -508,10 +508,10 @@ def set_int(dtype: type):
 def get_int():
     """Get the default int data type.
 
-    Returns::
-
-    dftype: type
-      The default int data type.
+    Returns
+    -------
+    dftype : type
+        The default int data type.
     """
     return defaults.int_
 
@@ -519,10 +519,10 @@ def get_int():
 def set_bool(dtype: type):
     """Set global default boolean type.
 
-    Parameters::
-
-    dtype: type
-      The bool type.
+    Parameters
+    ----------
+    dtype : type
+        The bool type.
     """
     defaults.bool_ = dtype
 
@@ -530,10 +530,10 @@ def set_bool(dtype: type):
 def get_bool():
     """Get the default boolean data type.
 
-    Returns::
-
-    dftype: type
-      The default bool data type.
+    Returns
+    -------
+    dftype : type
+        The default bool data type.
     """
     return defaults.bool_
 
@@ -541,10 +541,10 @@ def get_bool():
 def set_complex(dtype: type):
     """Set global default complex type.
 
-    Parameters::
-
-    dtype: type
-      The complex type.
+    Parameters
+    ----------
+    dtype : type
+        The complex type.
     """
     defaults.complex_ = dtype
 
@@ -552,10 +552,10 @@ def set_complex(dtype: type):
 def get_complex():
     """Get the default complex data type.
 
-    Returns::
-
-    dftype: type
-      The default complex data type.
+    Returns
+    -------
+    dftype : type
+        The default complex data type.
     """
     return defaults.complex_
 
@@ -566,8 +566,8 @@ def get_complex():
 def set_dt(dt):
     """Set the default numerical integrator precision.
 
-    Parameters::
-
+    Parameters
+    ----------
     dt : float
         Numerical integration precision.
     """
@@ -578,8 +578,8 @@ def set_dt(dt):
 def get_dt():
     """Get the numerical integrator precision.
 
-    Returns::
-
+    Returns
+    -------
     dt : float
         Numerical integration precision.
     """
@@ -589,10 +589,10 @@ def get_dt():
 def set_mode(mode: modes.Mode):
     """Set the default computing mode.
 
-    Parameters::
-
-    mode: Mode
-      The instance of :py:class:`~.Mode`.
+    Parameters
+    ----------
+    mode : Mode
+        The instance of :py:class:`~.Mode`.
     """
     if not isinstance(mode, modes.Mode):
         raise TypeError(f'Must be instance of brainpy.math.Mode. '
@@ -603,10 +603,10 @@ def set_mode(mode: modes.Mode):
 def get_mode() -> modes.Mode:
     """Get the default computing mode.
 
-    References::
-
-    mode: Mode
-      The default computing mode.
+    References
+    ----------
+    mode : Mode
+        The default computing mode.
     """
     return defaults.mode
 
@@ -614,10 +614,10 @@ def get_mode() -> modes.Mode:
 def set_membrane_scaling(membrane_scaling: scales.Scaling):
     """Set the default computing membrane_scaling.
 
-    Parameters::
-
-    scaling: Scaling
-      The instance of :py:class:`~.Scaling`.
+    Parameters
+    ----------
+    scaling : Scaling
+        The instance of :py:class:`~.Scaling`.
     """
     if not isinstance(membrane_scaling, scales.Scaling):
         raise TypeError(f'Must be instance of brainpy.math.Scaling. '
@@ -628,10 +628,10 @@ def set_membrane_scaling(membrane_scaling: scales.Scaling):
 def get_membrane_scaling() -> scales.Scaling:
     """Get the default computing membrane_scaling.
 
-    Returns::
-
-    membrane_scaling: Scaling
-      The default computing membrane_scaling.
+    Returns
+    -------
+    membrane_scaling : Scaling
+        The default computing membrane_scaling.
     """
     return defaults.membrane_scaling
 
@@ -684,10 +684,10 @@ def set_platform(platform: str):
 def get_platform() -> str:
     """Get the computing platform.
 
-    Returns::
-
-    platform: str
-      Either 'cpu', 'gpu' or 'tpu'.
+    Returns
+    -------
+    platform : str
+        Either 'cpu', 'gpu' or 'tpu'.
     """
     return devices()[0].platform
 
@@ -709,7 +709,10 @@ def set_host_device_count(n):
         know through our issue or forum page. More information is available in this
         `JAX issue <https://github.com/google/jax/issues/1408>`_.
 
-    :param int n: number of devices to use.
+    Parameters
+    ----------
+    n : int
+        number of devices to use.
     """
     xla_flags = os.getenv("XLA_FLAGS", "")
     xla_flags = re.sub(r"--xla_force_host_platform_device_count=\S+", "", xla_flags).split()
@@ -733,18 +736,18 @@ def clear_buffer_memory(
        This operation may cause errors when you use a deleted buffer.
        Therefore, regenerate data always.
 
-    Parameters::
-
-    platform: str
-      The device to clear its memory.
-    array: bool
-      Clear all buffer array. Default is True.
-    compilation: bool
-      Clear compilation cache. Default is False.
-    transform: bool
-      Clear transform cache. Default is True.
-    object_name: bool
-      Clear name cache. Default is True.
+    Parameters
+    ----------
+    platform : str
+        The device to clear its memory.
+    array : bool
+        Clear all buffer array. Default is True.
+    compilation : bool
+        Clear compilation cache. Default is False.
+    transform : bool
+        Clear transform cache. Default is True.
+    object_name : bool
+        Clear name cache. Default is True.
 
     """
     from brainstate._compatible_import import get_backend
@@ -769,8 +772,10 @@ def disable_gpu_memory_preallocation(release_memory: bool = True):
     GPU memory fragmentation, meaning a JAX program that uses most of the available GPU memory
     may OOM with preallocation disabled.
 
-    Args:
-      release_memory: bool. Whether we release memory during the computation.
+    Parameters
+    ----------
+    release_memory : bool
+        Whether we release memory during the computation.
     """
     os.environ['XLA_PYTHON_CLIENT_PREALLOCATE'] = 'false'
     if release_memory:

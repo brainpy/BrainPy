@@ -100,7 +100,8 @@ def grad(
     >>> f_grad = bm.grad(f, grad_vars=f.x, argnums=(0, 1))
 
 
-    Examples::
+    Examples
+    --------
     
     Grad for a pure function:
 
@@ -109,7 +110,8 @@ def grad(
     >>> print(grad_tanh(0.2))
     0.961043
 
-    Parameters::
+    Parameters
+    ----------
     
     func : callable, function, BrainPyObject
       Function to be differentiated. Its arguments at positions specified by
@@ -121,21 +123,22 @@ def grad(
       The variables in ``func`` to take their gradients.
     argnums : optional, integer or sequence of integers
       Specifies which positional argument(s) to differentiate with respect to (default 0).
-    has_aux: optional, bool
+    has_aux : optional, bool
       Indicates whether ``fun`` returns a pair where the
       first element is considered the output of the mathematical function to be
       differentiated and the second element is auxiliary data. Default False.
     return_value : bool
       Whether return the loss value.
-    holomorphic: optional, bool
+    holomorphic : optional, bool
       Indicates whether ``fun`` is promised to be
       holomorphic. If True, inputs and outputs must be complex. Default False.
-    allow_int: optional, bool
+    allow_int : optional, bool
       Whether to allow differentiating with
       respect to integer valued inputs. The gradient of an integer input will
       have a trivial vector-space dtype (float0). Default False.
 
-    Returns::
+    Returns
+    -------
     
     func : GradientTransform
       A function with the same arguments as ``fun``, that evaluates the gradient
@@ -201,31 +204,33 @@ def jacrev(
       - "has_aux=True" + "return_value=True" => ``((var_grads, arg_grads), loss_value, aux_data)``.
 
 
-    Parameters::
+    Parameters
+    ----------
     
-    func: Function whose Jacobian is to be computed.
+    func : Function whose Jacobian is to be computed.
     grad_vars : optional, ArrayType, sequence of ArrayType, dict
       The variables in ``func`` to take their gradients.
-    has_aux: optional, bool
+    has_aux : optional, bool
       Indicates whether ``fun`` returns a pair where the
       first element is considered the output of the mathematical function to be
       differentiated and the second element is auxiliary data. Default False.
     return_value : bool
       Whether return the loss value.
-    argnums: Optional, integer or sequence of integers.
+    argnums : Optional, integer or sequence of integers.
       Specifies which
       positional argument(s) to differentiate with respect to (default ``0``).
-    holomorphic: Optional, bool.
+    holomorphic : Optional, bool.
       Indicates whether ``fun`` is promised to be
       holomorphic. Default False.
-    allow_int: Optional, bool.
+    allow_int : Optional, bool.
       Whether to allow differentiating with
       respect to integer valued inputs. The gradient of an integer input will
       have a trivial vector-space dtype (float0). Default False.
 
-    Returns::
+    Returns
+    -------
     
-    fun: GradientTransform
+    fun : GradientTransform
       The transformed object.
     """
 
@@ -277,25 +282,27 @@ def jacfwd(
       - "has_aux=False" + "return_value=True" => ``((var_grads, arg_grads), loss_value)``.
       - "has_aux=True" + "return_value=True" => ``((var_grads, arg_grads), loss_value, aux_data)``.
 
-    Parameters::
+    Parameters
+    ----------
     
-    func: Function whose Jacobian is to be computed.
+    func : Function whose Jacobian is to be computed.
     grad_vars : optional, ArrayType, sequence of ArrayType, dict
       The variables in ``func`` to take their gradients.
-    has_aux: optional, bool
+    has_aux : optional, bool
       Indicates whether ``fun`` returns a pair where the
       first element is considered the output of the mathematical function to be
       differentiated and the second element is auxiliary data. Default False.
     return_value : bool
       Whether return the loss value.
-    argnums: Optional, integer or sequence of integers. Specifies which
+    argnums : Optional, integer or sequence of integers. Specifies which
       positional argument(s) to differentiate with respect to (default ``0``).
-    holomorphic: Optional, bool. Indicates whether ``fun`` is promised to be
+    holomorphic : Optional, bool. Indicates whether ``fun`` is promised to be
       holomorphic. Default False.
 
-    Returns::
+    Returns
+    -------
     
-    obj: GradientTransform
+    obj : GradientTransform
       The transformed object.
     """
     return brainstate.transform.jacfwd(
@@ -318,7 +325,8 @@ def hessian(
 ):
     """Hessian of ``func`` as a dense array.
 
-    Parameters::
+    Parameters
+    ----------
     
     func : callable, function
       Function whose Hessian is to be computed.  Its arguments at positions
@@ -327,7 +335,7 @@ def hessian(
       containers thereof.
     grad_vars : optional, ArrayCollector, sequence of ArrayType
       The variables required to compute their gradients.
-    argnums: Optional, integer or sequence of integers
+    argnums : Optional, integer or sequence of integers
       Specifies which positional argument(s) to differentiate with respect to (default ``0``).
     holomorphic : bool
       Indicates whether ``fun`` is promised to be holomorphic. Default False.
@@ -336,9 +344,10 @@ def hessian(
       considered the output of the mathematical function to be differentiated
       and the second element is auxiliary data. Default False.
 
-    Returns::
+    Returns
+    -------
     
-    obj: ObjectTransform
+    obj : ObjectTransform
       The transformed object.
     """
 
@@ -383,22 +392,24 @@ def vector_grad(
       - "has_aux=True" + "return_value=True" => ``((var_grads, arg_grads), loss_value, aux_data)``.
 
 
-    Parameters::
+    Parameters
+    ----------
     
-    func: Callable
+    func : Callable
       Function whose gradient is to be computed.
     grad_vars : optional, ArrayType, sequence of ArrayType, dict
       The variables in ``func`` to take their gradients.
-    has_aux: optional, bool
+    has_aux : optional, bool
       Indicates whether ``fun`` returns a pair where the
       first element is considered the output of the mathematical function to be
       differentiated and the second element is auxiliary data. Default False.
     return_value : bool
       Whether return the loss value.
-    argnums: Optional, integer or sequence of integers. Specifies which
+    argnums : Optional, integer or sequence of integers. Specifies which
       positional argument(s) to differentiate with respect to (default ``0``).
 
-    Returns::
+    Returns
+    -------
     
     func : GradientTransform
       The vector gradient function.

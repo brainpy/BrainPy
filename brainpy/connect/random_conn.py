@@ -43,15 +43,16 @@ __all__ = [
 class FixedProb(TwoEndConnector):
     """Connect the post-synaptic neurons with fixed probability.
 
-    Parameters::
+    Parameters
+    ----------
 
-    prob: float
+    prob : float
       The conn probability.
-    pre_ratio: float
+    pre_ratio : float
       The ratio of pre-synaptic neurons to connect.
     include_self : bool
       Whether create (i, i) conn?
-    allow_multi_conn: bool
+    allow_multi_conn : bool
       Allow one pre-synaptic neuron connects to multiple post-synaptic neurons?
 
       .. versionadded:: 2.2.3.2
@@ -158,13 +159,14 @@ class FixedProb(TwoEndConnector):
 class FixedTotalNum(TwoEndConnector):
     """Connect the synaptic neurons with fixed total number.
 
-    Parameters::
+    Parameters
+    ----------
 
     num : float,int
       The conn total number.
     allow_multi_conn : bool, optional
       Whether allow one pre-synaptic neuron connects to multiple post-synaptic neurons.
-    seed: int, optional
+    seed : int, optional
       The random number seed.
     """
 
@@ -229,7 +231,8 @@ class FixedNum(TwoEndConnector):
 class FixedPreNum(FixedNum):
     """Connect a fixed number pf pre-synaptic neurons for each post-synaptic neuron.
 
-    Parameters::
+    Parameters
+    ----------
 
     num : float, int
         The conn probability (if "num" is float) or the fixed number of
@@ -238,7 +241,7 @@ class FixedPreNum(FixedNum):
         Whether create (i, i) conn ?
     seed : None, int
         Seed the random generator.
-    allow_multi_conn: bool
+    allow_multi_conn : bool
       Allow one pre-synaptic neuron connects to multiple post-synaptic neurons?
 
       .. versionadded:: 2.2.3.2
@@ -289,7 +292,8 @@ class FixedPreNum(FixedNum):
 class FixedPostNum(FixedNum):
     """Connect the fixed number of post-synaptic neurons for each pre-synaptic neuron.
 
-    Parameters::
+    Parameters
+    ----------
 
     num : float, int
         The conn probability (if "num" is float) or the fixed number of
@@ -298,7 +302,7 @@ class FixedPostNum(FixedNum):
         Whether create (i, i) conn ?
     seed : None, int
         Seed the random generator.
-    allow_multi_conn: bool
+    allow_multi_conn : bool
       Allow one pre-synaptic neuron connects to multiple post-synaptic neurons?
 
       .. versionadded:: 2.2.3.2
@@ -389,7 +393,8 @@ class GaussianProb(OneEndConnector):
 
     where :math:`v_k^i` is the :math:`i`-th neuron's encoded value at dimension :math:`k`.
 
-    Parameters::
+    Parameters
+    ----------
 
     sigma : float
         Width of the Gaussian function.
@@ -528,7 +533,8 @@ class GaussianProb(OneEndConnector):
 class SmallWorld(TwoEndConnector):
     r"""Build a Watts–Strogatz small-world graph.
 
-    Parameters::
+    Parameters
+    ----------
 
     num_neighbor : int
         Each node is joined with its `k` nearest neighbors in a ring
@@ -540,7 +546,8 @@ class SmallWorld(TwoEndConnector):
     include_self : bool
         Whether include the node self.
 
-    Notes::
+    Notes
+    -----
 
     First create a ring over :math:`num\_node` nodes [1]_.  Then each node in the ring is
     joined to its :math:`num\_neighbor` nearest neighbors (or :math:`num\_neighbor - 1` neighbors
@@ -549,7 +556,8 @@ class SmallWorld(TwoEndConnector):
     :math:`num\_neighbor` nearest neighbors" with probability :math:`prob` replace it with a new
     edge :math:`(u, w)` with uniformly random choice of existing node :math:`w`.
 
-    References::
+    References
+    ----------
 
     .. [1] Duncan J. Watts and Steven H. Strogatz,
            Collective dynamics of small-world networks,
@@ -677,19 +685,22 @@ class ScaleFreeBA(TwoEndConnector):
     :math:`m` edges that are preferentially attached to existing nodes
     with high degree.
 
-    Parameters::
+    Parameters
+    ----------
 
     m : int
         Number of edges to attach from a new node to existing nodes
     seed : integer, random_state, or None (default)
         Indicator of random number generation state.
 
-    Raises::
+    Raises
+    ------
 
     ConnectorError
         If `m` does not satisfy ``1 <= m < n``.
 
-    References::
+    References
+    ----------
 
     .. [1] A. L. Barabási and R. Albert "Emergence of scaling in
            random networks", Science 286, pp 509-512, 1999.
@@ -789,7 +800,8 @@ class ScaleFreeBADual(TwoEndConnector):
     edges (with probability :math:`p`) or :math:`m_2` edges (with probability :math:`1-p`) that
     are preferentially attached to existing nodes with high degree.
 
-    Parameters::
+    Parameters
+    ----------
 
     m1 : int
         Number of edges to attach from a new node to existing nodes with probability :math:`p`
@@ -800,12 +812,14 @@ class ScaleFreeBADual(TwoEndConnector):
     seed : integer, random_state, or None (default)
         Indicator of random number generation state.
 
-    Raises::
+    Raises
+    ------
 
     ConnectorError
         If `m1` and `m2` do not satisfy ``1 <= m1,m2 < n`` or `p` does not satisfy ``0 <= p <= 1``.
 
-    References::
+    References
+    ----------
 
     .. [1] N. Moshiri "The dual-Barabasi-Albert model", arXiv:1810.10538.
     """
@@ -915,7 +929,8 @@ class PowerLaw(TwoEndConnector):
     """Holme and Kim algorithm for growing graphs with powerlaw
     degree distribution and approximate average clustering.
 
-    Parameters::
+    Parameters
+    ----------
 
     m : int
         the number of random edges to add for each new node
@@ -924,7 +939,8 @@ class PowerLaw(TwoEndConnector):
     seed : integer, random_state, or None (default)
         Indicator of random number generation state.
 
-    Notes::
+    Notes
+    -----
 
     The average clustering has a hard time getting above a certain
     cutoff that depends on :math:`m`.  This cutoff is often quite low.  The
@@ -942,13 +958,15 @@ class PowerLaw(TwoEndConnector):
     since the initial :math:`m` nodes may not be all linked to a new node
     on the first iteration like the BA model.
 
-    Raises::
+    Raises
+    ------
 
     ConnectorError
         If :math:`m` does not satisfy :math:`1 <= m <= n` or :math:`p` does not
         satisfy :math:`0 <= p <= 1`.
 
-    References::
+    References
+    ----------
 
     .. [1] P. Holme and B. J. Kim,
            "Growing scale-free networks with tunable clustering",
@@ -1086,17 +1104,18 @@ class ProbDist(TwoEndConnector):
 
     .. versionadded:: 2.1.13
 
-    Parameters::
+    Parameters
+    ----------
 
-    dist: float, int
+    dist : float, int
       The maximum distance between two points.
-    prob: float
+    prob : float
       The connection probability, within 0. and 1.
-    pre_ratio: float
+    pre_ratio : float
       The ratio of pre-synaptic neurons to connect.
-    seed: optional, int
+    seed : optional, int
       The random seed.
-    include_self: bool
+    include_self : bool
       Whether include the point at the same position.
 
     """

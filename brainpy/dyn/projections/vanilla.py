@@ -60,12 +60,18 @@ class VanillaProj(Projection):
         bp.visualize.raster_plot(indices, spks, show=True)
 
 
-    Args:
-      comm: The synaptic communication.
-      out: The synaptic output.
-      post: The post-synaptic neuron group.
-      name: str. The projection name.
-      mode: Mode. The computing mode.
+    Parameters
+    ----------
+    comm : DynamicalSystem
+        The synaptic communication.
+    out : JointType[DynamicalSystem, BindCondData]
+        The synaptic output.
+    post : DynamicalSystem
+        The post-synaptic neuron group.
+    name : str
+        The projection name.
+    mode : Mode
+        The computing mode.
     """
 
     def __init__(

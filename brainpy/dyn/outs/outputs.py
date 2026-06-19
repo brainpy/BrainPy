@@ -36,18 +36,20 @@ class COBA(SynOut):
 
        I_{syn}(t) = g_{\mathrm{syn}}(t) (E - V(t))
 
-    Parameters::
+    Parameters
+    ----------
 
-    E: float, ArrayType, ndarray
+    E : float, ArrayType, ndarray
       The reversal potential.
-    sharding: sequence of str
+    sharding : sequence of str
       The axis names for variable for parallelization.
-    name: str
+    name : str
       The model name.
-    scaling: brainpy.Scaling
+    scaling : brainpy.Scaling
       The scaling object.
 
-    See Also::
+    See Also
+    --------
 
     CUBA
     """
@@ -77,14 +79,16 @@ class CUBA(SynOut):
 
        I_{\mathrm{syn}}(t) = g_{\mathrm{syn}}(t)
 
-    Parameters::
+    Parameters
+    ----------
 
-    name: str
+    name : str
       The model name.
-    scaling: brainpy.Scaling
+    scaling : brainpy.Scaling
       The scaling object.
 
-    See Also::
+    See Also
+    --------
 
     COBA
     """
@@ -117,19 +121,20 @@ class MgBlock(SynOut):
 
     Here :math:`[{Mg}^{2+}]_{o}` is the extracellular magnesium concentration.
 
-    Parameters::
+    Parameters
+    ----------
 
-    E: float, ArrayType
+    E : float, ArrayType
       The reversal potential for the synaptic current. [mV]
-    alpha: float, ArrayType
+    alpha : float, ArrayType
       Binding constant. Default 0.062
-    beta: float, ArrayType
+    beta : float, ArrayType
       Unbinding constant. Default 3.57
-    cc_Mg: float, ArrayType
+    cc_Mg : float, ArrayType
       Concentration of Magnesium ion. Default 1.2 [mM].
-    sharding: sequence of str
+    sharding : sequence of str
       The axis names for variable for parallelization.
-    name: str
+    name : str
       The model name.
     """
 

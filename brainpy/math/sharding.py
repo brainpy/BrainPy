@@ -86,12 +86,16 @@ def _device_put(x: Union[Array, jax.Array, np.ndarray],
     Note that this function can only transfer ``brainpy.math.Array``, ``jax.Array``,
     and ``numpy.ndarray``. Other value will be directly returned.
 
-    Args:
-      x: The input array.
-      device: The given device.
+    Parameters
+    ----------
+    x : Union[Array, jax.Array, np.ndarray]
+        The input array.
+    device : Union[None, jax.Device, Sharding]
+        The given device.
 
-    Returns:
-      A copy of ``x`` that resides on ``device``.
+    Returns
+    -------
+    A copy of ``x`` that resides on ``device``.
     """
     if isinstance(x, Array):
         x.value = jax.device_put(x.value, device=device)
@@ -110,12 +114,16 @@ def get_sharding(
 ) -> Optional[NamedSharding]:
     """Get sharding according to the given axes information.
 
-    Args:
-      axis_names: list of str, or tuple of str. The name for each axis in the array.
-      mesh: Mesh. The given device mesh.
+    Parameters
+    ----------
+    axis_names : Optional[Sequence[str]]
+        list of str, or tuple of str. The name for each axis in the array.
+    mesh : Optional[Mesh]
+        Mesh. The given device mesh.
 
-    Returns:
-      The instance of NamedSharding.
+    Returns
+    -------
+    The instance of NamedSharding.
     """
     if axis_names is None:
         return None
@@ -147,13 +155,18 @@ def partition_by_axname(
 ):
     """Put the given arrays into the mesh devices.
 
-    Args:
-      x: any. Any array.
-      axis_names: sequence of str. The name for each axis in the array.
-      mesh: Mesh. The given device mesh.
+    Parameters
+    ----------
+    x : Any
+        any. Any array.
+    axis_names : Optional[Sequence[str]]
+        sequence of str. The name for each axis in the array.
+    mesh : Optional[Mesh]
+        Mesh. The given device mesh.
 
-    Returns:
-      The re-sharded arrays.
+    Returns
+    -------
+    The re-sharded arrays.
     """
     if axis_names is None:
         return x
@@ -181,12 +194,16 @@ def partition_by_sharding(
 ):
     """Partition inputs with the given sharding strategy.
 
-    Args:
-      x: The input arrays. It can be a pyTree of arrays.
-      sharding: The `jax.sharding.Sharding` instance.
+    Parameters
+    ----------
+    x : Any
+        The input arrays. It can be a pyTree of arrays.
+    sharding : Optional[Sharding]
+        The `jax.sharding.Sharding` instance.
 
-    Returns:
-      The sharded ``x``, which has been partitioned by the given sharding stragety.
+    Returns
+    -------
+    The sharded ``x``, which has been partitioned by the given sharding stragety.
     """
     if sharding is None:
         return x
@@ -204,13 +221,17 @@ def partition(
 ):
     """Partition the input arrays onto devices by the given sharding strategies.
 
-    Args:
-      x: Any input arrays. It can also be a PyTree of arrays.
-      sharding: The sharding strategy.
+    Parameters
+    ----------
+    x : Any
+        Any input arrays. It can also be a PyTree of arrays.
+    sharding : Optional[Union[Sequence[str], jax.Device, Sharding]]
+        The sharding strategy.
 
-    Returns:
-      The partitioned arrays.
-      Notably, the
+    Returns
+    -------
+    The partitioned arrays.
+    Notably, the
     """
     if sharding is None:
         return x
@@ -239,10 +260,14 @@ def _keep_constraint(x: Any):
 def keep_constraint(x: Any):
     """Keep the sharding constraint of the given inputs during computation.
 
-    Args:
-      x: Any.
+    Parameters
+    ----------
+    x : Any
+        Any.
 
-    Returns:
-      constraint_x: Same as ``x``.
+    Returns
+    -------
+    constraint_x
+        Same as ``x``.
     """
     return jax.tree_util.tree_map(_keep_constraint, x, is_leaf=is_bp_array)

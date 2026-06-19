@@ -32,19 +32,20 @@ __all__ = [
 class Reservoir(Layer):
     r"""Reservoir node, a pool of leaky-integrator neurons with random recurrent connections [1]_.
 
-    Parameters::
+    Parameters
+    ----------
 
-    input_shape: int, tuple of int
+    input_shape : int, tuple of int
       The input shape.
-    num_out: int
+    num_out : int
       The number of reservoir nodes.
-    Win_initializer: Initializer
+    Win_initializer : Initializer
       The initialization method for the feedforward connections.
-    Wrec_initializer: Initializer
+    Wrec_initializer : Initializer
       The initialization method for the recurrent connections.
-    b_initializer: optional, ArrayType, Initializer
+    b_initializer : optional, ArrayType, Initializer
       The initialization method for the bias.
-    leaky_rate: float
+    leaky_rate : float
       A float between 0 and 1.
     activation : str, callable, optional
       Reservoir activation function.
@@ -78,7 +79,7 @@ class Reservoir(Layer):
       Connectivity of recurrent weights matrix, i.e. ratio of reservoir
       neurons connected to other reservoir neurons, including themselves.
       Must be in [0, 1], by default 0.1
-    comp_type: str
+    comp_type : str
       The connectivity type, can be "dense" or "sparse", "jit".
 
       - ``"dense"`` means the connectivity matrix is a dense matrix.
@@ -94,7 +95,8 @@ class Reservoir(Layer):
       distribution (see :py:class:`brainpy.math.random.RandomState`),
       by default "normal".
 
-    References::
+    References
+    ----------
 
     .. [1] Lukoševičius, Mantas. "A practical guide to applying echo state networks."
            Neural networks: Tricks of the trade. Springer, Berlin, Heidelberg, 2012. 659-686.

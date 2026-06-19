@@ -66,15 +66,20 @@ def reduce_logsumexp(input_tensor, axis=None, keepdims=False):
     overflows caused by taking the exp of large inputs and underflows caused by
     taking the log of small inputs.
 
-    Args:
-      input_tensor: The tensor to reduce. Should have numeric type.
-      axis: The dimensions to reduce. If `None` (the default), reduces all
+    Parameters
+    ----------
+    input_tensor
+        The tensor to reduce. Should have numeric type.
+    axis
+        The dimensions to reduce. If `None` (the default), reduces all
         dimensions. Must be in the range `[-rank(input_tensor),
         rank(input_tensor))`.
-      keepdims: If true, retains reduced dimensions with length 1.
+    keepdims
+        If true, retains reduced dimensions with length 1.
 
-    Returns:
-      The reduced tensor.
+    Returns
+    -------
+    The reduced tensor.
     """
     r = jax.scipy.special.logsumexp(_as_jax_array_(input_tensor), axis=axis, keepdims=keepdims)
     return _return(r)
@@ -91,15 +96,20 @@ def reduce_euclidean_norm(input_tensor, axis=None, keepdims=False):
     If `axis` is None, all dimensions are reduced, and a
     tensor with a single element is returned.
 
-    Args:
-      input_tensor: The tensor to reduce. Should have numeric type.
-      axis: The dimensions to reduce. If `None` (the default), reduces all
+    Parameters
+    ----------
+    input_tensor
+        The tensor to reduce. Should have numeric type.
+    axis
+        The dimensions to reduce. If `None` (the default), reduces all
         dimensions. Must be in the range `[-rank(input_tensor),
         rank(input_tensor))`.
-      keepdims: If true, retains reduced dimensions with length 1.
+    keepdims
+        If true, retains reduced dimensions with length 1.
 
-    Returns:
-      The reduced tensor, of the same dtype as the input_tensor.
+    Returns
+    -------
+    The reduced tensor, of the same dtype as the input_tensor.
     """
     r = jnp.linalg.norm(_as_jax_array_(input_tensor), axis=axis, keepdims=keepdims)
     return _return(r)
@@ -118,15 +128,20 @@ def reduce_max(input_tensor, axis=None, keepdims=False):
     If `axis` is None, all dimensions are reduced, and a
     tensor with a single element is returned.
 
-    Args:
-      input_tensor: The tensor to reduce. Should have real numeric type.
-      axis: The dimensions to reduce. If `None` (the default), reduces all
+    Parameters
+    ----------
+    input_tensor
+        The tensor to reduce. Should have real numeric type.
+    axis
+        The dimensions to reduce. If `None` (the default), reduces all
         dimensions. Must be in the range `[-rank(input_tensor),
         rank(input_tensor))`.
-      keepdims: If true, retains reduced dimensions with length 1.
+    keepdims
+        If true, retains reduced dimensions with length 1.
 
-    Returns:
-      The reduced tensor.
+    Returns
+    -------
+    The reduced tensor.
     """
     return _return(jnp.max(_as_jax_array_(input_tensor), axis=axis, keepdims=keepdims))
 
@@ -239,39 +254,39 @@ def segment_sum(data: Union[Array, jnp.ndarray],
                 mode: Optional[lax.GatherScatterMode] = None) -> Array:
     """``segment_sum`` operator for brainpy `Array` and `Variable`.
 
-    Parameters::
+    Parameters
+    ----------
+    data : Array
+        An array with the values to be reduced.
+    segment_ids : Array
+        An array with integer dtype that indicates the segments of
+        `data` (along its leading axis) to be summed. Values can be repeated and
+        need not be sorted.
+    num_segments : Optional, int
+        An int with nonnegative value indicating the number
+        of segments. The default is set to be the minimum number of segments that
+        would support all indices in ``segment_ids``, calculated as
+        ``max(segment_ids) + 1``.
+        Since `num_segments` determines the size of the output, a static value
+        must be provided to use ``segment_sum`` in a ``jit``-compiled function.
+    indices_are_sorted : bool
+        whether ``segment_ids`` is known to be sorted.
+    unique_indices : bool
+        whether `segment_ids` is known to be free of duplicates.
+    bucket_size : int
+        Size of bucket to group indices into. ``segment_sum`` is
+        performed on each bucket separately to improve numerical stability of
+        addition. Default ``None`` means no bucketing.
+    mode : lax.GatherScatterMode
+        A :class:`jax.lax.GatherScatterMode` value describing how
+        out-of-bounds indices should be handled. By default, values outside of the
+        range [0, num_segments) are dropped and do not contribute to the sum.
 
-    data: Array
-      An array with the values to be reduced.
-    segment_ids: Array
-      An array with integer dtype that indicates the segments of
-      `data` (along its leading axis) to be summed. Values can be repeated and
-      need not be sorted.
-    num_segments: Optional, int
-      An int with nonnegative value indicating the number
-      of segments. The default is set to be the minimum number of segments that
-      would support all indices in ``segment_ids``, calculated as
-      ``max(segment_ids) + 1``.
-      Since `num_segments` determines the size of the output, a static value
-      must be provided to use ``segment_sum`` in a ``jit``-compiled function.
-    indices_are_sorted: bool
-      whether ``segment_ids`` is known to be sorted.
-    unique_indices: bool
-      whether `segment_ids` is known to be free of duplicates.
-    bucket_size: int
-      Size of bucket to group indices into. ``segment_sum`` is
-      performed on each bucket separately to improve numerical stability of
-      addition. Default ``None`` means no bucketing.
-    mode: lax.GatherScatterMode
-      A :class:`jax.lax.GatherScatterMode` value describing how
-      out-of-bounds indices should be handled. By default, values outside of the
-      range [0, num_segments) are dropped and do not contribute to the sum.
-
-    Returns::
-
-    output: Array
-      An array with shape :code:`(num_segments,) + data.shape[1:]` representing the
-      segment sums.
+    Returns
+    -------
+    output : Array
+        An array with shape :code:`(num_segments,) + data.shape[1:]` representing the
+        segment sums.
     """
     return _return(jax.ops.segment_sum(as_jax(data),
                                        as_jax(segment_ids),
@@ -291,39 +306,39 @@ def segment_prod(data: Union[Array, jnp.ndarray],
                  mode: Optional[lax.GatherScatterMode] = None) -> Array:
     """``segment_prod`` operator for brainpy `Array` and `Variable`.
 
-    Parameters::
+    Parameters
+    ----------
+    data : Array
+        An array with the values to be reduced.
+    segment_ids : Array
+        An array with integer dtype that indicates the segments of
+        `data` (along its leading axis) to be summed. Values can be repeated and
+        need not be sorted.
+    num_segments : Optional, int
+        An int with nonnegative value indicating the number
+        of segments. The default is set to be the minimum number of segments that
+        would support all indices in ``segment_ids``, calculated as
+        ``max(segment_ids) + 1``.
+        Since `num_segments` determines the size of the output, a static value
+        must be provided to use ``segment_sum`` in a ``jit``-compiled function.
+    indices_are_sorted : bool
+        whether ``segment_ids`` is known to be sorted.
+    unique_indices : bool
+        whether `segment_ids` is known to be free of duplicates.
+    bucket_size : int
+        Size of bucket to group indices into. ``segment_sum`` is
+        performed on each bucket separately to improve numerical stability of
+        addition. Default ``None`` means no bucketing.
+    mode : lax.GatherScatterMode
+        A :class:`jax.lax.GatherScatterMode` value describing how
+        out-of-bounds indices should be handled. By default, values outside of the
+        range [0, num_segments) are dropped and do not contribute to the sum.
 
-    data: Array
-      An array with the values to be reduced.
-    segment_ids: Array
-      An array with integer dtype that indicates the segments of
-      `data` (along its leading axis) to be summed. Values can be repeated and
-      need not be sorted.
-    num_segments: Optional, int
-      An int with nonnegative value indicating the number
-      of segments. The default is set to be the minimum number of segments that
-      would support all indices in ``segment_ids``, calculated as
-      ``max(segment_ids) + 1``.
-      Since `num_segments` determines the size of the output, a static value
-      must be provided to use ``segment_sum`` in a ``jit``-compiled function.
-    indices_are_sorted: bool
-      whether ``segment_ids`` is known to be sorted.
-    unique_indices: bool
-      whether `segment_ids` is known to be free of duplicates.
-    bucket_size: int
-      Size of bucket to group indices into. ``segment_sum`` is
-      performed on each bucket separately to improve numerical stability of
-      addition. Default ``None`` means no bucketing.
-    mode: lax.GatherScatterMode
-      A :class:`jax.lax.GatherScatterMode` value describing how
-      out-of-bounds indices should be handled. By default, values outside of the
-      range [0, num_segments) are dropped and do not contribute to the sum.
-
-    Returns::
-
-    output: Array
-      An array with shape :code:`(num_segments,) + data.shape[1:]` representing the
-      segment sums.
+    Returns
+    -------
+    output : Array
+        An array with shape :code:`(num_segments,) + data.shape[1:]` representing the
+        segment sums.
     """
     return _return(jax.ops.segment_prod(as_jax(data),
                                         as_jax(segment_ids),
@@ -343,39 +358,39 @@ def segment_max(data: Union[Array, jnp.ndarray],
                 mode: Optional[lax.GatherScatterMode] = None) -> Array:
     """``segment_max`` operator for brainpy `Array` and `Variable`.
 
-    Parameters::
+    Parameters
+    ----------
+    data : Array
+        An array with the values to be reduced.
+    segment_ids : Array
+        An array with integer dtype that indicates the segments of
+        `data` (along its leading axis) to be summed. Values can be repeated and
+        need not be sorted.
+    num_segments : Optional, int
+        An int with nonnegative value indicating the number
+        of segments. The default is set to be the minimum number of segments that
+        would support all indices in ``segment_ids``, calculated as
+        ``max(segment_ids) + 1``.
+        Since `num_segments` determines the size of the output, a static value
+        must be provided to use ``segment_sum`` in a ``jit``-compiled function.
+    indices_are_sorted : bool
+        whether ``segment_ids`` is known to be sorted.
+    unique_indices : bool
+        whether `segment_ids` is known to be free of duplicates.
+    bucket_size : int
+        Size of bucket to group indices into. ``segment_sum`` is
+        performed on each bucket separately to improve numerical stability of
+        addition. Default ``None`` means no bucketing.
+    mode : lax.GatherScatterMode
+        A :class:`jax.lax.GatherScatterMode` value describing how
+        out-of-bounds indices should be handled. By default, values outside of the
+        range [0, num_segments) are dropped and do not contribute to the sum.
 
-    data: Array
-      An array with the values to be reduced.
-    segment_ids: Array
-      An array with integer dtype that indicates the segments of
-      `data` (along its leading axis) to be summed. Values can be repeated and
-      need not be sorted.
-    num_segments: Optional, int
-      An int with nonnegative value indicating the number
-      of segments. The default is set to be the minimum number of segments that
-      would support all indices in ``segment_ids``, calculated as
-      ``max(segment_ids) + 1``.
-      Since `num_segments` determines the size of the output, a static value
-      must be provided to use ``segment_sum`` in a ``jit``-compiled function.
-    indices_are_sorted: bool
-      whether ``segment_ids`` is known to be sorted.
-    unique_indices: bool
-      whether `segment_ids` is known to be free of duplicates.
-    bucket_size: int
-      Size of bucket to group indices into. ``segment_sum`` is
-      performed on each bucket separately to improve numerical stability of
-      addition. Default ``None`` means no bucketing.
-    mode: lax.GatherScatterMode
-      A :class:`jax.lax.GatherScatterMode` value describing how
-      out-of-bounds indices should be handled. By default, values outside of the
-      range [0, num_segments) are dropped and do not contribute to the sum.
-
-    Returns::
-
-    output: Array
-      An array with shape :code:`(num_segments,) + data.shape[1:]` representing the
-      segment sums.
+    Returns
+    -------
+    output : Array
+        An array with shape :code:`(num_segments,) + data.shape[1:]` representing the
+        segment sums.
     """
     return _return(jax.ops.segment_max(as_jax(data),
                                        as_jax(segment_ids),
@@ -395,39 +410,39 @@ def segment_min(data: Union[Array, jnp.ndarray],
                 mode: Optional[lax.GatherScatterMode] = None) -> Array:
     """``segment_min`` operator for brainpy `Array` and `Variable`.
 
-    Parameters::
+    Parameters
+    ----------
+    data : Array
+        An array with the values to be reduced.
+    segment_ids : Array
+        An array with integer dtype that indicates the segments of
+        `data` (along its leading axis) to be summed. Values can be repeated and
+        need not be sorted.
+    num_segments : Optional, int
+        An int with nonnegative value indicating the number
+        of segments. The default is set to be the minimum number of segments that
+        would support all indices in ``segment_ids``, calculated as
+        ``max(segment_ids) + 1``.
+        Since `num_segments` determines the size of the output, a static value
+        must be provided to use ``segment_sum`` in a ``jit``-compiled function.
+    indices_are_sorted : bool
+        whether ``segment_ids`` is known to be sorted.
+    unique_indices : bool
+        whether `segment_ids` is known to be free of duplicates.
+    bucket_size : int
+        Size of bucket to group indices into. ``segment_sum`` is
+        performed on each bucket separately to improve numerical stability of
+        addition. Default ``None`` means no bucketing.
+    mode : lax.GatherScatterMode
+        A :class:`jax.lax.GatherScatterMode` value describing how
+        out-of-bounds indices should be handled. By default, values outside of the
+        range [0, num_segments) are dropped and do not contribute to the sum.
 
-    data: Array
-      An array with the values to be reduced.
-    segment_ids: Array
-      An array with integer dtype that indicates the segments of
-      `data` (along its leading axis) to be summed. Values can be repeated and
-      need not be sorted.
-    num_segments: Optional, int
-      An int with nonnegative value indicating the number
-      of segments. The default is set to be the minimum number of segments that
-      would support all indices in ``segment_ids``, calculated as
-      ``max(segment_ids) + 1``.
-      Since `num_segments` determines the size of the output, a static value
-      must be provided to use ``segment_sum`` in a ``jit``-compiled function.
-    indices_are_sorted: bool
-      whether ``segment_ids`` is known to be sorted.
-    unique_indices: bool
-      whether `segment_ids` is known to be free of duplicates.
-    bucket_size: int
-      Size of bucket to group indices into. ``segment_sum`` is
-      performed on each bucket separately to improve numerical stability of
-      addition. Default ``None`` means no bucketing.
-    mode: lax.GatherScatterMode
-      A :class:`jax.lax.GatherScatterMode` value describing how
-      out-of-bounds indices should be handled. By default, values outside of the
-      range [0, num_segments) are dropped and do not contribute to the sum.
-
-    Returns::
-
-    output: Array
-      An array with shape :code:`(num_segments,) + data.shape[1:]` representing the
-      segment sums.
+    Returns
+    -------
+    output : Array
+        An array with shape :code:`(num_segments,) + data.shape[1:]` representing the
+        segment sums.
     """
     return _return(jax.ops.segment_min(as_jax(data),
                                        as_jax(segment_ids),
@@ -455,14 +470,19 @@ def cast(x, dtype):
 
     Note casting nan and inf values to integral types has undefined behavior.
 
-    Args:
-      x: A `Array`. It could be `uint8`, `uint16`, `uint32`, `uint64`, `int8`, `int16`, `int32`,
+    Parameters
+    ----------
+    x
+        A `Array`. It could be `uint8`, `uint16`, `uint32`, `uint64`, `int8`, `int16`, `int32`,
         `int64`, `float16`, `float32`, `float64`, `complex64`, `complex128`,
         `bfloat16`.
-      dtype: The destination type. The list of supported dtypes is the same as
+    dtype
+        The destination type. The list of supported dtypes is the same as
         `x`.
-    Returns:
-      A `Array` with same shape as `x` and same type as `dtype`.
+
+    Returns
+    -------
+    A `Array` with same shape as `x` and same type as `dtype`.
 
     """
     return asarray(x, dtype=dtype)
