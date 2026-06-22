@@ -37,7 +37,7 @@ jobs:
         uses: styfle/cancel-workflow-action@0.13.1
         with:
           access_token: ${{ github.token }}
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Print concurrency group
         run: echo '${{ github.workflow }}-${{ github.ref }}'
       - name: Set up Python ${{ matrix.python-version }}
@@ -75,7 +75,7 @@ jobs:
         uses: styfle/cancel-workflow-action@0.13.1
         with:
           access_token: ${{ github.token }}
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Print concurrency group
         run: echo '${{ github.workflow }}-${{ github.ref }}'
       - name: Set up Python ${{ matrix.python-version }}
@@ -106,7 +106,7 @@ jobs:
         uses: styfle/cancel-workflow-action@0.13.1
         with:
           access_token: ${{ github.token }}
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Print concurrency group
         run: echo '${{ github.workflow }}-${{ github.ref }}'
       - name: Set up Python ${{ matrix.python-version }}
