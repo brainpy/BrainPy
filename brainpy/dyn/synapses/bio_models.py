@@ -146,7 +146,7 @@ class AMPA(SynDyn):
     %s
     """
 
-    supported_modes = (bm.NonBatchingMode, bm.BatchingMode)
+    supported_modes: tuple = (bm.NonBatchingMode, bm.BatchingMode)
 
     def __init__(
         self,
@@ -200,6 +200,7 @@ class AMPA(SynDyn):
         return self.g
 
 
+assert AMPA.__doc__ is not None
 AMPA.__doc__ = AMPA.__doc__ % (pneu_doc,)
 
 
@@ -329,6 +330,7 @@ class GABAa(AMPA):
                          sharding=sharding)
 
 
+assert GABAa.__doc__ is not None
 GABAa.__doc__ = GABAa.__doc__ % (pneu_doc,)
 
 
@@ -469,7 +471,7 @@ class BioNMDA(SynDyn):
         Transmitter concentration duration time after being triggered. Default 1 [ms]
     %s
     """
-    supported_modes = (bm.NonBatchingMode, bm.BatchingMode)
+    supported_modes: tuple = (bm.NonBatchingMode, bm.BatchingMode)
 
     def __init__(
         self,
@@ -531,4 +533,5 @@ class BioNMDA(SynDyn):
         return self.g
 
 
+assert BioNMDA.__doc__ is not None
 BioNMDA.__doc__ = BioNMDA.__doc__ % (pneu_doc,)

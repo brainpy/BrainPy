@@ -190,7 +190,7 @@ class BindCondData(brainstate.mixin.Mixin):
         ...         return 0.0
     """
     # Attribute to store temporary conductance data
-    _conductance: Optional
+    _conductance: Optional[Any]
 
     def bind_cond(self, conductance):
         """
@@ -246,7 +246,7 @@ class ReturnInfo:
 class Container(MixIn):
     """Container :py:class:`~.MixIn` which wrap a group of objects.
     """
-    children: dict()
+    children: dict
 
     def __getitem__(self, item):
         """Overwrite the slice access (`self['']`). """
@@ -516,7 +516,7 @@ class SupportOnline(MixIn):
     .. versionadded:: 2.4.5
     """
 
-    online_fit_by: Optional  # methods for online fitting
+    online_fit_by: Optional[Any]  # methods for online fitting
 
     def online_init(self, *args, **kwargs):
         raise NotImplementedError
@@ -531,7 +531,7 @@ class SupportOffline(MixIn):
     .. versionadded:: 2.4.5
     """
 
-    offline_fit_by: Optional  # methods for offline fitting
+    offline_fit_by: Optional[Any]  # methods for offline fitting
 
     def offline_init(self, *args, **kwargs):
         pass

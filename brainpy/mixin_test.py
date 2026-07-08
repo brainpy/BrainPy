@@ -21,13 +21,15 @@ import brainpy.math as bm
 class TestParamDesc(unittest.TestCase):
     def test1(self):
         a = bp.dyn.Expon(1)
-        self.assertTrue(not isinstance(a, bp.mixin.ParamDescriber[bp.dyn.Expon]))
-        self.assertTrue(not isinstance(a, bp.mixin.ParamDescriber[bp.DynamicalSystem]))
+        # ParamDescriber uses a custom metaclass supporting runtime __class_getitem__/__instancecheck__
+        self.assertTrue(not isinstance(a, bp.mixin.ParamDescriber[bp.dyn.Expon]))  # type: ignore[misc]
+        self.assertTrue(not isinstance(a, bp.mixin.ParamDescriber[bp.DynamicalSystem]))  # type: ignore[misc]
 
     def test2(self):
         a = bp.dyn.Expon.desc(1)
-        self.assertTrue(isinstance(a, bp.mixin.ParamDescriber[bp.dyn.Expon]))
-        self.assertTrue(isinstance(a, bp.mixin.ParamDescriber[bp.DynamicalSystem]))
+        # ParamDescriber uses a custom metaclass supporting runtime __class_getitem__/__instancecheck__
+        self.assertTrue(isinstance(a, bp.mixin.ParamDescriber[bp.dyn.Expon]))  # type: ignore[misc]
+        self.assertTrue(isinstance(a, bp.mixin.ParamDescriber[bp.DynamicalSystem]))  # type: ignore[misc]
 
 
 class TestJointType(unittest.TestCase):
@@ -40,8 +42,9 @@ class TestJointType(unittest.TestCase):
 
     def test2(self):
         T = bp.mixin.JointType[bp.DynamicalSystem, bp.mixin.ParamDesc]
-        self.assertTrue(not isinstance(bp.dyn.Expon(1), bp.mixin.ParamDescriber[T]))
-        self.assertTrue(isinstance(bp.dyn.Expon.desc(1), bp.mixin.ParamDescriber[T]))
+        # ParamDescriber uses a custom metaclass supporting runtime __class_getitem__/__instancecheck__
+        self.assertTrue(not isinstance(bp.dyn.Expon(1), bp.mixin.ParamDescriber[T]))  # type: ignore[misc]
+        self.assertTrue(isinstance(bp.dyn.Expon.desc(1), bp.mixin.ParamDescriber[T]))  # type: ignore[misc]
 
 
 class TestDelayRegister(unittest.TestCase):

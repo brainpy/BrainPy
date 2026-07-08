@@ -14,7 +14,7 @@
 # limitations under the License.
 # ==============================================================================
 import numbers
-from typing import Optional, Union, Sequence, Tuple, Callable
+from typing import Optional, Union, Sequence, Tuple, Callable, Any
 
 import jax.numpy as jnp
 from jax import vmap
@@ -23,7 +23,6 @@ import brainpy.math as bm
 from brainpy.check import is_sequence
 from brainpy.dynsys import Projection
 from brainpy.initialize import Initializer
-from brainpy.types import ArrayType
 
 __all__ = [
     'DelayCoupling',
@@ -56,10 +55,10 @@ class DelayCoupling(Projection):
         self,
         delay_var: bm.Variable,
         var_to_output: Union[bm.Variable, Sequence[bm.Variable]],
-        conn_mat: ArrayType,
+        conn_mat: bm.Array,
         required_shape: Tuple[int, ...],
-        delay_steps: Optional[Union[int, ArrayType, Callable]] = None,
-        initial_delay_data: Union[Callable, ArrayType, numbers.Number] = None,
+        delay_steps: Optional[Union[int, bm.Array, Callable]] = None,
+        initial_delay_data: Optional[Union[Initializer, Callable, bm.Array, float, int, bool, numbers.Number]] = None,
         name: Optional[str] = None,
         mode: Optional[bm.Mode] = None,
     ):
@@ -85,15 +84,15 @@ class DelayCoupling(Projection):
                              f'while we got {self.conn_mat.shape}.')
 
         # Delay matrix
+        self.delay_steps: Any = None
         if delay_steps is None:
-            self.delay_steps = None
             self.delay_type = 'none'
             num_delay_step = None
         elif callable(delay_steps):
-            delay_steps = delay_steps(required_shape)
-            if delay_steps.dtype not in [jnp.int32, jnp.int64, jnp.uint32, jnp.uint64]:
-                raise ValueError(f'"delay_steps" must be integer typed. But we got {delay_steps.dtype}')
-            self.delay_steps = delay_steps
+            delay_steps_arr = delay_steps(required_shape)
+            if delay_steps_arr.dtype not in [jnp.int32, jnp.int64, jnp.uint32, jnp.uint64]:
+                raise ValueError(f'"delay_steps" must be integer typed. But we got {delay_steps_arr.dtype}')
+            self.delay_steps = delay_steps_arr
             self.delay_type = 'array'
             num_delay_step = self.delay_steps.max()
         elif isinstance(delay_steps, (bm.Array, jnp.ndarray)):
@@ -170,11 +169,11 @@ class DiffusiveCoupling(DelayCoupling):
         coupling_var1: bm.Variable,
         coupling_var2: bm.Variable,
         var_to_output: Union[bm.Variable, Sequence[bm.Variable]],
-        conn_mat: ArrayType,
-        delay_steps: Optional[Union[int, ArrayType, Initializer, Callable]] = None,
-        initial_delay_data: Union[Initializer, Callable, ArrayType, float, int, bool] = None,
-        name: str = None,
-        mode: bm.Mode = None,
+        conn_mat: bm.Array,
+        delay_steps: Optional[Union[int, bm.Array, Initializer, Callable]] = None,
+        initial_delay_data: Optional[Union[Initializer, Callable, bm.Array, float, int, bool]] = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         if not isinstance(coupling_var1, bm.Variable):
             raise ValueError(f'"coupling_var1" must be an instance of brainpy.math.Variable. '
@@ -263,11 +262,11 @@ class AdditiveCoupling(DelayCoupling):
         self,
         coupling_var: bm.Variable,
         var_to_output: Union[bm.Variable, Sequence[bm.Variable]],
-        conn_mat: ArrayType,
-        delay_steps: Optional[Union[int, ArrayType, Initializer, Callable]] = None,
-        initial_delay_data: Union[Initializer, Callable, ArrayType, float, int, bool] = None,
-        name: str = None,
-        mode: bm.Mode = None,
+        conn_mat: bm.Array,
+        delay_steps: Optional[Union[int, bm.Array, Initializer, Callable]] = None,
+        initial_delay_data: Optional[Union[Initializer, Callable, bm.Array, float, int, bool]] = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         if not isinstance(coupling_var, bm.Variable):
             raise ValueError(f'"coupling_var" must be an instance of brainpy.math.Variable. '

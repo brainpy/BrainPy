@@ -14,6 +14,7 @@
 # limitations under the License.
 # ==============================================================================
 import math
+from typing import Optional
 
 import jax.numpy as jnp
 import numpy as np
@@ -265,7 +266,7 @@ class VarianceScaling(_InterLayerInitializer):
         distribution: str,
         in_axis: int = -2,
         out_axis: int = -1,
-        seed: int = None
+        seed: Optional[int] = None
     ):
         assert mode in ['fan_in', 'fan_out', 'fan_avg']
         assert distribution in ['truncated_normal', 'normal', 'uniform']
@@ -314,7 +315,7 @@ class KaimingUniform(VarianceScaling):
         distribution: str = "uniform",
         in_axis: int = -2,
         out_axis: int = -1,
-        seed: int = None
+        seed: Optional[int] = None
     ):
         super().__init__(scale,
                          mode,
@@ -332,7 +333,7 @@ class KaimingNormal(VarianceScaling):
         distribution: str = "truncated_normal",
         in_axis: int = -2,
         out_axis: int = -1,
-        seed: int = None
+        seed: Optional[int] = None
     ):
         super().__init__(scale,
                          mode,
@@ -350,7 +351,7 @@ class XavierUniform(VarianceScaling):
         distribution: str = "uniform",
         in_axis: int = -2,
         out_axis: int = -1,
-        seed: int = None
+        seed: Optional[int] = None
     ):
         super().__init__(scale,
                          mode,
@@ -368,7 +369,7 @@ class XavierNormal(VarianceScaling):
         distribution: str = "truncated_normal",
         in_axis: int = -2,
         out_axis: int = -1,
-        seed: int = None
+        seed: Optional[int] = None
     ):
         super().__init__(scale,
                          mode,
@@ -386,7 +387,7 @@ class LecunUniform(VarianceScaling):
         distribution: str = "uniform",
         in_axis: int = -2,
         out_axis: int = -1,
-        seed: int = None
+        seed: Optional[int] = None
     ):
         super().__init__(scale,
                          mode,
@@ -404,7 +405,7 @@ class LecunNormal(VarianceScaling):
         distribution: str = "truncated_normal",
         in_axis: int = -2,
         out_axis: int = -1,
-        seed: int = None
+        seed: Optional[int] = None
     ):
         super().__init__(scale,
                          mode,
@@ -426,7 +427,7 @@ class Orthogonal(_InterLayerInitializer):
         self,
         scale: float = 1.,
         axis: int = -1,
-        seed: int = None
+        seed: Optional[int] = None
     ):
         super().__init__()
         self.scale = scale

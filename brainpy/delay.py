@@ -18,7 +18,7 @@ Delay variable.
 
 import math
 import numbers
-from typing import Union, Dict, Callable, Optional
+from typing import Union, Dict, Callable, Optional, Any, TYPE_CHECKING
 
 import jax
 import jax.numpy as jnp
@@ -30,7 +30,22 @@ from brainpy.context import share
 from brainpy.dynsys import DynamicalSystem
 from brainpy.initialize import variable_
 from brainpy.math.delayvars import ROTATE_UPDATE, CONCAT_UPDATE
-from brainpy.mixin import ParamDesc, ReturnInfo, JointType, SupportAutoDelay
+from brainpy.mixin import ParamDesc, ReturnInfo, SupportAutoDelay
+
+if TYPE_CHECKING:
+    # ``JointType`` is a runtime helper from ``brainstate`` that mypy cannot model
+    # as a static type (it is a singleton instance supporting subscription). Provide
+    # a type-check-only stand-in so annotations such as ``JointType[A, B]`` are
+    # accepted. The runtime object is imported below.
+    from typing import Generic, TypeVarTuple, Unpack
+
+    _JointTs = TypeVarTuple('_JointTs')
+
+    class JointType(Generic[Unpack[_JointTs]]):
+        def __getattr__(self, item: str) -> Any: ...
+        def __call__(self, *args: Any, **kwargs: Any) -> Any: ...
+else:
+    from brainpy.mixin import JointType
 
 __all__ = [
     'Delay',
@@ -73,7 +88,7 @@ class Delay(DynamicalSystem, ParamDesc):
         The computing mode.
     """
 
-    max_time: float
+    max_time: Any  # accepts int/float/None across the various registration paths
     max_length: int
     data: Optional[bm.Variable]
 
@@ -119,11 +134,11 @@ class Delay(DynamicalSystem, ParamDesc):
 
         # delay data
         if init is not None:
-            assert isinstance(init, (numbers.Number, bm.Array, jax.Array, Callable))
+            assert isinstance(init, (numbers.Number, bm.Array, jax.Array)) or callable(init)
         self._init = init
 
         # other info
-        self._registered_entries = dict()
+        self._registered_entries: Dict[str, Optional[int]] = dict()
 
     def register_entry(
         self,
@@ -262,7 +277,7 @@ class VarDelay(Delay):
             assert target.batch_axis is not None
 
         # sharding
-        sharding = None
+        sharding: Any = None
         if target.axis_names is not None:
             sharding = list(target.axis_names)
             sharding.insert(0, bm.sharding.TIME_AXIS)
@@ -290,7 +305,7 @@ class VarDelay(Delay):
     def register_entry(
         self,
         entry: str,
-        delay_time: Optional[Union[int, float]] = None,
+        delay_time: Optional[Union[int, float, bm.Array, Callable]] = None,
         delay_step: Optional[int] = None,
     ) -> 'Delay':
         """Register an entry to access the data.
@@ -347,10 +362,12 @@ class VarDelay(Delay):
         if entry not in self._registered_entries:
             raise KeyError(f'Does not find delay entry "{entry}".')
         delay_step = self._registered_entries[entry]
-        if isinstance(self.mode, bm.BatchingMode) and len(indices) > self.target.batch_axis:
-            indices = list(indices)
-            indices.insert(self.target.batch_axis, slice(None, None, None))
-            indices = tuple(indices)
+        if isinstance(self.mode, bm.BatchingMode):
+            assert self.target.batch_axis is not None
+            if len(indices) > self.target.batch_axis:
+                indices_list = list(indices)
+                indices_list.insert(self.target.batch_axis, slice(None, None, None))
+                indices = tuple(indices_list)
 
         if delay_step is None or delay_step == 0.:
             if len(indices):
@@ -423,7 +440,7 @@ class VarDelay(Delay):
             if self.method == ROTATE_UPDATE:
                 i = share.load('i')
                 idx = bm.as_jax(-i % self.max_length, dtype=jnp.int32)
-                self.data[jax.lax.stop_gradient(idx)] = latest_value
+                self.data[jax.lax.stop_gradient(idx)] = latest_value  # type: ignore[assignment]  # Array.__setitem__ value type is annotated too narrowly
 
             # update the delay data at the first position
             elif self.method == CONCAT_UPDATE:
@@ -431,19 +448,19 @@ class VarDelay(Delay):
                     latest_value = bm.expand_dims(latest_value, 0)
                     self.data.value = bm.concat([latest_value, self.data[:-1]], axis=0)
                 else:
-                    self.data[0] = latest_value
+                    self.data[0] = latest_value  # type: ignore[assignment]  # Array.__setitem__ value type is annotated too narrowly
 
             else:
                 raise ValueError(f'Unknown updating method "{self.method}"')
 
-    def reset_state(self, batch_size: int = None, **kwargs):
+    def reset_state(self, batch_size: Optional[int] = None, **kwargs):
         """Reset the delay data.
         """
         # initialize delay data
         if self.data is not None:
             self._init_data(self.max_length, batch_size)
 
-    def _init_data(self, length: int, batch_size: int = None):
+    def _init_data(self, length: int, batch_size: Optional[int] = None):
         if batch_size is not None:
             if self.target.batch_size != batch_size:
                 raise ValueError(f'The batch sizes of delay variable and target variable differ '
@@ -468,7 +485,7 @@ class VarDelay(Delay):
             self.data._value = data
         # update delay data
         if isinstance(self._init, (bm.Array, jax.Array, numbers.Number)):
-            self.data[:] = self._init
+            self.data[:] = self._init  # type: ignore[assignment]  # Array.__setitem__ value type is annotated too narrowly
         elif callable(self._init):
             self.data[:] = self._init((length,) + self.target.shape, dtype=self.target.dtype)
         else:
@@ -510,14 +527,14 @@ class DataDelay(VarDelay):
                          name=name,
                          mode=mode)
 
-    def reset_state(self, batch_size: int = None, **kwargs):
+    def reset_state(self, batch_size: Optional[int] = None, **kwargs):
         """Reset the delay data.
         """
         self.target.value = variable_(self.target_init, self.target.size_without_batch, batch_size)
         if self.data is not None:
             self._init_data(self.max_length, batch_size)
 
-    def update(
+    def update(  # type: ignore[override]  # DataDelay always receives a concrete value; base allows None
         self,
         latest_value: Union[bm.Array, jax.Array]
     ) -> None:
@@ -533,7 +550,7 @@ class DelayAccess(DynamicalSystem):
         delay: Delay,
         time: Union[None, int, float],
         *indices,
-        delay_entry: str = None
+        delay_entry: Optional[str] = None
     ):
         super().__init__(mode=delay.mode)
         self.refs = {'delay': delay}
@@ -582,7 +599,7 @@ def init_delay_by_return(info: Union[bm.Variable, ReturnInfo], initial_delay_dat
             batch_axis = None
 
         # init
-        if isinstance(info.data, Callable):
+        if callable(info.data):
             init = info.data(shape)
         elif isinstance(info.data, (bm.Array, jax.Array)):
             init = info.data

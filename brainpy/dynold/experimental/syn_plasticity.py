@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Union
+from typing import Union, Optional, Tuple
 
 import jax.numpy as jnp
 
@@ -72,12 +72,13 @@ class STD(SynSTPNS):
         tau: float = 200.,
         U: float = 0.07,
         method: str = 'exp_auto',
-        name: str = None
+        name: Optional[str] = None
     ):
         super().__init__(name=name)
 
         # parameters
         self.pre_size = tools.to_size(pre_size)
+        assert self.pre_size is not None
         self.num = tools.size2num(self.pre_size)
         self.U = parameter(U, self.num)
         self.tau = parameter(tau, self.num)
@@ -154,17 +155,21 @@ class STP(SynSTPNS):
         tau_f: Union[float, ArrayType] = 1500.,
         tau_d: Union[float, ArrayType] = 200.,
         method: str = 'exp_auto',
-        name: str = None
+        name: Optional[str] = None
     ):
         super().__init__(name=name)
 
         # parameters
-        self.pre_size = tools.to_size(pre_size)
-        self.num = tools.size2num(self.pre_size)
+        # ``U``/``tau_f``/``tau_d`` make ``__init__`` generic over the constrained
+        # ``ArrayType`` TypeVar, which defeats attribute-type inference; annotate the
+        # scalar/shape attributes explicitly (types match the callees' returns).
+        self.pre_size: Optional[Tuple[int, ...]] = tools.to_size(pre_size)
+        assert self.pre_size is not None
+        self.num: int = tools.size2num(self.pre_size)
         self.tau_f = parameter(tau_f, self.num)
         self.tau_d = parameter(tau_d, self.num)
         self.U = parameter(U, self.num)
-        self.method = method
+        self.method: str = method
 
         # integral function
         self.integral = odeint(JointEq([self.du, self.dx]), method=self.method)

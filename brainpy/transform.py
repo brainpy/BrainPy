@@ -14,7 +14,7 @@
 # limitations under the License.
 # ==============================================================================
 import functools
-from typing import Union, Optional, Dict, Sequence
+from typing import Any, Union, Optional, Dict, Sequence, Tuple, cast
 
 import jax
 import jax.numpy as jnp
@@ -135,14 +135,14 @@ class LoopOverTime(DynamicalSystem):
     def __init__(
         self,
         target: DynamicalSystem,
-        out_vars: Union[bm.Variable, Sequence[bm.Variable], Dict[str, bm.Variable]] = None,
+        out_vars: Optional[Union[bm.Variable, Sequence[bm.Variable], Dict[str, bm.Variable]]] = None,
         no_state: bool = False,
         t0: Optional[float] = 0.,
         i0: Optional[int] = 0,
         dt: Optional[float] = None,
         shared_arg: Optional[Dict] = None,
         data_first_axis: str = 'T',
-        name: str = None,
+        name: Optional[str] = None,
         jit: bool = True,
         remat: bool = False,  # Deprecated parameter, kept for backward compatibility
     ):
@@ -159,9 +159,9 @@ class LoopOverTime(DynamicalSystem):
             )
 
         assert data_first_axis in ['B', 'T']
-        is_integer(i0, 'i0', allow_none=True)
-        is_float(t0, 't0', allow_none=True)
-        is_float(dt, 'dt', allow_none=True)
+        is_integer(cast(int, i0), 'i0', allow_none=True)
+        is_float(cast(float, t0), 't0', allow_none=True)
+        is_float(cast(float, dt), 'dt', allow_none=True)
         dt = share.dt if dt is None else dt
         if shared_arg is None:
             shared_arg = dict(dt=dt)
@@ -257,7 +257,7 @@ class LoopOverTime(DynamicalSystem):
                     if self.data_first_axis == 'B':
                         xs = [jnp.moveaxis(x, 0, 1) for x in xs]
                 xs = jax.tree.unflatten(tree, xs)
-                origin_shape = (length[0], batch[0]) if self.data_first_axis == 'T' else (batch[0], length[0])
+                origin_shape: Tuple[Any, ...] = (length[0], batch[0]) if self.data_first_axis == 'T' else (batch[0], length[0])
 
             else:
 

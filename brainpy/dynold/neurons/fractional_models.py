@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Union, Sequence, Callable
+from typing import Any, Optional, Union, Sequence, Callable
 
 import jax.numpy as jnp
 
@@ -111,7 +111,7 @@ class FractionalFHR(FractionalNeuron):
         w_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
         y_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
         input_var: bool = True,
-        name: str = None,
+        name: Optional[str] = None,
         keep_size: bool = False,
     ):
         super(FractionalFHR, self).__init__(size, keep_size=keep_size, name=name)
@@ -136,9 +136,9 @@ class FractionalFHR(FractionalNeuron):
         is_initializer(V_initializer, 'V_initializer', allow_none=False)
         is_initializer(w_initializer, 'w_initializer', allow_none=False)
         is_initializer(y_initializer, 'y_initializer', allow_none=False)
-        self._V_initializer = V_initializer
-        self._w_initializer = w_initializer
-        self._y_initializer = y_initializer
+        self._V_initializer: Any = V_initializer
+        self._w_initializer: Any = w_initializer
+        self._y_initializer: Any = y_initializer
 
         # variables
         self.V = bm.Variable(parameter(V_initializer, self.varshape))
@@ -272,7 +272,7 @@ class FractionalIzhikevich(FractionalNeuron):
         u_initializer: Union[Initializer, Callable, ArrayType] = OneInit(0.20 * -65.),
         keep_size: bool = False,
         input_var: bool = True,
-        name: str = None
+        name: Optional[str] = None
     ):
         # initialization
         super(FractionalIzhikevich, self).__init__(size=size, keep_size=keep_size, name=name)
@@ -280,7 +280,9 @@ class FractionalIzhikevich(FractionalNeuron):
 
         # params
         self.alpha = alpha
-        is_float(alpha, 'alpha', min_bound=0., max_bound=1., allow_none=False, allow_int=True)
+        # is_float validates a scalar float at runtime (its `value` param is annotated too
+        # strictly; alpha is expected to be scalar for this model)
+        is_float(alpha, 'alpha', min_bound=0., max_bound=1., allow_none=False, allow_int=True)  # type: ignore[arg-type]
         self.a = parameter(a, self.varshape, allow_none=False)
         self.b = parameter(b, self.varshape, allow_none=False)
         self.c = parameter(c, self.varshape, allow_none=False)
@@ -296,8 +298,8 @@ class FractionalIzhikevich(FractionalNeuron):
         # initializers
         is_initializer(V_initializer, 'V_initializer', allow_none=False)
         is_initializer(u_initializer, 'u_initializer', allow_none=False)
-        self._V_initializer = V_initializer
-        self._u_initializer = u_initializer
+        self._V_initializer: Any = V_initializer
+        self._u_initializer: Any = u_initializer
 
         # variables
         self.V = bm.Variable(parameter(V_initializer, self.varshape))

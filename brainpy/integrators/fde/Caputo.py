@@ -18,7 +18,7 @@ This module provides numerical methods for integrating Caputo fractional derivat
 
 """
 
-from typing import Union, Dict, Sequence, Callable
+from typing import Union, Dict, Sequence, Callable, Optional
 
 import jax
 from scipy.special import gamma, rgamma
@@ -133,9 +133,9 @@ class CaputoEuler(FDEIntegrator):
         alpha: Union[float, Sequence[float], ArrayType],
         num_memory: int,
         inits: Union[ArrayType, Sequence[ArrayType], Dict[str, ArrayType]],
-        dt: float = None,
-        name: str = None,
-        state_delays: Dict[str, Union[bm.LengthDelay, bm.TimeDelay]] = None,
+        dt: Optional[float] = None,
+        name: Optional[str] = None,
+        state_delays: Optional[Dict[str, Union[bm.LengthDelay, bm.TimeDelay]]] = None,
     ):
         super(CaputoEuler, self).__init__(f=f,
                                           alpha=alpha,
@@ -337,9 +337,9 @@ class CaputoL1Schema(FDEIntegrator):
         alpha: Union[float, Sequence[float], ArrayType],
         num_memory: int,
         inits: Union[ArrayType, Sequence[ArrayType], Dict[str, ArrayType]],
-        state_delays: Dict[str, Union[bm.LengthDelay, bm.TimeDelay]] = None,
-        dt: float = None,
-        name: str = None,
+        state_delays: Optional[Dict[str, Union[bm.LengthDelay, bm.TimeDelay]]] = None,
+        dt: Optional[float] = None,
+        name: Optional[str] = None,
     ):
         super(CaputoL1Schema, self).__init__(f=f,
                                              alpha=alpha,

@@ -15,7 +15,7 @@
 # ==============================================================================
 import types
 import warnings
-from typing import Callable, Dict, Sequence, Union
+from typing import Any, Callable, Dict, Optional, Sequence, Union
 
 import numpy as np
 
@@ -80,11 +80,11 @@ class Runner(BrainPyObject):
     def __init__(
         self,
         target: BrainPyObject,
-        monitors: Union[Sequence, Dict] = None,
-        fun_monitors: Dict[str, Callable] = None,
+        monitors: Optional[Union[Sequence, Dict]] = None,
+        fun_monitors: Optional[Dict[str, Callable]] = None,
         jit: Union[bool, Dict[str, bool]] = True,
         progress_bar: bool = True,
-        dyn_vars: Union[bm.Variable, Sequence[bm.Variable], Dict[str, bm.Variable]] = None,
+        dyn_vars: Optional[Union[bm.Variable, Sequence[bm.Variable], Dict[str, bm.Variable]]] = None,
         numpy_mon_after_run: bool = True
     ):
         super().__init__()
@@ -124,6 +124,7 @@ class Runner(BrainPyObject):
         else:
             raise MonitorError(f'We only supports a format of list/tuple/dict of '
                                f'"vars", while we got {type(monitors)}.')
+        assert isinstance(monitors, dict)
         self._monitors: dict = monitors
 
         # deprecated func_monitors
@@ -140,7 +141,7 @@ class Runner(BrainPyObject):
         # progress bar
         assert isinstance(progress_bar, bool), 'Must be a boolean variable.'
         self.progress_bar = progress_bar
-        self._pbar = None
+        self._pbar: Any = None
 
         # dynamical changed variables
         self._dyn_vars = check.is_all_vars(dyn_vars, out_as='dict')

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Union, Callable, Optional
+from typing import Union, Callable, Optional, Any
 
 from brainpy.dynold.synapses.base import _SynOut
 from brainpy.initialize import parameter, Initializer
@@ -51,9 +51,12 @@ class CUBA(_SynOut):
     def __init__(
         self,
         target_var: Optional[Union[str, Variable]] = 'input',
-        name: str = None,
+        name: Optional[str] = None,
     ):
         self._target_var = target_var
+        # ``_SynOut.__init__`` accepts None for ``target_var`` at runtime but is
+        # annotated non-optional (implicit-optional default); Optional-izing that
+        # base signature is an out-of-batch fix.
         super().__init__(name=name, target_var=target_var)
 
     def clone(self):
@@ -88,10 +91,14 @@ class COBA(_SynOut):
         E: Union[float, ArrayType, Callable, Initializer] = 0.,
         target_var: Optional[Union[str, Variable]] = 'input',
         membrane_var: Union[str, Variable] = 'V',
-        name: str = None,
+        name: Optional[str] = None,
     ):
+        # See CUBA above: ``_SynOut.target_var`` is implicit-optional; the base
+        # annotation should be Optional (out-of-batch fix).
         super().__init__(name=name, target_var=target_var)
-        self._E = E
+        # ``ArrayType`` is a *constrained* TypeVar; ``Any`` is the honest spelling
+        # for the array slot in this heterogeneous attribute (no behavior change).
+        self._E: Union[float, Any, Callable, Initializer] = E
         self._target_var = target_var
         self._membrane_var = membrane_var
 

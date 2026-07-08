@@ -13,9 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Dict
+from typing import Dict, Optional, Type, Union
 
-from brainpy.math.delayvars import AbstractDelay, NeuTimeDelay
+from brainpy.math.delayvars import TimeDelay, LengthDelay, NeuTimeDelay, NeuLenDelay
 from .base import ODEIntegrator
 
 __all__ = [
@@ -25,7 +25,7 @@ __all__ = [
     'get_supported_methods',
 ]
 
-name2method = {
+name2method: Dict[str, Type[ODEIntegrator]] = {
 }
 
 _DEFAULT_DDE_METHOD = 'euler'
@@ -38,8 +38,8 @@ def odeint(
     dt=None,
     name=None,
     show_code=False,
-    state_delays: Dict[str, AbstractDelay] = None,
-    neutral_delays: Dict[str, NeuTimeDelay] = None,
+    state_delays: Optional[Dict[str, Union[LengthDelay, TimeDelay]]] = None,
+    neutral_delays: Optional[Dict[str, Union[NeuTimeDelay, NeuLenDelay]]] = None,
     **kwargs
 ):
     """Numerical integration for ODEs.

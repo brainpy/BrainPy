@@ -136,10 +136,10 @@ class AdaptiveRKIntegrator(ODEIntegrator):
       The variable type.
     """
 
-    A = []  # The A matrix in the Butcher tableau.
-    B1 = []  # The B1 vector in the Butcher tableau.
-    B2 = []  # The B2 vector in the Butcher tableau.
-    C = []  # The C vector in the Butcher tableau.
+    A: list = []  # The A matrix in the Butcher tableau.
+    B1: list = []  # The B1 vector in the Butcher tableau.
+    B2: list = []  # The B2 vector in the Butcher tableau.
+    C: list = []  # The C vector in the Butcher tableau.
 
     def __init__(self,
                  f,

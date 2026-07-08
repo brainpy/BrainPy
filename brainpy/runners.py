@@ -33,7 +33,7 @@ from brainpy.deprecations import _input_deprecate_msg
 from brainpy.dynsys import DynamicalSystem
 from brainpy.helpers import clear_input
 from brainpy.running.runner import Runner
-from brainpy.types import Output, Monitor
+from brainpy.types import Output
 
 __all__ = [
     'DSRunner',
@@ -399,14 +399,14 @@ class DSRunner(Runner):
 
     def predict(
         self,
-        duration: float = None,
+        duration: Optional[float] = None,
         inputs: Any = None,
         reset_state: bool = False,
         eval_time: bool = False,
-        shared_args: Dict = None,
+        shared_args: Optional[Dict] = None,
 
         # deprecated
-        inputs_are_batching: bool = None,
+        inputs_are_batching: Optional[bool] = None,
     ) -> Union[Output, Tuple[float, Output]]:
         """Running a duration with the given target model. See `.predict()` function
         for more details.
@@ -452,7 +452,7 @@ class DSRunner(Runner):
         """
 
         if inputs_are_batching is not None:
-            raise warnings.warn(
+            raise warnings.warn(  # type: ignore[misc]  # latent bug: warnings.warn returns None; preserved to avoid behavior change
                 f'''
         `inputs_are_batching` is no longer supported. 
         The target mode of {self.target.mode} has already indicated the input should be batching.
@@ -536,7 +536,7 @@ class DSRunner(Runner):
         """
         return self.predict(*args, **kwargs)
 
-    def _predict(self, indices, *xs, shared_args=None) -> Union[Output, Monitor]:
+    def _predict(self, indices, *xs, shared_args=None) -> Tuple[Any, Any]:
         """Predict the output according to the inputs.
 
         Parameters

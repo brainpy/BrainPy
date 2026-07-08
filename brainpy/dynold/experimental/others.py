@@ -49,8 +49,8 @@ class PoissonInput(DynamicalSystem):
         freq: Union[int, float],
         weight: Union[int, float],
         seed: Optional[int] = None,
-        mode: bm.Mode = None,
-        name: str = None
+        mode: Optional[bm.Mode] = None,
+        name: Optional[str] = None
     ):
         super(PoissonInput, self).__init__(name=name, mode=mode)
 

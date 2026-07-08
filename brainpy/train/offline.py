@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Dict, Sequence, Union, Callable, Any
+from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
 
 import brainstate.environ
 import jax
@@ -65,10 +65,12 @@ class OfflineTrainer(DSTrainer):
       Other general parameters please see :py:class:`~.DSRunner`.
     """
 
+    _pbar: Any  # progress bar handle (None or tqdm); base ``Runner`` sets it to None
+
     def __init__(
         self,
         target: DynamicalSystem,
-        fit_method: Union[OfflineAlgorithm, Callable, Dict, str] = None,
+        fit_method: Optional[Union[OfflineAlgorithm, Callable, Dict, str]] = None,
         **kwargs
     ):
         self._true_numpy_mon_after_run = kwargs.get('numpy_mon_after_run', True)
@@ -88,7 +90,7 @@ class OfflineTrainer(DSTrainer):
         if fit_method is None:
             fit_method = RidgeRegression(alpha=1e-7)
         elif isinstance(fit_method, str):
-            fit_method = get(fit_method)()
+            fit_method = get(fit_method)()  # type: ignore[call-arg]  # get() is annotated to return an instance but actually returns the algorithm class
         elif isinstance(fit_method, dict):
             name = fit_method.pop('name')
             fit_method = get(name)(**fit_method)
@@ -109,13 +111,13 @@ class OfflineTrainer(DSTrainer):
         return (f'{name}(target={self.target}, \n\t'
                 f'{prefix}fit_method={self.fit_method})')
 
-    def predict(
+    def predict(  # type: ignore[override]  # narrower signature than DSRunner.predict; runtime API intentionally differs
         self,
         inputs: Any,
         reset_state: bool = False,
-        shared_args: Dict = None,
+        shared_args: Optional[Dict] = None,
         eval_time: bool = False
-    ) -> Output:
+    ) -> Union[Output, Tuple[float, Output]]:
         """Prediction function.
 
         What's different from `predict()` function in :py:class:`~.DynamicalSystem` is that
@@ -139,18 +141,18 @@ class OfflineTrainer(DSTrainer):
         output : ArrayType
           The running output.
         """
-        outs = super().predict(inputs=inputs, reset_state=reset_state,
-                               eval_time=eval_time, shared_args=shared_args)
+        outs: Any = super().predict(inputs=inputs, reset_state=reset_state,
+                                    eval_time=eval_time, shared_args=shared_args)
         for node in self.train_nodes:
             node.fit_record.clear()
         return outs
 
-    def fit(
+    def fit(  # type: ignore[override]  # narrows train_data to a Sequence (X, Y) pair; base DSTrainer.fit types it as Any
         self,
         train_data: Sequence,
         reset_state: bool = False,
-        shared_args: Dict = None,
-    ) -> Output:
+        shared_args: Optional[Dict] = None,
+    ) -> Union[Output, Tuple[float, Output]]:
         """Fit the target model according to the given training and testing data.
 
         Parameters
@@ -191,7 +193,7 @@ class OfflineTrainer(DSTrainer):
 
             # prediction, get all needed data
             shared_args['fit'] = shared_args.get('fit', True)
-            outs = self.predict(inputs=xs, reset_state=reset_state, shared_args=shared_args)
+            outs: Any = self.predict(inputs=xs, reset_state=reset_state, shared_args=shared_args)
 
             # check target data
             ys = format_ys(self, ys)
@@ -231,7 +233,7 @@ class OfflineTrainer(DSTrainer):
     def _fun_train(self,
                    monitor_data: Dict[str, ArrayType],
                    target_data: Dict[str, ArrayType],
-                   shared_args: Dict = None):
+                   shared_args: Optional[Dict] = None):
         if shared_args is None:
             shared_args = dict()
         share.save(**shared_args)

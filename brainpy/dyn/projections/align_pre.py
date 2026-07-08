@@ -174,10 +174,10 @@ class FullProjAlignPreSDMg(Projection):
     def __init__(
         self,
         pre: DynamicalSystem,
-        syn: ParamDescriber[JointType[DynamicalSystem, SupportAutoDelay]],
+        syn: ParamDescriber[JointType[DynamicalSystem, SupportAutoDelay]],  # type: ignore[type-arg, valid-type]  # brainstate dynamic type
         delay: Union[None, int, float],
         comm: DynamicalSystem,
-        out: JointType[DynamicalSystem, BindCondData],
+        out: JointType[DynamicalSystem, BindCondData],  # type: ignore[valid-type]  # brainstate dynamic type
         post: DynamicalSystem,
         out_label: Optional[str] = None,
         name: Optional[str] = None,
@@ -187,7 +187,7 @@ class FullProjAlignPreSDMg(Projection):
 
         # synaptic models
         check.is_instance(pre, DynamicalSystem)
-        check.is_instance(syn, ParamDescriber[JointType[DynamicalSystem, SupportAutoDelay]])
+        check.is_instance(syn, ParamDescriber[JointType[DynamicalSystem, SupportAutoDelay]])  # type: ignore[misc, valid-type]  # brainstate dynamic type
         check.is_instance(comm, DynamicalSystem)
         check.is_instance(out, JointType[DynamicalSystem, BindCondData])
         check.is_instance(post, DynamicalSystem)
@@ -319,11 +319,11 @@ class FullProjAlignPreDSMg(Projection):
 
     def __init__(
         self,
-        pre: JointType[DynamicalSystem, SupportAutoDelay],
+        pre: JointType[DynamicalSystem, SupportAutoDelay],  # type: ignore[valid-type]  # brainstate dynamic type
         delay: Union[None, int, float],
-        syn: ParamDescriber[DynamicalSystem],
+        syn: ParamDescriber[DynamicalSystem],  # type: ignore[type-arg]  # brainstate ParamDescriber is non-generic
         comm: DynamicalSystem,
-        out: JointType[DynamicalSystem, BindCondData],
+        out: JointType[DynamicalSystem, BindCondData],  # type: ignore[valid-type]  # brainstate dynamic type
         post: DynamicalSystem,
         out_label: Optional[str] = None,
         name: Optional[str] = None,
@@ -333,7 +333,7 @@ class FullProjAlignPreDSMg(Projection):
 
         # synaptic models
         check.is_instance(pre, JointType[DynamicalSystem, SupportAutoDelay])
-        check.is_instance(syn, ParamDescriber[DynamicalSystem])
+        check.is_instance(syn, ParamDescriber[DynamicalSystem])  # type: ignore[misc]  # brainstate ParamDescriber is non-generic
         check.is_instance(comm, DynamicalSystem)
         check.is_instance(out, JointType[DynamicalSystem, BindCondData])
         check.is_instance(post, DynamicalSystem)
@@ -461,10 +461,10 @@ class FullProjAlignPreSD(Projection):
     def __init__(
         self,
         pre: DynamicalSystem,
-        syn: JointType[DynamicalSystem, SupportAutoDelay],
+        syn: JointType[DynamicalSystem, SupportAutoDelay],  # type: ignore[valid-type]  # brainstate dynamic type
         delay: Union[None, int, float],
         comm: DynamicalSystem,
-        out: JointType[DynamicalSystem, BindCondData],
+        out: JointType[DynamicalSystem, BindCondData],  # type: ignore[valid-type]  # brainstate dynamic type
         post: DynamicalSystem,
         out_label: Optional[str] = None,
         name: Optional[str] = None,
@@ -481,7 +481,7 @@ class FullProjAlignPreSD(Projection):
         self.comm = comm
 
         # synapse and delay initialization
-        delay_cls = init_delay_by_return(syn.return_info())
+        delay_cls = init_delay_by_return(syn.return_info())  # type: ignore[attr-defined]  # brainstate JointType not statically resolvable
         delay_cls.register_entry(self.name, delay)
         pre.add_aft_update(self.name, _AlignPre(syn, delay_cls))
 
@@ -604,11 +604,11 @@ class FullProjAlignPreDS(Projection):
 
     def __init__(
         self,
-        pre: JointType[DynamicalSystem, SupportAutoDelay],
+        pre: JointType[DynamicalSystem, SupportAutoDelay],  # type: ignore[valid-type]  # brainstate dynamic type
         delay: Union[None, int, float],
         syn: DynamicalSystem,
         comm: DynamicalSystem,
-        out: JointType[DynamicalSystem, BindCondData],
+        out: JointType[DynamicalSystem, BindCondData],  # type: ignore[valid-type]  # brainstate dynamic type
         post: DynamicalSystem,
         out_label: Optional[str] = None,
         name: Optional[str] = None,

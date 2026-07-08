@@ -35,7 +35,7 @@ class Mode(brainstate.mixin.Mode):
     def __repr__(self):
         return self.__class__.__name__
 
-    def __eq__(self, other: 'Mode'):
+    def __eq__(self, other: object):
         if not isinstance(other, Mode):
             return False
         return other.__class__ == self.__class__

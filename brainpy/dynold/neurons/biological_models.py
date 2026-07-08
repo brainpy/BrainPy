@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Union, Callable
+from typing import Any, Optional, Union, Callable
 
 import brainpy.math as bm
 from brainpy import check
@@ -213,7 +213,7 @@ class HH(hh.HH):
         **kwargs,
     ):
         self.input_var = input_var
-        super().__init__(*args, **kwargs, init_var=False)
+        super().__init__(*args, **kwargs, init_var=False)  # type: ignore[misc]  # leading *args are size/keep_size; init_var never filled positionally
 
         self.reset_state(self.mode)
 
@@ -315,7 +315,7 @@ class MorrisLecar(hh.MorrisLecar):
         **kwargs,
     ):
         self.input_var = input_var
-        super().__init__(*args, **kwargs, init_var=False)
+        super().__init__(*args, **kwargs, init_var=False)  # type: ignore[misc]  # leading *args are size/keep_size; init_var never filled positionally
         self.reset_state(self.mode)
 
     def reset_state(self, batch_size=None):
@@ -488,7 +488,7 @@ class PinskyRinzelModel(NeuDyn):
            neurophysiology, 66(2), 635-650.
     """
 
-    supported_modes = (bm.BatchingMode, bm.NonBatchingMode)
+    supported_modes: tuple = (bm.BatchingMode, bm.NonBatchingMode)
 
     def __init__(
         self,
@@ -517,10 +517,10 @@ class PinskyRinzelModel(NeuDyn):
         Vd_initializer: Union[Initializer, Callable, ArrayType] = OneInit(-64.5),
         Ca_initializer: Union[Initializer, Callable, ArrayType] = OneInit(0.2),
         # others
-        noise: Union[float, ArrayType, Initializer, Callable] = None,
+        noise: Optional[Union[float, ArrayType, Initializer, Callable]] = None,
         method: str = 'exp_auto',
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         # initialization
         super(PinskyRinzelModel, self).__init__(size=size,
@@ -554,19 +554,22 @@ class PinskyRinzelModel(NeuDyn):
         check.is_initializer(Vs_initializer, 'Vs_initializer', allow_none=False)
         check.is_initializer(Vd_initializer, 'Vd_initializer', allow_none=False)
         check.is_initializer(Ca_initializer, 'Ca_initializer', allow_none=False)
-        self._Vs_initializer = Vs_initializer
-        self._Vd_initializer = Vd_initializer
-        self._Ca_initializer = Ca_initializer
+        self._Vs_initializer: Any = Vs_initializer
+        self._Vd_initializer: Any = Vd_initializer
+        self._Ca_initializer: Any = Ca_initializer
 
         # variables
         self.Vs = variable_(self._Vs_initializer, self.varshape, self.mode)
         self.Vd = variable_(self._Vd_initializer, self.varshape, self.mode)
         self.Ca = variable_(self._Ca_initializer, self.varshape, self.mode)
-        self.h = bm.Variable(self.inf_h(self.Vs), batch_axis=0 if isinstance(self.mode, bm.BatchingMode) else None)
-        self.n = bm.Variable(self.inf_n(self.Vs), batch_axis=0 if isinstance(self.mode, bm.BatchingMode) else None)
-        self.s = bm.Variable(self.inf_s(self.Vd), batch_axis=0 if isinstance(self.mode, bm.BatchingMode) else None)
-        self.c = bm.Variable(self.inf_c(self.Vd), batch_axis=0 if isinstance(self.mode, bm.BatchingMode) else None)
-        self.q = bm.Variable(self.inf_q(self.Ca), batch_axis=0 if isinstance(self.mode, bm.BatchingMode) else None)
+        # ``bm.Variable`` annotates ``batch_axis`` as ``int`` though ``None`` is its
+        # runtime default; the conditional yields ``int | None`` here.
+        _batch_axis = 0 if isinstance(self.mode, bm.BatchingMode) else None
+        self.h = bm.Variable(self.inf_h(self.Vs), batch_axis=_batch_axis)
+        self.n = bm.Variable(self.inf_n(self.Vs), batch_axis=_batch_axis)
+        self.s = bm.Variable(self.inf_s(self.Vd), batch_axis=_batch_axis)
+        self.c = bm.Variable(self.inf_c(self.Vd), batch_axis=_batch_axis)
+        self.q = bm.Variable(self.inf_q(self.Ca), batch_axis=_batch_axis)
         self.Id = variable_(bm.zeros, self.varshape, self.mode)  # input to soma
         self.Is = variable_(bm.zeros, self.varshape, self.mode)  # input to dendrite
 
@@ -822,7 +825,7 @@ class WangBuzsakiModel(hh.WangBuzsakiHH):
         **kwargs,
     ):
         self.input_var = input_var
-        super().__init__(*args, **kwargs, init_var=False)
+        super().__init__(*args, **kwargs, init_var=False)  # type: ignore[misc]  # leading *args are size/keep_size; init_var never filled positionally
         self.reset_state(self.mode)
 
     def reset_state(self, batch_size=None):

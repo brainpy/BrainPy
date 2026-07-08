@@ -50,8 +50,8 @@ def _parallel(
     ordered: bool,
     function: Callable,
     arguments: Union[Sequence[Iterable], Dict[str, Iterable]],
-    num_process: Union[int, float] = None,
-    num_task: int = None,
+    num_process: Optional[Union[int, float]] = None,
+    num_task: Optional[int] = None,
     **tqdm_kwargs: Any
 ) -> Generator:
     """Perform a parallel map with a progress bar.

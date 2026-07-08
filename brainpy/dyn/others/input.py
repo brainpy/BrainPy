@@ -48,7 +48,7 @@ class InputGroup(NeuDyn):
 
     def __init__(
         self,
-        size: Union[int, Sequence[int]],
+        size: Shape,
         sharding: Any = None,
         keep_size: bool = False,
         mode: Optional[bm.Mode] = None,
@@ -83,7 +83,7 @@ class OutputGroup(NeuDyn):
 
     def __init__(
         self,
-        size: Union[int, Sequence[int]],
+        size: Shape,
         sharding: Any = None,
         keep_size: bool = False,
         mode: Optional[bm.Mode] = None,
@@ -135,7 +135,7 @@ class SpikeTimeGroup(NeuDyn):
 
     def __init__(
         self,
-        size: Union[int, Sequence[int]],
+        size: Shape,
         indices: Union[Sequence, ArrayType],
         times: Union[Sequence, ArrayType],
         spk_type: Optional[type] = None,

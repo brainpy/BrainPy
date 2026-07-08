@@ -33,7 +33,7 @@ __all__ = [
     'register_online_method',
 ]
 
-name2func = dict()
+name2func: "dict[str, type[OnlineAlgorithm] | OnlineAlgorithm]" = dict()
 
 
 class OnlineAlgorithm(BrainPyObject):

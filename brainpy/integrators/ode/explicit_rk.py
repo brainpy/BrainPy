@@ -142,9 +142,9 @@ class ExplicitRKIntegrator(ODEIntegrator):
     dt : float
         The numerical precision.
     """
-    A = []  # The A matrix in the Butcher tableau.
-    B = []  # The B vector in the Butcher tableau.
-    C = []  # The C vector in the Butcher tableau.
+    A: list = []  # The A matrix in the Butcher tableau.
+    B: list = []  # The B vector in the Butcher tableau.
+    C: list = []  # The C vector in the Butcher tableau.
 
     def __init__(self,
                  f,

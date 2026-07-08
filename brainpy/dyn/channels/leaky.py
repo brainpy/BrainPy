@@ -18,7 +18,7 @@ This module implements leakage channels.
 
 """
 
-from typing import Union, Callable, Sequence
+from typing import Optional, Union, Callable, Sequence
 
 import brainpy.math as bm
 from brainpy.dyn.neurons.hh import HHTypedNeuron
@@ -59,9 +59,9 @@ class IL(LeakyChannel):
         keep_size: bool = False,
         g_max: Union[int, float, ArrayType, Initializer, Callable] = 0.1,
         E: Union[int, float, ArrayType, Initializer, Callable] = -70.,
-        method: str = None,
-        name: str = None,
-        mode: bm.Mode = None,
+        method: Optional[str] = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         super(IL, self).__init__(size,
                                  keep_size=keep_size,
@@ -70,7 +70,7 @@ class IL(LeakyChannel):
 
         self.E = parameter(E, self.varshape, allow_none=False)
         self.g_max = parameter(g_max, self.varshape, allow_none=False)
-        self.method = method
+        self.method = method  # type: ignore[assignment]  # base Dynamic types self.method as str; IL permits None (unused, no integral)
 
     def reset_state(self, V, batch_size=None):
         pass

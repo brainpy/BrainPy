@@ -59,7 +59,8 @@ def _exprel(x):
 class CalciumChannel(IonChannel):
     """Base class for Calcium ion channels."""
 
-    master_type = Calcium
+    # base IonChannel infers master_type as type[HHTypedNeuron]; subclasses set other master types
+    master_type = Calcium  # type: ignore[assignment]
     '''The type of the master object.'''
 
     def update(self, V, C, E):
@@ -68,10 +69,10 @@ class CalciumChannel(IonChannel):
     def current(self, V, C, E):
         raise NotImplementedError
 
-    def reset(self, V, C, E, batch_size: int = None):
+    def reset(self, V, C, E, batch_size: Optional[int] = None):
         self.reset_state(V, C, E, batch_size)
 
-    def reset_state(self, V, C, E, batch_size: int = None):
+    def reset_state(self, V, C, E, batch_size: Optional[int] = None):
         raise NotImplementedError('Must be implemented by the subclass.')
 
 
@@ -304,7 +305,8 @@ class ICaN_IS2008(CalciumChannel):
     """
 
     '''The type of the master object.'''
-    master_type = CalciumDyna
+    # base CalciumChannel infers master_type as type[Calcium]; this subclass uses CalciumDyna
+    master_type = CalciumDyna  # type: ignore[assignment]
 
     def __init__(
         self,
@@ -411,8 +413,8 @@ class ICaT_HM1992(_ICa_p2q_ss):
         T_base_q: Union[float, ArrayType] = 3.,
         g_max: Union[float, ArrayType, Initializer, Callable] = 2.,
         V_sh: Union[float, ArrayType, Initializer, Callable] = -3.,
-        phi_p: Union[float, ArrayType, Initializer, Callable] = None,
-        phi_q: Union[float, ArrayType, Initializer, Callable] = None,
+        phi_p: Optional[Union[float, ArrayType, Initializer, Callable]] = None,
+        phi_q: Optional[Union[float, ArrayType, Initializer, Callable]] = None,
         method: str = 'exp_auto',
         name: Optional[str] = None,
         mode: Optional[bm.Mode] = None,
@@ -511,8 +513,8 @@ class ICaT_HP1992(_ICa_p2q_ss):
         T_base_q: Union[float, ArrayType] = 3.,
         g_max: Union[float, ArrayType, Initializer, Callable] = 1.75,
         V_sh: Union[float, ArrayType, Initializer, Callable] = -3.,
-        phi_p: Union[float, ArrayType, Initializer, Callable] = None,
-        phi_q: Union[float, ArrayType, Initializer, Callable] = None,
+        phi_p: Optional[Union[float, ArrayType, Initializer, Callable]] = None,
+        phi_q: Optional[Union[float, ArrayType, Initializer, Callable]] = None,
         method: str = 'exp_auto',
         name: Optional[str] = None,
         mode: Optional[bm.Mode] = None,
@@ -714,8 +716,8 @@ class ICaHT_Re1993(_ICa_p2q_markov):
         T: Union[float, ArrayType] = 36.,
         T_base_p: Union[float, ArrayType] = 2.3,
         T_base_q: Union[float, ArrayType] = 2.3,
-        phi_p: Union[float, ArrayType, Initializer, Callable] = None,
-        phi_q: Union[float, ArrayType, Initializer, Callable] = None,
+        phi_p: Optional[Union[float, ArrayType, Initializer, Callable]] = None,
+        phi_q: Optional[Union[float, ArrayType, Initializer, Callable]] = None,
         g_max: Union[float, ArrayType, Initializer, Callable] = 1.,
         V_sh: Union[float, ArrayType, Initializer, Callable] = 0.,
         method: str = 'exp_auto',
@@ -803,9 +805,9 @@ class ICaL_IS2008(_ICa_p2q_ss):
         self,
         size: Shape,
         keep_size: bool = False,
-        T: Union[float, ArrayType, Initializer, Callable] = 36.,
-        T_base_p: Union[float, ArrayType, Initializer, Callable] = 3.55,
-        T_base_q: Union[float, ArrayType, Initializer, Callable] = 3.,
+        T: Union[float, ArrayType] = 36.,
+        T_base_p: Union[float, ArrayType] = 3.55,
+        T_base_q: Union[float, ArrayType] = 3.,
         g_max: Union[float, ArrayType, Initializer, Callable] = 1.,
         V_sh: Union[float, ArrayType, Initializer, Callable] = 0.,
         method: str = 'exp_auto',

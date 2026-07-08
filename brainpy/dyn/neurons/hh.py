@@ -113,11 +113,11 @@ class CondNeuGroupLTC(HHTypedNeuron, Container, TreeNode):
 
         # parameters for neurons
         self.input_var = input_var
-        self.C = C
-        self.A = A
-        self.V_th = V_th
+        self.C: Any = C
+        self.A: Any = A
+        self.V_th: Any = V_th
         self.noise = init_noise(noise, self.varshape, num_vars=1)
-        self._V_initializer = V_initializer
+        self._V_initializer: Any = V_initializer
         self.spk_type = ((bm.float_ if isinstance(self.mode, bm.TrainingMode) else bm.bool)
                          if (spk_type is None) else spk_type)
 
@@ -325,8 +325,8 @@ class HHLTC(NeuDyn):
         size: Union[int, Sequence[int]],
         sharding: Any = None,
         keep_size: bool = False,
-        mode: bm.Mode = None,
-        name: str = None,
+        mode: Optional[bm.Mode] = None,
+        name: Optional[str] = None,
         method: str = 'exp_auto',
         init_var: bool = True,
 
@@ -345,7 +345,7 @@ class HHLTC(NeuDyn):
         n_initializer: Optional[Union[Callable, ArrayType]] = None,
 
         # noise
-        noise: Union[float, ArrayType, Callable] = None,
+        noise: Optional[Union[float, ArrayType, Callable]] = None,
     ):
         # initialization
         super().__init__(size=size,
@@ -632,15 +632,15 @@ class MorrisLecarLTC(NeuDyn):
     .. [6] https://en.wikipedia.org/wiki/Morris%E2%80%93Lecar_model
     """
 
-    supported_modes = (bm.NonBatchingMode, bm.BatchingMode)
+    supported_modes = (bm.NonBatchingMode, bm.BatchingMode)  # type: ignore[assignment]  # base dynsys.py types supported_modes as Sequence[Mode] instances, but the convention assigns Mode subclass types
 
     def __init__(
         self,
         size: Union[int, Sequence[int]],
         sharding: Any = None,
         keep_size: bool = False,
-        mode: bm.Mode = None,
-        name: str = None,
+        mode: Optional[bm.Mode] = None,
+        name: Optional[str] = None,
         method: str = 'exp_auto',
         init_var: bool = True,
 
@@ -662,7 +662,7 @@ class MorrisLecarLTC(NeuDyn):
         V_initializer: Union[Callable, ArrayType] = Uniform(-70., -60.),
 
         # noise
-        noise: Union[float, ArrayType, Callable] = None,
+        noise: Optional[Union[float, ArrayType, Callable]] = None,
     ):
         # initialization
         super().__init__(size=size,
@@ -925,8 +925,8 @@ class WangBuzsakiHHLTC(NeuDyn):
         size: Union[int, Sequence[int]],
         sharding: Any = None,
         keep_size: bool = False,
-        mode: bm.Mode = None,
-        name: str = None,
+        mode: Optional[bm.Mode] = None,
+        name: Optional[str] = None,
         method: str = 'exp_auto',
         init_var: bool = True,
 
@@ -945,7 +945,7 @@ class WangBuzsakiHHLTC(NeuDyn):
         n_initializer: Union[Callable, ArrayType] = OneInit(0.32),
 
         # noise
-        noise: Union[float, ArrayType, Callable] = None,
+        noise: Optional[Union[float, ArrayType, Callable]] = None,
     ):
         # initialization
         super().__init__(size=size,

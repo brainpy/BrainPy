@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Union, Callable, Optional
+from typing import Any, Union, Callable, Optional
 
 import jax.numpy as jnp
 
@@ -67,13 +67,13 @@ class MgBlock(_SynOut):
         beta: Union[float, ArrayType, Callable, Initializer] = 3.57,
         target_var: Optional[Union[str, bm.Variable]] = 'input',
         membrane_var: Union[str, bm.Variable] = 'V',
-        name: str = None,
+        name: Optional[str] = None,
     ):
         super().__init__(name=name, target_var=target_var)
-        self._E = E
-        self._cc_Mg = cc_Mg
-        self._alpha = alpha
-        self._beta = beta
+        self._E: Any = E
+        self._cc_Mg: Any = cc_Mg
+        self._alpha: Any = alpha
+        self._beta: Any = beta
         self._target_var = target_var
         self._membrane_var = membrane_var
 

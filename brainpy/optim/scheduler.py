@@ -14,7 +14,7 @@
 # limitations under the License.
 # ==============================================================================
 import warnings
-from typing import Sequence, Union
+from typing import Sequence, Union, Optional
 
 import brainstate
 import jax
@@ -344,7 +344,7 @@ class ExponentialLR(Scheduler):
         super(ExponentialLR, self).__init__(lr=lr, last_epoch=last_epoch)
         self.gamma = check.is_float(gamma, min_bound=0., max_bound=1.)
 
-    def __call__(self, i: int = None):
+    def __call__(self, i: Optional[int] = None):
         i = (self.last_epoch + 1) if i is None else i
         return self.lr * self.gamma ** i
 

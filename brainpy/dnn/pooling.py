@@ -72,7 +72,7 @@ class Pool(Layer):
         stride: Union[int, Sequence[int]],
         padding: Union[str, Sequence[Tuple[int, int]]] = "VALID",
         channel_axis: Optional[int] = None,
-        mode: bm.Mode = None,
+        mode: Optional[bm.Mode] = None,
         name: Optional[str] = None,
     ):
         super(Pool, self).__init__(mode=mode, name=name)
@@ -110,7 +110,7 @@ class Pool(Layer):
                      x_dim: int,
                      size: Union[Any, Sequence[Any]],
                      element: Any = 1,
-                     element_type: Union[type, Sequence[type]] = int):
+                     element_type: Union[type, Tuple[type, ...]] = int):
         """Infer shape for pooling window or stride."""
 
         # channel axis
@@ -174,7 +174,7 @@ class MaxPool(Pool):
         stride: Union[int, Sequence[int]] = 1,
         padding: Union[str, Sequence[Tuple[int, int]]] = "VALID",
         channel_axis: Optional[int] = None,
-        mode: bm.Mode = None,
+        mode: Optional[bm.Mode] = None,
         name: Optional[str] = None,
     ):
         super(MaxPool, self).__init__(init_value=-jax.numpy.inf,
@@ -216,7 +216,7 @@ class MinPool(Pool):
         stride: Union[int, Sequence[int]] = 1,
         padding: Union[str, Sequence[Tuple[int, int]]] = "VALID",
         channel_axis: Optional[int] = None,
-        mode: bm.Mode = None,
+        mode: Optional[bm.Mode] = None,
         name: Optional[str] = None,
     ):
         super(MinPool, self).__init__(init_value=jax.numpy.inf,
@@ -257,7 +257,7 @@ class AvgPool(Pool):
         stride: Union[int, Sequence[int]] = 1,
         padding: Union[str, Sequence[Tuple[int, int]]] = "VALID",
         channel_axis: Optional[int] = None,
-        mode: bm.Mode = None,
+        mode: Optional[bm.Mode] = None,
         name: Optional[str] = None,
     ):
         super(AvgPool, self).__init__(init_value=0.,
@@ -305,10 +305,10 @@ class _MaxPoolNd(Layer):
         computation,
         pool_dim: int,
         kernel_size: Union[int, Sequence[int]],
-        stride: Union[int, Sequence[int]] = None,
+        stride: Optional[Union[int, Sequence[int]]] = None,
         padding: Union[str, int, Tuple[int, ...], Sequence[Tuple[int, int]]] = "VALID",
         channel_axis: Optional[int] = -1,
-        mode: bm.Mode = None,
+        mode: Optional[bm.Mode] = None,
         name: Optional[str] = None
     ):
         super().__init__(name=name, mode=mode)
@@ -357,7 +357,7 @@ class _MaxPoolNd(Layer):
             else:
                 if not all([isinstance(x, (tuple, list)) for x in padding]):
                     raise ValueError(f'padding should be sequence of Tuple[int, int]. {padding}')
-                if not all([len(x) == 2 for x in padding]):
+                if not all([len(x) == 2 for x in padding]):  # type: ignore[arg-type]  # elements are tuple/list here (guarded by the isinstance check above); mypy cannot narrow
                     raise ValueError(f"Each entry in padding must be tuple of 2 ints. {padding} ")
                 if len(padding) == 1:
                     padding = tuple(padding) * pool_dim
@@ -367,7 +367,7 @@ class _MaxPoolNd(Layer):
         self.padding = padding
 
         # channel_axis
-        self.channel_axis = check.is_integer(channel_axis, allow_none=True)
+        self.channel_axis = check.is_integer(channel_axis, allow_none=True)  # type: ignore[arg-type]  # is_integer accepts None when allow_none=True but types arg as int
 
     def update(self, x):
         x = bm.as_jax(x)
@@ -432,10 +432,10 @@ class MaxPool1d(_MaxPoolNd):
     def __init__(
         self,
         kernel_size: Union[int, Sequence[int]],
-        stride: Union[int, Sequence[int]] = None,
+        stride: Optional[Union[int, Sequence[int]]] = None,
         padding: Union[str, int, Tuple[int, ...], Sequence[Tuple[int, int]]] = "VALID",
         channel_axis: Optional[int] = -1,
-        mode: bm.Mode = None,
+        mode: Optional[bm.Mode] = None,
         name: Optional[str] = None
     ):
         super().__init__(init_value=-jax.numpy.inf,
@@ -476,10 +476,10 @@ class MaxPool2d(_MaxPoolNd):
     def __init__(
         self,
         kernel_size: Union[int, Sequence[int]],
-        stride: Union[int, Sequence[int]] = None,
+        stride: Optional[Union[int, Sequence[int]]] = None,
         padding: Union[str, int, Tuple[int, ...], Sequence[Tuple[int, int]]] = "VALID",
         channel_axis: Optional[int] = -1,
-        mode: bm.Mode = None,
+        mode: Optional[bm.Mode] = None,
         name: Optional[str] = None
     ):
         super().__init__(init_value=-jax.numpy.inf,
@@ -519,10 +519,10 @@ class MaxPool3d(_MaxPoolNd):
     def __init__(
         self,
         kernel_size: Union[int, Sequence[int]],
-        stride: Union[int, Sequence[int]] = None,
+        stride: Optional[Union[int, Sequence[int]]] = None,
         padding: Union[str, int, Tuple[int], Sequence[Tuple[int, int]]] = "VALID",
         channel_axis: Optional[int] = -1,
-        mode: bm.Mode = None,
+        mode: Optional[bm.Mode] = None,
         name: Optional[str] = None
     ):
         super().__init__(init_value=-jax.numpy.inf,
@@ -599,7 +599,7 @@ class AvgPool1d(_AvgPoolNd):
         stride: Union[int, Sequence[int]] = 1,
         padding: Union[str, int, Tuple[int, ...], Sequence[Tuple[int, int]]] = "VALID",
         channel_axis: Optional[int] = -1,
-        mode: bm.Mode = None,
+        mode: Optional[bm.Mode] = None,
         name: Optional[str] = None
     ):
         super().__init__(init_value=0.,
@@ -642,7 +642,7 @@ class AvgPool2d(_AvgPoolNd):
         stride: Union[int, Sequence[int]] = 1,
         padding: Union[str, int, Tuple[int, ...], Sequence[Tuple[int, int]]] = "VALID",
         channel_axis: Optional[int] = -1,
-        mode: bm.Mode = None,
+        mode: Optional[bm.Mode] = None,
         name: Optional[str] = None
     ):
         super().__init__(init_value=0.,
@@ -686,7 +686,7 @@ class AvgPool3d(_AvgPoolNd):
         stride: Union[int, Sequence[int]] = 1,
         padding: Union[str, int, Tuple[int, ...], Sequence[Tuple[int, int]]] = "VALID",
         channel_axis: Optional[int] = -1,
-        mode: bm.Mode = None,
+        mode: Optional[bm.Mode] = None,
         name: Optional[str] = None
     ):
         super().__init__(init_value=0.,
@@ -771,7 +771,7 @@ class AdaptivePool(Layer):
         self.channel_axis = channel_axis
         self.operation = operation
         if isinstance(target_shape, int):
-            self.target_shape = (target_shape,) * num_spatial_dims
+            self.target_shape: Sequence[int] = (target_shape,) * num_spatial_dims
         elif isinstance(target_shape, Sequence) and (len(target_shape) == num_spatial_dims):
             self.target_shape = target_shape
         else:

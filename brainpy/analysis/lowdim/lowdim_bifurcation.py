@@ -15,6 +15,7 @@
 # ==============================================================================
 from copy import deepcopy
 from functools import partial
+from typing import Any, Optional
 
 import jax
 import jax.numpy as jnp
@@ -26,7 +27,7 @@ from brainpy import _errors as errors
 from brainpy.analysis import stability, plotstyle, utils, constants as C
 from brainpy.analysis.lowdim.lowdim_analyzer import *
 
-pyplot = None
+pyplot: Any = None
 
 __all__ = [
     'Bifurcation1D',
@@ -380,10 +381,10 @@ class Bifurcation2D(Num2DAnalyzer):
         duration=100,
         with_plot: bool = True,
         with_return: bool = False,
-        plot_style: dict = None,
+        plot_style: Optional[dict] = None,
         tol: float = 0.001,
         show: bool = False,
-        dt: float = None,
+        dt: Optional[float] = None,
         offset: float = 1.
     ):
         global pyplot
@@ -404,8 +405,8 @@ class Bifurcation2D(Num2DAnalyzer):
         mon_res = traject_model.run(duration=duration)
 
         # find limit cycles
-        vs_limit_cycle = tuple({'min': [], 'max': []} for _ in self.target_var_names)
-        ps_limit_cycle = tuple([] for _ in self.target_par_names)
+        vs_limit_cycle: tuple = tuple({'min': [], 'max': []} for _ in self.target_var_names)
+        ps_limit_cycle: tuple = tuple([] for _ in self.target_par_names)
         for i in range(mon_res[self.x_var].shape[1]):
             data = mon_res[self.x_var][:, i]
             max_index = utils.find_indexes_of_limit_cycle_max(data, tol=tol)
@@ -468,10 +469,10 @@ class FastSlow1D(Bifurcation1D):
         model,
         fast_vars: dict,
         slow_vars: dict,
-        fixed_vars: dict = None,
-        pars_update: dict = None,
+        fixed_vars: Optional[dict] = None,
+        pars_update: Optional[dict] = None,
         resolutions=None,
-        options: dict = None
+        options: Optional[dict] = None
     ):
         super().__init__(model=model,
                          target_pars=slow_vars,
@@ -559,10 +560,10 @@ class FastSlow2D(Bifurcation2D):
         model,
         fast_vars: dict,
         slow_vars: dict,
-        fixed_vars: dict = None,
-        pars_update: dict = None,
+        fixed_vars: Optional[dict] = None,
+        pars_update: Optional[dict] = None,
         resolutions=0.1,
-        options: dict = None
+        options: Optional[dict] = None
     ):
         super().__init__(model=model,
                          target_pars=slow_vars,

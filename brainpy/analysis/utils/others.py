@@ -134,7 +134,7 @@ def keep_unique(candidates: Union[np.ndarray, Dict[str, np.ndarray]],
 
     # If point A and point B are within identical_tol of each other, and the
     # A is first in the list, we keep A.
-    distances = np.asarray(euclidean_distance_jax(candidates, num_fps))
+    distances = np.asarray(euclidean_distance_jax(candidates, num_fps))  # type: ignore[arg-type]  # candidates is an array here; euclidean_distance_jax annotation omits np.ndarray
     example_idxs = np.arange(num_fps)
     all_drop_idxs = []
     for fidx in range(num_fps - 1):

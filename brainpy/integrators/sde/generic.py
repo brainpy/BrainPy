@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Dict, Union
+from typing import Any, Dict, Optional, Union
 
 import brainpy.math as bm
 from .base import SDEIntegrator
@@ -25,7 +25,7 @@ __all__ = [
     'get_supported_methods',
 ]
 
-name2method = {
+name2method: Dict[str, Any] = {
 }
 
 _DEFAULT_SDE_METHOD = 'euler'
@@ -35,13 +35,13 @@ def sdeint(
     f=None,
     g=None,
     method=None,
-    dt: float = None,
-    name: str = None,
+    dt: Optional[float] = None,
+    name: Optional[str] = None,
     show_code: bool = False,
-    var_type: str = None,
-    intg_type: str = None,
-    wiener_type: str = None,
-    state_delays: Dict[str, Union[bm.LengthDelay, bm.TimeDelay]] = None
+    var_type: Optional[str] = None,
+    intg_type: Optional[str] = None,
+    wiener_type: Optional[str] = None,
+    state_delays: Optional[Dict[str, Union[bm.LengthDelay, bm.TimeDelay]]] = None
 ):
     """Numerical integration for SDEs.
 

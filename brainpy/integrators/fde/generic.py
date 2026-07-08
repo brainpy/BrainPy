@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+from typing import Any, Dict, Optional
+
 from .base import FDEIntegrator
 
 __all__ = [
@@ -22,7 +24,7 @@ __all__ = [
     'get_supported_methods',
 ]
 
-name2method = {}
+name2method: Dict[str, Any] = {}
 
 _DEFAULT_FDE_METHOD = 'l1'
 
@@ -33,8 +35,8 @@ def fdeint(
     inits,
     f=None,
     method=None,
-    dt: float = None,
-    name: str = None
+    dt: Optional[float] = None,
+    name: Optional[str] = None
 ):
     """Numerical integration for FDEs.
 

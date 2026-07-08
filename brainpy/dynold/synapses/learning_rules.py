@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Union, Dict, Callable, Optional
+from typing import Union, Dict, Callable, Optional, Any, cast
 
 from brainpy.connect import TwoEndConnector
 from brainpy.dyn import synapses
@@ -208,16 +208,16 @@ class STP(_TwoEndConnAlignPre):
         tau_d: Union[float, ArrayType] = 200.,
         tau: Union[float, ArrayType] = 8.,
         A: Union[float, ArrayType] = 1.,
-        delay_step: Union[int, ArrayType, Initializer, Callable] = None,
+        delay_step: Optional[Union[int, ArrayType, Initializer, Callable]] = None,
         method: str = 'exp_auto',
         name: Optional[str] = None
     ):
         # parameters
-        self.tau_d = tau_d
-        self.tau_f = tau_f
-        self.tau = tau
-        self.U = U
-        self.A = A
+        self.tau_d: Any = tau_d
+        self.tau_f: Any = tau_f
+        self.tau: Any = tau
+        self.U: Any = U
+        self.A: Any = A
 
         syn = _STPModel(pre.size,
                         pre.keep_size,
@@ -230,14 +230,19 @@ class STP(_TwoEndConnAlignPre):
         super().__init__(pre=pre,
                          post=post,
                          syn=syn,
-                         conn=conn,
+                         # conn accepts the wider public connectivity spec (connector/array/dict);
+                         # the base builds a connector from it at runtime.
+                         conn=conn,  # type: ignore[arg-type]
                          g_max=A,
                          output=CUBA(),
                          comp_method='sparse',
-                         delay_step=delay_step,
+                         # base types delay_step as a bare constrained TypeVar (ArrayType);
+                         # an Optional value can't bind it, so pass through as Any.
+                         delay_step=cast(Any, delay_step),
                          name=name)
 
         # variables
-        self.x = self.syn[0].x
-        self.u = self.syn[0].u
-        self.I = self.syn[1].g
+        syn_seq = cast(Sequential, self.syn)
+        self.x = syn_seq[0].x
+        self.u = syn_seq[0].u
+        self.I = syn_seq[1].g

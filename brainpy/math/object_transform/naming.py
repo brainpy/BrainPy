@@ -15,6 +15,7 @@
 # ==============================================================================
 import warnings
 import weakref
+from typing import Any, Dict
 
 from brainpy import _errors as errors
 
@@ -31,8 +32,8 @@ __all__ = [
 #      again. Keying on ``id(obj)`` was unsafe because CPython readily reuses
 #      the integer id of a collected object for a brand-new one, which could
 #      trigger spurious ``UniqueNameError`` (or mask a genuine collision).
-_name2id = dict()  # name -> weakref.ref(obj)
-_typed_names = {}
+_name2id: Dict[str, weakref.ref] = dict()  # name -> weakref.ref(obj)
+_typed_names: Dict[str, int] = {}
 
 
 def check_name_uniqueness(name, obj):
@@ -82,7 +83,7 @@ def clear_name_cache(ignore_warn=True):
         warnings.warn(f'All named models and their ids are cleared.', UserWarning)
 
 
-_fun2stack = dict()
+_fun2stack: Dict[Any, Any] = dict()
 
 
 def cache_stack(func, stack):

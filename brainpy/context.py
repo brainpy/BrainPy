@@ -18,7 +18,7 @@ Context for brainpy computation.
 This context defines all shared data used in all modules in a computation.
 """
 
-from typing import Any, Union
+from typing import Any, Optional, Union
 
 import brainstate
 
@@ -51,7 +51,7 @@ class _ShareContext:
     def set_dt(self, dt: Union[int, float]):
         brainstate.environ.set(dt=dt, env=env)
 
-    def load(self, key, value: Any = None, desc: str = None):
+    def load(self, key, value: Any = None, desc: Optional[str] = None):
         """Load the shared data by the ``key``.
 
         Parameters

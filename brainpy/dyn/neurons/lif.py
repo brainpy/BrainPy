@@ -87,7 +87,7 @@ class IFLTC(GradNeuDyn):
     def __init__(
         self,
         size: Shape,
-        sharding: Optional[Sequence[str]] = None,
+        sharding: Optional[Sharding] = None,
         keep_size: bool = False,
         mode: Optional[bm.Mode] = None,
         name: Optional[str] = None,
@@ -165,6 +165,7 @@ class IF(IFLTC):
         return super().update(x)
 
 
+assert IFLTC.__doc__ is not None
 IF.__doc__ = IFLTC.__doc__ % ('', if_doc, pneu_doc, dpneu_doc)
 IFLTC.__doc__ = IFLTC.__doc__ % (ltc_doc, if_doc, pneu_doc, dpneu_doc)
 
@@ -217,7 +218,7 @@ class LifLTC(GradNeuDyn):
     def __init__(
         self,
         size: Shape,
-        sharding: Optional[Sequence[str]] = None,
+        sharding: Optional[Sharding] = None,
         keep_size: bool = False,
         mode: Optional[bm.Mode] = None,
         name: Optional[str] = None,
@@ -367,6 +368,8 @@ class Lif(LifLTC):
         return super().update(x)
 
 
+assert Lif.__doc__ is not None
+assert LifLTC.__doc__ is not None
 Lif.__doc__ = Lif.__doc__ % (lif_doc, pneu_doc, dpneu_doc)
 LifLTC.__doc__ = LifLTC.__doc__ % (lif_doc, pneu_doc, dpneu_doc)
 
@@ -589,6 +592,7 @@ class LifRef(LifRefLTC):
         return super().update(x)
 
 
+assert LifRefLTC.__doc__ is not None
 LifRef.__doc__ = LifRefLTC.__doc__ % (lif_doc, pneu_doc, dpneu_doc, ref_doc)
 LifRefLTC.__doc__ = LifRefLTC.__doc__ % (lif_doc, pneu_doc, dpneu_doc, ref_doc)
 
@@ -701,7 +705,7 @@ class ExpIFLTC(GradNeuDyn):
     def __init__(
         self,
         size: Shape,
-        sharding: Optional[Sequence[str]] = None,
+        sharding: Optional[Sharding] = None,
         keep_size: bool = False,
         mode: Optional[bm.Mode] = None,
         name: Optional[str] = None,
@@ -724,7 +728,7 @@ class ExpIFLTC(GradNeuDyn):
         V_initializer: Union[Callable, ArrayType] = ZeroInit(),
 
         # noise
-        noise: Union[float, ArrayType, Callable] = None,
+        noise: Optional[Union[float, ArrayType, Callable]] = None,
     ):
         # initialization
         super().__init__(size=size,
@@ -1076,7 +1080,7 @@ class ExpIFRefLTC(ExpIFLTC):
         ref_var: bool = False,
 
         # noise
-        noise: Union[float, ArrayType, Callable] = None,
+        noise: Optional[Union[float, ArrayType, Callable]] = None,
     ):
         # initialization
         super().__init__(
@@ -1297,6 +1301,10 @@ class ExpIFRef(ExpIFRefLTC):
         return super().update(x)
 
 
+assert ExpIF.__doc__ is not None
+assert ExpIFRefLTC.__doc__ is not None
+assert ExpIFRef.__doc__ is not None
+assert ExpIFLTC.__doc__ is not None
 ExpIF.__doc__ = ExpIF.__doc__ % (pneu_doc, dpneu_doc)
 ExpIFRefLTC.__doc__ = ExpIFRefLTC.__doc__ % (pneu_doc, dpneu_doc, ref_doc)
 ExpIFRef.__doc__ = ExpIFRef.__doc__ % (pneu_doc, dpneu_doc, ref_doc)
@@ -1407,7 +1415,7 @@ class AdExIFLTC(GradNeuDyn):
     def __init__(
         self,
         size: Shape,
-        sharding: Optional[Sequence[str]] = None,
+        sharding: Optional[Sharding] = None,
         keep_size: bool = False,
         mode: Optional[bm.Mode] = None,
         name: Optional[str] = None,
@@ -1434,7 +1442,7 @@ class AdExIFLTC(GradNeuDyn):
         w_initializer: Union[Callable, ArrayType] = ZeroInit(),
 
         # noise
-        noise: Union[float, ArrayType, Callable] = None,
+        noise: Optional[Union[float, ArrayType, Callable]] = None,
     ):
         # initialization
         super().__init__(size=size,
@@ -1778,7 +1786,7 @@ class AdExIFRefLTC(AdExIFLTC):
         ref_var: bool = False,
 
         # noise
-        noise: Union[float, ArrayType, Callable] = None,
+        noise: Optional[Union[float, ArrayType, Callable]] = None,
     ):
         # initialization
         super().__init__(
@@ -1993,6 +2001,10 @@ class AdExIFRef(AdExIFRefLTC):
         return super().update(x)
 
 
+assert AdExIF.__doc__ is not None
+assert AdExIFRefLTC.__doc__ is not None
+assert AdExIFRef.__doc__ is not None
+assert AdExIFLTC.__doc__ is not None
 AdExIF.__doc__ = AdExIF.__doc__ % (pneu_doc, dpneu_doc)
 AdExIFRefLTC.__doc__ = AdExIFRefLTC.__doc__ % (pneu_doc, dpneu_doc, ref_doc)
 AdExIFRef.__doc__ = AdExIFRef.__doc__ % (pneu_doc, dpneu_doc, ref_doc)
@@ -2074,7 +2086,7 @@ class QuaIFLTC(GradNeuDyn):
     def __init__(
         self,
         size: Shape,
-        sharding: Optional[Sequence[str]] = None,
+        sharding: Optional[Sharding] = None,
         keep_size: bool = False,
         mode: Optional[bm.Mode] = None,
         name: Optional[str] = None,
@@ -2097,7 +2109,7 @@ class QuaIFLTC(GradNeuDyn):
         V_initializer: Union[Callable, ArrayType] = ZeroInit(),
 
         # noise
-        noise: Union[float, ArrayType, Callable] = None,
+        noise: Optional[Union[float, ArrayType, Callable]] = None,
     ):
         # initialization
         super().__init__(size=size,
@@ -2375,7 +2387,7 @@ class QuaIFRefLTC(QuaIFLTC):
         ref_var: bool = False,
 
         # noise
-        noise: Union[float, ArrayType, Callable] = None,
+        noise: Optional[Union[float, ArrayType, Callable]] = None,
     ):
         # initialization
         super().__init__(
@@ -2559,6 +2571,10 @@ class QuaIFRef(QuaIFRefLTC):
         return super().update(x)
 
 
+assert QuaIF.__doc__ is not None
+assert QuaIFRefLTC.__doc__ is not None
+assert QuaIFRef.__doc__ is not None
+assert QuaIFLTC.__doc__ is not None
 QuaIF.__doc__ = QuaIF.__doc__ % (pneu_doc, dpneu_doc)
 QuaIFRefLTC.__doc__ = QuaIFRefLTC.__doc__ % (pneu_doc, dpneu_doc, ref_doc)
 QuaIFRef.__doc__ = QuaIFRef.__doc__ % (pneu_doc, dpneu_doc, ref_doc)
@@ -2653,7 +2669,7 @@ class AdQuaIFLTC(GradNeuDyn):
     def __init__(
         self,
         size: Shape,
-        sharding: Optional[Sequence[str]] = None,
+        sharding: Optional[Sharding] = None,
         keep_size: bool = False,
         mode: Optional[bm.Mode] = None,
         name: Optional[str] = None,
@@ -2679,7 +2695,7 @@ class AdQuaIFLTC(GradNeuDyn):
         w_initializer: Union[Callable, ArrayType] = ZeroInit(),
 
         # noise
-        noise: Union[float, ArrayType, Callable] = None,
+        noise: Optional[Union[float, ArrayType, Callable]] = None,
     ):
         # initialization
         super().__init__(size=size,
@@ -2996,7 +3012,7 @@ class AdQuaIFRefLTC(AdQuaIFLTC):
         ref_var: bool = False,
 
         # noise
-        noise: Union[float, ArrayType, Callable] = None,
+        noise: Optional[Union[float, ArrayType, Callable]] = None,
     ):
         # initialization
         super().__init__(
@@ -3199,6 +3215,10 @@ class AdQuaIFRef(AdQuaIFRefLTC):
         return super().update(x)
 
 
+assert AdQuaIF.__doc__ is not None
+assert AdQuaIFRefLTC.__doc__ is not None
+assert AdQuaIFRef.__doc__ is not None
+assert AdQuaIFLTC.__doc__ is not None
 AdQuaIF.__doc__ = AdQuaIF.__doc__ % (pneu_doc, dpneu_doc)
 AdQuaIFRefLTC.__doc__ = AdQuaIFRefLTC.__doc__ % (pneu_doc, dpneu_doc, ref_doc)
 AdQuaIFRef.__doc__ = AdQuaIFRef.__doc__ % (pneu_doc, dpneu_doc, ref_doc)
@@ -3319,7 +3339,7 @@ class GifLTC(GradNeuDyn):
     def __init__(
         self,
         size: Shape,
-        sharding: Optional[Sequence[str]] = None,
+        sharding: Optional[Sharding] = None,
         keep_size: bool = False,
         mode: Optional[bm.Mode] = None,
         name: Optional[str] = None,
@@ -3352,7 +3372,7 @@ class GifLTC(GradNeuDyn):
         Vth_initializer: Union[Callable, ArrayType] = OneInit(-50.),
 
         # noise
-        noise: Union[float, ArrayType, Callable] = None,
+        noise: Optional[Union[float, ArrayType, Callable]] = None,
     ):
         # initialization
         super().__init__(size=size,
@@ -3746,7 +3766,7 @@ class GifRefLTC(GifLTC):
         ref_var: bool = False,
 
         # noise
-        noise: Union[float, ArrayType, Callable] = None,
+        noise: Optional[Union[float, ArrayType, Callable]] = None,
     ):
         # initialization
         super().__init__(
@@ -3993,6 +4013,10 @@ class GifRef(GifRefLTC):
         return super().update(x)
 
 
+assert Gif.__doc__ is not None
+assert GifRefLTC.__doc__ is not None
+assert GifRef.__doc__ is not None
+assert GifLTC.__doc__ is not None
 Gif.__doc__ = Gif.__doc__ % (pneu_doc, dpneu_doc)
 GifRefLTC.__doc__ = GifRefLTC.__doc__ % (pneu_doc, dpneu_doc, ref_doc)
 GifRef.__doc__ = GifRef.__doc__ % (pneu_doc, dpneu_doc, ref_doc)
@@ -4090,7 +4114,7 @@ class IzhikevichLTC(GradNeuDyn):
     def __init__(
         self,
         size: Shape,
-        sharding: Optional[Sequence[str]] = None,
+        sharding: Optional[Sharding] = None,
         keep_size: bool = False,
         mode: Optional[bm.Mode] = None,
         name: Optional[str] = None,
@@ -4114,10 +4138,10 @@ class IzhikevichLTC(GradNeuDyn):
         tau: Union[float, ArrayType, Callable] = 10.,
         R: Union[float, ArrayType, Callable] = 1.,
         V_initializer: Union[Callable, ArrayType] = OneInit(-70.),
-        u_initializer: Union[Callable, ArrayType] = None,
+        u_initializer: Optional[Union[Callable, ArrayType]] = None,
 
         # noise
-        noise: Union[float, ArrayType, Callable] = None,
+        noise: Optional[Union[float, ArrayType, Callable]] = None,
     ):
         # initialization
         super().__init__(size=size,
@@ -4134,7 +4158,7 @@ class IzhikevichLTC(GradNeuDyn):
         # parameters
         self.V_th = self.offset_scaling(self.init_param(V_th))
         self.p1 = self.inv_scaling(self.init_param(p1))
-        p2_scaling = self.scaling.clone(bias=-p1 * 2 * self.scaling.bias, scale=1.)
+        p2_scaling = self.scaling.clone(bias=-p1 * 2 * self.scaling.bias, scale=1.)  # type: ignore[operator]  # p1 is a numeric parameter value here, not a Callable
         self.p2 = p2_scaling.offset_scaling(self.init_param(p2))
         p3_bias = p1 * self.scaling.bias ** 2 + b * self.scaling.bias - p2 * self.scaling.bias
         p3_scaling = self.scaling.clone(bias=p3_bias, scale=self.scaling.scale)
@@ -4440,14 +4464,14 @@ class IzhikevichRefLTC(IzhikevichLTC):
         tau: Union[float, ArrayType, Callable] = 10.,
         R: Union[float, ArrayType, Callable] = 1.,
         V_initializer: Union[Callable, ArrayType] = OneInit(-70.),
-        u_initializer: Union[Callable, ArrayType] = None,
+        u_initializer: Optional[Union[Callable, ArrayType]] = None,
 
         # new neuron parameter
         tau_ref: Union[float, ArrayType, Callable] = 0.,
         ref_var: bool = False,
 
         # noise
-        noise: Union[float, ArrayType, Callable] = None,
+        noise: Optional[Union[float, ArrayType, Callable]] = None,
     ):
         # initialization
         super().__init__(
@@ -4655,6 +4679,10 @@ class IzhikevichRef(IzhikevichRefLTC):
         return super().update(x)
 
 
+assert Izhikevich.__doc__ is not None
+assert IzhikevichRefLTC.__doc__ is not None
+assert IzhikevichRef.__doc__ is not None
+assert IzhikevichLTC.__doc__ is not None
 Izhikevich.__doc__ = Izhikevich.__doc__ % (pneu_doc, dpneu_doc)
 IzhikevichRefLTC.__doc__ = IzhikevichRefLTC.__doc__ % (pneu_doc, dpneu_doc, ref_doc)
 IzhikevichRef.__doc__ = IzhikevichRef.__doc__ % (pneu_doc, dpneu_doc, ref_doc)

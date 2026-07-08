@@ -28,7 +28,7 @@ from brainpy.dyn.ions.potassium import Potassium
 from brainpy.dyn.neurons.hh import HHTypedNeuron
 from brainpy.initialize import Initializer, parameter, variable
 from brainpy.integrators import odeint, JointEq
-from brainpy.types import ArrayType
+from brainpy.types import ArrayType, Shape
 from .base import IonChannel
 
 __all__ = [
@@ -62,7 +62,7 @@ def _exprel(x):
 class PotassiumChannel(IonChannel):
     """Base class for sodium channel dynamics."""
 
-    master_type = Potassium
+    master_type = Potassium  # type: ignore[assignment]  # per-channel override; base IonChannel.master_type is inferred as type[HHTypedNeuron]
 
     def update(self, V, C, E):
         raise NotImplementedError
@@ -70,10 +70,10 @@ class PotassiumChannel(IonChannel):
     def current(self, V, C, E):
         raise NotImplementedError
 
-    def reset(self, V, C, E, batch_size: int = None):
+    def reset(self, V, C, E, batch_size: Optional[int] = None):
         self.reset_state(V, C, E, batch_size)
 
-    def reset_state(self, V, C, E, batch_size: int = None):
+    def reset_state(self, V, C, E, batch_size: Optional[int] = None):
         raise NotImplementedError('Must be implemented by the subclass.')
 
 
@@ -115,13 +115,13 @@ class _IK_p4_markov_v2(PotassiumChannel):
 
     def __init__(
         self,
-        size: Union[int, Sequence[int]],
+        size: Shape,
         keep_size: bool = False,
         g_max: Union[float, ArrayType, Initializer, Callable] = 10.,
         phi: Union[float, ArrayType, Initializer, Callable] = 1.,
         method: str = 'exp_auto',
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         super().__init__(size,
                          keep_size=keep_size,
@@ -211,7 +211,7 @@ class IKDR_Ba2002v2(_IK_p4_markov_v2):
 
     def __init__(
         self,
-        size: Union[int, Sequence[int]],
+        size: Shape,
         keep_size: bool = False,
         g_max: Union[float, ArrayType, Initializer, Callable] = 10.,
         V_sh: Union[float, ArrayType, Initializer, Callable] = -50.,
@@ -219,8 +219,8 @@ class IKDR_Ba2002v2(_IK_p4_markov_v2):
         T: Union[float, ArrayType] = 36.,
         phi: Optional[Union[float, ArrayType, Initializer, Callable]] = None,
         method: str = 'exp_auto',
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         phi = T_base ** ((T - 36) / 10) if phi is None else phi
         super().__init__(size,
@@ -290,14 +290,14 @@ class IK_TM1991v2(_IK_p4_markov_v2):
 
     def __init__(
         self,
-        size: Union[int, Sequence[int]],
+        size: Shape,
         keep_size: bool = False,
         g_max: Union[float, ArrayType, Initializer, Callable] = 10.,
         phi: Union[float, ArrayType, Initializer, Callable] = 1.,
         V_sh: Union[int, float, ArrayType, Initializer, Callable] = -60.,
         method: str = 'exp_auto',
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         super().__init__(size,
                          keep_size=keep_size,
@@ -363,14 +363,14 @@ class IK_HH1952v2(_IK_p4_markov_v2):
 
     def __init__(
         self,
-        size: Union[int, Sequence[int]],
+        size: Shape,
         keep_size: bool = False,
         g_max: Union[float, ArrayType, Initializer, Callable] = 10.,
         phi: Union[float, ArrayType, Initializer, Callable] = 1.,
         V_sh: Union[int, float, ArrayType, Initializer, Callable] = -45.,
         method: str = 'exp_auto',
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         super().__init__(size,
                          keep_size=keep_size,
@@ -436,14 +436,14 @@ class _IKA_p4q_ss_v2(PotassiumChannel):
 
     def __init__(
         self,
-        size: Union[int, Sequence[int]],
+        size: Shape,
         keep_size: bool = False,
         g_max: Union[float, ArrayType, Initializer, Callable] = 10.,
         phi_p: Union[float, ArrayType, Initializer, Callable] = 1.,
         phi_q: Union[float, ArrayType, Initializer, Callable] = 1.,
         method: str = 'exp_auto',
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         super().__init__(size,
                          keep_size=keep_size,
@@ -551,15 +551,15 @@ class IKA1_HM1992v2(_IKA_p4q_ss_v2):
 
     def __init__(
         self,
-        size: Union[int, Sequence[int]],
+        size: Shape,
         keep_size: bool = False,
         g_max: Union[float, ArrayType, Initializer, Callable] = 30.,
         V_sh: Union[float, ArrayType, Initializer, Callable] = 0.,
         phi_p: Union[float, ArrayType, Initializer, Callable] = 1.,
         phi_q: Union[float, ArrayType, Initializer, Callable] = 1.,
         method: str = 'exp_auto',
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         super().__init__(size,
                          keep_size=keep_size,
@@ -647,15 +647,15 @@ class IKA2_HM1992v2(_IKA_p4q_ss_v2):
 
     def __init__(
         self,
-        size: Union[int, Sequence[int]],
+        size: Shape,
         keep_size: bool = False,
         g_max: Union[float, ArrayType, Initializer, Callable] = 20.,
         V_sh: Union[float, ArrayType, Initializer, Callable] = 0.,
         phi_p: Union[float, ArrayType, Initializer, Callable] = 1.,
         phi_q: Union[float, ArrayType, Initializer, Callable] = 1.,
         method: str = 'exp_auto',
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         super().__init__(size,
                          keep_size=keep_size,
@@ -732,14 +732,14 @@ class _IKK2_pq_ss_v2(PotassiumChannel):
 
     def __init__(
         self,
-        size: Union[int, Sequence[int]],
+        size: Shape,
         keep_size: bool = False,
         g_max: Union[float, ArrayType, Initializer, Callable] = 10.,
         phi_p: Union[float, ArrayType, Initializer, Callable] = 1.,
         phi_q: Union[float, ArrayType, Initializer, Callable] = 1.,
         method: str = 'exp_auto',
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         super().__init__(size,
                          keep_size=keep_size,
@@ -842,15 +842,15 @@ class IKK2A_HM1992v2(_IKK2_pq_ss_v2):
 
     def __init__(
         self,
-        size: Union[int, Sequence[int]],
+        size: Shape,
         keep_size: bool = False,
         g_max: Union[float, ArrayType, Initializer, Callable] = 10.,
         V_sh: Union[float, ArrayType, Initializer, Callable] = 0.,
         phi_p: Union[float, ArrayType, Initializer, Callable] = 1.,
         phi_q: Union[float, ArrayType, Initializer, Callable] = 1.,
         method: str = 'exp_auto',
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         super().__init__(size,
                          keep_size=keep_size,
@@ -933,15 +933,15 @@ class IKK2B_HM1992v2(_IKK2_pq_ss_v2):
 
     def __init__(
         self,
-        size: Union[int, Sequence[int]],
+        size: Shape,
         keep_size: bool = False,
         g_max: Union[float, ArrayType, Initializer, Callable] = 10.,
         V_sh: Union[float, ArrayType, Initializer, Callable] = 0.,
         phi_p: Union[float, ArrayType, Initializer, Callable] = 1.,
         phi_q: Union[float, ArrayType, Initializer, Callable] = 1.,
         method: str = 'exp_auto',
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         super().__init__(size,
                          keep_size=keep_size,
@@ -1018,7 +1018,7 @@ class IKNI_Ya1989v2(PotassiumChannel):
 
     def __init__(
         self,
-        size: Union[int, Sequence[int]],
+        size: Shape,
         keep_size: bool = False,
         g_max: Union[float, ArrayType, Initializer, Callable] = 0.004,
         phi_p: Union[float, ArrayType, Initializer, Callable] = 1.,
@@ -1026,8 +1026,8 @@ class IKNI_Ya1989v2(PotassiumChannel):
         tau_max: Union[float, ArrayType, Initializer, Callable] = 4e3,
         V_sh: Union[float, ArrayType, Initializer, Callable] = 0.,
         method: str = 'exp_auto',
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         super().__init__(size,
                          keep_size=keep_size,
@@ -1104,18 +1104,18 @@ class _IK_p4_markov(PotassiumChannel):
       The object name.
 
     """
-    master_type = HHTypedNeuron
+    master_type = HHTypedNeuron  # type: ignore[assignment]  # per-channel override; base PotassiumChannel.master_type is inferred as type[Potassium]
 
     def __init__(
         self,
-        size: Union[int, Sequence[int]],
+        size: Shape,
         keep_size: bool = False,
         E: Union[float, ArrayType, Initializer, Callable] = -90.,
         g_max: Union[float, ArrayType, Initializer, Callable] = 10.,
         phi: Union[float, ArrayType, Initializer, Callable] = 1.,
         method: str = 'exp_auto',
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         super().__init__(size,
                          keep_size=keep_size,
@@ -1206,7 +1206,7 @@ class IKDR_Ba2002(_IK_p4_markov):
 
     def __init__(
         self,
-        size: Union[int, Sequence[int]],
+        size: Shape,
         keep_size: bool = False,
         E: Union[float, ArrayType, Initializer, Callable] = -90.,
         g_max: Union[float, ArrayType, Initializer, Callable] = 10.,
@@ -1215,8 +1215,8 @@ class IKDR_Ba2002(_IK_p4_markov):
         T: Union[float, ArrayType] = 36.,
         phi: Optional[Union[float, ArrayType, Initializer, Callable]] = None,
         method: str = 'exp_auto',
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         phi = T_base ** ((T - 36) / 10) if phi is None else phi
         super(IKDR_Ba2002, self).__init__(size,
@@ -1287,15 +1287,15 @@ class IK_TM1991(_IK_p4_markov):
 
     def __init__(
         self,
-        size: Union[int, Sequence[int]],
+        size: Shape,
         keep_size: bool = False,
         E: Union[float, ArrayType, Initializer, Callable] = -90.,
         g_max: Union[float, ArrayType, Initializer, Callable] = 10.,
         phi: Union[float, ArrayType, Initializer, Callable] = 1.,
         V_sh: Union[int, float, ArrayType, Initializer, Callable] = -60.,
         method: str = 'exp_auto',
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         super(IK_TM1991, self).__init__(size,
                                         keep_size=keep_size,
@@ -1362,15 +1362,15 @@ class IK_HH1952(_IK_p4_markov):
 
     def __init__(
         self,
-        size: Union[int, Sequence[int]],
+        size: Shape,
         keep_size: bool = False,
         E: Union[float, ArrayType, Initializer, Callable] = -90.,
         g_max: Union[float, ArrayType, Initializer, Callable] = 10.,
         phi: Union[float, ArrayType, Initializer, Callable] = 1.,
         V_sh: Union[int, float, ArrayType, Initializer, Callable] = -45.,
         method: str = 'exp_auto',
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         super(IK_HH1952, self).__init__(size,
                                         keep_size=keep_size,
@@ -1434,19 +1434,19 @@ class _IKA_p4q_ss(PotassiumChannel):
            TEA-sensitive K current in acutely isolated rat thalamic relay
            neurons." Journal of neurophysiology 66.4 (1991): 1316-1328.
     """
-    master_type = HHTypedNeuron
+    master_type = HHTypedNeuron  # type: ignore[assignment]  # per-channel override; base PotassiumChannel.master_type is inferred as type[Potassium]
 
     def __init__(
         self,
-        size: Union[int, Sequence[int]],
+        size: Shape,
         keep_size: bool = False,
         E: Union[float, ArrayType, Initializer, Callable] = -90.,
         g_max: Union[float, ArrayType, Initializer, Callable] = 10.,
         phi_p: Union[float, ArrayType, Initializer, Callable] = 1.,
         phi_q: Union[float, ArrayType, Initializer, Callable] = 1.,
         method: str = 'exp_auto',
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         super().__init__(size,
                          keep_size=keep_size,
@@ -1555,7 +1555,7 @@ class IKA1_HM1992(_IKA_p4q_ss):
 
     def __init__(
         self,
-        size: Union[int, Sequence[int]],
+        size: Shape,
         keep_size: bool = False,
         E: Union[float, ArrayType, Initializer, Callable] = -90.,
         g_max: Union[float, ArrayType, Initializer, Callable] = 30.,
@@ -1563,8 +1563,8 @@ class IKA1_HM1992(_IKA_p4q_ss):
         phi_p: Union[float, ArrayType, Initializer, Callable] = 1.,
         phi_q: Union[float, ArrayType, Initializer, Callable] = 1.,
         method: str = 'exp_auto',
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         super(IKA1_HM1992, self).__init__(size,
                                           keep_size=keep_size,
@@ -1653,7 +1653,7 @@ class IKA2_HM1992(_IKA_p4q_ss):
 
     def __init__(
         self,
-        size: Union[int, Sequence[int]],
+        size: Shape,
         keep_size: bool = False,
         E: Union[float, ArrayType, Initializer, Callable] = -90.,
         g_max: Union[float, ArrayType, Initializer, Callable] = 20.,
@@ -1661,8 +1661,8 @@ class IKA2_HM1992(_IKA_p4q_ss):
         phi_p: Union[float, ArrayType, Initializer, Callable] = 1.,
         phi_q: Union[float, ArrayType, Initializer, Callable] = 1.,
         method: str = 'exp_auto',
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         super(IKA2_HM1992, self).__init__(size,
                                           keep_size=keep_size,
@@ -1737,19 +1737,19 @@ class _IKK2_pq_ss(PotassiumChannel):
            neurons." Journal of neurophysiology 66.4 (1991): 1316-1328.
 
     """
-    master_type = HHTypedNeuron
+    master_type = HHTypedNeuron  # type: ignore[assignment]  # per-channel override; base PotassiumChannel.master_type is inferred as type[Potassium]
 
     def __init__(
         self,
-        size: Union[int, Sequence[int]],
+        size: Shape,
         keep_size: bool = False,
         E: Union[float, ArrayType, Initializer, Callable] = -90.,
         g_max: Union[float, ArrayType, Initializer, Callable] = 10.,
         phi_p: Union[float, ArrayType, Initializer, Callable] = 1.,
         phi_q: Union[float, ArrayType, Initializer, Callable] = 1.,
         method: str = 'exp_auto',
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         super().__init__(size,
                          keep_size=keep_size,
@@ -1853,7 +1853,7 @@ class IKK2A_HM1992(_IKK2_pq_ss):
 
     def __init__(
         self,
-        size: Union[int, Sequence[int]],
+        size: Shape,
         keep_size: bool = False,
         E: Union[float, ArrayType, Initializer, Callable] = -90.,
         g_max: Union[float, ArrayType, Initializer, Callable] = 10.,
@@ -1861,8 +1861,8 @@ class IKK2A_HM1992(_IKK2_pq_ss):
         phi_p: Union[float, ArrayType, Initializer, Callable] = 1.,
         phi_q: Union[float, ArrayType, Initializer, Callable] = 1.,
         method: str = 'exp_auto',
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         super(IKK2A_HM1992, self).__init__(size,
                                            keep_size=keep_size,
@@ -1946,7 +1946,7 @@ class IKK2B_HM1992(_IKK2_pq_ss):
 
     def __init__(
         self,
-        size: Union[int, Sequence[int]],
+        size: Shape,
         keep_size: bool = False,
         E: Union[float, ArrayType, Initializer, Callable] = -90.,
         g_max: Union[float, ArrayType, Initializer, Callable] = 10.,
@@ -1954,8 +1954,8 @@ class IKK2B_HM1992(_IKK2_pq_ss):
         phi_p: Union[float, ArrayType, Initializer, Callable] = 1.,
         phi_q: Union[float, ArrayType, Initializer, Callable] = 1.,
         method: str = 'exp_auto',
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         super(IKK2B_HM1992, self).__init__(size,
                                            keep_size=keep_size,
@@ -2030,11 +2030,11 @@ class IKNI_Ya1989(PotassiumChannel):
     .. [1] Yamada, Walter M. "Multiple channels and calcium dynamics." Methods in neuronal modeling (1989): 97-133.
 
     """
-    master_type = HHTypedNeuron
+    master_type = HHTypedNeuron  # type: ignore[assignment]  # per-channel override; base PotassiumChannel.master_type is inferred as type[Potassium]
 
     def __init__(
         self,
-        size: Union[int, Sequence[int]],
+        size: Shape,
         keep_size: bool = False,
         E: Union[float, ArrayType, Initializer, Callable] = -90.,
         g_max: Union[float, ArrayType, Initializer, Callable] = 0.004,
@@ -2043,8 +2043,8 @@ class IKNI_Ya1989(PotassiumChannel):
         tau_max: Union[float, ArrayType, Initializer, Callable] = 4e3,
         V_sh: Union[float, ArrayType, Initializer, Callable] = 0.,
         method: str = 'exp_auto',
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         super(IKNI_Ya1989, self).__init__(size,
                                           keep_size=keep_size,
@@ -2100,21 +2100,21 @@ class IK_Leak(PotassiumChannel):
 
     def __init__(
         self,
-        size: Union[int, Sequence[int]],
+        size: Shape,
         keep_size: bool = False,
         g_max: Union[int, float, ArrayType, Initializer, Callable] = 0.005,
-        method: str = None,
-        name: str = None,
-        mode: bm.Mode = None,
+        method: Optional[str] = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         super().__init__(size=size,
                          keep_size=keep_size,
-                         method=method,
+                         method=method,  # type: ignore[arg-type]  # subclass keeps method=None default; Dynamic.__init__ types it as str
                          name=name,
                          mode=mode)
         self.g_max = self.init_param(g_max, self.varshape)
 
-    def reset_state(self, V, C, E, batch_size: int = None):
+    def reset_state(self, V, C, E, batch_size: Optional[int] = None):
         pass
 
     def update(self, V, C, E):

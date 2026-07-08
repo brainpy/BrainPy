@@ -173,7 +173,7 @@ def cond(
 
 
 def ifelse(
-    conditions: Union[bool, Sequence[bool]],
+    conditions: Union[bool, Sequence[Any]],
     branches: Sequence[Any],
     operands: Any = None,
 ):
@@ -259,7 +259,7 @@ def ifelse(
     if isinstance(conditions, (list, tuple)) and len(conditions) > 0:
         conditions = list(conditions)
         # Convert to mutually exclusive conditions for brainstate
-        exclusive_conditions = []
+        exclusive_conditions: list = []
         for i, cond in enumerate(conditions):
             if i == 0:
                 exclusive_conditions.append(cond)

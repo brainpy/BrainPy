@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Union, Tuple, Optional, Sequence, Callable
+from typing import Any, Union, Tuple, Optional, Sequence, Callable
 
 import brainstate
 from jax import lax
@@ -95,7 +95,7 @@ class _GeneralConv(Layer):
         The name of the object.
     """
 
-    supported_modes = (bm.TrainingMode, bm.BatchingMode, bm.NonBatchingMode)
+    supported_modes: tuple = (bm.TrainingMode, bm.BatchingMode, bm.NonBatchingMode)
 
     def __init__(
         self,
@@ -111,8 +111,8 @@ class _GeneralConv(Layer):
         w_initializer: Union[Callable, ArrayType, Initializer] = XavierNormal(),
         b_initializer: Optional[Union[Callable, ArrayType, Initializer]] = ZeroInit(),
         mask: Optional[ArrayType] = None,
-        mode: bm.Mode = None,
-        name: str = None,
+        mode: Optional[bm.Mode] = None,
+        name: Optional[str] = None,
     ):
         super(_GeneralConv, self).__init__(name=name, mode=mode)
 
@@ -124,9 +124,9 @@ class _GeneralConv(Layer):
         self.lhs_dilation = tools.replicate(lhs_dilation, num_spatial_dims, 'lhs_dilation')
         self.rhs_dilation = tools.replicate(rhs_dilation, num_spatial_dims, 'rhs_dilation')
         self.groups = groups
-        self.w_initializer = w_initializer
-        self.b_initializer = b_initializer
-        self.mask = mask
+        self.w_initializer: Any = w_initializer
+        self.b_initializer: Any = b_initializer
+        self.mask: Any = mask
         self.dimension_numbers = to_dimension_numbers(num_spatial_dims, channels_last=True, transpose=False)
 
         if isinstance(padding, str):
@@ -135,7 +135,7 @@ class _GeneralConv(Layer):
             padding = tuple((padding, padding) for _ in range(num_spatial_dims))
         elif isinstance(padding, (tuple, list)):
             if isinstance(padding[0], int):
-                padding = (padding,) * num_spatial_dims
+                padding = (padding,) * num_spatial_dims  # type: ignore[assignment]  # normalized to tuple-of-pairs; param annotation is narrower
             elif isinstance(padding[0], (tuple, list)):
                 if len(padding) == 1:
                     padding = tuple(padding) * num_spatial_dims
@@ -252,8 +252,8 @@ class Conv1d(_GeneralConv):
         in_channels: int,
         out_channels: int,
         kernel_size: Union[int, Tuple[int, ...]],
-        stride: Union[int, Tuple[int, ...]] = None,
-        strides: Union[int, Tuple[int, ...]] = None,  # deprecated
+        stride: Optional[Union[int, Tuple[int, ...]]] = None,
+        strides: Optional[Union[int, Tuple[int, ...]]] = None,  # deprecated
         padding: Union[str, int, Tuple[int, int], Sequence[Tuple[int, int]]] = 'SAME',
         lhs_dilation: Union[int, Tuple[int, ...]] = 1,
         rhs_dilation: Union[int, Tuple[int, ...]] = 1,
@@ -348,8 +348,8 @@ class Conv2d(_GeneralConv):
         in_channels: int,
         out_channels: int,
         kernel_size: Union[int, Tuple[int, ...]],
-        stride: Union[int, Tuple[int, ...]] = None,
-        strides: Union[int, Tuple[int, ...]] = None,  # deprecated
+        stride: Optional[Union[int, Tuple[int, ...]]] = None,
+        strides: Optional[Union[int, Tuple[int, ...]]] = None,  # deprecated
         padding: Union[str, int, Tuple[int, int], Sequence[Tuple[int, int]]] = 'SAME',
         lhs_dilation: Union[int, Tuple[int, ...]] = 1,
         rhs_dilation: Union[int, Tuple[int, ...]] = 1,
@@ -444,8 +444,8 @@ class Conv3d(_GeneralConv):
         in_channels: int,
         out_channels: int,
         kernel_size: Union[int, Tuple[int, ...]],
-        stride: Union[int, Tuple[int, ...]] = None,
-        strides: Union[int, Tuple[int, ...]] = None,  # deprecated
+        stride: Optional[Union[int, Tuple[int, ...]]] = None,
+        strides: Optional[Union[int, Tuple[int, ...]]] = None,  # deprecated
         padding: Union[str, int, Tuple[int, int], Sequence[Tuple[int, int]]] = 'SAME',
         lhs_dilation: Union[int, Tuple[int, ...]] = 1,
         rhs_dilation: Union[int, Tuple[int, ...]] = 1,
@@ -494,7 +494,7 @@ Conv3D = Conv3d
 
 
 class _GeneralConvTranspose(Layer):
-    supported_modes = (bm.TrainingMode, bm.BatchingMode, bm.NonBatchingMode)
+    supported_modes: tuple = (bm.TrainingMode, bm.BatchingMode, bm.NonBatchingMode)
 
     def __init__(
         self,
@@ -508,8 +508,8 @@ class _GeneralConvTranspose(Layer):
         b_initializer: Optional[Union[Callable, ArrayType, Initializer]] = ZeroInit(),
         mask: Optional[ArrayType] = None,
         precision: Optional[lax.Precision] = None,
-        mode: bm.Mode = None,
-        name: str = None,
+        mode: Optional[bm.Mode] = None,
+        name: Optional[str] = None,
     ):
         super().__init__(name=name, mode=mode)
 
@@ -518,10 +518,10 @@ class _GeneralConvTranspose(Layer):
         self.out_channels = out_channels
         self.stride = tools.replicate(stride, num_spatial_dims, 'stride')
         self.kernel_size = tools.replicate(kernel_size, num_spatial_dims, 'kernel_size')
-        self.w_initializer = w_initializer
-        self.b_initializer = b_initializer
+        self.w_initializer: Any = w_initializer
+        self.b_initializer: Any = b_initializer
         self.precision = precision
-        self.mask = mask
+        self.mask: Any = mask
         self.dimension_numbers = to_dimension_numbers(num_spatial_dims, channels_last=True, transpose=False)
 
         if isinstance(padding, str):
@@ -530,7 +530,7 @@ class _GeneralConvTranspose(Layer):
             padding = tuple((padding, padding) for _ in range(num_spatial_dims))
         elif isinstance(padding, (tuple, list)):
             if isinstance(padding[0], int):
-                padding = (padding,) * num_spatial_dims
+                padding = (padding,) * num_spatial_dims  # type: ignore[assignment]  # normalized to tuple-of-pairs; param annotation is narrower
             elif isinstance(padding[0], (tuple, list)):
                 if len(padding) == 1:
                     padding = tuple(padding) * num_spatial_dims
@@ -601,8 +601,8 @@ class ConvTranspose1d(_GeneralConvTranspose):
         b_initializer: Optional[Union[Callable, ArrayType, Initializer]] = ZeroInit(),
         mask: Optional[ArrayType] = None,
         precision: Optional[lax.Precision] = None,
-        mode: bm.Mode = None,
-        name: str = None,
+        mode: Optional[bm.Mode] = None,
+        name: Optional[str] = None,
     ):
         """Initializes the module.
 
@@ -668,8 +668,8 @@ class ConvTranspose2d(_GeneralConvTranspose):
         b_initializer: Optional[Union[Callable, ArrayType, Initializer]] = ZeroInit(),
         mask: Optional[ArrayType] = None,
         precision: Optional[lax.Precision] = None,
-        mode: bm.Mode = None,
-        name: str = None,
+        mode: Optional[bm.Mode] = None,
+        name: Optional[str] = None,
     ):
         """Initializes the module.
 
@@ -735,8 +735,8 @@ class ConvTranspose3d(_GeneralConvTranspose):
         b_initializer: Optional[Union[Callable, ArrayType, Initializer]] = ZeroInit(),
         mask: Optional[ArrayType] = None,
         precision: Optional[lax.Precision] = None,
-        mode: bm.Mode = None,
-        name: str = None,
+        mode: Optional[bm.Mode] = None,
+        name: Optional[str] = None,
     ):
         """Initializes the module.
 

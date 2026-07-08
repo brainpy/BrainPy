@@ -20,7 +20,7 @@ import os
 import re
 import sys
 import warnings
-from typing import Any, Callable, TypeVar, cast
+from typing import Any, Callable, Optional, TypeVar, cast
 
 import brainstate.environ
 import jax
@@ -133,7 +133,7 @@ class _DecoratorContextManager:
 
         return generator_context
 
-    def __enter__(self) -> None:
+    def __enter__(self) -> Any:
         raise NotImplementedError
 
     def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
@@ -169,16 +169,16 @@ class environment(_DecoratorContextManager):
 
     def __init__(
         self,
-        mode: modes.Mode = None,
-        membrane_scaling: scales.Scaling = None,
-        dt: float = None,
-        x64: bool = None,
-        complex_: type = None,
-        float_: type = None,
-        int_: type = None,
-        bool_: type = None,
-        bp_object_as_pytree: bool = None,
-        numpy_func_return: str = None,
+        mode: Optional[modes.Mode] = None,
+        membrane_scaling: Optional[scales.Scaling] = None,
+        dt: Optional[float] = None,
+        x64: Optional[bool] = None,
+        complex_: Optional[type] = None,
+        float_: Optional[type] = None,
+        int_: Optional[type] = None,
+        bool_: Optional[type] = None,
+        bp_object_as_pytree: Optional[bool] = None,
+        numpy_func_return: Optional[str] = None,
     ) -> None:
         super().__init__()
 
@@ -290,16 +290,16 @@ class training_environment(environment):
 
     def __init__(
         self,
-        dt: float = None,
-        x64: bool = None,
-        complex_: type = None,
-        float_: type = None,
-        int_: type = None,
-        bool_: type = None,
+        dt: Optional[float] = None,
+        x64: Optional[bool] = None,
+        complex_: Optional[type] = None,
+        float_: Optional[type] = None,
+        int_: Optional[type] = None,
+        bool_: Optional[type] = None,
         batch_size: int = 1,
-        membrane_scaling: scales.Scaling = None,
-        bp_object_as_pytree: bool = None,
-        numpy_func_return: str = None,
+        membrane_scaling: Optional[scales.Scaling] = None,
+        bp_object_as_pytree: Optional[bool] = None,
+        numpy_func_return: Optional[str] = None,
     ):
         super().__init__(dt=dt,
                          x64=x64,
@@ -328,16 +328,16 @@ class batching_environment(environment):
 
     def __init__(
         self,
-        dt: float = None,
-        x64: bool = None,
-        complex_: type = None,
-        float_: type = None,
-        int_: type = None,
-        bool_: type = None,
+        dt: Optional[float] = None,
+        x64: Optional[bool] = None,
+        complex_: Optional[type] = None,
+        float_: Optional[type] = None,
+        int_: Optional[type] = None,
+        bool_: Optional[type] = None,
         batch_size: int = 1,
-        membrane_scaling: scales.Scaling = None,
-        bp_object_as_pytree: bool = None,
-        numpy_func_return: str = None,
+        membrane_scaling: Optional[scales.Scaling] = None,
+        bp_object_as_pytree: Optional[bool] = None,
+        numpy_func_return: Optional[str] = None,
     ):
         super().__init__(dt=dt,
                          x64=x64,
@@ -352,16 +352,16 @@ class batching_environment(environment):
 
 
 def set(
-    mode: modes.Mode = None,
-    membrane_scaling: scales.Scaling = None,
-    dt: float = None,
-    x64: bool = None,
-    complex_: type = None,
-    float_: type = None,
-    int_: type = None,
-    bool_: type = None,
-    bp_object_as_pytree: bool = None,
-    numpy_func_return: str = None,
+    mode: Optional[modes.Mode] = None,
+    membrane_scaling: Optional[scales.Scaling] = None,
+    dt: Optional[float] = None,
+    x64: Optional[bool] = None,
+    complex_: Optional[type] = None,
+    float_: Optional[type] = None,
+    int_: Optional[type] = None,
+    bool_: Optional[type] = None,
+    bp_object_as_pytree: Optional[bool] = None,
+    numpy_func_return: Optional[str] = None,
 ):
     """Set the default computation environment.
 
@@ -720,7 +720,7 @@ def set_host_device_count(n):
 
 
 def clear_buffer_memory(
-    platform: str = None,
+    platform: Optional[str] = None,
     array: bool = True,
     transform: bool = True,
     compilation: bool = False,
@@ -755,6 +755,22 @@ def clear_buffer_memory(
     if array:
         for buf in get_backend(platform).live_buffers():
             buf.delete()
+        # Deleting *every* live buffer also frees JAX's internal runtime
+        # effect-token buffers (used for ordered side effects inside
+        # ``scan``/``for_loop``). JAX keeps stale references to those tokens in
+        # its runtime-token registry, so the next ordered-effect dispatch calls
+        # ``BlockHostUntilReady()`` on an already-deleted buffer and raises
+        # ``INVALID_ARGUMENT: ... deleted or donated buffer``. This bites, e.g.,
+        # ``jax_vectorize_map(..., clear_buffer=True)`` when the mapped function
+        # runs a ``DSRunner`` (its ``for_loop`` uses ordered effects) and the
+        # loop clears buffers between chunks. Resetting the registry forces fresh
+        # tokens to be created on the next dispatch. Guarded because it reaches
+        # into a private JAX module whose path may change across versions.
+        try:
+            from jax._src.dispatch import runtime_tokens
+            runtime_tokens.clear()
+        except Exception:
+            pass
     if compilation:
         jax.clear_caches()
     if transform:

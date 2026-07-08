@@ -35,7 +35,11 @@ __all__ = [
 ]
 
 
-class KCaChannel(PotassiumChannel, CalciumChannel):
+# ``PotassiumChannel`` and ``CalciumChannel`` each define ``master_type`` with a
+# different ion type; combining them here is intentional (a calcium-dependent
+# potassium channel binds to both). ``IAHP_De1994v2`` below sets the concrete
+# ``master_type = JointType[Calcium, Potassium]``.
+class KCaChannel(PotassiumChannel, CalciumChannel):  # type: ignore[misc]
     pass
 
 

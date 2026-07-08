@@ -14,7 +14,7 @@
 # limitations under the License.
 # ==============================================================================
 from contextlib import contextmanager
-from typing import Dict, Sequence, Union, Callable
+from typing import Dict, Sequence, Union, Callable, Optional
 
 import jax
 from brainstate.transform import jaxpr_to_python_code
@@ -53,8 +53,8 @@ class Integrator(AbstractIntegrator):
         parameters: Sequence[str],
         arguments: Sequence[str],
         dt: float,
-        name: str = None,
-        state_delays: Dict[str, Union[TimeDelay, LengthDelay]] = None,
+        name: Optional[str] = None,
+        state_delays: Optional[Dict[str, Union[TimeDelay, LengthDelay]]] = None,
     ):
         super(Integrator, self).__init__(name=name)
 

@@ -17,7 +17,7 @@ import collections
 import inspect
 import numbers
 import warnings
-from typing import Union, Dict, Callable, Sequence, Optional, Any
+from typing import Union, Dict, Callable, Sequence, Optional, Any, cast
 
 import jax
 import numpy as np
@@ -56,7 +56,7 @@ class DelayRegister(MixIn):
         identifier: str,
         delay_step: Optional[Union[int, ArrayType, Callable]],
         delay_target: bm.Variable,
-        initial_delay_data: Union[Callable, ArrayType, numbers.Number] = None,
+        initial_delay_data: Optional[Union[Callable, ArrayType, numbers.Number]] = None,
     ):
         """Register delay variable.
 
@@ -109,11 +109,12 @@ class DelayRegister(MixIn):
             The delay data at the given time.
         """
         _delay_identifier, _init_delay_by_return = _get_delay_tool()
+        assert isinstance(self, DynamicalSystem), f'self must be an instance of {DynamicalSystem.__name__}'
         _delay_identifier = _delay_identifier + identifier
         delay_cls = self.get_aft_update(_delay_identifier)
         return delay_cls.at(delay_pos, *indices)
 
-    def update_local_delays(self, nodes: Union[Sequence, Dict] = None):
+    def update_local_delays(self, nodes: Optional[Union[Sequence, Dict]] = None):
         """Update local delay variables.
 
         This function should be called after updating neuron groups or delay sources.
@@ -128,7 +129,7 @@ class DelayRegister(MixIn):
         warnings.warn('.update_local_delays() has been removed since brainpy>=2.4.6',
                       DeprecationWarning)
 
-    def reset_local_delays(self, nodes: Union[Sequence, Dict] = None):
+    def reset_local_delays(self, nodes: Optional[Union[Sequence, Dict]] = None):
         """Reset local delay variables.
 
         Parameters
@@ -368,8 +369,8 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
         self,
         var_name: str,
         delay_name: str,
-        delay_time: Union[numbers.Number, ArrayType] = None,
-        delay_step: Union[numbers.Number, ArrayType] = None,
+        delay_time: Optional[Union[numbers.Number, ArrayType]] = None,
+        delay_step: Optional[Union[numbers.Number, ArrayType]] = None,
     ):
         """Register local relay at the given delay time.
 
@@ -692,8 +693,8 @@ class Sequential(DynamicalSystem, SupportAutoDelay, Container):
     def __init__(
         self,
         *modules_as_tuple,
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
         **modules_as_dict
     ):
         super().__init__(name=name, mode=mode)
@@ -789,7 +790,7 @@ class Dynamic(DynamicalSystem):
 
     def __init__(
         self,
-        size: Shape,
+        size: Union[int, Sequence[int]],
         keep_size: bool = False,
         sharding: Optional[Any] = None,
         name: Optional[str] = None,
@@ -911,7 +912,7 @@ class DynView(Dynamic):
         # check slicing
         if isinstance(index, (int, slice)):
             index = (index,)
-        self.index = index  # the slice
+        self.index: Any = index  # the slice
         if len(self.index) > len(target.varshape):
             raise ValueError(f"Length of the index should be less than "
                              f"that of the target's varshape. But we "
@@ -963,7 +964,7 @@ class DynView(Dynamic):
                 # do not check again
                 if not isinstance(idx, collections.abc.Iterable):
                     raise TypeError('Should be an iterable object of int.')
-                size.append(len(idx))
+                size.append(len(cast(collections.abc.Sized, idx)))
         size += list(target.varshape[len(self.index):])
 
         super().__init__(size, keep_size=target.keep_size, name=name, mode=target.mode)
@@ -1062,7 +1063,7 @@ def not_receive_update_output(cls: object):
 
     """
     # assert isinstance(cls, DynamicalSystem), 'The input class should be instance of DynamicalSystem.'
-    cls._not_receive_update_output = True
+    setattr(cls, '_not_receive_update_output', True)
     return cls
 
 
@@ -1079,7 +1080,7 @@ def receive_update_input(cls: object):
 
     """
     # assert isinstance(cls, DynamicalSystem), 'The input class should be instance of DynamicalSystem.'
-    cls._receive_update_input = True
+    setattr(cls, '_receive_update_input', True)
     return cls
 
 

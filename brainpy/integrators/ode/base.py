@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Dict, Callable, Union
+from typing import Dict, Callable, Union, Optional
 
 from brainpy import math as bm
 from brainpy._errors import DiffEqError, CodeError
@@ -53,12 +53,12 @@ class ODEIntegrator(Integrator):
     def __init__(
         self,
         f: Callable,
-        var_type: str = None,
-        dt: float = None,
-        name: str = None,
+        var_type: Optional[str] = None,
+        dt: Optional[float] = None,
+        name: Optional[str] = None,
         show_code: bool = False,
-        state_delays: Dict[str, Union[bm.LengthDelay, bm.TimeDelay]] = None,
-        neutral_delays: Dict[str, Union[bm.NeuTimeDelay, bm.NeuLenDelay]] = None
+        state_delays: Optional[Dict[str, Union[bm.LengthDelay, bm.TimeDelay]]] = None,
+        neutral_delays: Optional[Dict[str, Union[bm.NeuTimeDelay, bm.NeuLenDelay]]] = None
     ):
 
         dt = bm.get_dt() if dt is None else dt

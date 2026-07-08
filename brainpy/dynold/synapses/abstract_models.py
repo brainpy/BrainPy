@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Union, Dict, Callable, Optional
+from typing import Any, Union, Dict, Callable, Optional
 
 import jax
 
@@ -104,12 +104,14 @@ class Delta(TwoEndConn):
         stp: Optional[_SynSTP] = None,
         comp_method: str = 'sparse',
         g_max: Union[float, ArrayType, Initializer, Callable] = 1.,
-        delay_step: Union[float, ArrayType, Initializer, Callable] = None,
-        post_ref_key: str = None,
-        name: str = None,
-        mode: bm.Mode = None,
+        delay_step: Optional[Union[float, ArrayType, Initializer, Callable]] = None,
+        post_ref_key: Optional[str] = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
         stop_spike_gradient: bool = False,
     ):
+        # base TwoEndConn annotates name/mode as non-Optional, but None is a
+        # valid runtime value (an auto-generated name / default mode is used)
         super().__init__(name=name,
                          pre=pre,
                          post=post,
@@ -126,10 +128,14 @@ class Delta(TwoEndConn):
         self.comp_method = comp_method
 
         # connections and weights
+        # _init_weights returns a TypeVar-parameterized tuple; declare targets explicitly
+        self.g_max: Any
+        self.conn_mask: Any
         self.g_max, self.conn_mask = self._init_weights(g_max, comp_method=comp_method, sparse_data='csr')
 
         # register delay
-        self.pre.register_local_delay("spike", self.name, delay_step=delay_step)
+        # delay_step's broad union (Initializer/Callable) does not fit register_local_delay's ArrayType
+        self.pre.register_local_delay("spike", self.name, delay_step=delay_step)  # type: ignore[type-var]
 
     def update(self, pre_spike=None):
         # pre-synaptic spikes
@@ -253,20 +259,22 @@ class Exponential(TwoEndConn):
         stp: Optional[_SynSTP] = None,
         comp_method: str = 'sparse',
         g_max: Union[float, ArrayType, Initializer, Callable] = 1.,
-        delay_step: Union[int, ArrayType, Initializer, Callable] = None,
+        delay_step: Optional[Union[int, ArrayType, Initializer, Callable]] = None,
         tau: Union[float, ArrayType] = 8.0,
         method: str = 'exp_auto',
 
         # other parameters
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
         stop_spike_gradient: bool = False,
     ):
         super().__init__(pre=pre,
                          post=post,
                          conn=conn,
-                         output=output,
+                         # base TwoEndConn types "output" as non-optional _SynOut but handles None at runtime
+                         output=output,  # type: ignore[arg-type]
                          stp=stp,
+                         # base TwoEndConn annotates name/mode as non-Optional, but None is valid at runtime
                          name=name,
                          mode=mode)
         # parameters
@@ -276,6 +284,9 @@ class Exponential(TwoEndConn):
         self.syn = synapses.Expon(post.varshape, tau=tau, method=method)
 
         # Projection
+        # self.comm is one of several linear.Layer subclasses depending on the branch;
+        # the linear.* classes type "conn" as TwoEndConnector only (stricter than the runtime union)
+        self.comm: linear.Layer
         if isinstance(conn, All2All):
             self.comm = linear.AllToAll(pre.num, post.num, g_max)
         elif isinstance(conn, One2One):
@@ -283,17 +294,18 @@ class Exponential(TwoEndConn):
             self.comm = linear.OneToOne(pre.num, g_max)
         else:
             if comp_method == 'dense':
-                self.comm = linear.MaskedLinear(conn, g_max)
+                self.comm = linear.MaskedLinear(conn, g_max)  # type: ignore[arg-type]
             elif comp_method == 'sparse':
                 if self.stp is None:
-                    self.comm = linear.EventCSRLinear(conn, g_max)
+                    self.comm = linear.EventCSRLinear(conn, g_max)  # type: ignore[arg-type]
                 else:
-                    self.comm = linear.CSRLinear(conn, g_max)
+                    self.comm = linear.CSRLinear(conn, g_max)  # type: ignore[arg-type]
             else:
                 raise ValueError(f'Does not support {comp_method}, only "sparse" or "dense".')
 
         # delay
-        self.pre.register_local_delay("spike", self.name, delay_step=delay_step)
+        # delay_step's broad union (Initializer/Callable) does not fit register_local_delay's ArrayType
+        self.pre.register_local_delay("spike", self.name, delay_step=delay_step)  # type: ignore[type-var]
 
     @property
     def g(self):
@@ -324,6 +336,7 @@ class Exponential(TwoEndConn):
         return self.output(g)
 
 
+assert Exponential.__doc__ is not None
 Exponential.__doc__ = Exponential.__doc__ % (_docs.exp_syn_doc,)
 
 
@@ -391,26 +404,26 @@ class DualExponential(_TwoEndConnAlignPre):
         post: NeuDyn,
         conn: Union[TwoEndConnector, ArrayType, Dict[str, ArrayType]],
         stp: Optional[_SynSTP] = None,
-        output: _SynOut = None,  # CUBA(),
+        output: Optional[_SynOut] = None,  # CUBA(),
         comp_method: str = 'dense',
         g_max: Union[float, ArrayType, Initializer, Callable] = 1.,
         tau_decay: Union[float, ArrayType] = 10.0,
         tau_rise: Union[float, ArrayType] = 1.,
-        delay_step: Union[int, ArrayType, Initializer, Callable] = None,
+        delay_step: Optional[Union[int, ArrayType, Initializer, Callable]] = None,
         A: Optional[Union[float, ArrayType, Callable]] = None,
         method: str = 'exp_auto',
 
         # other parameters
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
         stop_spike_gradient: bool = False,
     ):
 
         # parameters
         self.stop_spike_gradient = stop_spike_gradient
         self.comp_method = comp_method
-        self.tau_rise = tau_rise
-        self.tau_decay = tau_decay
+        self.tau_rise: Any = tau_rise
+        self.tau_decay: Any = tau_decay
         if bm.size(self.tau_rise) != 1:
             raise ValueError(f'"tau_rise" must be a scalar or a tensor with size of 1. '
                              f'But we got {self.tau_rise}')
@@ -426,10 +439,11 @@ class DualExponential(_TwoEndConnAlignPre):
                                  tau_rise=tau_rise,
                                  method=method, )
 
+        # Optional delay_step carries the constrained ArrayType TypeVar into the base
         super().__init__(pre=pre,
                          post=post,
                          syn=syn,
-                         conn=conn,
+                         conn=conn,  # type: ignore[arg-type]
                          output=output,
                          stp=stp,
                          comp_method=comp_method,
@@ -447,6 +461,7 @@ class DualExponential(_TwoEndConnAlignPre):
         return super().update(pre_spike, stop_spike_gradient=self.stop_spike_gradient)
 
 
+assert DualExponential.__doc__ is not None
 DualExponential.__doc__ = DualExponential.__doc__ % (_docs.dual_exp_syn_doc,)
 
 
@@ -510,23 +525,23 @@ class Alpha(_TwoEndConnAlignPre):
         pre: NeuDyn,
         post: NeuDyn,
         conn: Union[TwoEndConnector, ArrayType, Dict[str, ArrayType]],
-        output: _SynOut = None,  # CUBA(),
+        output: Optional[_SynOut] = None,  # CUBA(),
         stp: Optional[_SynSTP] = None,
         comp_method: str = 'dense',
         g_max: Union[float, ArrayType, Initializer, Callable] = 1.,
-        delay_step: Union[int, ArrayType, Initializer, Callable] = None,
+        delay_step: Optional[Union[int, ArrayType, Initializer, Callable]] = None,
         tau_decay: Union[float, ArrayType] = 10.0,
         method: str = 'exp_auto',
 
         # other parameters
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
         stop_spike_gradient: bool = False,
     ):
         # parameters
         self.stop_spike_gradient = stop_spike_gradient
         self.comp_method = comp_method
-        self.tau_decay = tau_decay
+        self.tau_decay: Any = tau_decay
         if bm.size(self.tau_decay) != 1:
             raise ValueError(f'"tau_decay" must be a scalar or a tensor with size of 1. '
                              f'But we got {self.tau_decay}')
@@ -537,10 +552,11 @@ class Alpha(_TwoEndConnAlignPre):
                              tau_decay=tau_decay,
                              method=method)
 
+        # Optional delay_step carries the constrained ArrayType TypeVar into the base
         super().__init__(pre=pre,
                          post=post,
                          syn=syn,
-                         conn=conn,
+                         conn=conn,  # type: ignore[arg-type]
                          comp_method=comp_method,
                          delay_step=delay_step,
                          g_max=g_max,
@@ -558,6 +574,7 @@ class Alpha(_TwoEndConnAlignPre):
         return super().update(pre_spike, stop_spike_gradient=self.stop_spike_gradient)
 
 
+assert Alpha.__doc__ is not None
 Alpha.__doc__ = Alpha.__doc__ % (_docs.alpha_syn_doc,)
 
 
@@ -695,7 +712,7 @@ class NMDA(_TwoEndConnAlignPre):
         stp: Optional[_SynSTP] = None,
         comp_method: str = 'dense',
         g_max: Union[float, ArrayType, Initializer, Callable] = 0.15,
-        delay_step: Union[int, ArrayType, Initializer, Callable] = None,
+        delay_step: Optional[Union[int, ArrayType, Initializer, Callable]] = None,
         tau_decay: Union[float, ArrayType] = 100.,
         a: Union[float, ArrayType] = 0.5,
         tau_rise: Union[float, ArrayType] = 2.,
@@ -705,9 +722,9 @@ class NMDA(_TwoEndConnAlignPre):
         stop_spike_gradient: bool = False,
     ):
         # parameters
-        self.tau_decay = tau_decay
-        self.tau_rise = tau_rise
-        self.a = a
+        self.tau_decay: Any = tau_decay
+        self.tau_rise: Any = tau_rise
+        self.a: Any = a
         if bm.size(a) != 1:
             raise ValueError(f'"a" must be a scalar or a tensor with size of 1. But we got {a}')
         if bm.size(tau_decay) != 1:
@@ -725,10 +742,11 @@ class NMDA(_TwoEndConnAlignPre):
                             tau_rise=tau_rise,
                             method=method, )
 
+        # Optional delay_step carries the constrained ArrayType TypeVar into the base
         super().__init__(pre=pre,
                          post=post,
                          syn=syn,
-                         conn=conn,
+                         conn=conn,  # type: ignore[arg-type]
                          output=output,
                          stp=stp,
                          comp_method=comp_method,

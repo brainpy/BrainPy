@@ -45,13 +45,13 @@ from jax import numpy as jnp
 from jax import tree_util
 from jax.test_util import check_grads
 
-from jax._src import device_array
+from jax._src import device_array  # type: ignore[attr-defined]  # private jax internal absent in current jax
 from jax._src import dtypes
 from jax._src import test_util as jtu
 from jax._src.lax import lax as lax_internal
-from jax._src.numpy.lax_numpy import _promote_dtypes, _promote_dtypes_inexact
-from jax._src.numpy.util import _parse_numpydoc, ParsedDoc, _wraps
-from jax._src.util import prod, safe_zip
+from jax._src.numpy.lax_numpy import _promote_dtypes, _promote_dtypes_inexact  # type: ignore[attr-defined]  # private jax internals absent in current jax
+from jax._src.numpy.util import _parse_numpydoc, ParsedDoc, _wraps  # type: ignore[attr-defined]  # private jax internals absent in current jax
+from jax._src.util import prod, safe_zip  # type: ignore[attr-defined]  # private jax internal absent in current jax
 
 import brainpy.math as bm
 
@@ -4285,7 +4285,7 @@ class LaxBackedNumpyTests(jtu.JaxTestCase):
         else:
             self._CompileAndCheck(bm_func(bm_fun), args_maker)
 
-    def _GetArgsMaker(self, rng, shapes, dtypes, np_arrays=True):
+    def _GetArgsMaker2(self, rng, shapes, dtypes, np_arrays=True):
         def f():
             out = [rng(shape, dtype or jnp.float_)
                    for shape, dtype in zip(shapes, dtypes)]
@@ -4596,7 +4596,7 @@ class LaxBackedNumpyTests(jtu.JaxTestCase):
         self._CheckAgainstNumpy(np_op, bm_func(bm_op), args_maker)
         self._CompileAndCheck(bm_func(bm_op), args_maker)
 
-    def _GetArgsMaker(self, rng, shapes, dtypes, np_arrays=True):
+    def _GetArgsMaker3(self, rng, shapes, dtypes, np_arrays=True):
         def f():
             out = [rng(shape, dtype or jnp.float_)
                    for shape, dtype in zip(shapes, dtypes)]

@@ -53,7 +53,8 @@ class Leaky(NeuDyn):
     %s
     """
 
-    supported_modes = (bm.TrainingMode, bm.NonBatchingMode)
+    # supported_modes holds Mode subclasses; the base annotates it as Sequence[Mode] (too narrow)
+    supported_modes = (bm.TrainingMode, bm.NonBatchingMode)  # type: ignore[assignment]
 
     def __init__(
         self,
@@ -103,6 +104,7 @@ class Leaky(NeuDyn):
         return self.x
 
 
+assert Leaky.__doc__ is not None
 Leaky.__doc__ = Leaky.__doc__ % pneu_doc
 
 
@@ -129,7 +131,8 @@ class Integrator(NeuDyn):
     %s
     """
 
-    supported_modes = (bm.TrainingMode, bm.NonBatchingMode)
+    # supported_modes holds Mode subclasses; the base annotates it as Sequence[Mode] (too narrow)
+    supported_modes = (bm.TrainingMode, bm.NonBatchingMode)  # type: ignore[assignment]
 
     def __init__(
         self,
@@ -151,7 +154,8 @@ class Integrator(NeuDyn):
                          sharding=sharding)
 
         # parameters
-        self.size = tools.to_size(size)
+        # to_size() is typed Optional, but "size" is non-None here so the result is never None
+        self.size = tools.to_size(size)  # type: ignore[assignment]
         self.sharding = sharding
         self.tau = init.parameter(tau, self.size, sharding=self.sharding)
 
@@ -182,4 +186,5 @@ class Integrator(NeuDyn):
         return self.x
 
 
+assert Integrator.__doc__ is not None
 Integrator.__doc__ = Integrator.__doc__ % pneu_doc

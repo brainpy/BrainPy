@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Optional
+from typing import Any, Optional
 
 from brainpy.dnn.base import Layer
 
@@ -31,8 +31,8 @@ class Loss(Layer):
 
 
 class WeightedLoss(Loss):
-    weight: Optional
+    weight: Optional[Any]
 
-    def __init__(self, weight: Optional = None, reduction: str = 'mean') -> None:
+    def __init__(self, weight: Optional[Any] = None, reduction: str = 'mean') -> None:
         super().__init__(reduction)
         self.weight = weight

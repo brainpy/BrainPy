@@ -15,7 +15,7 @@
 # ==============================================================================
 import inspect
 import numbers
-from typing import Union, Callable
+from typing import Union, Callable, Optional
 
 import jax
 import jax.numpy as jnp
@@ -150,14 +150,16 @@ class TimeDelay(AbstractDelay):
     LengthDelay
     """
 
+    _before_type: str
+
     def __init__(
         self,
         delay_target: Union[ndarray, jnp.ndarray],
         delay_len: Union[float, int],
-        before_t0: Union[Callable, ndarray, jnp.ndarray, float, int] = None,
+        before_t0: Optional[Union[Callable, ndarray, jnp.ndarray, float, int]] = None,
         t0: Union[float, int] = 0.,
-        dt: Union[float, int] = None,
-        name: str = None,
+        dt: Optional[Union[float, int]] = None,
+        name: Optional[str] = None,
         interp_method: str = 'linear_interp',
     ):
         super(TimeDelay, self).__init__(name=name)
@@ -199,11 +201,11 @@ class TimeDelay(AbstractDelay):
             self._before_type = _FUNC_BEFORE
         elif isinstance(before_t0, (ndarray, jnp.ndarray, float, int)):
             self._before_type = _DATA_BEFORE
-            self.data[:-1] = before_t0
+            self.data[:-1] = before_t0  # type: ignore[assignment]  # saiunit CustomArray.__setitem__ ArrayLike excludes brainpy Array / python scalars
         else:
             raise ValueError(f'"before_t0" does not support {type(before_t0)}')
         # set initial data
-        self.data[-1] = delay_target
+        self.data[-1] = delay_target  # type: ignore[assignment]  # saiunit CustomArray.__setitem__ ArrayLike excludes brainpy Array
 
         # interpolation function
         self._interp_fun = jnp.interp
@@ -247,7 +249,7 @@ class TimeDelay(AbstractDelay):
                                                dtype=delay_target.dtype)
             self._before_type = _FUNC_BEFORE
         elif isinstance(before_t0, (ndarray, jnp.ndarray, float, int)):
-            self.data[:-1] = before_t0
+            self.data[:-1] = before_t0  # type: ignore[assignment]  # saiunit CustomArray.__setitem__ ArrayLike excludes brainpy Array / python scalars
             self._before_type = _DATA_BEFORE
         else:
             raise ValueError(f'"before_t0" does not support {type(before_t0)}')
@@ -379,9 +381,9 @@ class LengthDelay(AbstractDelay):
         self,
         delay_target: Union[ndarray, jax.Array],
         delay_len: int,
-        initial_delay_data: Union[float, int, bool, ndarray, jax.Array, Callable] = None,
-        name: str = None,
-        batch_axis: int = None,
+        initial_delay_data: Optional[Union[float, int, bool, ndarray, jax.Array, Callable]] = None,
+        name: Optional[str] = None,
+        batch_axis: Optional[int] = None,
         update_method: str = ROTATE_UPDATE
     ):
         super(LengthDelay, self).__init__(name=name)
@@ -389,9 +391,9 @@ class LengthDelay(AbstractDelay):
         assert update_method in [ROTATE_UPDATE, CONCAT_UPDATE]
         self.update_method = update_method
         # attributes and variables
-        self.data: Variable = None
+        self.data: Variable = None  # type: ignore[assignment]  # populated by reset() below before any read
         self.num_delay_step: int = 0
-        self.idx: Variable = None
+        self.idx: Variable = None  # type: ignore[assignment]  # populated by reset() below before any read
 
         self.delay_target = None
         if isinstance(delay_target, Variable):
@@ -419,16 +421,16 @@ class LengthDelay(AbstractDelay):
     def reset(
         self,
         delay_target,
-        delay_len: int = None,
-        initial_delay_data: Union[float, int, bool, ndarray, jnp.ndarray, Callable] = None,
-        batch_axis: int = None
+        delay_len: Optional[int] = None,
+        initial_delay_data: Optional[Union[float, int, bool, ndarray, jnp.ndarray, Callable]] = None,
+        batch_axis: Optional[int] = None
     ):
         if not isinstance(delay_target, (ndarray, jnp.ndarray)):
             raise ValueError(f'Must be an instance of brainpy.math.ndarray '
                              f'or jax.numpy.ndarray. But we got {type(delay_target)}')
 
         # delay_len
-        is_integer(delay_len, 'delay_len', allow_none=True, min_bound=0)
+        is_integer(delay_len, 'delay_len', allow_none=True, min_bound=0)  # type: ignore[arg-type]  # is_integer accepts None when allow_none=True but types arg as int
         if delay_len is None:
             if self.num_delay_step is None:
                 raise ValueError('"delay_len" cannot be None.')
@@ -449,11 +451,11 @@ class LengthDelay(AbstractDelay):
                                          dtype=delay_target.dtype)
 
         # update delay data
-        self.data[0] = delay_target
+        self.data[0] = delay_target  # type: ignore[assignment]  # saiunit CustomArray.__setitem__ ArrayLike excludes brainpy Array
         if initial_delay_data is None:
             pass
         elif isinstance(initial_delay_data, (ndarray, jnp.ndarray, float, int, bool)):
-            self.data[1:] = initial_delay_data
+            self.data[1:] = initial_delay_data  # type: ignore[assignment]  # saiunit CustomArray.__setitem__ ArrayLike excludes brainpy Array / python scalars
         elif callable(initial_delay_data):
             shape = (delay_len,) + delay_target.shape
             dtype = delay_target.dtype
@@ -514,7 +516,7 @@ class LengthDelay(AbstractDelay):
         # the delay data
         return self.data[indices]
 
-    def update(self, value: Union[numbers.Number, Array, jax.Array] = None):
+    def update(self, value: Optional[Union[numbers.Number, Array, jax.Array]] = None):
         """Update delay variable with the new data.
 
         Parameters
@@ -531,13 +533,13 @@ class LengthDelay(AbstractDelay):
 
         if self.update_method == ROTATE_UPDATE:
             self.idx.value = stop_gradient(as_jax((self.idx - 1) % self.num_delay_step))
-            self.data[self.idx[0]] = value
+            self.data[self.idx[0]] = value  # type: ignore[assignment]  # saiunit CustomArray.__setitem__ ArrayLike excludes brainpy Array / python scalars
 
         elif self.update_method == CONCAT_UPDATE:
             if self.num_delay_step >= 2:
                 self.data.value = concatenate([expand_dims(value, 0), self.data[:-1]], axis=0)
             else:
-                self.data[:] = value
+                self.data[:] = value  # type: ignore[assignment]  # saiunit CustomArray.__setitem__ ArrayLike excludes brainpy Array / python scalars
 
         else:
             raise ValueError(f'Unknown updating method "{self.update_method}"')

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Dict, Callable
+from typing import Dict, Callable, Optional, Union
 
 import jax.numpy as jnp
 
@@ -21,7 +21,6 @@ from brainpy import _errors as errors
 from brainpy import math as bm
 from brainpy.integrators import constants, utils
 from brainpy.integrators.base import Integrator
-from brainpy.math.delayvars import AbstractDelay
 
 __all__ = [
     'SDEIntegrator',
@@ -42,13 +41,13 @@ class SDEIntegrator(Integrator):
         self,
         f: Callable,
         g: Callable,
-        dt: float = None,
-        name: str = None,
+        dt: Optional[float] = None,
+        name: Optional[str] = None,
         show_code: bool = False,
-        var_type: str = None,
-        intg_type: str = None,
-        wiener_type: str = None,
-        state_delays: Dict[str, AbstractDelay] = None,
+        var_type: Optional[str] = None,
+        intg_type: Optional[str] = None,
+        wiener_type: Optional[str] = None,
+        state_delays: Optional[Dict[str, Union[bm.TimeDelay, bm.LengthDelay]]] = None,
     ):
         dt = bm.get_dt() if dt is None else dt
         parses = utils.get_args(f)

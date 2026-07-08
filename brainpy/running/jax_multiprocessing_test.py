@@ -135,3 +135,51 @@ def test_parallelize_map_partial_chunk_multi_device():
             pytest.skip('Could not configure 4 host devices for the pmap test.')
         pytest.fail(f'multi-device pmap run failed:\nSTDOUT:\n{proc.stdout}\nSTDERR:\n{proc.stderr}')
     assert 'OK' in proc.stdout
+
+
+# Regression: ``jax_parallelize_map`` over a *stateful* mapped function across
+# multiple devices. The function constructs a brainpy model inside the mapped call,
+# whose random variable initialiser writes to a brainstate ``State`` (the global
+# random state). With raw ``jax.pmap`` this raised ``TraceContextError`` ("tracer
+# written into RandomState while no brainstate transformation is active"); routing
+# through ``brainstate.transform.pmap2`` (state-aware) fixes it. ``progress_bar=False``
+# is required because multi-device pmap cannot carry ordered ``io_callback`` effects.
+# Runs in a subprocess (host device count must be set before JAX initialises) and is
+# skipped if extra host devices cannot be configured.
+_STATEFUL_MULTI_DEVICE_SNIPPET = r"""
+import numpy as np
+import jax
+assert jax.local_device_count() == 4, jax.local_device_count()
+import brainpy as bp
+import brainpy.math as bm
+from brainpy.running.jax_multiprocessing import jax_parallelize_map
+
+def hh_spike_num(bg_current):
+    model = bp.neurons.HH(1)                      # random V-init writes to a State
+    runner = bp.DSRunner(model, monitors=['spike'], inputs=['input', bg_current],
+                         numpy_mon_after_run=False, progress_bar=False)
+    runner.run(50.)
+    return runner.mon['spike'].sum()
+
+# 6 tasks, num_parallel == 4 devices -> a full chunk of 4 then a trailing partial
+# chunk of 2 (sharded on a subset of devices).
+r = np.asarray(jax_parallelize_map(hh_spike_num, [bm.linspace(1., 10., 6)], num_parallel=4))
+assert r.shape == (6,), r.shape
+assert np.all(np.isfinite(r)), r
+print('OK')
+"""
+
+
+def test_parallelize_map_stateful_model_multi_device():
+    env = dict(os.environ)
+    env['XLA_FLAGS'] = (env.get('XLA_FLAGS', '') + ' --xla_force_host_platform_device_count=4').strip()
+    env.setdefault('JAX_PLATFORMS', 'cpu')
+    proc = subprocess.run(
+        [sys.executable, '-c', _STATEFUL_MULTI_DEVICE_SNIPPET],
+        env=env, capture_output=True, text=True, timeout=300,
+    )
+    if proc.returncode != 0:
+        if 'AssertionError' in proc.stderr and 'local_device_count' in proc.stderr:
+            pytest.skip('Could not configure 4 host devices for the pmap test.')
+        pytest.fail(f'stateful multi-device pmap run failed:\nSTDOUT:\n{proc.stdout}\nSTDERR:\n{proc.stderr}')
+    assert 'OK' in proc.stdout

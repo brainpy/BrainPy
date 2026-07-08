@@ -14,7 +14,7 @@
 # limitations under the License.
 # ==============================================================================
 import warnings
-from typing import Union, Dict, Callable
+from typing import Union, Dict, Callable, Optional
 
 from brainpy.connect import TwoEndConnector
 from brainpy.dyn.base import NeuDyn
@@ -49,10 +49,10 @@ class DeltaSynapse(Delta):
         conn: Union[TwoEndConnector, ArrayType, Dict[str, ArrayType]],
         conn_type: str = 'sparse',
         weights: Union[float, ArrayType, Initializer, Callable] = 1.,
-        delay_step: Union[float, ArrayType, Initializer, Callable] = None,
+        delay_step: Optional[Union[float, ArrayType, Initializer, Callable]] = None,
         post_input_key: str = 'V',
         post_has_ref: bool = False,
-        name: str = None,
+        name: Optional[str] = None,
     ):
         warnings.warn('Please use "brainpy.synapses.Delta" instead.', DeprecationWarning)
         super().__init__(pre=pre,
@@ -81,9 +81,9 @@ class ExpCUBA(Exponential):
         conn: Union[TwoEndConnector, ArrayType, Dict[str, ArrayType]],
         conn_type: str = 'sparse',
         g_max: Union[float, ArrayType, Initializer, Callable] = 1.,
-        delay_step: Union[int, ArrayType, Initializer, Callable] = None,
+        delay_step: Optional[Union[int, ArrayType, Initializer, Callable]] = None,
         tau: Union[float, ArrayType] = 8.0,
-        name: str = None,
+        name: Optional[str] = None,
         method: str = 'exp_auto',
     ):
         super().__init__(pre=pre,
@@ -118,10 +118,10 @@ class ExpCOBA(Exponential):
         tau: Union[float, ArrayType] = 8.0,
         E: Union[float, ArrayType] = 0.,
         # synapse delay
-        delay_step: Union[int, ArrayType, Initializer, Callable] = None,
+        delay_step: Optional[Union[int, ArrayType, Initializer, Callable]] = None,
         # others
         method: str = 'exp_auto',
-        name: str = None
+        name: Optional[str] = None
     ):
         super().__init__(pre=pre,
                          post=post,
@@ -152,9 +152,9 @@ class DualExpCUBA(DualExponential):
         g_max: Union[float, ArrayType, Initializer, Callable] = 1.,
         tau_decay: Union[float, ArrayType] = 10.0,
         tau_rise: Union[float, ArrayType] = 1.,
-        delay_step: Union[int, ArrayType, Initializer, Callable] = None,
+        delay_step: Optional[Union[int, ArrayType, Initializer, Callable]] = None,
         method: str = 'exp_auto',
-        name: str = None
+        name: Optional[str] = None
     ):
         super().__init__(pre=pre,
                          post=post,
@@ -185,12 +185,12 @@ class DualExpCOBA(DualExponential):
         conn: Union[TwoEndConnector, ArrayType, Dict[str, ArrayType]],
         conn_type: str = 'dense',
         g_max: Union[float, ArrayType, Initializer, Callable] = 1.,
-        delay_step: Union[int, ArrayType, Initializer, Callable] = None,
+        delay_step: Optional[Union[int, ArrayType, Initializer, Callable]] = None,
         tau_decay: Union[float, ArrayType] = 10.0,
         tau_rise: Union[float, ArrayType] = 1.,
         E: Union[float, ArrayType] = 0.,
         method: str = 'exp_auto',
-        name: str = None
+        name: Optional[str] = None
     ):
         super().__init__(pre=pre,
                          post=post,
@@ -220,10 +220,10 @@ class AlphaCUBA(Alpha):
         conn: Union[TwoEndConnector, ArrayType, Dict[str, ArrayType]],
         conn_type: str = 'dense',
         g_max: Union[float, ArrayType, Initializer, Callable] = 1.,
-        delay_step: Union[int, ArrayType, Initializer, Callable] = None,
+        delay_step: Optional[Union[int, ArrayType, Initializer, Callable]] = None,
         tau_decay: Union[float, ArrayType] = 10.0,
         method: str = 'exp_auto',
-        name: str = None
+        name: Optional[str] = None
     ):
         # Alpha synapses have a single time constant; route through the
         # single-tau ``Alpha`` implementation instead of a dual-exponential
@@ -256,11 +256,11 @@ class AlphaCOBA(Alpha):
         conn: Union[TwoEndConnector, ArrayType, Dict[str, ArrayType]],
         conn_type: str = 'dense',
         g_max: Union[float, ArrayType, Callable, Initializer] = 1.,
-        delay_step: Union[int, ArrayType, Initializer, Callable] = None,
+        delay_step: Optional[Union[int, ArrayType, Initializer, Callable]] = None,
         tau_decay: Union[float, ArrayType] = 10.0,
         E: Union[float, ArrayType] = 0.,
         method: str = 'exp_auto',
-        name: str = None
+        name: Optional[str] = None
     ):
         # Alpha synapses have a single time constant; route through the
         # single-tau ``Alpha`` implementation instead of a dual-exponential

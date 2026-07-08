@@ -89,12 +89,15 @@ class NVAR(Layer):
         super(NVAR, self).__init__(mode=mode, name=name)
 
         # parameters
-        order = tuple() if order is None else order
-        if not isinstance(order, (tuple, list)):
-            order = (order,)
-        self.order = tuple(order)
-        check.is_sequence(order, 'order', allow_none=False)
-        for o in order:
+        if order is None:
+            orders: tuple = tuple()
+        elif isinstance(order, (tuple, list)):
+            orders = tuple(order)
+        else:
+            orders = (order,)
+        self.order = tuple(orders)
+        check.is_sequence(orders, 'order', allow_none=False)
+        for o in orders:
             check.is_integer(o, 'order', allow_none=False, min_bound=2)
         check.is_integer(delay, 'delay', allow_none=False, min_bound=1)
         check.is_integer(stride, 'stride', allow_none=False, min_bound=1)
@@ -119,9 +122,9 @@ class NVAR(Layer):
         # of the n components involved, n being the order of the
         # monomials. Precompute them to improve efficiency.
         self.comb_ids = []
-        for order in self.order:
-            assert order >= 2, f'"order" must be a integer >= 2, while we got {order}.'
-            idx = np.array(list(combinations_with_replacement(np.arange(self.linear_dim), order)))
+        for order_i in self.order:
+            assert order_i >= 2, f'"order" must be a integer >= 2, while we got {order_i}.'
+            idx = np.array(list(combinations_with_replacement(np.arange(self.linear_dim), order_i)))
             self.comb_ids.append(jnp.asarray(idx))
         # number of non-linear components is (d + n - 1)! / (d - 1)! n!
         # i.e. number of all unique monomials of order n made from the

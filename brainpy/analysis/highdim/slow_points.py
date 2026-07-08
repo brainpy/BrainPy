@@ -17,7 +17,7 @@ import inspect
 import math
 import time
 import warnings
-from typing import Callable, Union, Dict, Sequence, Tuple
+from typing import Callable, Union, Dict, Sequence, Tuple, Optional, Any, cast
 
 import jax
 import jax.numpy as jnp
@@ -124,21 +124,21 @@ class SlowPointFinder(base.DSAnalyzer):
     def __init__(
         self,
         f_cell: Union[Callable, DynamicalSystem],
-        f_type: str = None,
-        f_loss: Callable = None,
+        f_type: Optional[str] = None,
+        f_loss: Optional[Callable] = None,
         verbose: bool = True,
         args: Tuple = (),
 
         # parameters for `f_cell` is DynamicalSystem instance
-        inputs: Sequence = None,
-        t: float = None,
-        dt: float = None,
-        target_vars: Dict[str, bm.Variable] = None,
-        excluded_vars: Union[Sequence[bm.Variable], Dict[str, bm.Variable]] = None,
+        inputs: Optional[Sequence] = None,
+        t: Optional[float] = None,
+        dt: Optional[float] = None,
+        target_vars: Optional[Dict[str, bm.Variable]] = None,
+        excluded_vars: Optional[Union[Sequence[bm.Variable], Dict[str, bm.Variable]]] = None,
 
         # deprecated
-        f_loss_batch: Callable = None,
-        fun_inputs: Callable = None,
+        f_loss_batch: Optional[Callable] = None,
+        fun_inputs: Optional[Callable] = None,
     ):
         super().__init__()
 
@@ -149,7 +149,7 @@ class SlowPointFinder(base.DSAnalyzer):
 
         # update function
         if target_vars is None:
-            self.target_vars = bm.ArrayCollector()
+            self.target_vars: bm.ArrayCollector = bm.ArrayCollector()
         else:
             if not isinstance(target_vars, dict):
                 raise TypeError(f'"target_vars" must be a dict but we got {type(target_vars)}')
@@ -181,14 +181,14 @@ class SlowPointFinder(base.DSAnalyzer):
             else:
                 self.target_vars = all_vars
                 if len(excluded_vars):
-                    excluded_vars = [id(v) for v in excluded_vars]
+                    excluded_ids = [id(v) for v in excluded_vars]
                     for key, val in tuple(self.target_vars.items()):
-                        if id(val) in excluded_vars:
+                        if id(val) in excluded_ids:
                             self.target_vars.pop(key)
 
             # input function
             if callable(inputs):
-                self._inputs = inputs
+                self._inputs: Any = inputs
             else:
                 if inputs is None:
                     self._inputs = None
@@ -258,13 +258,13 @@ class SlowPointFinder(base.DSAnalyzer):
         self.f_loss = f_loss
 
         # essential variables
-        self._losses = None
-        self._fixed_points = None
-        self._selected_ids = None
-        self._opt_losses = None
+        self._losses: Any = None
+        self._fixed_points: Any = None
+        self._selected_ids: Any = None
+        self._opt_losses: Any = None
 
         # functions
-        self._opt_functions = dict()
+        self._opt_functions: Dict[str, Any] = dict()
 
     @property
     def opt_losses(self) -> np.ndarray:
@@ -315,7 +315,7 @@ class SlowPointFinder(base.DSAnalyzer):
         tolerance: Union[float, Dict[str, float]] = 1e-5,
         num_batch: int = 100,
         num_opt: int = 10000,
-        optimizer: optim.Optimizer = None,
+        optimizer: Optional[optim.Optimizer] = None,
     ):
         """Optimize fixed points with gradient descent methods.
 
@@ -456,9 +456,9 @@ class SlowPointFinder(base.DSAnalyzer):
             indices = [0]
             for v in candidates.values():
                 indices.append(v.shape[1])
-            indices = np.cumsum(indices)
+            offsets = np.cumsum(indices)
             keys = tuple(candidates.keys())
-            self._fixed_points = {key: fixed_points[:, indices[i]: indices[i + 1]]
+            self._fixed_points = {key: fixed_points[:, offsets[i]: offsets[i + 1]]
                                   for i, key in enumerate(keys)}
         else:
             self._fixed_points = fixed_points
@@ -538,7 +538,9 @@ class SlowPointFinder(base.DSAnalyzer):
             return
 
         # Compute pairwise distances between all fixed points.
-        distances = np.asarray(utils.euclidean_distance_jax(self.fixed_points, num_fps))
+        # ``fixed_points`` property returns ndarray-or-dict; the outlier path
+        # operates on the array branch, so narrow it for the distance helper.
+        distances = np.asarray(utils.euclidean_distance_jax(cast(jnp.ndarray, self.fixed_points), num_fps))
 
         # Find the second smallest element in each column of the pairwise distance matrix.
         # This corresponds to the closest neighbor for each fixed point.
@@ -597,7 +599,9 @@ class SlowPointFinder(base.DSAnalyzer):
         else:
             raise ValueError('Only support points of 1D: (num_feature,) or 2D: (num_point, num_feature)')
         if isinstance(points, dict) and stack_dict_var:
-            points = jnp.hstack(tuple(points.values()))
+            # ``points`` is a constrained-TypeVar param; stacking a dict yields a
+            # concrete jax.Array that mypy cannot reconcile with every constraint.
+            points = jnp.hstack(tuple(points.values()))  # type: ignore[assignment, arg-type]
 
         # get Jacobian matrix
         jacobian = self._get_f_jocabian(stack_dict_var)(points)
@@ -761,8 +765,8 @@ class SlowPointFinder(base.DSAnalyzer):
 
     def _generate_ds_cell_function(
         self, target,
-        t: float = None,
-        dt: float = None,
+        t: Optional[float] = None,
+        dt: Optional[float] = None,
     ):
         if dt is None: dt = bm.get_dt()
         if t is None: t = 0.

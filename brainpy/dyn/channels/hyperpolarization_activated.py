@@ -174,7 +174,7 @@ class Ih_De1996(IonChannel):
            slices." Journal of neurophysiology 76.3 (1996): 2049-2070.
     """
 
-    master_type = Calcium
+    master_type = Calcium  # type: ignore[assignment]  # per-channel override; base IonChannel.master_type is inferred as type[HHTypedNeuron]
 
     def __init__(
         self,
@@ -189,7 +189,7 @@ class Ih_De1996(IonChannel):
         Ca_half: Union[float, ArrayType, Initializer, Callable] = 2e-3,
         T: Union[float, ArrayType] = 36.,
         T_base: Union[float, ArrayType] = 3.,
-        phi: Union[float, ArrayType, Initializer, Callable] = None,
+        phi: Union[float, ArrayType, Initializer, Callable, None] = None,
         method: str = 'exp_auto',
         name: Optional[str] = None,
         mode: Optional[bm.Mode] = None,

@@ -16,7 +16,7 @@
 import time
 import warnings
 from functools import partial
-from typing import Union, Dict, Sequence, Callable
+from typing import Union, Dict, Optional, Sequence, Callable
 
 import jax
 import jax.numpy as jnp
@@ -96,20 +96,20 @@ class IntegratorRunner(Runner):
         target: Integrator,
 
         # IntegratorRunner specific arguments
-        inits: Union[Sequence, Dict] = None,
+        inits: Optional[Union[Sequence, Dict]] = None,
 
         # regular/common arguments
-        dt: Union[float, int] = None,
-        monitors: Sequence[str] = None,
-        dyn_vars: Dict[str, bm.Variable] = None,
+        dt: Optional[Union[float, int]] = None,
+        monitors: Optional[Sequence[str]] = None,
+        dyn_vars: Optional[Dict[str, bm.Variable]] = None,
         jit: Union[bool, Dict[str, bool]] = True,
         numpy_mon_after_run: bool = True,
         progress_bar: bool = True,
 
         # deprecated
-        args: Dict = None,
-        dyn_args: Dict[str, Union[bm.ndarray, jnp.ndarray]] = None,
-        fun_monitors: Dict[str, Callable] = None,
+        args: Optional[Dict] = None,
+        dyn_args: Optional[Dict[str, Union[bm.ndarray, jnp.ndarray]]] = None,
+        fun_monitors: Optional[Dict[str, Callable]] = None,
     ):
         """Initialization of structural runner for integrators.
 
@@ -177,25 +177,25 @@ class IntegratorRunner(Runner):
 
         # format string monitors
         if isinstance(monitors, (tuple, list)):
-            monitors = self._format_seq_monitors(monitors)
-            monitors = {k: (self.variables[k], i) for k, i in monitors}
+            seq_monitors = self._format_seq_monitors(monitors)
+            formatted_monitors: dict = {k: (self.variables[k], i) for k, i in seq_monitors}
         elif isinstance(monitors, dict):
-            monitors = self._format_dict_monitors(monitors)
+            dict_monitors = self._format_dict_monitors(monitors)
             # ``_format_dict_monitors`` yields ``{user_key: (var_name_or_Variable, index)}``.
             # The integrator's state variables live in ``self.variables`` (they are NOT
             # attributes of ``self.target``), so a string variable-name must be resolved
             # here against ``self.variables``; the base runner then receives an already
             # resolved ``(Variable, index)`` pair and passes it through unchanged.
-            monitors = {k: ((self.variables[v[0]], v[1])
-                            if (isinstance(v, (tuple, list)) and isinstance(v[0], str))
-                            else v)
-                        for k, v in monitors.items()}
+            formatted_monitors = {k: ((self.variables[v[0]], v[1])
+                                      if (isinstance(v, (tuple, list)) and isinstance(v[0], str))
+                                      else v)
+                                  for k, v in dict_monitors.items()}
         else:
             raise ValueError
 
         # initialize super class
         super(IntegratorRunner, self).__init__(target=target,
-                                               monitors=monitors,
+                                               monitors=formatted_monitors,
                                                fun_monitors=fun_monitors,
                                                jit=jit,
                                                progress_bar=progress_bar,
@@ -281,10 +281,10 @@ class IntegratorRunner(Runner):
     def run(
         self,
         duration: float,
-        start_t: float = None,
+        start_t: Optional[float] = None,
         eval_time: bool = False,
-        args: Dict = None,
-        dyn_args: Dict = None,
+        args: Optional[Dict] = None,
+        dyn_args: Optional[Dict] = None,
     ):
         """The running function.
 
@@ -350,10 +350,10 @@ class IntegratorRunner(Runner):
             times = np.asarray(times)
             for key in list(hists.keys()):
                 hists[key] = np.asarray(hists[key])
-        self.mon.ts = times
+        self.mon['ts'] = times
         for key in hists.keys():
             self.mon[key] = hists[key]
-        self.start_t[0] = end_t
+        self.start_t[0] = end_t  # type: ignore[assignment]
         self.idx[0] += times.size
         if eval_time:
             return running_time

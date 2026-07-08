@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 import warnings
-from typing import Union, Dict, Callable, Optional, Tuple
+from typing import Any, Union, Dict, Callable, Optional, Tuple, cast
 
 import jax
 
@@ -89,8 +89,8 @@ class _SynOut(_SynapseComponent, ParamDesc):
 
     def __init__(
         self,
-        name: str = None,
-        target_var: Union[str, bm.Variable] = None,
+        name: Optional[str] = None,
+        target_var: Optional[Union[str, bm.Variable]] = None,
     ):
         super().__init__(name=name)
         # check target variable
@@ -98,7 +98,7 @@ class _SynOut(_SynapseComponent, ParamDesc):
             if not isinstance(target_var, (str, bm.Variable)):
                 raise TypeError('"target_var" must be instance of string or Variable. '
                                 f'But we got {type(target_var)}')
-        self.target_var: Optional[bm.Variable] = target_var
+        self.target_var: Optional[Union[str, bm.Variable]] = target_var
 
     def register_master(self, master: SynConn):
         super().register_master(master)
@@ -173,12 +173,12 @@ class TwoEndConn(SynConn):
         self,
         pre: DynamicalSystem,
         post: DynamicalSystem,
-        conn: Union[TwoEndConnector, ArrayType, Dict[str, ArrayType]] = None,
+        conn: Optional[Union[TwoEndConnector, ArrayType, Dict[str, ArrayType]]] = None,
         output: _SynOut = _NullSynOut(),
         stp: Optional[_SynSTP] = None,
-        ltp: Optional = None,
-        mode: bm.Mode = None,
-        name: str = None,
+        ltp: Optional[Any] = None,
+        mode: Optional[bm.Mode] = None,
+        name: Optional[str] = None,
         init_stp: bool = True
     ):
         super().__init__(pre=pre,
@@ -190,7 +190,7 @@ class TwoEndConn(SynConn):
         # synaptic output
         output = _NullSynOut() if output is None else output
         if output.isregistered:
-            output = output.clone()
+            output = cast(_SynOut, output.clone())
         if not isinstance(output, _SynOut):
             raise TypeError(f'output must be instance of {_SynOut.__name__}, '
                             f'but we got {type(output)}')
@@ -204,10 +204,10 @@ class TwoEndConn(SynConn):
 
     def _init_weights(
         self,
-        weight: Union[float, ArrayType, Callable],
+        weight: Union[float, Any, Callable],
         comp_method: str,
         sparse_data: str = 'csr'
-    ) -> Tuple[Union[float, ArrayType], ArrayType]:
+    ) -> Tuple[Any, Any]:
         if comp_method not in ['sparse', 'dense']:
             raise ValueError(f'"comp_method" must be in "sparse" and "dense", but we got {comp_method}')
         if sparse_data not in ['csr', 'ij', 'coo']:
@@ -232,6 +232,7 @@ class TwoEndConn(SynConn):
                     conn_mask = self.conn.require('post_ids', 'pre_ids')
                 else:
                     ValueError(f'Unknown sparse data type: {sparse_data}')
+                assert conn_mask is not None
                 weight = parameter(weight, conn_mask[0].shape, allow_none=False)
             elif comp_method == 'dense':
                 weight = parameter(weight, (self.pre.num, self.post.num), allow_none=False)
@@ -287,10 +288,10 @@ class _TwoEndConnAlignPre(TwoEndConn):
         syn: DynamicalSystem,
         conn: TwoEndConnector,
         g_max: Union[float, ArrayType, Callable],
-        output: JointType[DynamicalSystem, BindCondData] = _NullSynOut(),
+        output: JointType[DynamicalSystem, BindCondData] = _NullSynOut(),  # type: ignore[valid-type]
         stp: Optional[_SynSTP] = None,
         comp_method: str = 'dense',
-        delay_step: Union[int, ArrayType, Callable] = None,
+        delay_step: Optional[Union[int, Any, Callable]] = None,
         name: Optional[str] = None,
         mode: Optional[bm.Mode] = None,
     ):
@@ -314,7 +315,7 @@ class _TwoEndConnAlignPre(TwoEndConn):
 
         # synaptic communications
         if isinstance(conn, All2All):
-            self.comm = linear.AllToAll(pre.num, post.num, g_max, include_self=conn.include_self)
+            self.comm: linear.Layer = linear.AllToAll(pre.num, post.num, g_max, include_self=conn.include_self)
         elif isinstance(conn, One2One):
             assert post.num == pre.num
             self.comm = linear.OneToOne(pre.num, g_max)

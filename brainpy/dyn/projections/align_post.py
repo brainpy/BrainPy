@@ -12,13 +12,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Optional, Callable, Union
+from typing import Optional, Callable, Union, TYPE_CHECKING, Any
 
 from brainpy import math as bm, check
 from brainpy.delay import (delay_identifier,
                            register_delay_by_return)
 from brainpy.dynsys import DynamicalSystem, Projection
-from brainpy.mixin import (JointType, ParamDescriber, SupportAutoDelay, BindCondData, AlignPost)
+from brainpy.mixin import (SupportAutoDelay, BindCondData, AlignPost)
+
+if TYPE_CHECKING:
+    # ``JointType`` and ``ParamDescriber`` are runtime helpers from ``brainstate``
+    # that mypy cannot model as static types (``JointType`` is a singleton instance
+    # supporting subscription; ``ParamDescriber`` is a non-generic class). Provide
+    # type-check-only stand-ins so annotations such as ``JointType[A, B]`` and
+    # ``ParamDescriber[T]`` are accepted. The runtime objects are imported below.
+    # ``JointType`` reuses delay.py's stand-in so the ``pre`` annotation here is the
+    # SAME static type ``register_delay_by_return`` expects.
+    from typing import Generic, TypeVar
+
+    from brainpy.delay import JointType
+
+    _DescT = TypeVar('_DescT')
+
+    class ParamDescriber(Generic[_DescT]):
+        def __getattr__(self, item: str) -> Any: ...
+        def __call__(self, *args: Any, **kwargs: Any) -> Any: ...
+else:
+    from brainpy.mixin import JointType, ParamDescriber
 
 __all__ = [
     'HalfProjAlignPostMg', 'FullProjAlignPostMg',
@@ -153,7 +173,7 @@ class HalfProjAlignPostMg(Projection):
         syn, out = align_post_add_bef_update(out_label, syn_desc=syn, out_desc=out, post=post, proj_name=self.name)
 
         # references
-        self.refs = dict(post=post)  # invisible to ``self.nodes()``
+        self.refs: dict = dict(post=post)  # invisible to ``self.nodes()``
         self.refs['syn'] = syn
         self.refs['out'] = out
         self.refs['comm'] = comm  # unify the access
@@ -292,7 +312,7 @@ class FullProjAlignPostMg(Projection):
         syn, out = align_post_add_bef_update(out_label, syn_desc=syn, out_desc=out, post=post, proj_name=self.name)
 
         # references
-        self.refs = dict(pre=pre, post=post)  # invisible to ``self.nodes()``
+        self.refs: dict = dict(pre=pre, post=post)  # invisible to ``self.nodes()``
         self.refs['syn'] = syn  # invisible to ``self.node()``
         self.refs['out'] = out  # invisible to ``self.node()``
         # unify the access
@@ -397,7 +417,7 @@ class HalfProjAlignPost(Projection):
         post.add_inp_fun(self.name, out, label=out_label)
 
         # reference
-        self.refs = dict()
+        self.refs: dict = dict()
         # invisible to ``self.nodes()``
         self.refs['post'] = post
         self.refs['syn'] = syn
@@ -532,7 +552,7 @@ class FullProjAlignPost(Projection):
         post.add_inp_fun(self.name, out, label=out_label)
 
         # references
-        self.refs = dict()
+        self.refs: dict = dict()
         # invisible to ``self.nodes()``
         self.refs['pre'] = pre
         self.refs['post'] = post

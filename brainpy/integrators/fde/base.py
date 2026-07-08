@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Union, Callable, Dict
+from typing import Union, Callable, Dict, Optional
 
 import jax.numpy as jnp
 
@@ -58,9 +58,9 @@ class FDEIntegrator(Integrator):
         f: Callable,
         alpha,
         num_memory: int,
-        dt: float = None,
-        name: str = None,
-        state_delays: Dict[str, Union[bm.LengthDelay, bm.TimeDelay]] = None,
+        dt: Optional[float] = None,
+        name: Optional[str] = None,
+        state_delays: Optional[Dict[str, Union[bm.LengthDelay, bm.TimeDelay]]] = None,
     ):
         dt = bm.get_dt() if dt is None else dt
         parses = get_args(f)

@@ -23,12 +23,12 @@ import numpy as onp
 from jax import numpy as jnp
 from jax.lax import cond
 
-conn = None
-init = None
-var_obs = None
+conn: Any = None
+init: Any = None
+var_obs: Any = None
 
-Array = None
-BrainPyObject = None
+Array: Any = None
+BrainPyObject: Any = None
 
 __all__ = [
     'is_checking',
@@ -208,9 +208,9 @@ def check_shape(all_shapes, free_axes: Union[Sequence[int], int] = -1):
 
 
 def is_dict_data(a_dict: Dict,
-                 key_type: Union[Type, Tuple[Type, ...]] = None,
-                 val_type: Union[Type, Tuple[Type, ...]] = None,
-                 name: str = None,
+                 key_type: Optional[Union[Type, Tuple[Type, ...]]] = None,
+                 val_type: Optional[Union[Type, Tuple[Type, ...]]] = None,
+                 name: Optional[str] = None,
                  allow_none: bool = True):
     """Check the dictionary data.
     """
@@ -230,7 +230,7 @@ def is_dict_data(a_dict: Dict,
 
 
 def is_callable(fun: Callable,
-                name: str = None,
+                name: Optional[str] = None,
                 allow_none: bool = False):
     name = '' if name is None else name
     if fun is None:
@@ -245,7 +245,7 @@ def is_callable(fun: Callable,
 
 def is_initializer(
     initializer,
-    name: str = None,
+    name: Optional[str] = None,
     allow_none: bool = False
 ):
     """Check the initializer.
@@ -277,7 +277,7 @@ def is_initializer(
 
 def is_connector(
     connector,
-    name: str = None,
+    name: Optional[str] = None,
     allow_none: bool = False
 ):
     """Check the connector.
@@ -307,8 +307,8 @@ def is_connector(
 
 def is_sequence(
     value: Sequence,
-    name: str = None,
-    elem_type: Union[type, Sequence[type]] = None,
+    name: Optional[str] = None,
+    elem_type: Optional[Union[type, Sequence[type]]] = None,
     allow_none: bool = True
 ):
     if name is None: name = ''
@@ -321,7 +321,9 @@ def is_sequence(
         raise ValueError(f'{name} should be a sequence, but we got a {type(value)}')
     if elem_type is not None:
         for v in value:
-            if not isinstance(v, elem_type):
+            # elem_type is annotated as a Sequence[type] per the public API; isinstance's
+            # stub only accepts type | tuple, so narrow at runtime is unnecessary here.
+            if not isinstance(v, elem_type):  # type: ignore[arg-type]
                 raise ValueError(f'Elements in {name} should be {elem_type}, '
                                  f'but we got {type(elem_type)}: {v}')
     return value
@@ -329,9 +331,9 @@ def is_sequence(
 
 def is_float(
     value: float,
-    name: str = None,
-    min_bound: float = None,
-    max_bound: float = None,
+    name: Optional[str] = None,
+    min_bound: Optional[float] = None,
+    max_bound: Optional[float] = None,
     allow_none: bool = False,
     allow_int: bool = True
 ) -> float:
@@ -413,7 +415,7 @@ def is_integer(value: int, name=None, min_bound=None, max_bound=None, allow_none
     return value
 
 
-def is_string(value: str, name: str = None, candidates: Sequence[str] = None, allow_none=False):
+def is_string(value: str, name: Optional[str] = None, candidates: Optional[Sequence[str]] = None, allow_none=False):
     """Check string type.
     """
     if name is None: name = ''
@@ -527,7 +529,9 @@ def is_instance(
     """
     if not name:
         name = 'We'
-    if not isinstance(instance, supported_types):
+    # supported_types is annotated as Union[Type, Sequence[Type]] per the public API;
+    # isinstance's stub only accepts type | tuple, so this is a stub-vs-annotation mismatch.
+    if not isinstance(instance, supported_types):  # type: ignore[arg-type]
         raise NotImplementedError(f"{name} expect to get an instance of {supported_types}."
                                   f"But we got {type(instance)}. ")
     return instance
@@ -643,7 +647,7 @@ def jit_error(pred, err_fun, err_arg=None):
 jit_error_checking = jit_error
 
 
-def jit_error_checking_no_args(pred: bool, err: Exception):
+def jit_error_checking_no_args(pred: Union[bool, jax.Array], err: Exception):
     """Check errors in a jit function.
 
     Parameters

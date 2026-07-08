@@ -15,7 +15,7 @@
 # ==============================================================================
 import time
 from collections.abc import Iterable
-from typing import Union, Dict, Callable, Sequence, Optional
+from typing import Union, Dict, Callable, Sequence, Optional, Any, Sized, cast
 
 import brainstate.environ
 import jax.numpy as jnp
@@ -86,14 +86,14 @@ class BPTrainer(DSTrainer):
         self,
         target: DynamicalSystem,
         loss_fun: Union[str, Callable],  # loss function
-        optimizer: optim.Optimizer = None,  # optimizer
+        optimizer: Optional[optim.Optimizer] = None,  # optimizer
         loss_has_aux: bool = False,  # loss auxiliary
         loss_auto_run: bool = True,  # loss auxiliary
 
         # -------------
         # API deprecated
-        seed: int = None,  # deprecated
-        shuffle_data: bool = None,  # deprecated
+        seed: Optional[int] = None,  # deprecated
+        shuffle_data: Optional[bool] = None,  # deprecated
 
         **kwargs,
     ):
@@ -145,10 +145,10 @@ class BPTrainer(DSTrainer):
         self.loss_auto_run = loss_auto_run
 
         # loss data
-        self._report_train_metrics = dict()
-        self._report_test_metrics = dict()
-        self._detailed_train_metrics = dict()
-        self._detailed_test_metrics = dict()
+        self._report_train_metrics: Dict[str, Any] = dict()
+        self._report_test_metrics: Dict[str, Any] = dict()
+        self._detailed_train_metrics: Dict[str, Any] = dict()
+        self._detailed_test_metrics: Dict[str, Any] = dict()
 
         # functions
         self._jit_step_func_grad = bm.jit(self._step_func_grad, static_argnums=(0,))
@@ -186,7 +186,7 @@ class BPTrainer(DSTrainer):
     def test_losses(self):
         return self.get_hist_metric(phase='test')
 
-    def fit(
+    def fit(  # type: ignore[override]  # intentionally extends DSTrainer.fit with training-loop params
         self,
         train_data: Union[Callable, Iterable],
         test_data: Optional[Union[Callable, Iterable]] = None,
@@ -198,7 +198,7 @@ class BPTrainer(DSTrainer):
 
         # ------
         # API deprecated
-        batch_size: int = None,
+        batch_size: Optional[int] = None,
     ):
         """Fit the target model according to the given training data.
 
@@ -274,21 +274,23 @@ class BPTrainer(DSTrainer):
             self.progress_bar = False
 
             # training the model
-            detailed_train_metric = dict()
-            report_train_metric = dict()
-            detailed_test_metric = dict()
-            report_test_metric = dict()
+            detailed_train_metric: Dict[str, list] = dict()
+            report_train_metric: Dict[str, list] = dict()
+            detailed_test_metric: Dict[str, list] = dict()
+            report_test_metric: Dict[str, list] = dict()
 
-            fit_i, fit_t = 0, 0
-            test_i, test_t = 0, 0
+            fit_i = 0
+            fit_t: float = 0
+            test_i = 0
+            test_t: float = 0
             for epoch_idx in range(num_epoch):
 
                 # training set
                 fit_t0 = time.time()
-                fit_epoch_metric = dict(loss=[])
+                fit_epoch_metric: Dict[str, list] = dict(loss=[])
                 _training_data = train_data() if callable(train_data) else train_data
                 if hasattr(_training_data, '__len__'):
-                    bar = tqdm(total=len(_training_data))
+                    bar = tqdm(total=len(cast(Sized, _training_data)))
                 else:
                     bar = None
 
@@ -364,10 +366,10 @@ class BPTrainer(DSTrainer):
                 # testing set
                 if test_data is not None:
                     test_t0 = time.time()
-                    test_epoch_metric = dict(loss=[])
+                    test_epoch_metric: Dict[str, list] = dict(loss=[])
                     _testing_data = test_data() if callable(test_data) else test_data
                     if hasattr(_testing_data, '__len__'):
-                        bar = tqdm(total=len(_testing_data))
+                        bar = tqdm(total=len(cast(Sized, _testing_data)))
                     else:
                         bar = None
                     for x, y in _testing_data:
@@ -586,13 +588,13 @@ class BPFF(BPTrainer):
         else:
             return self._step_func_predict(*inputs, shared_args=shared_args)
 
-    def predict(
+    def predict(  # type: ignore[override]  # BPTT.predict deliberately differs from DSRunner.predict's runner-style signature
         self,
         inputs: Union[ArrayType, Sequence[ArrayType], Dict[str, ArrayType]],
         reset_state: bool = True,
-        shared_args: Dict = None,
+        shared_args: Optional[Dict] = None,
         eval_time: bool = False
-    ) -> Output:
+    ) -> Any:
         """Predict a series of input data with the given target model.
 
         This function use the JIT compilation to accelerate the model simulation.
@@ -632,7 +634,7 @@ class BPFF(BPTrainer):
             self.mon[key] = []  # reshape the monitor items
         # prediction
         if not isinstance(inputs, (tuple, list)):
-            inputs = (inputs,)
+            inputs = (inputs,)  # type: ignore[assignment]  # normalize single input to a 1-tuple for *args unpacking
         if eval_time: t0 = time.time()
         outs, hists = self._fun_predict(*inputs, shared_args=shared_args)
         if eval_time: t1 = time.time()

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Union, Callable, Optional, Sequence
+from typing import Any, Union, Callable, Optional, Sequence, Tuple, cast
 
 import jax
 import jax.numpy as jnp
@@ -49,7 +49,7 @@ def _check_var(x):
 
 def parameter(
     param: Union[Callable, Initializer, bm.Array, np.ndarray, jax.Array, float, int, bool],
-    sizes: Shape,
+    sizes: Union[int, Sequence[int]],
     allow_none: bool = True,
     allow_scalar: bool = True,
     sharding: Optional[Sharding] = None
@@ -91,14 +91,14 @@ def parameter(
         else:
             raise ValueError(f'Expect a parameter with type of float, ArrayType, Initializer, or '
                              f'Callable function, but we got None. ')
-    sizes = to_size(sizes)
+    sizes = cast(Tuple[int, ...], to_size(sizes))
     if allow_scalar and _is_scalar(param):
         return param
 
     if callable(param):
         v = bm.jit(param,
                    static_argnums=0,
-                   out_shardings=bm.sharding.get_sharding(sharding))(sizes)
+                   out_shardings=bm.sharding.get_sharding(cast(Optional[Sequence[str]], sharding)))(sizes)
         return _check_var(v)  # TODO: checking the Variable need to be traced
 
     elif isinstance(param, (np.ndarray, jnp.ndarray)):
@@ -110,6 +110,7 @@ def parameter(
     else:
         raise ValueError(f'Unknown param type {type(param)}: {param}')
 
+    assert isinstance(param, (bm.Array, bm.Variable, jax.Array, np.ndarray))
     if allow_scalar:
         if param.shape == () or param.shape == (1,):
             return param
@@ -119,8 +120,8 @@ def parameter(
 
 
 def variable_(
-    init: Union[Callable, bm.Array, jax.Array],
-    sizes: Shape = None,
+    init: Union[Callable, Initializer, bm.Array, bm.Variable, jax.Array, np.ndarray],
+    sizes: Optional[Union[int, Sequence[int]]] = None,
     batch_or_mode: Optional[Union[int, bool, bm.Mode]] = None,
     batch_axis: int = 0,
     axis_names: Optional[Sequence[str]] = None,
@@ -143,9 +144,9 @@ def variable_(
 
 
 def variable(
-    init: Union[Callable, ArrayType],
+    init: Union[Callable, Initializer, bm.Array, bm.Variable, jax.Array, np.ndarray],
     batch_or_mode: Optional[Union[int, bool, bm.Mode]] = None,
-    sizes: Shape = None,
+    sizes: Optional[Union[int, Sequence[int]]] = None,
     batch_axis: int = 0,
     axis_names: Optional[Sequence[str]] = None,
     batch_axis_name: Optional[str] = None,
@@ -187,9 +188,9 @@ def variable(
     sizes = to_size(sizes)
     if axis_names is not None:
         axis_names = list(axis_names)
-        assert len(sizes) == len(axis_names)
+        assert len(sizes) == len(axis_names)  # type: ignore[arg-type]  # sizes is non-None here when axis_names is provided
         if batch_or_mode is not None and not isinstance(batch_or_mode, bm.NonBatchingMode):
-            axis_names.insert(batch_axis, batch_axis_name)
+            axis_names.insert(batch_axis, batch_axis_name)  # type: ignore[arg-type]  # None is a valid unnamed-axis sentinel for axis_names
 
     if callable(init):
         if sizes is None:
@@ -233,7 +234,7 @@ def variable(
 
 
 def noise(
-    noises: Optional[Union[int, float, bm.ndarray, jnp.ndarray, Initializer, Callable]],
+    noises: Optional[Union[int, float, bm.ndarray, jnp.ndarray, np.ndarray, Initializer, Callable]],
     size: Shape,
     num_vars: int = 1,
     noise_idx: int = 0,
@@ -268,18 +269,18 @@ def noise(
     elif noises is None:
         return None
     else:
-        noises = parameter(noises, size, allow_none=False)
+        noises_ret: Any = parameter(noises, size, allow_none=False)
         if num_vars > 1:
-            noises_ = [None] * num_vars
-            noises_[noise_idx] = noises
-            noises = tuple(noises_)
-        return lambda *args, **kwargs: noises
+            noises_: list = [None] * num_vars
+            noises_[noise_idx] = noises_ret
+            noises_ret = tuple(noises_)
+        return lambda *args, **kwargs: noises_ret
 
 
 def delay(
     delay_step: Union[int, bm.ndarray, jnp.ndarray, Callable, Initializer],
     delay_target: Union[bm.ndarray, jnp.ndarray],
-    delay_data: Union[bm.ndarray, jnp.ndarray] = None
+    delay_data: Optional[Union[bm.ndarray, jnp.ndarray]] = None
 ):
     """Initialize delay variable.
 
@@ -319,6 +320,7 @@ def delay(
         raise ValueError(f'Unknown "delay_steps" type {type(delay_step)}, only support '
                          f'integer, array of integers, callable function, brainpy.init.Initializer.')
     if delay_type == 'heter':
+        assert isinstance(delay_step, (bm.Array, jax.Array, np.ndarray))
         if delay_step.dtype not in [bm.int32, bm.int64]:
             raise ValueError('Only support delay steps of int32, int64. If your '
                              'provide delay time length, please divide the "dt" '
@@ -328,8 +330,10 @@ def delay(
 
     # init delay data
     if delay_type == 'homo':
+        assert isinstance(delay_step, int)
         delays = bm.LengthDelay(delay_target, delay_step, initial_delay_data=delay_data)
     elif delay_type == 'heter':
+        assert isinstance(delay_step, (bm.Array, jax.Array, np.ndarray))
         if delay_step.size != delay_target.size:
             raise ValueError('Heterogeneous delay must have a length '
                              f'of the delay target {delay_target.shape}, '

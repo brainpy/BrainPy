@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Union, Optional, Sequence, Callable
+from typing import Any, Union, Optional, Sequence, Callable
 
 from jax import lax, numpy as jnp
 
@@ -99,7 +99,7 @@ class BatchNorm(Layer):
     .. [1] Ioffe, Sergey and Christian Szegedy. “Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift.” ArXiv abs/1502.03167 (2015): n. pag.
 
     """
-    supported_modes = (bm.BatchingMode, bm.TrainingMode)
+    supported_modes: tuple = (bm.BatchingMode, bm.TrainingMode)
 
     def __init__(
         self,
@@ -129,8 +129,8 @@ class BatchNorm(Layer):
         self.epsilon = epsilon
         self.momentum = momentum
         self.affine = affine
-        self.bias_initializer = bias_initializer
-        self.scale_initializer = scale_initializer
+        self.bias_initializer: Any = bias_initializer
+        self.scale_initializer: Any = scale_initializer
         self.axis = (axis,) if jnp.isscalar(axis) else axis
         self.axis_name = axis_name
         self.axis_index_groups = axis_index_groups
@@ -147,8 +147,8 @@ class BatchNorm(Layer):
             # ``assert isinstance(self.mode, TrainingMode)`` that crashed the
             # layer under non-training modes (H-51).
             if isinstance(self.mode, bm.TrainingMode):
-                self.bias = bm.TrainVar(bias)
-                self.scale = bm.TrainVar(scale)
+                self.bias: bm.Variable = bm.TrainVar(bias)
+                self.scale: bm.Variable = bm.TrainVar(scale)
             else:
                 self.bias = bm.Variable(bias)
                 self.scale = bm.Variable(scale)
@@ -530,8 +530,8 @@ class LayerNorm(Layer):
         super(LayerNorm, self).__init__(name=name, mode=mode)
 
         self.epsilon = epsilon
-        self.bias_initializer = bias_initializer
-        self.scale_initializer = scale_initializer
+        self.bias_initializer: Any = bias_initializer
+        self.scale_initializer: Any = scale_initializer
         if isinstance(normalized_shape, int):
             normalized_shape = (normalized_shape,)
         self.normalized_shape = tuple(normalized_shape)
@@ -547,8 +547,8 @@ class LayerNorm(Layer):
             # ``assert isinstance(self.mode, TrainingMode)`` that crashed the
             # affine layer out-of-the-box (H-51).
             if isinstance(self.mode, bm.TrainingMode):
-                self.bias = bm.TrainVar(bias)
-                self.scale = bm.TrainVar(scale)
+                self.bias: bm.Variable = bm.TrainVar(bias)
+                self.scale: bm.Variable = bm.TrainVar(scale)
             else:
                 self.bias = bm.Variable(bias)
                 self.scale = bm.Variable(scale)
@@ -633,8 +633,8 @@ class GroupNorm(Layer):
         self.num_channels = num_channels
         self.epsilon = epsilon
         self.affine = affine
-        self.bias_initializer = bias_initializer
-        self.scale_initializer = scale_initializer
+        self.bias_initializer: Any = bias_initializer
+        self.scale_initializer: Any = scale_initializer
         if self.affine:
             bias = parameter(self.bias_initializer, self.num_channels)
             scale = parameter(self.scale_initializer, self.num_channels)
@@ -645,8 +645,8 @@ class GroupNorm(Layer):
             # removes the hard ``assert isinstance(self.mode, TrainingMode)`` that
             # crashed the affine layer out-of-the-box (H-51).
             if isinstance(self.mode, bm.TrainingMode):
-                self.bias = bm.TrainVar(bias)
-                self.scale = bm.TrainVar(scale)
+                self.bias: bm.Variable = bm.TrainVar(bias)
+                self.scale: bm.Variable = bm.TrainVar(scale)
             else:
                 self.bias = bm.Variable(bias)
                 self.scale = bm.Variable(scale)

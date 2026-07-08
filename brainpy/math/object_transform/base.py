@@ -39,7 +39,7 @@ from brainpy.math.sharding import BATCH_AXIS
 
 variable_ = None
 StateLoadResult = namedtuple('StateLoadResult', ['missing_keys', 'unexpected_keys'])
-registered = set()
+registered: set = set()
 
 __all__ = [
     'BrainPyObject', 'Base', 'FunAsObject', 'ObjectTransform',
@@ -141,7 +141,7 @@ class BrainPyObject(object):
         name: str,
         init: Union[Callable, Array, jax.Array],
         shape: Union[int, Sequence[int]],
-        batch_or_mode: Union[int, bool, Mode] = None,
+        batch_or_mode: Optional[Union[int, bool, Mode]] = None,
         batch_axis: int = 0,
         axis_names: Optional[Sequence[str]] = None,
         batch_axis_name: Optional[str] = BATCH_AXIS,
@@ -245,11 +245,11 @@ class BrainPyObject(object):
         return self._name
 
     @name.setter
-    def name(self, name: str = None):
+    def name(self, name: Optional[str] = None):
         self._name = self.unique_name(name=name)
         check_name_uniqueness(name=self._name, obj=self)
 
-    def register_implicit_vars(self, *variables, var_cls: type = None, **named_variables):
+    def register_implicit_vars(self, *variables, var_cls: Any = None, **named_variables):
         if var_cls is None:
             var_cls = (Variable, VarList, VarDict)
 
@@ -289,7 +289,7 @@ class BrainPyObject(object):
                 raise ValueError(f'Must be instance of {var_cls}, but we got {type(variable)}')
             _store(key, variable)
 
-    def register_implicit_nodes(self, *nodes, node_cls: type = None, **named_nodes):
+    def register_implicit_nodes(self, *nodes, node_cls: Any = None, **named_nodes):
         if node_cls is None:
             node_cls = (BrainPyObject, NodeList, NodeDict)
 
@@ -318,7 +318,7 @@ class BrainPyObject(object):
         method: str = 'absolute',
         level: int = -1,
         include_self: bool = True,
-        exclude_types: Tuple[type, ...] = None
+        exclude_types: Optional[Tuple[type, ...]] = None
     ):
         """Collect all variables in this node and the children nodes.
 
@@ -647,9 +647,9 @@ class FunAsObject(BrainPyObject):
     def __init__(
         self,
         target: Callable,
-        child_objs: Union[BrainPyObject, Sequence[BrainPyObject], Dict[dict, BrainPyObject]] = None,
-        dyn_vars: Union[Variable, Sequence[Variable], Dict[dict, Variable]] = None,
-        name: str = None
+        child_objs: Optional[Union[BrainPyObject, Sequence[BrainPyObject], Dict[dict, BrainPyObject]]] = None,
+        dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[dict, Variable]]] = None,
+        name: Optional[str] = None
     ):
         super(FunAsObject, self).__init__(name=name)
         self.target = target
@@ -694,7 +694,7 @@ class ObjectTransform(BrainPyObject):
     """Object-oriented JAX transformation for BrainPy computation.
     """
 
-    def __init__(self, name: str = None):
+    def __init__(self, name: Optional[str] = None):
         super().__init__(name=name)
 
     def __call__(self, *args, **kwargs):
@@ -720,13 +720,13 @@ class NodeList(list):
         super().__init__()
         self.extend(seq)
 
-    def append(self, element) -> 'NodeList':
+    def append(self, element) -> 'NodeList':  # type: ignore[override]  # fluent API returns self by design
         # if not isinstance(element, BrainPyObject):
         #   raise TypeError(f'element must be an instance of {BrainPyObject.__name__}.')
         super().append(element)
         return self
 
-    def extend(self, iterable) -> 'NodeList':
+    def extend(self, iterable) -> 'NodeList':  # type: ignore[override]  # fluent API returns self by design
         for element in iterable:
             self.append(element)
         return self
@@ -750,7 +750,7 @@ class NodeDict(dict):
         self.check_unique = check_unique
         self.update(*args, **kwargs)
 
-    def update(self, *args, **kwargs) -> 'NodeDict':
+    def update(self, *args, **kwargs) -> 'NodeDict':  # type: ignore[override]  # fluent API returns self by design
         for arg in args:
             if isinstance(arg, dict):
                 for k, v in arg.items():
@@ -762,7 +762,7 @@ class NodeDict(dict):
             self[k] = v
         return self
 
-    def __setitem__(self, key, value) -> 'NodeDict':
+    def __setitem__(self, key, value) -> 'NodeDict':  # type: ignore[override]  # fluent API returns self by design
         if self.check_unique:
             exist = self.get(key, None)
             if exist is not None and id(exist) != id(value):

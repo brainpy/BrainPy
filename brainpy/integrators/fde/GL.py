@@ -17,7 +17,7 @@
 This module provides numerical solvers for Grünwald–Letnikov derivative FDEs.
 """
 
-from typing import Dict, Union, Callable, Any
+from typing import Dict, Union, Callable, Any, Optional
 
 import jax
 
@@ -145,9 +145,9 @@ class GLShortMemory(FDEIntegrator):
         alpha: Any,
         inits: Any,
         num_memory: int,
-        dt: float = None,
-        name: str = None,
-        state_delays: Dict[str, Union[bm.LengthDelay, bm.TimeDelay]] = None,
+        dt: Optional[float] = None,
+        name: Optional[str] = None,
+        state_delays: Optional[Dict[str, Union[bm.LengthDelay, bm.TimeDelay]]] = None,
     ):
         super(GLShortMemory, self).__init__(f=f,
                                             alpha=alpha,
