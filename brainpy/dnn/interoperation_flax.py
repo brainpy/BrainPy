@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 import dataclasses
-from typing import Dict, Tuple
+from typing import Dict, Optional, Tuple
 
 import jax
 from jax.tree_util import tree_flatten, tree_map, tree_unflatten
@@ -27,8 +27,8 @@ try:
     import flax  # noqa
     from flax.linen.recurrent import RNNCellBase
 except (ImportError, ModuleNotFoundError):
-    flax = None
-    RNNCellBase = object
+    flax = None  # type: ignore[assignment]  # optional dependency fallback
+    RNNCellBase = object  # type: ignore[assignment, misc]  # optional dependency fallback base class
 
 __all__ = [
     'FromFlax',
@@ -91,10 +91,11 @@ if flax is not None:
         train_params: Dict[str, jax.Array] = dataclasses.field(init=False)
 
         def initialize_carry(self, rng, input_shape: Tuple[int, ...]):
-            batch_dims = input_shape[:-1]
-            if len(batch_dims) == 1:
+            batch_shape = input_shape[:-1]
+            batch_dims: Optional[int]
+            if len(batch_shape) == 1:
                 batch_dims = 1
-            elif len(batch_dims) == 0:
+            elif len(batch_shape) == 0:
                 batch_dims = None
             else:
                 raise ValueError(f'Invalid input shape: {input_shape}')
@@ -153,7 +154,7 @@ if flax is not None:
             return 1
 
 else:
-    class ToFlaxRNNCell(object):
+    class ToFlaxRNNCell(object):  # type: ignore[no-redef]  # conditional stub when flax is unavailable
         __doc__ = to_flax_doc
 
         def __init__(self, *args, **kwargs):

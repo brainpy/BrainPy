@@ -44,7 +44,7 @@ class Activation(Layer):
         self,
         activate_fun: Callable,
         name: Optional[str] = None,
-        mode: bm.Mode = None,
+        mode: Optional[bm.Mode] = None,
         **kwargs,
     ):
         super().__init__(name, mode)
@@ -97,7 +97,7 @@ class Flatten(Layer):
         start_dim: int = 0,
         end_dim: int = -1,
         name: Optional[str] = None,
-        mode: bm.Mode = None,
+        mode: Optional[bm.Mode] = None,
     ):
         super().__init__(name, mode)
 
@@ -162,7 +162,7 @@ class Unflatten(Layer):
         (2, 2, 5, 5)
     """
 
-    def __init__(self, dim: int, sizes: Sequence[int], mode: bm.Mode = None, name: str = None) -> None:
+    def __init__(self, dim: int, sizes: Sequence[int], mode: Optional[bm.Mode] = None, name: Optional[str] = None) -> None:
         super().__init__(mode=mode, name=name)
 
         self.dim = dim
@@ -188,7 +188,7 @@ class FunAsLayer(Layer):
         self,
         fun: Callable,
         name: Optional[str] = None,
-        mode: bm.Mode = None,
+        mode: Optional[bm.Mode] = None,
         **kwargs,
     ):
         super().__init__(name, mode)

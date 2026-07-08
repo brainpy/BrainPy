@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Union, Dict, Callable
+from typing import Union, Dict, Callable, Optional
 
 import brainpy.math as bm
 from brainpy.connect import TwoEndConnector
@@ -35,7 +35,7 @@ class GapJunction(TwoEndConn):
         conn: Union[TwoEndConnector, ArrayType, Dict[str, ArrayType]],
         comp_method: str = 'dense',
         g_max: Union[float, ArrayType, Initializer, Callable] = 1.,
-        name: str = None,
+        name: Optional[str] = None,
     ):
         super(GapJunction, self).__init__(pre=pre,
                                           post=post,

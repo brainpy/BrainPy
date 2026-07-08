@@ -155,6 +155,7 @@ class Expon(SynDyn, AlignPost):
         return self.g
 
 
+assert Expon.__doc__ is not None
 Expon.__doc__ = Expon.__doc__ % (_docs.exp_syn_doc, _docs.pneu_doc,)
 
 
@@ -345,6 +346,7 @@ class DualExpon(SynDyn):
         return self.g
 
 
+assert DualExpon.__doc__ is not None
 DualExpon.__doc__ = DualExpon.__doc__ % (_docs.dual_exp_syn_doc, _docs.pneu_doc, _docs.dual_exp_args)
 
 
@@ -492,6 +494,7 @@ class DualExponV2(SynDyn, AlignPost):
                           lambda shape: self.a * (self.g_decay - self.g_rise))
 
 
+assert DualExponV2.__doc__ is not None
 DualExponV2.__doc__ = DualExponV2.__doc__ % (_docs.dual_exp_syn_doc, _docs.pneu_doc, _docs.dual_exp_args,)
 
 
@@ -616,6 +619,7 @@ class Alpha(SynDyn):
         return self.g
 
 
+assert Alpha.__doc__ is not None
 Alpha.__doc__ = Alpha.__doc__ % (_docs.alpha_syn_doc, _docs.pneu_doc,)
 
 
@@ -805,6 +809,7 @@ class NMDA(SynDyn):
         return self.g
 
 
+assert NMDA.__doc__ is not None
 NMDA.__doc__ = NMDA.__doc__ % (_docs.pneu_doc,)
 
 
@@ -870,6 +875,7 @@ class STD(SynDyn):
         return self.x
 
 
+assert STD.__doc__ is not None
 STD.__doc__ = STD.__doc__ % (_docs.std_doc, _docs.pneu_doc,)
 
 
@@ -963,4 +969,5 @@ class STP(SynDyn):
                           lambda shape: self.u * self.x)
 
 
+assert STP.__doc__ is not None
 STP.__doc__ = STP.__doc__ % (_docs.stp_doc, _docs.pneu_doc,)

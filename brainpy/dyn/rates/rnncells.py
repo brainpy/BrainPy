@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Union, Callable, Sequence, Optional, Tuple
+from typing import Union, Callable, Sequence, Optional, Tuple, Any
 
 import jax.numpy as jnp
 
@@ -80,14 +80,14 @@ class RNNCell(Layer):
         Wh_initializer: Union[ArrayType, Callable, Initializer] = XavierNormal(),
         b_initializer: Union[ArrayType, Callable, Initializer] = ZeroInit(),
         activation: str = 'relu',
-        mode: bm.Mode = None,
+        mode: Optional[bm.Mode] = None,
         train_state: bool = False,
-        name: str = None,
+        name: Optional[str] = None,
     ):
         super(RNNCell, self).__init__(mode=mode, name=name)
 
         # parameters
-        self._state_initializer = state_initializer
+        self._state_initializer: Any = state_initializer
         is_initializer(state_initializer, 'state_initializer', allow_none=False)
         self.num_out = num_out
         is_integer(num_out, 'num_out', min_bound=1, allow_none=False)
@@ -98,9 +98,9 @@ class RNNCell(Layer):
         is_integer(num_in, 'num_in', min_bound=1, allow_none=False)
 
         # initializers
-        self._Wi_initializer = Wi_initializer
-        self._Wh_initializer = Wh_initializer
-        self._b_initializer = b_initializer
+        self._Wi_initializer: Any = Wi_initializer
+        self._Wh_initializer: Any = Wh_initializer
+        self._b_initializer: Any = b_initializer
         is_initializer(Wi_initializer, 'wi_initializer', allow_none=False)
         is_initializer(Wh_initializer, 'wh_initializer', allow_none=False)
         is_initializer(b_initializer, 'b_initializer', allow_none=True)
@@ -199,14 +199,14 @@ class GRUCell(Layer):
         b_initializer: Union[ArrayType, Callable, Initializer] = ZeroInit(),
         state_initializer: Union[ArrayType, Callable, Initializer] = ZeroInit(),
         activation: str = 'tanh',
-        mode: bm.Mode = None,
+        mode: Optional[bm.Mode] = None,
         train_state: bool = False,
-        name: str = None,
+        name: Optional[str] = None,
     ):
         super(GRUCell, self).__init__(mode=mode, name=name)
 
         # parameters
-        self._state_initializer = state_initializer
+        self._state_initializer: Any = state_initializer
         is_initializer(state_initializer, 'state_initializer', allow_none=False)
         self.num_out = num_out
         is_integer(num_out, 'num_out', min_bound=1, allow_none=False)
@@ -215,9 +215,9 @@ class GRUCell(Layer):
         is_integer(num_in, 'num_in', min_bound=1, allow_none=False)
 
         # initializers
-        self._Wi_initializer = Wi_initializer
-        self._Wh_initializer = Wh_initializer
-        self._b_initializer = b_initializer
+        self._Wi_initializer: Any = Wi_initializer
+        self._Wh_initializer: Any = Wh_initializer
+        self._b_initializer: Any = b_initializer
         is_initializer(Wi_initializer, 'Wi_initializer', allow_none=False)
         is_initializer(Wh_initializer, 'Wh_initializer', allow_none=False)
         is_initializer(b_initializer, 'b_initializer', allow_none=True)
@@ -337,14 +337,14 @@ class LSTMCell(Layer):
         b_initializer: Union[ArrayType, Callable, Initializer] = ZeroInit(),
         state_initializer: Union[ArrayType, Callable, Initializer] = ZeroInit(),
         activation: str = 'tanh',
-        mode: bm.Mode = None,
+        mode: Optional[bm.Mode] = None,
         train_state: bool = False,
-        name: str = None,
+        name: Optional[str] = None,
     ):
         super(LSTMCell, self).__init__(mode=mode, name=name)
 
         # parameters
-        self._state_initializer = state_initializer
+        self._state_initializer: Any = state_initializer
         is_initializer(state_initializer, 'state_initializer', allow_none=False)
         self.num_out = num_out
         is_integer(num_out, 'num_out', min_bound=1, allow_none=False)
@@ -354,9 +354,9 @@ class LSTMCell(Layer):
 
         # initializers
         self._state_initializer = state_initializer
-        self._Wi_initializer = Wi_initializer
-        self._Wh_initializer = Wh_initializer
-        self._b_initializer = b_initializer
+        self._Wi_initializer: Any = Wi_initializer
+        self._Wh_initializer: Any = Wh_initializer
+        self._b_initializer: Any = b_initializer
         is_initializer(Wi_initializer, 'wi_initializer', allow_none=False)
         is_initializer(Wh_initializer, 'wh_initializer', allow_none=False)
         is_initializer(b_initializer, 'b_initializer', allow_none=True)
@@ -500,13 +500,15 @@ class _ConvNDLSTMCell(Layer):
         super().__init__(name=name, mode=mode)
 
         # parameters
-        self._state_initializer = state_initializer
+        self._state_initializer: Any = state_initializer
         is_initializer(state_initializer, 'state_initializer', allow_none=False)
         self.train_state = train_state
         self.num_spatial_dims = num_spatial_dims
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.input_shape = tuple(input_shape)
+        if not isinstance(kernel_size, int):
+            kernel_size = tuple(kernel_size)
         self.input_to_hidden = _GeneralConv(num_spatial_dims=num_spatial_dims,
                                             in_channels=in_channels,
                                             out_channels=out_channels * 4,
@@ -565,6 +567,7 @@ class _ConvNDLSTMCell(Layer):
 
 
 class Conv1dLSTMCell(_ConvNDLSTMCell):  # pylint: disable=empty-docstring
+    assert _ConvNDLSTMCell.__doc__ is not None
     __doc__ = _ConvNDLSTMCell.__doc__.replace("``num_spatial_dims``", "1")
 
     def __init__(
@@ -631,6 +634,7 @@ class Conv1dLSTMCell(_ConvNDLSTMCell):  # pylint: disable=empty-docstring
 
 
 class Conv2dLSTMCell(_ConvNDLSTMCell):  # pylint: disable=empty-docstring
+    assert _ConvNDLSTMCell.__doc__ is not None
     __doc__ = _ConvNDLSTMCell.__doc__.replace("``num_spatial_dims``", "2")
 
     def __init__(
@@ -697,6 +701,7 @@ class Conv2dLSTMCell(_ConvNDLSTMCell):  # pylint: disable=empty-docstring
 
 
 class Conv3dLSTMCell(_ConvNDLSTMCell):  # pylint: disable=empty-docstring
+    assert _ConvNDLSTMCell.__doc__ is not None
     __doc__ = _ConvNDLSTMCell.__doc__.replace("``num_spatial_dims``", "3")
 
     def __init__(

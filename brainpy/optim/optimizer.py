@@ -58,13 +58,15 @@ class Optimizer(BrainPyObject):
     def __init__(
         self,
         lr: Union[float, Scheduler, bm.Variable],
-        train_vars: Union[Sequence[bm.Variable], Dict[str, bm.Variable]] = None,
+        train_vars: Optional[Union[Sequence[bm.Variable], Dict[str, bm.Variable]]] = None,
         name: Optional[str] = None
     ):
         super(Optimizer, self).__init__(name=name)
         self.lr: Scheduler = make_schedule(lr)
         self.vars_to_train = ArrayCollector()
-        self.register_train_vars(train_vars)
+        # __init__ declares train_vars with the wider legacy Union type; the concrete
+        # register_train_vars hooks validate/require a dict at runtime.
+        self.register_train_vars(train_vars)  # type: ignore[arg-type]
 
     def register_vars(self, train_vars: Optional[Dict[str, bm.Variable]] = None):
         warnings.warn('Using "register_train_vars()" instead.', UserWarning)
@@ -89,15 +91,18 @@ class CommonOpt(Optimizer):
     def __init__(
         self,
         lr: Union[float, Scheduler, bm.Variable],
-        train_vars: Union[Sequence[bm.Variable], Dict[str, bm.Variable]] = None,
+        train_vars: Optional[Union[Sequence[bm.Variable], Dict[str, bm.Variable]]] = None,
         weight_decay: Optional[float] = None,
         name: Optional[str] = None
     ):
         super(Optimizer, self).__init__(name=name)
         self.lr: Scheduler = make_schedule(lr)
         self.vars_to_train = ArrayCollector()
-        self.register_train_vars(train_vars)
-        self.weight_decay = check.is_float(weight_decay, min_bound=0., max_bound=1., allow_none=True)
+        # __init__ declares train_vars with the wider legacy Union type; the concrete
+        # register_train_vars hooks validate/require a dict at runtime.
+        self.register_train_vars(train_vars)  # type: ignore[arg-type]
+        # is_float validates and permits None via allow_none=True, but its value param is typed float.
+        self.weight_decay = check.is_float(weight_decay, min_bound=0., max_bound=1., allow_none=True)  # type: ignore[arg-type]
 
 
 class SGD(CommonOpt):
@@ -122,7 +127,7 @@ class SGD(CommonOpt):
     def __init__(
         self,
         lr: Union[float, Scheduler, bm.Variable],
-        train_vars: Dict[str, bm.Variable] = None,
+        train_vars: Optional[Dict[str, bm.Variable]] = None,
         weight_decay: Optional[float] = None,
         name: Optional[str] = None
     ):
@@ -185,7 +190,7 @@ class Momentum(CommonOpt):
     def __init__(
         self,
         lr: Union[float, Scheduler, bm.Variable],
-        train_vars: Dict[str, bm.Variable] = None,
+        train_vars: Optional[Dict[str, bm.Variable]] = None,
         momentum: float = 0.9,
         weight_decay: Optional[float] = None,
         name: Optional[str] = None
@@ -251,7 +256,7 @@ class MomentumNesterov(CommonOpt):
     def __init__(
         self,
         lr: Union[float, Scheduler, bm.Variable],
-        train_vars: Dict[str, bm.Variable] = None,
+        train_vars: Optional[Dict[str, bm.Variable]] = None,
         weight_decay: Optional[float] = None,
         momentum: float = 0.9,
         name: Optional[str] = None
@@ -325,7 +330,7 @@ class Adagrad(CommonOpt):
     def __init__(
         self,
         lr: Union[float, Scheduler, bm.Variable],
-        train_vars: Dict[str, bm.Variable] = None,
+        train_vars: Optional[Dict[str, bm.Variable]] = None,
         weight_decay: Optional[float] = None,
         epsilon: float = 1e-6,
         name: Optional[str] = None
@@ -411,7 +416,7 @@ class Adadelta(CommonOpt):
     def __init__(
         self,
         lr: Union[float, Scheduler, bm.Variable] = 0.01,
-        train_vars: Dict[str, bm.Variable] = None,
+        train_vars: Optional[Dict[str, bm.Variable]] = None,
         weight_decay: Optional[float] = None,
         epsilon: float = 1e-6,
         rho: float = 0.95,
@@ -493,7 +498,7 @@ class RMSProp(CommonOpt):
     def __init__(
         self,
         lr: Union[float, Scheduler, bm.Variable],
-        train_vars: Dict[str, bm.Variable] = None,
+        train_vars: Optional[Dict[str, bm.Variable]] = None,
         weight_decay: Optional[float] = None,
         epsilon: float = 1e-6,
         rho: float = 0.9,
@@ -568,7 +573,7 @@ class Adam(CommonOpt):
     def __init__(
         self,
         lr: Union[float, bm.Variable, Scheduler],
-        train_vars: Dict[str, bm.Variable] = None,
+        train_vars: Optional[Dict[str, bm.Variable]] = None,
         beta1: float = 0.9,
         beta2: float = 0.999,
         eps: float = 1e-8,
@@ -669,7 +674,7 @@ class LARS(CommonOpt):
     def __init__(
         self,
         lr: Union[float, Scheduler, bm.Variable],
-        train_vars: Dict[str, bm.Variable] = None,
+        train_vars: Optional[Dict[str, bm.Variable]] = None,
         momentum: float = 0.9,
         weight_decay: float = 1e-4,
         tc: float = 1e-3,
@@ -763,7 +768,7 @@ class Adan(CommonOpt):
     def __init__(
         self,
         lr: Union[float, Scheduler, bm.Variable] = 1e-3,
-        train_vars: Dict[str, bm.Variable] = None,
+        train_vars: Optional[Dict[str, bm.Variable]] = None,
         betas: Tuple[float, float, float] = (0.02, 0.08, 0.01),
         eps: float = 1e-8,
         weight_decay: float = 0.02,
@@ -944,7 +949,7 @@ class AdamW(CommonOpt):
     def __init__(
         self,
         lr: Union[float, Scheduler, bm.Variable],
-        train_vars: Dict[str, bm.Variable] = None,
+        train_vars: Optional[Dict[str, bm.Variable]] = None,
         beta1: float = 0.9,
         beta2: float = 0.999,
         eps: float = 1e-8,
@@ -1076,7 +1081,7 @@ class SM3(CommonOpt):
     def __init__(
         self,
         lr: Union[float, Scheduler, bm.Variable],
-        train_vars: Dict[str, bm.Variable] = None,
+        train_vars: Optional[Dict[str, bm.Variable]] = None,
         beta: float = 0.,
         momentum: float = 0.,
         eps: float = 1e-30,

@@ -14,7 +14,7 @@
 # limitations under the License.
 # ==============================================================================
 import warnings
-from typing import Union, Sequence, Dict, Callable
+from typing import Union, Sequence, Dict, Callable, Optional
 
 from .base import FunAsObject, BrainPyObject
 from .variables import Variable
@@ -67,11 +67,15 @@ class Partial(FunAsObject):
         self,
         fun: Callable,
         *args,
-        child_objs: Union[Callable, BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]] = None,
-        dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
+        child_objs: Optional[Union[Callable, BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
+        dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
         **keywords
     ):
-        super().__init__(target=fun, child_objs=child_objs, dyn_vars=dyn_vars)
+        # ``child_objs`` here also permits ``Callable`` and ``Dict[str, ...]`` keys,
+        # which the base ``FunAsObject.__init__`` annotation does not spell out
+        # (its ``child_objs`` is typed ``Dict[dict, ...]``); the values are accepted
+        # unchanged at runtime.
+        super().__init__(target=fun, child_objs=child_objs, dyn_vars=dyn_vars)  # type: ignore[arg-type]
 
         self.fun = fun
         self.args = args
@@ -83,10 +87,10 @@ class Partial(FunAsObject):
 
 
 def to_object(
-    f: Callable = None,
-    child_objs: Union[Callable, BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]] = None,
-    dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
-    name: str = None
+    f: Optional[Callable] = None,
+    child_objs: Optional[Union[Callable, BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
+    dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
+    name: Optional[str] = None
 ):
     """Transform a Python function to :py:class:`~.BrainPyObject`.
 
@@ -111,21 +115,24 @@ def to_object(
 
     if f is None:
         def wrap(func) -> FunAsObject:
-            return FunAsObject(target=func, child_objs=child_objs, dyn_vars=dyn_vars, name=name)
+            # base ``FunAsObject`` types ``child_objs``/``dyn_vars`` more narrowly
+            # (``Dict[dict, ...]`` and without ``Callable``); values are fine at runtime.
+            return FunAsObject(target=func, child_objs=child_objs, dyn_vars=dyn_vars, name=name)  # type: ignore[arg-type]
 
         return wrap
 
     else:
         if child_objs is None:
             raise ValueError(f'"child_objs" cannot be None when "f" is provided.')
-        return FunAsObject(target=f, child_objs=child_objs, dyn_vars=dyn_vars, name=name)
+        # see note above: base annotation is narrower than the accepted runtime values.
+        return FunAsObject(target=f, child_objs=child_objs, dyn_vars=dyn_vars, name=name)  # type: ignore[arg-type]
 
 
 def function(
-    f: Callable = None,
-    nodes: Union[Callable, BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]] = None,
-    dyn_vars: Union[Variable, Sequence[Variable], Dict[str, Variable]] = None,
-    name: str = None
+    f: Optional[Callable] = None,
+    nodes: Optional[Union[Callable, BrainPyObject, Sequence[BrainPyObject], Dict[str, BrainPyObject]]] = None,
+    dyn_vars: Optional[Union[Variable, Sequence[Variable], Dict[str, Variable]]] = None,
+    name: Optional[str] = None
 ):
     """Transform a Python function into a :py:class:`~.BrainPyObject`.
 

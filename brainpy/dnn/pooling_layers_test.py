@@ -236,7 +236,7 @@ class TestPool(parameterized.TestCase):
     @parameterized.product(
         axis=(-1, 0, 1, 2, 3, 4)
     )
-    def test_AdaptiveMaxPool3d_v1(self, axis):
+    def test_AdaptiveMaxPool3d_v2(self, axis):
         bm.random.seed()
         input = bm.random.randn(2, 128, 64, 32, 16)
         net = bp.dnn.AdaptiveMaxPool3d(target_shape=[6, 5, 4], channel_axis=axis)

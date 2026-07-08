@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Union, Callable
+from typing import Union, Callable, Optional, Any
 
 import jax
 
@@ -108,10 +108,10 @@ class FHN(RateModel):
         x_initializer: Union[Initializer, Callable, ArrayType] = Uniform(0, 0.05),
         y_initializer: Union[Initializer, Callable, ArrayType] = Uniform(0, 0.05),
         method: str = 'exp_auto',
-        name: str = None,
+        name: Optional[str] = None,
 
         # parameter for training
-        mode: bm.Mode = None,
+        mode: Optional[bm.Mode] = None,
         input_var: bool = True,
     ):
         super().__init__(size=size,
@@ -141,8 +141,11 @@ class FHN(RateModel):
         # initializers
         is_initializer(x_initializer, 'x_initializer')
         is_initializer(y_initializer, 'y_initializer')
-        self._x_initializer = x_initializer
-        self._y_initializer = y_initializer
+        # Private cache of the passed initializer/callable/array. ``ArrayType`` is a
+        # constrained TypeVar (unusable as a plain annotation); ``Any`` is the honest
+        # type for this heterogeneous value and lets it flow into ``variable_``.
+        self._x_initializer: Any = x_initializer
+        self._y_initializer: Any = y_initializer
 
         # variables
         self.x = variable_(self._x_initializer, self.varshape, self.mode)
@@ -304,10 +307,10 @@ class FeedbackFHN(RateModel):
         x_initializer: Union[Initializer, Callable, ArrayType] = Uniform(0, 0.05),
         y_initializer: Union[Initializer, Callable, ArrayType] = Uniform(0, 0.05),
         method: str = 'exp_auto',
-        name: str = None,
+        name: Optional[str] = None,
 
         # parameter for training
-        mode: bm.Mode = None,
+        mode: Optional[bm.Mode] = None,
         input_var: bool = True,
     ):
         super(FeedbackFHN, self).__init__(size=size,
@@ -335,8 +338,11 @@ class FeedbackFHN(RateModel):
         # initializers
         is_initializer(x_initializer, 'x_initializer')
         is_initializer(y_initializer, 'y_initializer')
-        self._x_initializer = x_initializer
-        self._y_initializer = y_initializer
+        # Private cache of the passed initializer/callable/array. ``ArrayType`` is a
+        # constrained TypeVar (unusable as a plain annotation); ``Any`` is the honest
+        # type for this heterogeneous value and lets it flow into ``variable_``.
+        self._x_initializer: Any = x_initializer
+        self._y_initializer: Any = y_initializer
 
         # variables
         self.x = variable(x_initializer, self.mode, self.varshape)
@@ -504,11 +510,11 @@ class QIF(RateModel):
         x_initializer: Union[Initializer, Callable, ArrayType] = Uniform(0, 0.05),
         y_initializer: Union[Initializer, Callable, ArrayType] = Uniform(0, 0.05),
         method: str = 'exp_auto',
-        name: str = None,
+        name: Optional[str] = None,
         input_var: bool = True,
 
         # parameter for training
-        mode: bm.Mode = None,
+        mode: Optional[bm.Mode] = None,
     ):
         super(QIF, self).__init__(size=size,
                                   name=name,
@@ -536,8 +542,11 @@ class QIF(RateModel):
         # initializers
         is_initializer(x_initializer, 'x_initializer')
         is_initializer(y_initializer, 'y_initializer')
-        self._x_initializer = x_initializer
-        self._y_initializer = y_initializer
+        # Private cache of the passed initializer/callable/array. ``ArrayType`` is a
+        # constrained TypeVar (unusable as a plain annotation); ``Any`` is the honest
+        # type for this heterogeneous value and lets it flow into ``variable_``.
+        self._x_initializer: Any = x_initializer
+        self._y_initializer: Any = y_initializer
 
         # variables
         self.x = variable(x_initializer, self.mode, self.varshape)
@@ -659,10 +668,10 @@ class StuartLandauOscillator(RateModel):
         x_initializer: Union[Initializer, Callable, ArrayType] = Uniform(0, 0.5),
         y_initializer: Union[Initializer, Callable, ArrayType] = Uniform(0, 0.5),
         method: str = 'exp_auto',
-        name: str = None,
+        name: Optional[str] = None,
 
         # parameter for training
-        mode: bm.Mode = None,
+        mode: Optional[bm.Mode] = None,
         input_var: bool = True,
     ):
         super(StuartLandauOscillator, self).__init__(size=size,
@@ -686,8 +695,11 @@ class StuartLandauOscillator(RateModel):
         # initializers
         is_initializer(x_initializer, 'x_initializer')
         is_initializer(y_initializer, 'y_initializer')
-        self._x_initializer = x_initializer
-        self._y_initializer = y_initializer
+        # Private cache of the passed initializer/callable/array. ``ArrayType`` is a
+        # constrained TypeVar (unusable as a plain annotation); ``Any`` is the honest
+        # type for this heterogeneous value and lets it flow into ``variable_``.
+        self._x_initializer: Any = x_initializer
+        self._y_initializer: Any = y_initializer
 
         # variables
         self.x = variable(x_initializer, self.mode, self.varshape)
@@ -828,10 +840,10 @@ class WilsonCowanModel(RateModel):
 
         # other parameters
         method: str = 'exp_euler_auto',
-        name: str = None,
+        name: Optional[str] = None,
 
         # parameter for training
-        mode: bm.Mode = None,
+        mode: Optional[bm.Mode] = None,
         input_var: bool = True,
     ):
         super(WilsonCowanModel, self).__init__(size=size, name=name, keep_size=keep_size, mode=mode)
@@ -861,8 +873,11 @@ class WilsonCowanModel(RateModel):
         # initializers
         is_initializer(x_initializer, 'x_initializer')
         is_initializer(y_initializer, 'y_initializer')
-        self._x_initializer = x_initializer
-        self._y_initializer = y_initializer
+        # Private cache of the passed initializer/callable/array. ``ArrayType`` is a
+        # constrained TypeVar (unusable as a plain annotation); ``Any`` is the honest
+        # type for this heterogeneous value and lets it flow into ``variable_``.
+        self._x_initializer: Any = x_initializer
+        self._y_initializer: Any = y_initializer
 
         # variables
         self.x = variable(x_initializer, self.mode, self.varshape)
@@ -997,12 +1012,12 @@ class ThresholdLinearModel(RateModel):
         noise_i: Union[float, Callable, Initializer, ArrayType] = 0.,
         e_initializer: Union[ArrayType, Callable, Initializer] = ZeroInit(),
         i_initializer: Union[ArrayType, Callable, Initializer] = ZeroInit(),
-        seed: int = None,
+        seed: Optional[int] = None,
         keep_size: bool = False,
-        name: str = None,
+        name: Optional[str] = None,
 
         # parameter for training
-        mode: bm.Mode = None,
+        mode: Optional[bm.Mode] = None,
         input_var: bool = True,
     ):
         super(ThresholdLinearModel, self).__init__(size,
@@ -1018,8 +1033,8 @@ class ThresholdLinearModel(RateModel):
         self.beta_i = parameter(beta_i, self.varshape, False)
         self.noise_e = parameter(noise_e, self.varshape, False)
         self.noise_i = parameter(noise_i, self.varshape, False)
-        self._e_initializer = e_initializer
-        self._i_initializer = i_initializer
+        self._e_initializer: Any = e_initializer
+        self._i_initializer: Any = i_initializer
         self.input_var = input_var
 
         # variables

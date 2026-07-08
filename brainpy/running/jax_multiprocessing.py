@@ -13,10 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Sequence, Dict, Union
+from typing import Callable, Sequence, Dict, Union
 
+import brainstate
 import numpy as np
-from jax import vmap, pmap
+from jax import vmap
 from jax.tree_util import tree_unflatten, tree_flatten
 
 import brainpy.math as bm
@@ -29,7 +30,7 @@ __all__ = [
 
 
 def jax_vectorize_map(
-    func: callable,
+    func: Callable,
     arguments: Union[Dict[str, ArrayType], Sequence[ArrayType]],
     num_parallel: int,
     clear_buffer: bool = False
@@ -96,7 +97,7 @@ def jax_vectorize_map(
 
 
 def jax_parallelize_map(
-    func: callable,
+    func: Callable,
     arguments: Union[Dict[str, ArrayType], Sequence[ArrayType]],
     num_parallel: int,
     clear_buffer: bool = False
@@ -137,11 +138,22 @@ def jax_parallelize_map(
 
     res_tree = None
     results = None
-    # Build the pmapped function once and reuse it across all chunks. ``jax.pmap``
-    # automatically re-traces for a chunk whose leading-axis size differs from the
-    # device count (e.g. a trailing partial chunk), so a single cached function is
-    # both correct and avoids redundant re-tracing of full chunks.
-    pmap_func = pmap(func)
+    # Use brainstate's state-aware ``pmap2`` rather than raw ``jax.pmap``. ``func``
+    # typically builds a brainpy model *inside* the mapped call (e.g. a ``DSRunner``
+    # around a freshly constructed neuron), whose initialisers write to brainstate
+    # ``State`` objects -- including the global random state during random weight/
+    # variable init. ``jax.pmap`` compiles the body like ``jax.jit``, so those state
+    # writes raise ``TraceContextError`` ("tracer written into RandomState while no
+    # brainstate transformation is active"). ``pmap2`` replicates/splits/restores
+    # State (random states are split per device) so the same function runs cleanly.
+    # Like ``jax.pmap`` it re-traces for a trailing partial chunk whose leading-axis
+    # size is smaller than the device count, so caching it once is both correct and
+    # avoids redundant re-tracing of full chunks.
+    #
+    # NOTE: multi-device pmap cannot carry *ordered* side effects, so the mapped
+    # function must avoid ordered ``io_callback``s -- in practice, disable the
+    # ``DSRunner`` progress bar (``progress_bar=False``) inside ``func``.
+    pmap_func = brainstate.transform.pmap2(func)
     for i in range(0, num_pars[0], num_parallel):
         if isinstance(arguments, dict):
             r = pmap_func(**tree_unflatten(tree, [ele[i: i + num_parallel] for ele in elements]))

@@ -51,69 +51,69 @@ class setting:
     def mode(self):
         return brainstate.environ.get('mode', env=env)
 
-    @property
-    def membrane_scaling(self):
-        return brainstate.environ.get('membrane_scaling', env=env)
-
-    @property
-    def dt(self):
-        return brainstate.environ.get('dt', env=env)
-
-    @property
-    def bool_(self):
-        return brainstate.environ.get('bool_', env=env)
-
-    @property
-    def int_(self):
-        return brainstate.environ.get('int_', env=env)
-
-    @property
-    def float_(self):
-        return brainstate.environ.get('float_', env=env)
-
-    @property
-    def complex_(self):
-        return brainstate.environ.get('complex_', env=env)
-
-    @property
-    def bp_object_as_pytree(self):
-        return brainstate.environ.get('bp_object_as_pytree', env=env)
-
-    @property
-    def numpy_func_return(self):
-        return brainstate.environ.get('numpy_func_return', env=env)
-
     @mode.setter
     def mode(self, value):
         brainstate.environ.set(mode=value, env=env)
+
+    @property
+    def membrane_scaling(self):
+        return brainstate.environ.get('membrane_scaling', env=env)
 
     @membrane_scaling.setter
     def membrane_scaling(self, value):
         brainstate.environ.set(membrane_scaling=value, env=env)
 
+    @property
+    def dt(self):
+        return brainstate.environ.get('dt', env=env)
+
     @dt.setter
     def dt(self, value):
         brainstate.environ.set(dt=value, env=env)
+
+    @property
+    def bool_(self):
+        return brainstate.environ.get('bool_', env=env)
 
     @bool_.setter
     def bool_(self, value):
         brainstate.environ.set(bool_=value, env=env)
 
+    @property
+    def int_(self):
+        return brainstate.environ.get('int_', env=env)
+
     @int_.setter
     def int_(self, value):
         brainstate.environ.set(int_=value, env=env)
+
+    @property
+    def float_(self):
+        return brainstate.environ.get('float_', env=env)
 
     @float_.setter
     def float_(self, value):
         brainstate.environ.set(float_=value, env=env)
 
+    @property
+    def complex_(self):
+        return brainstate.environ.get('complex_', env=env)
+
     @complex_.setter
     def complex_(self, value):
         brainstate.environ.set(complex_=value, env=env)
 
+    @property
+    def bp_object_as_pytree(self):
+        return brainstate.environ.get('bp_object_as_pytree', env=env)
+
     @bp_object_as_pytree.setter
     def bp_object_as_pytree(self, value):
         brainstate.environ.set(bp_object_as_pytree=value, env=env)
+
+    @property
+    def numpy_func_return(self):
+        return brainstate.environ.get('numpy_func_return', env=env)
 
     @numpy_func_return.setter
     def numpy_func_return(self, value):

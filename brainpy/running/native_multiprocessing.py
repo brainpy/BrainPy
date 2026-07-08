@@ -14,7 +14,7 @@
 # limitations under the License.
 # ==============================================================================
 import multiprocessing
-from typing import Union, Sequence, Dict
+from typing import Union, Sequence, Dict, Callable
 
 __all__ = [
     'process_pool',
@@ -22,7 +22,7 @@ __all__ = [
 ]
 
 
-def process_pool(func: callable,
+def process_pool(func: Callable,
                  all_params: Union[Sequence, Dict],
                  num_process: int):
     """Run multiple models in multi-processes.
@@ -49,7 +49,7 @@ def process_pool(func: callable,
     """
     print('{} jobs total.'.format(len(all_params)))
     pool = multiprocessing.Pool(processes=num_process)
-    results = []
+    results: list = []
     for params in all_params:
         if isinstance(params, (list, tuple)):
             results.append(pool.apply_async(func, args=tuple(params)))
@@ -62,7 +62,7 @@ def process_pool(func: callable,
     return [r.get() for r in results]
 
 
-def process_pool_lock(func: callable,
+def process_pool_lock(func: Callable,
                       all_params: Union[Sequence, Dict],
                       num_process: int):
     """Run multiple models in multi-processes with lock.
@@ -106,7 +106,7 @@ def process_pool_lock(func: callable,
     pool = multiprocessing.Pool(processes=num_process)
     m = multiprocessing.Manager()
     lock = m.Lock()
-    results = []
+    results: list = []
     for net_params in all_params:
         if isinstance(net_params, (list, tuple)):
             results.append(pool.apply_async(func, args=tuple(net_params) + (lock,)))

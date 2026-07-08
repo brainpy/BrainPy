@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Union, Callable
+from typing import Any, Union, Callable, Optional
 
 from jax.lax import stop_gradient
 
@@ -95,12 +95,12 @@ class LeakyIntegrator(NeuDyn):
         R: Union[float, ArrayType, Initializer, Callable] = 1.,
         tau: Union[float, ArrayType, Initializer, Callable] = 10.,
         V_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
-        noise: Union[float, ArrayType, Initializer, Callable] = None,
+        noise: Optional[Union[float, ArrayType, Initializer, Callable]] = None,
 
         # other parameter
         input_var: bool = True,
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
         method: str = 'exp_auto',
     ):
         super().__init__(size=size,
@@ -214,13 +214,13 @@ class LIF(lif.LifRef):
         self,
         *args,
         input_var: bool = True,
-        spike_fun: Callable = None,
+        spike_fun: Optional[Callable] = None,
         **kwargs,
     ):
         self.input_var = input_var
         if spike_fun is not None:
             kwargs['spk_fun'] = spike_fun
-        super().__init__(*args, **kwargs, init_var=False)
+        super().__init__(*args, **kwargs, init_var=False)  # type: ignore[misc]
 
         self.reset_state(self.mode)
 
@@ -342,14 +342,14 @@ class ExpIF(lif.ExpIFRef):
         self,
         *args,
         input_var: bool = True,
-        noise: Union[float, ArrayType, Initializer, Callable] = None,
-        spike_fun: Callable = None,
+        noise: Optional[Union[float, ArrayType, Initializer, Callable]] = None,
+        spike_fun: Optional[Callable] = None,
         **kwargs,
     ):
         self.input_var = input_var
         if spike_fun is not None:
             kwargs['spk_fun'] = spike_fun
-        super().__init__(*args, **kwargs, init_var=False)
+        super().__init__(*args, **kwargs, init_var=False)  # type: ignore[misc]
 
         self.reset_state(self.mode)
 
@@ -451,13 +451,13 @@ class AdExIF(lif.AdExIFRef):
         self,
         *args,
         input_var: bool = True,
-        spike_fun: Callable = None,
+        spike_fun: Optional[Callable] = None,
         **kwargs,
     ):
         self.input_var = input_var
         if spike_fun is not None:
             kwargs['spk_fun'] = spike_fun
-        super().__init__(*args, **kwargs, init_var=False)
+        super().__init__(*args, **kwargs, init_var=False)  # type: ignore[misc]
 
         self.reset_state(self.mode)
 
@@ -548,13 +548,13 @@ class QuaIF(lif.QuaIFRef):
         self,
         *args,
         input_var: bool = True,
-        spike_fun: Callable = None,
+        spike_fun: Optional[Callable] = None,
         **kwargs,
     ):
         self.input_var = input_var
         if spike_fun is not None:
             kwargs['spk_fun'] = spike_fun
-        super().__init__(*args, **kwargs, init_var=False)
+        super().__init__(*args, **kwargs, init_var=False)  # type: ignore[misc]
         self.reset_state(self.mode)
 
     def reset_state(self, batch_size=None):
@@ -654,13 +654,13 @@ class AdQuaIF(lif.AdQuaIFRef):
         self,
         *args,
         input_var: bool = True,
-        spike_fun: Callable = None,
+        spike_fun: Optional[Callable] = None,
         **kwargs,
     ):
         self.input_var = input_var
         if spike_fun is not None:
             kwargs['spk_fun'] = spike_fun
-        super().__init__(*args, **kwargs, init_var=False)
+        super().__init__(*args, **kwargs, init_var=False)  # type: ignore[misc]
         self.reset_state(self.mode)
 
     def reset_state(self, batch_size=None):
@@ -768,13 +768,13 @@ class GIF(lif.GifRef):
         self,
         *args,
         input_var: bool = True,
-        spike_fun: Callable = None,
+        spike_fun: Optional[Callable] = None,
         **kwargs,
     ):
         self.input_var = input_var
         if spike_fun is not None:
             kwargs['spk_fun'] = spike_fun
-        super().__init__(*args, **kwargs, init_var=False)
+        super().__init__(*args, **kwargs, init_var=False)  # type: ignore[misc]
         self.reset_state(self.mode)
 
     def reset_state(self, batch_size=None):
@@ -868,13 +868,13 @@ class Izhikevich(lif.IzhikevichRef):
         self,
         *args,
         input_var: bool = True,
-        spike_fun: Callable = None,
+        spike_fun: Optional[Callable] = None,
         **kwargs,
     ):
         self.input_var = input_var
         if spike_fun is not None:
             kwargs['spk_fun'] = spike_fun
-        super().__init__(*args, **kwargs, init_var=False)
+        super().__init__(*args, **kwargs, init_var=False)  # type: ignore[misc]
         self.reset_state(self.mode)
 
     def reset_state(self, batch_size=None, **kwargs):
@@ -1006,14 +1006,14 @@ class HindmarshRose(NeuDyn):
         V_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
         y_initializer: Union[Initializer, Callable, ArrayType] = OneInit(-10.),
         z_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
-        noise: Union[float, ArrayType, Initializer, Callable] = None,
+        noise: Optional[Union[float, ArrayType, Initializer, Callable]] = None,
         method: str = 'exp_auto',
         keep_size: bool = False,
         input_var: bool = True,
-        name: str = None,
+        name: Optional[str] = None,
 
         # parameters for training
-        mode: bm.Mode = None,
+        mode: Optional[bm.Mode] = None,
         spike_fun: Callable = bm.surrogate.InvSquareGrad(),
     ):
         # initialization
@@ -1040,9 +1040,9 @@ class HindmarshRose(NeuDyn):
         is_initializer(V_initializer, 'V_initializer', allow_none=False)
         is_initializer(y_initializer, 'y_initializer', allow_none=False)
         is_initializer(z_initializer, 'z_initializer', allow_none=False)
-        self._V_initializer = V_initializer
-        self._y_initializer = y_initializer
-        self._z_initializer = z_initializer
+        self._V_initializer: Any = V_initializer
+        self._y_initializer: Any = y_initializer
+        self._z_initializer: Any = z_initializer
 
         # variables
         self.reset_state(self.mode)
@@ -1188,14 +1188,14 @@ class FHN(NeuDyn):
         Vth: Union[float, ArrayType, Initializer, Callable] = 1.8,
         V_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
         w_initializer: Union[Initializer, Callable, ArrayType] = ZeroInit(),
-        noise: Union[float, ArrayType, Initializer, Callable] = None,
+        noise: Optional[Union[float, ArrayType, Initializer, Callable]] = None,
         method: str = 'exp_auto',
         keep_size: bool = False,
         input_var: bool = True,
-        name: str = None,
+        name: Optional[str] = None,
 
         # parameters for training
-        mode: bm.Mode = None,
+        mode: Optional[bm.Mode] = None,
     ):
         # initialization
         super(FHN, self).__init__(size=size,
@@ -1215,8 +1215,8 @@ class FHN(NeuDyn):
         # initializers
         is_initializer(V_initializer, 'V_initializer')
         is_initializer(w_initializer, 'w_initializer')
-        self._V_initializer = V_initializer
-        self._w_initializer = w_initializer
+        self._V_initializer: Any = V_initializer
+        self._w_initializer: Any = w_initializer
 
         # variables
         self.reset_state(self.mode)
@@ -1308,8 +1308,8 @@ class ALIFBellec2020(NeuDyn):
         beta: Union[float, ArrayType, Initializer, Callable] = 1.6,
         tau: Union[float, ArrayType, Initializer, Callable] = 20.,
         tau_a: Union[float, ArrayType, Initializer, Callable] = 2000.,
-        tau_ref: Union[float, ArrayType, Initializer, Callable] = None,
-        noise: Union[float, ArrayType, Initializer, Callable] = None,
+        tau_ref: Optional[Union[float, ArrayType, Initializer, Callable]] = None,
+        noise: Optional[Union[float, ArrayType, Initializer, Callable]] = None,
 
         # initializers
         V_initializer: Union[Initializer, Callable, ArrayType] = OneInit(-70.),
@@ -1321,8 +1321,8 @@ class ALIFBellec2020(NeuDyn):
 
         # other parameters
         method: str = 'exp_auto',
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
         eprop: bool = False
     ):
         super().__init__(name=name,
@@ -1338,7 +1338,7 @@ class ALIFBellec2020(NeuDyn):
         self.beta = parameter(beta, self.varshape, allow_none=False)
         self.tau = parameter(tau, self.varshape, allow_none=False)
         self.tau_a = parameter(tau_a, self.varshape, allow_none=False)
-        self.tau_ref = parameter(tau_ref, self.varshape, allow_none=True)
+        self.tau_ref = parameter(tau_ref, self.varshape, allow_none=True)  # type: ignore[arg-type]
         self.noise = init_noise(noise, self.varshape, num_vars=2)
         self.spike_fun = is_callable(spike_fun, 'spike_fun')
         self.eprop = eprop
@@ -1473,7 +1473,7 @@ class LIF_SFA_Bellec2020(NeuDyn):
         beta: Union[float, ArrayType, Initializer, Callable] = 1.6,
         tau: Union[float, ArrayType, Initializer, Callable] = 20.,
         tau_a: Union[float, ArrayType, Initializer, Callable] = 2000.,
-        tau_ref: Union[float, ArrayType, Initializer, Callable] = None,
+        tau_ref: Optional[Union[float, ArrayType, Initializer, Callable]] = None,
 
         # initializers
         V_initializer: Union[Initializer, Callable, ArrayType] = OneInit(-70.),
@@ -1484,8 +1484,8 @@ class LIF_SFA_Bellec2020(NeuDyn):
 
         # other parameters
         method: str = 'exp_auto',
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         super().__init__(name=name, size=size, keep_size=keep_size, mode=mode)
         is_subclass(self.mode, (bm.TrainingMode, bm.NonBatchingMode))
@@ -1497,7 +1497,7 @@ class LIF_SFA_Bellec2020(NeuDyn):
         self.beta = parameter(beta, self.varshape, allow_none=False)
         self.tau = parameter(tau, self.varshape, allow_none=False)
         self.tau_a = parameter(tau_a, self.varshape, allow_none=False)
-        self.tau_ref = parameter(tau_ref, self.varshape, allow_none=True)
+        self.tau_ref = parameter(tau_ref, self.varshape, allow_none=True)  # type: ignore[arg-type]
         self.spike_fun = is_callable(spike_fun, 'spike_fun')
 
         # initializers

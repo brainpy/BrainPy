@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Union
+from typing import Any, Union, Optional, cast
 
 import jax.numpy as jnp
 
@@ -71,7 +71,7 @@ class STD(_SynSTP):
         tau: float = 200.,
         U: float = 0.07,
         method: str = 'exp_auto',
-        name: str = None
+        name: Optional[str] = None
     ):
         super().__init__(name=name)
 
@@ -163,16 +163,16 @@ class STP(_SynSTP):
         tau_f: Union[float, ArrayType] = 1500.,
         tau_d: Union[float, ArrayType] = 200.,
         method: str = 'exp_auto',
-        name: str = None
+        name: Optional[str] = None
     ):
         super(STP, self).__init__(name=name)
         # parameters
-        is_float(tau_f, 'tau_f', min_bound=0, )
-        is_float(tau_d, 'tau_d', min_bound=0, )
-        is_float(U, 'U', min_bound=0, )
-        self.tau_f = tau_f
-        self.tau_d = tau_d
-        self.U = U
+        is_float(cast(float, tau_f), 'tau_f', min_bound=0, )
+        is_float(cast(float, tau_d), 'tau_d', min_bound=0, )
+        is_float(cast(float, U), 'U', min_bound=0, )
+        self.tau_f: Any = tau_f
+        self.tau_d: Any = tau_d
+        self.U: Any = U
         self.method = method
 
         # integral function

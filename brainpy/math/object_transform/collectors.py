@@ -104,7 +104,7 @@ class Collector(dict):
                     raise ValueError(f'Cannot remove {key}, because we do not find it '
                                      f'in {self.keys()}.')
         elif isinstance(other, (list, tuple)):
-            id_to_keys = {}
+            id_to_keys: dict = {}
             for k, v in self.items():
                 id_ = id(v)
                 if id_ not in id_to_keys:

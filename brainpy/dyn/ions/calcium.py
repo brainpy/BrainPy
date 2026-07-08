@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Union, Callable, Optional
+from typing import Union, Callable, Optional, Any
 
 import brainpy.math as bm
 from brainpy.context import share
@@ -116,13 +116,19 @@ class CalciumDyna(Calcium):
         # parameters
         self.C0 = parameter(C0, self.varshape, allow_none=False)
         self.T = parameter(T, self.varshape, allow_none=False)  # temperature
-        self._C_initializer = C_initializer
+        # ``ArrayType`` is a *constrained* TypeVar (types.py); using it in a plain
+        # attribute annotation would expand per-constraint. ``Any`` is the honest
+        # spelling for "an initializer, a callable, or any supported array".
+        self._C_initializer: Union[Initializer, Callable, Any] = C_initializer
         self._constant = self.R / (2 * self.F) * (273.15 + self.T)
 
         # variables
         self.C = variable(C_initializer, self.mode, self.varshape)  # Calcium concentration
+        # ``bm.Variable.batch_axis`` is implicitly optional at runtime (defaults
+        # to None) but annotated as ``int``; passing None is valid. Fixing the
+        # annotation to ``Optional[int]`` is an out-of-batch change.
         self.E = bm.Variable(self._reversal_potential(self.C),
-                             batch_axis=0 if isinstance(self.mode, bm.BatchingMode) else None)  # Reversal potential
+                             batch_axis=0 if isinstance(self.mode, bm.BatchingMode) else None)
 
         # function
         self.integral = odeint(self.derivative, method=method)

@@ -12,12 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Optional, Union
+from typing import Optional, Union, TYPE_CHECKING
 
 from brainpy import math as bm, check
 from brainpy.delay import (delay_identifier, register_delay_by_return)
 from brainpy.dynsys import DynamicalSystem, Projection
-from brainpy.mixin import (JointType, SupportAutoDelay)
+from brainpy.mixin import SupportAutoDelay
+
+if TYPE_CHECKING:
+    # Reuse delay.py's type-check-only ``JointType`` stand-in so that the argument
+    # type expected by ``register_delay_by_return`` (defined in brainpy.delay) is the
+    # same static type used to annotate ``pre`` here. The runtime object is imported
+    # from ``brainpy.mixin`` below.
+    from brainpy.delay import JointType
+else:
+    from brainpy.mixin import JointType
 
 __all__ = [
     'HalfProjDelta', 'FullProjDelta',

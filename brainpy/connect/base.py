@@ -15,7 +15,7 @@
 # ==============================================================================
 import abc
 import textwrap
-from typing import Union, List, Tuple
+from typing import Union, List, Tuple, Optional
 
 import jax.numpy as jnp
 import numpy as onp
@@ -159,8 +159,8 @@ class TwoEndConnector(Connector):
 
     def __init__(
         self,
-        pre: Union[int, Tuple[int, ...]] = None,
-        post: Union[int, Tuple[int, ...]] = None,
+        pre: Optional[Union[int, Tuple[int, ...]]] = None,
+        post: Optional[Union[int, Tuple[int, ...]]] = None,
     ):
         self.pre_size = None
         self.post_size = None

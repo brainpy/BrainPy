@@ -86,7 +86,7 @@ from brainpy import (
 )
 
 NeuGroup = NeuGroupNS = dyn.NeuDyn
-dyn.DynamicalSystem = DynamicalSystem
+setattr(dyn, 'DynamicalSystem', DynamicalSystem)
 
 # common tools
 from brainpy.context import (share as share)

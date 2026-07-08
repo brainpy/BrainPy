@@ -12,15 +12,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Optional, Callable, Union
+from typing import Optional, Callable, Union, TYPE_CHECKING, Any
 
 from brainpy import math as bm, check
 from brainpy.delay import register_delay_by_return
 from brainpy.dyn.synapses.abstract_models import Expon
 from brainpy.dynsys import DynamicalSystem, Projection
-from brainpy.mixin import (JointType, ParamDescriber, SupportAutoDelay,
+from brainpy.mixin import (SupportAutoDelay,
                            BindCondData, AlignPost, SupportSTDP)
 from brainpy.types import ArrayType
+
+if TYPE_CHECKING:
+    # ``JointType`` and ``ParamDescriber`` are runtime helpers from ``brainstate``
+    # that mypy cannot model as static types (``JointType`` is a singleton instance
+    # supporting subscription; ``ParamDescriber`` is a non-generic class). Provide
+    # type-check-only stand-ins so annotations such as ``JointType[A, B]`` and
+    # ``ParamDescriber[T]`` are accepted. The runtime objects are imported below.
+    # ``JointType`` reuses delay.py's stand-in so the ``pre`` annotation here is the
+    # SAME static type ``register_delay_by_return`` expects.
+    from typing import Generic, TypeVar
+
+    from brainpy.delay import JointType
+
+    _DescT = TypeVar('_DescT')
+
+    class ParamDescriber(Generic[_DescT]):
+        def __getattr__(self, item: str) -> Any: ...
+        def __call__(self, *args: Any, **kwargs: Any) -> Any: ...
+else:
+    from brainpy.mixin import JointType, ParamDescriber
 from .align_post import (align_post_add_bef_update, )
 from .align_pre import (align_pre2_add_bef_update, )
 from .utils import (_get_return, )
@@ -31,9 +51,9 @@ __all__ = [
 
 
 def _init_trace_by_align_pre2(
-    target: DynamicalSystem,
+    target: Any,
     delay: Union[None, int, float],
-    syn: ParamDescriber[DynamicalSystem],
+    syn: Any,
 ):
     """Calculate the trace of the target by reusing the existing connections."""
     check.is_instance(target, DynamicalSystem)
@@ -198,7 +218,7 @@ class STDP_Song2000(Projection):
             post.add_inp_fun(self.name, out_cls, label=out_label)
 
         # references
-        self.refs = dict(pre=pre, post=post)  # invisible to ``self.nodes()``
+        self.refs: dict = dict(pre=pre, post=post)  # invisible to ``self.nodes()``
         self.refs['delay'] = delay_cls
         self.refs['syn'] = syn_cls  # invisible to ``self.node()``
         self.refs['out'] = out_cls  # invisible to ``self.node()``
@@ -213,10 +233,10 @@ class STDP_Song2000(Projection):
         # synapse parameters
         self.W_max = W_max
         self.W_min = W_min
-        self.tau_s = tau_s
-        self.tau_t = tau_t
-        self.A1 = A1
-        self.A2 = A2
+        self.tau_s: Any = tau_s
+        self.tau_t: Any = tau_t
+        self.A1: Any = A1
+        self.A2: Any = A2
 
     pre = property(lambda self: self.refs['pre'])
     post = property(lambda self: self.refs['post'])

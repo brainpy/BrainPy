@@ -12,11 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Optional
+from typing import Optional, TYPE_CHECKING, Any
 
 from brainpy import math as bm, check
 from brainpy.dynsys import DynamicalSystem, Projection
-from brainpy.mixin import (JointType, BindCondData)
+from brainpy.mixin import BindCondData
+
+if TYPE_CHECKING:
+    # ``JointType`` is a runtime helper from ``brainstate`` that mypy cannot model
+    # as a static type (it is a singleton instance supporting subscription). Provide
+    # a type-check-only stand-in so annotations such as ``JointType[A, B]`` are
+    # accepted. The runtime object is imported below.
+    from typing import Generic, TypeVarTuple, Unpack
+
+    _JointTs = TypeVarTuple('_JointTs')
+
+    class JointType(Generic[Unpack[_JointTs]]):
+        def __getattr__(self, item: str) -> Any: ...
+        def __call__(self, *args: Any, **kwargs: Any) -> Any: ...
+else:
+    from brainpy.mixin import JointType
 
 __all__ = [
     'VanillaProj',

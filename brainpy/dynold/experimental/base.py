@@ -30,8 +30,8 @@ class SynConnNS(DynamicalSystem):
         conn: TwoEndConnector,
         out: Optional['SynOutNS'] = None,
         stp: Optional['SynSTPNS'] = None,
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         super().__init__(name=name, mode=mode)
 
@@ -73,19 +73,23 @@ class SynConnNS(DynamicalSystem):
         weight: Union[float, ArrayType, Initializer, Callable],
         comp_method: str,
         data_if_sparse: str = 'csr'
-    ) -> Tuple[Union[float, ArrayType], ArrayType]:
+    ) -> Tuple[Union[float, ArrayType], Optional[ArrayType]]:
         if comp_method not in ['sparse', 'dense']:
             raise ValueError(f'"comp_method" must be in "sparse" and "dense", but we got {comp_method}')
         if data_if_sparse not in ['csr', 'ij', 'coo']:
             raise ValueError(f'"sparse_data" must be in "csr" and "ij", but we got {data_if_sparse}')
 
         # connections and weights
+        pre_num = self.pre_num
+        post_num = self.post_num
         if isinstance(self.conn, One2One):
-            weight = parameter(weight, (self.pre_num,), allow_none=False)
+            assert pre_num is not None
+            w = parameter(weight, (pre_num,), allow_none=False)
             conn_mask = None
 
         elif isinstance(self.conn, All2All):
-            weight = parameter(weight, (self.pre_num, self.post_num), allow_none=False)
+            assert pre_num is not None and post_num is not None
+            w = parameter(weight, (pre_num, post_num), allow_none=False)
             conn_mask = None
 
         else:
@@ -96,17 +100,19 @@ class SynConnNS(DynamicalSystem):
                     conn_mask = self.conn.require('post_ids', 'pre_ids')
                 else:
                     ValueError(f'Unknown sparse data type: {data_if_sparse}')
-                weight = parameter(weight, conn_mask[0].shape, allow_none=False)
+                assert conn_mask is not None
+                w = parameter(weight, conn_mask[0].shape, allow_none=False)
             elif comp_method == 'dense':
-                weight = parameter(weight, (self.pre_num, self.post_num), allow_none=False)
+                assert pre_num is not None and post_num is not None
+                w = parameter(weight, (pre_num, post_num), allow_none=False)
                 conn_mask = self.conn.require('conn_mat')
             else:
                 raise ValueError(f'Unknown connection type: {comp_method}')
 
         # training weights
         if isinstance(self.mode, bm.TrainingMode):
-            weight = bm.TrainVar(weight)
-        return weight, conn_mask
+            w = bm.TrainVar(w)
+        return w, conn_mask
 
     def _syn2post_with_all2all(self, syn_value, syn_weight, include_self):
         if bm.ndim(syn_weight) == 0:

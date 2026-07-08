@@ -77,7 +77,7 @@ def coomv(
 
     # The COO format was removed in brainevent 0.1.0; convert COO indices to
     # CSR before delegating to brainevent.CSR.
-    indptr, indices, order = brainevent.coo2csr(row, col, shape=shape)
+    indptr, indices, order = brainevent.coo2csr(row, col, shape=shape)  # type: ignore[arg-type]  # row/col converted to jax arrays above; brainevent's annotation omits bm.Array
     data = jnp.asarray(data)
     if data.ndim == 0:
         # scalar weight: broadcast to one entry per non-zero

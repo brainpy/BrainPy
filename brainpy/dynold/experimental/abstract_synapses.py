@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Union, Dict, Callable, Optional
+from typing import Any, Union, Dict, Callable, Optional, Tuple, cast
 
 from jax import vmap
 
@@ -91,10 +91,10 @@ class Exponential(SynConnNS):
         g_max: Union[float, ArrayType, Initializer, Callable] = 1.,
         tau: Union[float, ArrayType] = 8.0,
         method: str = 'exp_auto',
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
-        super().__init__(conn=conn,
+        super().__init__(conn=conn,  # type: ignore[arg-type]
                          out=out,
                          stp=stp,
                          name=name,
@@ -102,10 +102,11 @@ class Exponential(SynConnNS):
 
         # parameters
         self.comp_method = comp_method
-        self.tau = is_float(tau, allow_int=True)
+        self.tau = is_float(tau, allow_int=True)  # type: ignore[arg-type]
 
         # connections and weights
-        self.g_max, self.conn_mask = self._init_weights(g_max, comp_method, data_if_sparse='csr')
+        self.g_max, self.conn_mask = cast(Tuple[Any, Any],
+                                          self._init_weights(g_max, comp_method, data_if_sparse='csr'))
 
         # function
         self.integral = odeint(lambda g, t: -g / self.tau, method=method)
@@ -240,21 +241,22 @@ class DualExponential(SynConnNS):
         tau_decay: Union[float, ArrayType] = 10.0,
         tau_rise: Union[float, ArrayType] = 1.,
         method: str = 'exp_auto',
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
-        super(DualExponential, self).__init__(conn=conn,
+        super(DualExponential, self).__init__(conn=conn,  # type: ignore[arg-type]
                                               out=out,
                                               stp=stp,
                                               name=name,
                                               mode=mode)
         # parameters
         self.comp_method = comp_method
-        self.tau_rise = is_float(tau_rise, allow_int=True, allow_none=False)
-        self.tau_decay = is_float(tau_decay, allow_int=True, allow_none=False)
+        self.tau_rise = is_float(tau_rise, allow_int=True, allow_none=False)  # type: ignore[arg-type]
+        self.tau_decay = is_float(tau_decay, allow_int=True, allow_none=False)  # type: ignore[arg-type]
 
         # connections and weights
-        self.g_max, self.conn_mask = self._init_weights(g_max, comp_method, data_if_sparse='csr')
+        self.g_max, self.conn_mask = cast(Tuple[Any, Any],
+                                          self._init_weights(g_max, comp_method, data_if_sparse='csr'))
 
         # function
         self.integral = odeint(JointEq(self.dg, self.dh), method=method)
@@ -404,8 +406,8 @@ class Alpha(DualExponential):
         method: str = 'exp_auto',
 
         # other parameters
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         super().__init__(conn=conn,
                          comp_method=comp_method,

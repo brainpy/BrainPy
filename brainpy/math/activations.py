@@ -68,7 +68,7 @@ __all__ = [
     'tanh',
 ]
 
-tanh = u.math.tanh
+tanh = u.math.tanh  # type: ignore[attr-defined]  # provided dynamically by brainunit.math
 
 
 def get(activation):
@@ -510,7 +510,7 @@ def relu(x):
 
 
 @jax.custom_jvp
-def _relu(x: Array) -> Array:
+def _relu(x: jax.Array) -> jax.Array:
     r"""Rectified linear unit activation function.
 
     Computes the element-wise function:

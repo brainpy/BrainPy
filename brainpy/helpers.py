@@ -49,7 +49,7 @@ def reset_level(level: int = 0):
         raise ValueError(f'"reset_level" must be an integer in [0, 10). but we got {level}')
 
     def wrap(fun: Callable):
-        fun.reset_level = level
+        setattr(fun, 'reset_level', level)
         return fun
 
     return wrap

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Union
+from typing import Union, Optional, Any
 
 from brainpy.dynold.experimental.base import SynOutNS
 from brainpy.math import exp
@@ -49,9 +49,9 @@ class COBA(SynOutNS):
     CUBA
     """
 
-    def __init__(self, E: Union[float, ArrayType] = 0., name: str = None, ):
+    def __init__(self, E: Union[float, ArrayType] = 0., name: Optional[str] = None, ):
         super().__init__(name=name)
-        self.E = E
+        self.E: Any = E
 
     def update(self, conductance, potential):
         return conductance * (self.E - potential)
@@ -79,7 +79,7 @@ class CUBA(SynOutNS):
     COBA
     """
 
-    def __init__(self, name: str = None, ):
+    def __init__(self, name: Optional[str] = None, ):
         super().__init__(name=name)
 
     def update(self, conductance, potential=None):
@@ -124,13 +124,13 @@ class MgBlock(SynOutNS):
         cc_Mg: Union[float, ArrayType] = 1.2,
         alpha: Union[float, ArrayType] = 0.062,
         beta: Union[float, ArrayType] = 3.57,
-        name: str = None,
+        name: Optional[str] = None,
     ):
         super().__init__(name=name)
-        self.E = E
-        self.cc_Mg = cc_Mg
-        self.alpha = alpha
-        self.beta = beta
+        self.E: Any = E
+        self.cc_Mg: Any = cc_Mg
+        self.alpha: Any = alpha
+        self.beta: Any = beta
 
     def update(self, conductance, potential):
         return conductance * (self.E - potential) / (1 + self.cc_Mg / self.beta * exp(-self.alpha * potential))

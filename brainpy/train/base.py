@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Dict, Sequence, Any, Optional
+from typing import Dict, Sequence, Any, Optional, Tuple, Union
 
 import brainpy.math as bm
 from brainpy._errors import NoLongerSupportError
@@ -73,13 +73,13 @@ class DSTrainer(DSRunner):
             self.jit[c.PREDICT_PHASE] = self._origin_jit.get(c.PREDICT_PHASE, True)
             self.jit[c.FIT_PHASE] = self._origin_jit.get(c.FIT_PHASE, True)
 
-    def predict(
+    def predict(  # type: ignore[override]  # narrower signature than DSRunner.predict; runtime API intentionally differs
         self,
         inputs: Any,
         reset_state: bool = False,
         shared_args: Optional[Dict] = None,
         eval_time: bool = False
-    ) -> Output:
+    ) -> Union[Output, Tuple[float, Output]]:
         """Prediction function.
 
         Parameters
@@ -112,6 +112,6 @@ class DSTrainer(DSRunner):
         self,
         train_data: Any,
         reset_state: bool = False,
-        shared_args: Dict = None
-    ) -> Output:  # need to be implemented by subclass
+        shared_args: Optional[Dict] = None
+    ) -> Union[Output, Tuple[float, Output]]:  # need to be implemented by subclass
         raise NotImplementedError('Must implement the fit function. ')

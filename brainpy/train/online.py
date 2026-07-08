@@ -14,7 +14,7 @@
 # limitations under the License.
 # ==============================================================================
 import functools
-from typing import Dict, Sequence, Union, Callable
+from typing import Any, Dict, Optional, Sequence, Union, Callable
 
 import brainstate.environ
 import jax
@@ -71,7 +71,7 @@ class OnlineTrainer(DSTrainer):
     def __init__(
         self,
         target: DynamicalSystem,
-        fit_method: Union[OnlineAlgorithm, Callable, Dict, str] = None,
+        fit_method: Optional[Union[OnlineAlgorithm, Callable, Dict, str]] = None,
         **kwargs
     ):
         super().__init__(target=target, **kwargs)
@@ -107,7 +107,7 @@ class OnlineTrainer(DSTrainer):
             node.online_init()
 
         # training function
-        self._f_fit_compiled = dict()
+        self._f_fit_compiled: Dict = dict()
 
     def __repr__(self):
         name = self.__class__.__name__
@@ -117,13 +117,13 @@ class OnlineTrainer(DSTrainer):
                 f'{indent}jit={self.jit}, \n'
                 f'{indent}fit_method={self.fit_method})')
 
-    def predict(
+    def predict(  # type: ignore[override]  # narrower signature than DSRunner.predict; runtime API intentionally differs
         self,
         inputs: Union[ArrayType, Sequence[ArrayType], Dict[str, ArrayType]],
         reset_state: bool = False,
-        shared_args: Dict = None,
+        shared_args: Optional[Dict] = None,
         eval_time: bool = False
-    ) -> Output:
+    ) -> Any:
         """Prediction function.
 
         What's different from `predict()` function in :py:class:`~.DynamicalSystem` is that
@@ -147,10 +147,10 @@ class OnlineTrainer(DSTrainer):
         output : ArrayType
           The running output.
         """
-        outs = super().predict(inputs=inputs,
-                               reset_state=reset_state,
-                               shared_args=shared_args,
-                               eval_time=eval_time)
+        outs: Any = super().predict(inputs=inputs,
+                                    reset_state=reset_state,
+                                    shared_args=shared_args,
+                                    eval_time=eval_time)
         for node in self.train_nodes:
             node.fit_record.clear()
         return outs
@@ -159,8 +159,8 @@ class OnlineTrainer(DSTrainer):
         self,
         train_data: Sequence,
         reset_state: bool = False,
-        shared_args: Dict = None,
-    ) -> Output:
+        shared_args: Optional[Dict] = None,
+    ) -> Any:
         with brainstate.environ.context(fit=True):
             if shared_args is None: shared_args = dict()
             shared_args['fit'] = shared_args.get('fit', True)
@@ -225,7 +225,7 @@ class OnlineTrainer(DSTrainer):
              indices: ArrayType,
              xs: Sequence,
              ys: Dict[str, ArrayType],
-             shared_args: Dict = None):
+             shared_args: Optional[Dict] = None):
         """Predict the output according to the inputs.
 
         Parameters

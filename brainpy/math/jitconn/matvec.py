@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Tuple, Optional, Union
+from typing import Tuple, Optional, Union, cast
 
 import brainevent
 import jax
@@ -111,9 +111,9 @@ def mv_prob_homo(
 
     csr = brainevent.JITCScalarR((weight, conn_prob, seed), shape=shape, corder=outdim_parallel)
     if transpose:
-        return vector @ csr
+        return cast(jax.Array, vector @ csr)
     else:
-        return csr @ vector
+        return cast(jax.Array, csr @ vector)
 
 
 def mv_prob_uniform(
@@ -201,9 +201,9 @@ def mv_prob_uniform(
 
     csr = brainevent.JITCUniformR((w_low, w_high, conn_prob, seed), shape=shape, corder=outdim_parallel)
     if transpose:
-        return vector @ csr
+        return cast(jax.Array, vector @ csr)
     else:
-        return csr @ vector
+        return cast(jax.Array, csr @ vector)
 
 
 def mv_prob_normal(
@@ -291,9 +291,9 @@ def mv_prob_normal(
 
     csr = brainevent.JITCNormalR((w_mu, w_sigma, conn_prob, seed), shape=shape, corder=outdim_parallel)
     if transpose:
-        return vector @ csr
+        return cast(jax.Array, vector @ csr)
     else:
-        return csr @ vector
+        return cast(jax.Array, csr @ vector)
 
 
 def get_homo_weight_matrix(
@@ -345,7 +345,7 @@ def get_homo_weight_matrix(
     csr = brainevent.JITCScalarR((weight, conn_prob, seed), shape=shape, corder=outdim_parallel)
     if transpose:
         csr = csr.T
-    return csr.todense()
+    return cast(jax.Array, csr.todense())
 
 
 def get_uniform_weight_matrix(
@@ -407,7 +407,7 @@ def get_uniform_weight_matrix(
     csr = brainevent.JITCUniformR((w_low, w_high, conn_prob, seed), shape=shape, corder=outdim_parallel)
     if transpose:
         csr = csr.T
-    return csr.todense()
+    return cast(jax.Array, csr.todense())
 
 
 def get_normal_weight_matrix(
@@ -467,4 +467,4 @@ def get_normal_weight_matrix(
     csr = brainevent.JITCNormalR((w_mu, w_sigma, conn_prob, seed), shape=shape, corder=outdim_parallel)
     if transpose:
         csr = csr.T
-    return csr.todense()
+    return cast(jax.Array, csr.todense())

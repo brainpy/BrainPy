@@ -56,10 +56,12 @@ class WeightedPhaseEncoder(Encoder):
                  min_val: float,
                  max_val: float,
                  num_phase: int,
-                 weight_fun: Callable = None):
+                 weight_fun: Optional[Callable] = None):
         super().__init__()
 
-        check.is_callable(weight_fun, 'weight_fun', allow_none=True)
+        # ``check.is_callable`` supports ``allow_none=True`` at runtime but annotates
+        # its first param as non-Optional ``Callable`` (out-of-batch fix in check.py).
+        check.is_callable(weight_fun, 'weight_fun', allow_none=True)  # type: ignore[arg-type]
         self.num_phase = check.is_integer(num_phase, 'num_phase', min_bound=1)
         self.min_val = check.is_float(min_val, 'min_val')
         self.max_val = check.is_float(max_val, 'max_val')
@@ -154,8 +156,8 @@ class LatencyEncoder(Encoder):
 
     def __init__(
         self,
-        min_val: float = None,
-        max_val: float = None,
+        min_val: Optional[float] = None,
+        max_val: Optional[float] = None,
         method: str = 'log',
         threshold: float = 0.01,
         clip: bool = False,
@@ -169,8 +171,10 @@ class LatencyEncoder(Encoder):
         if method not in ['linear', 'log']:
             raise ValueError('The conversion method can only be "linear" and "log".')
         self.method = method
-        self.min_val = check.is_float(min_val, 'min_val', allow_none=True)
-        self.max_val = check.is_float(max_val, 'max_val', allow_none=True)
+        # ``check.is_float`` supports ``allow_none=True`` at runtime but annotates its
+        # first param as non-Optional ``float`` (out-of-batch fix in check.py).
+        self.min_val = check.is_float(min_val, 'min_val', allow_none=True)  # type: ignore[arg-type]
+        self.max_val = check.is_float(max_val, 'max_val', allow_none=True)  # type: ignore[arg-type]
         if threshold < 0 or threshold > 1:
             raise ValueError(f"``threshold`` [{threshold}] must be between [0, 1]")
         self.threshold = threshold
@@ -181,7 +185,7 @@ class LatencyEncoder(Encoder):
         self.first_spk_step = int(first_spk_time / bm.get_dt())
         self.epsilon = epsilon
 
-    def single_step(self, x, i_step: int = None):
+    def single_step(self, x, i_step: Optional[int] = None):
         raise NotImplementedError
 
     def multi_steps(self, data, n_time: Optional[float] = None):

@@ -100,7 +100,7 @@ all2all = All2All(include_self=True)
 def get_size_length(sizes: Union[Tuple, List]):
     if not isinstance(sizes, (tuple, list)):
         raise TypeError
-    lengths = []
+    lengths: list = []
     a = 1
     for s in reversed(sizes):
         lengths.insert(0, a)

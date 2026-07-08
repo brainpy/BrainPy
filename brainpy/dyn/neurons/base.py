@@ -18,6 +18,7 @@ import brainpy.math as bm
 from brainpy.check import is_callable
 from brainpy.dyn._docs import pneu_doc, dpneu_doc
 from brainpy.dyn.base import NeuDyn
+from brainpy.types import Shape
 
 __all__ = ['GradNeuDyn']
 
@@ -31,11 +32,16 @@ class GradNeuDyn(NeuDyn):
     {dpneu}
     """
 
-    supported_modes = (bm.TrainingMode, bm.NonBatchingMode)
+    # NOTE: the base ``DynamicalSystem.supported_modes`` is annotated as
+    # ``Sequence[Mode] | None`` but is populated (here and in every sibling
+    # neuron/channel class) with Mode *subclasses* used for ``is_parent_of``
+    # checks. Widening that base annotation to ``Sequence[type[Mode]]`` is an
+    # out-of-batch fix; the ignore documents the intentional class-object tuple.
+    supported_modes = (bm.TrainingMode, bm.NonBatchingMode)  # type: ignore[assignment]
 
     def __init__(
         self,
-        size: Union[int, Sequence[int]],
+        size: Shape,
         sharding: Any = None,
         keep_size: bool = False,
         mode: Optional[bm.Mode] = None,
@@ -93,4 +99,5 @@ class GradNeuDyn(NeuDyn):
         return s
 
 
+assert GradNeuDyn.__doc__ is not None
 GradNeuDyn.__doc__ = GradNeuDyn.__doc__.format(pneu=pneu_doc, dpneu=dpneu_doc)

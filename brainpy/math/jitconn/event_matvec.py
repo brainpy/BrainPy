@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Tuple, Optional
+from typing import Tuple, Optional, cast
 
 import brainevent
 import jax
@@ -49,12 +49,12 @@ def event_mv_prob_homo(
     if isinstance(weight, Array):
         weight = weight.value
 
-    events = brainevent.BinaryArray(events)
+    binary_events = brainevent.BinaryArray(events)
     csr = brainevent.JITCScalarR((weight, conn_prob, seed), shape=shape, corder=outdim_parallel)
     if transpose:
-        return events @ csr
+        return cast(jax.Array, binary_events @ csr)
     else:
-        return csr @ events
+        return cast(jax.Array, csr @ binary_events)
 
 
 event_mv_prob_homo.__doc__ = mv_prob_homo.__doc__
@@ -75,7 +75,7 @@ def event_mv_prob_uniform(
         seed = np.random.randint(0, 1000000000)
     if isinstance(events, Array):
         events = events.value
-    events = brainevent.BinaryArray(events)
+    binary_events = brainevent.BinaryArray(events)
     if isinstance(w_low, Array):
         w_low = w_low.value
     if isinstance(w_high, Array):
@@ -83,9 +83,9 @@ def event_mv_prob_uniform(
 
     csr = brainevent.JITCUniformR((w_low, w_high, conn_prob, seed), shape=shape, corder=outdim_parallel)
     if transpose:
-        return events @ csr
+        return cast(jax.Array, binary_events @ csr)
     else:
-        return csr @ events
+        return cast(jax.Array, csr @ binary_events)
 
 
 event_mv_prob_uniform.__doc__ = mv_prob_uniform.__doc__
@@ -106,7 +106,7 @@ def event_mv_prob_normal(
         seed = np.random.randint(0, 1000000000)
     if isinstance(events, Array):
         events = events.value
-    events = brainevent.BinaryArray(events)
+    binary_events = brainevent.BinaryArray(events)
     if isinstance(w_mu, Array):
         w_mu = w_mu.value
     if isinstance(w_sigma, Array):
@@ -114,9 +114,9 @@ def event_mv_prob_normal(
 
     csr = brainevent.JITCNormalR((w_mu, w_sigma, conn_prob, seed), shape=shape, corder=outdim_parallel)
     if transpose:
-        return events @ csr
+        return cast(jax.Array, binary_events @ csr)
     else:
-        return csr @ events
+        return cast(jax.Array, csr @ binary_events)
 
 
 event_mv_prob_normal.__doc__ = mv_prob_normal.__doc__

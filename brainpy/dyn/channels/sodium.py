@@ -18,7 +18,7 @@ This module implements voltage-dependent sodium channels.
 
 """
 
-from typing import Union, Callable
+from typing import Union, Callable, Optional
 
 import jax.numpy as jnp
 
@@ -55,7 +55,11 @@ def _exprel(x):
 class SodiumChannel(IonChannel):
     """Base class for sodium channel dynamics."""
 
-    master_type = Sodium
+    # ``IonChannel.master_type`` is annotated as ``type[HHTypedNeuron]`` in the
+    # base class, but every ion-channel subclass overrides it with its own ion
+    # type. Widening the base annotation (e.g. to ``type``) is an out-of-batch
+    # fix; the ignore documents the intentional override.
+    master_type = Sodium  # type: ignore[assignment]
 
     def update(self, V, C, E):
         raise NotImplementedError
@@ -63,10 +67,10 @@ class SodiumChannel(IonChannel):
     def current(self, V, C, E):
         raise NotImplementedError
 
-    def reset(self, V, C, E, batch_size: int = None):
+    def reset(self, V, C, E, batch_size: Optional[int] = None):
         self.reset_state(V, C, E, batch_size)
 
-    def reset_state(self, V, C, E, batch_size: int = None):
+    def reset_state(self, V, C, E, batch_size: Optional[int] = None):
         raise NotImplementedError('Must be implemented by the subclass.')
 
 
@@ -108,8 +112,8 @@ class _INa_p3q_markov_v2(SodiumChannel):
         g_max: Union[int, float, ArrayType, Initializer, Callable] = 90.,
         phi: Union[int, float, ArrayType, Initializer, Callable] = 1.,
         method: str = 'exp_auto',
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         super().__init__(size=size,
                          keep_size=keep_size,
@@ -217,8 +221,8 @@ class INa_Ba2002v2(_INa_p3q_markov_v2):
         g_max: Union[int, float, ArrayType, Initializer, Callable] = 90.,
         V_sh: Union[int, float, ArrayType, Initializer, Callable] = -50.,
         method: str = 'exp_auto',
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         super().__init__(size,
                          keep_size=keep_size,
@@ -307,8 +311,8 @@ class INa_TM1991v2(_INa_p3q_markov_v2):
         phi: Union[int, float, ArrayType, Initializer, Callable] = 1.,
         V_sh: Union[int, float, ArrayType, Initializer, Callable] = -63.,
         method: str = 'exp_auto',
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         super().__init__(size,
                          keep_size=keep_size,
@@ -397,8 +401,8 @@ class INa_HH1952v2(_INa_p3q_markov_v2):
         phi: Union[int, float, ArrayType, Initializer, Callable] = 1.,
         V_sh: Union[int, float, ArrayType, Initializer, Callable] = -45.,
         method: str = 'exp_auto',
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         super().__init__(size,
                          keep_size=keep_size,

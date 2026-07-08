@@ -427,7 +427,7 @@ class GaussianProb(OneEndConnector):
         normalize: bool = True,
         include_self: bool = True,
         periodic_boundary: bool = False,
-        seed: int = None,
+        seed: Optional[int] = None,
         **kwargs
     ):
         super(GaussianProb, self).__init__(**kwargs)

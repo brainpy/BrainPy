@@ -66,7 +66,7 @@ def shared_args_over_time(num_step: Optional[int] = None,
     dt = get_dt() if dt is None else dt
     check.is_float(dt, 'dt', allow_none=False)
     if duration is None:
-        check.is_integer(num_step, 'num_step', allow_none=False)
+        check.is_integer(num_step, 'num_step', allow_none=False)  # type: ignore[arg-type]  # check.is_integer accepts None (allow_none) but is annotated `value: int`
     else:
         check.is_float(duration, 'duration', allow_none=False)
         num_step = int(duration / dt)
@@ -134,7 +134,7 @@ def _exprel(x, threshold):
     return jax.lax.select(jnp.abs(x) <= threshold, 1. + x / 2. + x * x / 6., (jnp.exp(x) - 1) / x)
 
 
-def exprel(x, threshold: float = None):
+def exprel(x, threshold: Optional[float] = None):
     """Relative error exponential, ``(exp(x) - 1)/x``.
 
     When ``x`` is near zero, ``exp(x)`` is near 1, so the numerical calculation of ``exp(x) - 1`` can
@@ -166,14 +166,14 @@ def is_float_type(x: Union[Array, jax.Array]):
 
 
 def add_axis(x: Union[Array, jax.Array], new_position: int):
-    x = as_jax(x)
-    return jnp.expand_dims(x, new_position)
+    arr = as_jax(x)
+    return jnp.expand_dims(arr, new_position)
 
 
 def add_axes(x: Union[Array, jax.Array], n_axes, pos2len):
-    x = as_jax(x)
+    arr = as_jax(x)
     repeats = [1] * n_axes
     for axis_position, axis_length in pos2len.items():
-        x = add_axis(x, axis_position)
+        arr = add_axis(arr, axis_position)
         repeats[axis_position] = axis_length
-    return jnp.tile(x, repeats)
+    return jnp.tile(arr, repeats)

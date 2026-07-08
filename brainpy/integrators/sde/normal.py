@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Union, Callable, Dict, Sequence
+from typing import Optional, Union, Callable, Dict, Sequence
 
 import jax.numpy as jnp
 
@@ -265,13 +265,13 @@ class Milstein(SDEIntegrator):
         self,
         f: Callable,
         g: Callable,
-        dt: float = None,
-        name: str = None,
+        dt: Optional[float] = None,
+        name: Optional[str] = None,
         show_code=False,
-        var_type: str = None,
-        intg_type: str = None,
-        wiener_type: str = None,
-        state_delays: Dict[str, bm.AbstractDelay] = None,
+        var_type: Optional[str] = None,
+        intg_type: Optional[str] = None,
+        wiener_type: Optional[str] = None,
+        state_delays: Optional[Dict[str, Union[bm.TimeDelay, bm.LengthDelay]]] = None,
     ):
         super(Milstein, self).__init__(f=f,
                                        g=g,
@@ -420,13 +420,13 @@ class MilsteinGradFree(SDEIntegrator):
         self,
         f: Callable,
         g: Callable,
-        dt: float = None,
-        name: str = None,
+        dt: Optional[float] = None,
+        name: Optional[str] = None,
         show_code=False,
-        var_type: str = None,
-        intg_type: str = None,
-        wiener_type: str = None,
-        state_delays: Dict[str, bm.AbstractDelay] = None,
+        var_type: Optional[str] = None,
+        intg_type: Optional[str] = None,
+        wiener_type: Optional[str] = None,
+        state_delays: Optional[Dict[str, Union[bm.TimeDelay, bm.LengthDelay]]] = None,
     ):
         super(MilsteinGradFree, self).__init__(f=f,
                                                g=g,
@@ -562,14 +562,14 @@ class ExponentialEuler(SDEIntegrator):
         self,
         f: Callable,
         g: Callable,
-        dt: float = None,
-        name: str = None,
+        dt: Optional[float] = None,
+        name: Optional[str] = None,
         show_code: bool = False,
-        var_type: str = None,
-        intg_type: str = None,
-        wiener_type: str = None,
-        dyn_vars: Union[bm.Variable, Sequence[bm.Variable], Dict[str, bm.Variable]] = None,
-        state_delays: Dict[str, bm.AbstractDelay] = None
+        var_type: Optional[str] = None,
+        intg_type: Optional[str] = None,
+        wiener_type: Optional[str] = None,
+        dyn_vars: Optional[Union[bm.Variable, Sequence[bm.Variable], Dict[str, bm.Variable]]] = None,
+        state_delays: Optional[Dict[str, Union[bm.TimeDelay, bm.LengthDelay]]] = None
     ):
         super(ExponentialEuler, self).__init__(f=f,
                                                g=g,

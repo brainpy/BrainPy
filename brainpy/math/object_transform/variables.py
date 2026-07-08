@@ -67,8 +67,8 @@ class Variable(brainstate.State, Array):
     def __init__(
         self,
         value_or_size: Any,
-        dtype: type = None,
-        batch_axis: int = None,
+        dtype: Optional[type] = None,
+        batch_axis: Optional[int] = None,
         *,
         axis_names: Optional[Sequence[str]] = None,
     ):
@@ -103,6 +103,7 @@ class Variable(brainstate.State, Array):
         if axis_names is not None:
             if len(axis_names) + 1 == self.ndim:
                 axis_names = list(axis_names)
+                assert self.batch_axis is not None
                 axis_names.insert(self.batch_axis, BATCH_AXIS)
             assert len(axis_names) == self.ndim
             axis_names = tuple(axis_names)
@@ -239,8 +240,8 @@ class TrainVar(Variable):
     def __init__(
         self,
         value_or_size: Any,
-        dtype: type = None,
-        batch_axis: int = None,
+        dtype: Optional[type] = None,
+        batch_axis: Optional[int] = None,
         *,
         axis_names: Optional[Sequence[str]] = None,
     ):
@@ -260,8 +261,8 @@ class Parameter(Variable):
     def __init__(
         self,
         value_or_size: Any,
-        dtype: type = None,
-        batch_axis: int = None,
+        dtype: Optional[type] = None,
+        batch_axis: Optional[int] = None,
         *,
         axis_names: Optional[Sequence[str]] = None,
     ):
@@ -382,18 +383,18 @@ class VarList(list):
         super().__init__()
         self.extend(seq)
 
-    def append(self, element) -> 'VarList':
+    def append(self, element) -> 'VarList':  # type: ignore[override]  # fluent API returns self, not None
         if not isinstance(element, Variable):
             raise TypeError(f'element must be an instance of {Variable.__name__}.')
         super().append(element)
         return self
 
-    def extend(self, iterable) -> 'VarList':
+    def extend(self, iterable) -> 'VarList':  # type: ignore[override]  # fluent API returns self, not None
         for element in iterable:
             self.append(element)
         return self
 
-    def __setitem__(self, key, value) -> 'VarList':
+    def __setitem__(self, key, value) -> 'VarList':  # type: ignore[override]  # fluent API returns self, not None
         """Override the item setting.
 
         This function ensures that the Variable appended in the :py:class:`~.VarList` will not be overridden,
@@ -445,7 +446,7 @@ class VarDict(dict):
         super().__init__()
         self.update(*args, **kwargs)
 
-    def update(self, *args, **kwargs) -> 'VarDict':
+    def update(self, *args, **kwargs) -> 'VarDict':  # type: ignore[override]  # fluent API returns self, not None
         for arg in args:
             if isinstance(arg, dict):
                 for k, v in arg.items():
@@ -457,7 +458,7 @@ class VarDict(dict):
             self[k] = v
         return self
 
-    def __setitem__(self, key, value) -> 'VarDict':
+    def __setitem__(self, key, value) -> 'VarDict':  # type: ignore[override]  # fluent API returns self, not None
         """Override the item setting.
 
         This function ensures that the Variable appended in the :py:class:`~.VarList` will not be overridden.

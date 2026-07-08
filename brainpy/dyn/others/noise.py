@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Union, Callable
+from typing import Union, Callable, Optional
 
 import jax.numpy as jnp
 
@@ -66,8 +66,8 @@ class OUProcess(NeuDyn):
         tau: Union[float, ArrayType, Callable] = 10.,
         method: str = 'exp_euler',
         keep_size: bool = False,
-        mode: bm.Mode = None,
-        name: str = None,
+        mode: Optional[bm.Mode] = None,
+        name: Optional[str] = None,
     ):
         super(OUProcess, self).__init__(size=size, name=name, keep_size=keep_size, mode=mode)
 

@@ -18,7 +18,7 @@ This module implements calcium-dependent potassium channels.
 
 """
 
-from typing import Union, Callable
+from typing import Optional, Union, Callable
 
 import brainpy.math as bm
 from brainpy.context import share
@@ -83,7 +83,8 @@ class IAHP_De1994(IonChannel):
     """
 
     '''The type of the master object.'''
-    master_type = Calcium
+    # base IonChannel infers master_type as type[HHTypedNeuron]; subclasses set other master types
+    master_type = Calcium  # type: ignore[assignment]
 
     def __init__(
         self,
@@ -96,8 +97,8 @@ class IAHP_De1994(IonChannel):
         beta: Union[float, ArrayType, Initializer, Callable] = 0.09,
         phi: Union[float, ArrayType, Initializer, Callable] = 1.,
         method: str = 'exp_auto',
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         super().__init__(size=size,
                          keep_size=keep_size,

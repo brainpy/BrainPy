@@ -14,7 +14,7 @@
 # limitations under the License.
 # ==============================================================================
 import numbers
-from typing import Dict, Optional, Union, Callable
+from typing import Any, Dict, Optional, Union, Callable
 
 import jax
 import jax.numpy as jnp
@@ -94,8 +94,8 @@ class Dense(Layer, SupportSTDP, SupportOnline, SupportOffline):
                              f'a positive integer. Received: num_out={num_out}')
 
         # weight initializer
-        self.W_initializer = W_initializer
-        self.bias_initializer = b_initializer
+        self.W_initializer: Any = W_initializer
+        self.bias_initializer: Any = b_initializer
         is_initializer(W_initializer, 'weight_initializer')
         is_initializer(b_initializer, 'bias_initializer', allow_none=True)
 
@@ -109,9 +109,9 @@ class Dense(Layer, SupportSTDP, SupportOnline, SupportOffline):
         self.b = b
 
         # fitting parameters
-        self.online_fit_by = None  # support online training
-        self.offline_fit_by = None  # support offline training
-        self.fit_record = dict()
+        self.online_fit_by: Any = None  # support online training
+        self.offline_fit_by: Any = None  # support offline training
+        self.fit_record: dict = dict()
 
     def __repr__(self):
         return (f'{self.__class__.__name__}(name={self.name}, '
@@ -156,7 +156,7 @@ class Dense(Layer, SupportSTDP, SupportOnline, SupportOffline):
                    fit_record: Dict[str, ArrayType]):
         if not isinstance(target, (bm.ndarray, jnp.ndarray)):
             raise MathError(f'"target" must be a tensor, but got {type(target)}')
-        x = fit_record['input']
+        x: Any = fit_record['input']
         y = fit_record['output']
         if x.ndim != 2:
             raise ValueError(f'"ff" must be a 2D tensor with shape of (num_sample, '
@@ -193,7 +193,7 @@ class Dense(Layer, SupportSTDP, SupportOnline, SupportOffline):
         # data checking
         if not isinstance(target, (bm.ndarray, jnp.ndarray)):
             raise MathError(f'"targets" must be a tensor, but got {type(target)}')
-        xs = fit_record['input']
+        xs: Any = fit_record['input']
         ys = fit_record['output']
         if xs.ndim != 3:
             raise ValueError(f'"ffs" must be a 3D tensor with shape of (num_sample, num_time, '
@@ -226,12 +226,12 @@ class Dense(Layer, SupportSTDP, SupportOnline, SupportOffline):
             self.W.value = Wff
             self.b.value = bias[0]
 
-    def stdp_update(
+    def stdp_update(  # type: ignore[override]  # base SupportSTDP.stdp_update is a permissive *args/**kwargs placeholder (with an `onn_post` typo); concrete overrides declare explicit params
         self,
-        on_pre: Dict = None,
-        on_post: Dict = None,
-        w_min: numbers.Number = None,
-        w_max: numbers.Number = None
+        on_pre: Optional[Dict] = None,
+        on_post: Optional[Dict] = None,
+        w_min: Optional[numbers.Number] = None,
+        w_max: Optional[numbers.Number] = None
     ):
         if bm.isscalar(self.W):
             raise ValueError(f'When using STDP to update synaptic weights, the weight cannot be a scalar.')
@@ -302,10 +302,10 @@ class AllToAll(Layer, SupportSTDP):
         self.include_self = include_self
         self.sharding = sharding
 
-        weight = init.parameter(weight, (self.num_pre, self.num_post), sharding=sharding)
+        w = init.parameter(weight, (self.num_pre, self.num_post), sharding=sharding)
         if isinstance(self.mode, bm.TrainingMode):
-            weight = bm.TrainVar(weight)
-        self.weight = weight
+            w = bm.TrainVar(w)
+        self.weight = w
 
     def update(self, pre_val):
         if bm.ndim(self.weight) == 0:  # weight is a scalar
@@ -334,12 +334,12 @@ class AllToAll(Layer, SupportSTDP):
                 post_val = pre_val @ self.weight
         return post_val
 
-    def stdp_update(
+    def stdp_update(  # type: ignore[override]  # base SupportSTDP.stdp_update is a permissive *args/**kwargs placeholder (with an `onn_post` typo); concrete overrides declare explicit params
         self,
-        on_pre: Dict = None,
-        on_post: Dict = None,
-        w_min: numbers.Number = None,
-        w_max: numbers.Number = None
+        on_pre: Optional[Dict] = None,
+        on_post: Optional[Dict] = None,
+        w_min: Optional[numbers.Number] = None,
+        w_max: Optional[numbers.Number] = None
     ):
         if bm.isscalar(self.weight):
             raise ValueError(f'When using STDP to update synaptic weights, the weight cannot be a scalar.')
@@ -389,20 +389,20 @@ class OneToOne(Layer, SupportSTDP):
         self.num = num
         self.sharding = sharding
 
-        weight = init.parameter(weight, (self.num,), sharding=sharding)
+        w = init.parameter(weight, (self.num,), sharding=sharding)
         if isinstance(self.mode, bm.TrainingMode):
-            weight = bm.TrainVar(weight)
-        self.weight = weight
+            w = bm.TrainVar(w)
+        self.weight = w
 
     def update(self, pre_val):
         return pre_val * self.weight
 
-    def stdp_update(
+    def stdp_update(  # type: ignore[override]  # base SupportSTDP.stdp_update is a permissive *args/**kwargs placeholder (with an `onn_post` typo); concrete overrides declare explicit params
         self,
-        on_pre: Dict = None,
-        on_post: Dict = None,
-        w_min: numbers.Number = None,
-        w_max: numbers.Number = None
+        on_pre: Optional[Dict] = None,
+        on_post: Optional[Dict] = None,
+        w_min: Optional[numbers.Number] = None,
+        w_max: Optional[numbers.Number] = None
     ):
         if isinstance(self.weight, float):
             raise ValueError(f'Cannot update the weight of a constant node.')
@@ -470,10 +470,13 @@ class MaskedLinear(Layer, SupportSTDP):
         self.mask_fun = mask_fun
 
         # weight
-        weight = init.parameter(weight, (conn.pre_num, conn.post_num), sharding=sharding)
+        pre_num = conn.pre_num
+        post_num = conn.post_num
+        assert pre_num is not None and post_num is not None
+        w = init.parameter(weight, (pre_num, post_num), sharding=sharding)
         if isinstance(self.mode, bm.TrainingMode):
-            weight = bm.TrainVar(weight)
-        self.weight = weight
+            w = bm.TrainVar(w)
+        self.weight = w
 
         # connection
         self.mask = bm.sharding.partition(self.conn.require('conn_mat'), sharding=sharding)
@@ -481,12 +484,12 @@ class MaskedLinear(Layer, SupportSTDP):
     def update(self, x):
         return x @ self.mask_fun(self.weight * self.mask)
 
-    def stdp_update(
+    def stdp_update(  # type: ignore[override]  # base SupportSTDP.stdp_update is a permissive *args/**kwargs placeholder (with an `onn_post` typo); concrete overrides declare explicit params
         self,
-        on_pre: Dict = None,
-        on_post: Dict = None,
-        w_min: numbers.Number = None,
-        w_max: numbers.Number = None
+        on_pre: Optional[Dict] = None,
+        on_post: Optional[Dict] = None,
+        w_min: Optional[numbers.Number] = None,
+        w_max: Optional[numbers.Number] = None
     ):
         if isinstance(self.weight, float):
             raise ValueError(f'Cannot update the weight of a constant node.')
@@ -527,17 +530,17 @@ class _CSRLayer(Layer, SupportSTDP):
         self.indices, self.indptr = self.conn.require('csr')
 
         # weight
-        weight = init.parameter(weight, (self.indices.size,))
+        w = init.parameter(weight, (self.indices.size,))
         if isinstance(self.mode, bm.TrainingMode):
-            weight = bm.TrainVar(weight)
-        self.weight = weight
+            w = bm.TrainVar(w)
+        self.weight = w
 
-    def stdp_update(
+    def stdp_update(  # type: ignore[override]  # base SupportSTDP.stdp_update is a permissive *args/**kwargs placeholder (with an `onn_post` typo); concrete overrides declare explicit params
         self,
-        on_pre: Dict = None,
-        on_post: Dict = None,
-        w_min: numbers.Number = None,
-        w_max: numbers.Number = None
+        on_pre: Optional[Dict] = None,
+        on_post: Optional[Dict] = None,
+        w_min: Optional[numbers.Number] = None,
+        w_max: Optional[numbers.Number] = None
     ):
         if bm.isscalar(self.weight):
             raise ValueError(f'When using STDP to update synaptic weights, the weight cannot be a scalar.')
@@ -604,7 +607,7 @@ class CSRLinear(_CSRLayer):
         sharding: Optional[Sharding] = None,
         mode: Optional[bm.Mode] = None,
         name: Optional[str] = None,
-        method: str = None,
+        method: Optional[str] = None,
         transpose: bool = True,
     ):
         super().__init__(name=name, mode=mode, conn=conn, weight=weight, sharding=sharding, transpose=transpose)
@@ -898,9 +901,10 @@ class JitFPHomoLinear(JitFPHomoLayer):
         self.num_out = num_out
 
         # weight
+        weight_val: Any = weight
         if isinstance(self.mode, bm.TrainingMode):
-            weight = bm.TrainVar(weight)
-        self.weight = weight
+            weight_val = bm.TrainVar(weight)
+        self.weight = weight_val
 
     def update(self, x):
         if x.ndim == 1:
@@ -1172,9 +1176,10 @@ class EventJitFPHomoLinear(JitFPHomoLayer):
         self.num_out = num_out
 
         # weight
+        weight_val: Any = weight
         if isinstance(self.mode, bm.TrainingMode):
-            weight = bm.TrainVar(weight)
-        self.weight = weight
+            weight_val = bm.TrainVar(weight)
+        self.weight = weight_val
 
     def update(self, x):
         if x.ndim == 1:

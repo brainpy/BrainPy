@@ -78,14 +78,14 @@ class PoissonEncoder(Encoder):
     ):
         super().__init__()
 
-        self.min_val = check.is_float(min_val, 'min_val', allow_none=True)
-        self.max_val = check.is_float(max_val, 'max_val', allow_none=True)
+        self.min_val = check.is_float(min_val, 'min_val', allow_none=True)  # type: ignore[arg-type]  # allow_none=True permits None; check.is_float value param is annotated too strictly
+        self.max_val = check.is_float(max_val, 'max_val', allow_none=True)  # type: ignore[arg-type]  # allow_none=True permits None; check.is_float value param is annotated too strictly
         self.gain = check.is_float(gain, allow_none=False)
         self.offset = check.is_float(offset, allow_none=False)
         self.first_spk_time = check.is_float(first_spk_time)
         self.first_spk_step = int(self.first_spk_time / bm.get_dt())
 
-    def single_step(self, x, i_step: int = None):
+    def single_step(self, x, i_step: Optional[int] = None):
         """Generate spikes at the single step according to the inputs.
 
         Parameters

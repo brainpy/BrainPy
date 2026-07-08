@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-from typing import Optional, Union, Callable, Tuple
+from typing import Any, Optional, Union, Callable, Tuple
 
 import jax.numpy as jnp
 
@@ -125,11 +125,12 @@ class Reservoir(Layer):
         super(Reservoir, self).__init__(mode=mode, name=name)
 
         # parameters
-        input_shape = to_size(input_shape)
-        if input_shape[0] is None:
-            input_shape = input_shape[1:]
-        self.input_shape = input_shape
-        self.output_shape = input_shape[:-1] + (num_out,)
+        shape = to_size(input_shape)
+        assert shape is not None
+        if shape[0] is None:
+            shape = shape[1:]
+        self.input_shape = shape
+        self.output_shape = shape[:-1] + (num_out,)
         self.num_unit = num_out
         assert num_out > 0, f'Must be a positive integer, but we got {num_out}'
         self.leaky_rate = leaky_rate
@@ -138,16 +139,16 @@ class Reservoir(Layer):
         check.is_callable(self.activation, allow_none=False)
         self.activation_type = activation_type
         check.is_string(activation_type, 'activation_type', ['internal', 'external'])
-        check.is_float(spectral_radius, 'spectral_radius', allow_none=True)
+        check.is_float(spectral_radius, 'spectral_radius', allow_none=True)  # type: ignore[arg-type]  # is_float accepts None when allow_none=True but types arg as float
         self.spectral_radius = spectral_radius
 
         # initializations
         check.is_initializer(Win_initializer, 'ff_initializer', allow_none=False)
         check.is_initializer(Wrec_initializer, 'rec_initializer', allow_none=False)
         check.is_initializer(b_initializer, 'bias_initializer', allow_none=True)
-        self._Win_initializer = Win_initializer
-        self._Wrec_initializer = Wrec_initializer
-        self._b_initializer = b_initializer
+        self._Win_initializer: Any = Win_initializer
+        self._Wrec_initializer: Any = Wrec_initializer
+        self._b_initializer: Any = b_initializer
 
         # connectivity
         check.is_float(in_connectivity, 'ff_connectivity', 0., 1.)
@@ -166,7 +167,7 @@ class Reservoir(Layer):
         check.is_string(noise_type, 'noise_type', ['normal', 'uniform'])
 
         # initialize feedforward weights
-        weight_shape = (input_shape[-1], self.num_unit)
+        weight_shape = (shape[-1], self.num_unit)
         self.Wff_shape = weight_shape
         self.Win = parameter(self._Win_initializer, weight_shape)
         if self.ff_connectivity < 1.:

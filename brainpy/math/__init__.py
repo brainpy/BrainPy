@@ -64,7 +64,7 @@ from .datatypes import *
 from .delayvars import *
 # einops-style helpers are reused from ``brainunit.math`` (the local port was
 # removed); keep the historical ``ein_*`` names as thin aliases.
-from brainunit.math import (
+from brainunit.math import (  # type: ignore[attr-defined]  # ein_* helpers provided dynamically by brainunit.math
     einreduce as ein_reduce,
     einrearrange as ein_rearrange,
     einrepeat as ein_repeat,

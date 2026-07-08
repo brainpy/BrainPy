@@ -81,7 +81,7 @@ _jit_par = '''
 
 
 def jit(
-    func: Callable = Missing(),
+    func: Union[Callable, Missing] = Missing(),
 
     # original jax.jit parameters
     static_argnums: Union[int, Iterable[int], None] = None,
@@ -158,11 +158,12 @@ def jit(
     )
 
 
+assert jit.__doc__ is not None
 jit.__doc__ = jit.__doc__.format(jit_par=_jit_par.strip())
 
 
 def cls_jit(
-    func: Callable = Missing(),
+    func: Union[Callable, Missing] = Missing(),
     static_argnums: Union[int, Iterable[int], None] = None,
     static_argnames: Union[str, Iterable[str], None] = None,
     donate_argnums: Union[int, Sequence[int], None] = None,
@@ -242,4 +243,5 @@ def cls_jit(
     )
 
 
+assert cls_jit.__doc__ is not None
 cls_jit.__doc__ = cls_jit.__doc__.format(jit_pars=_jit_par)

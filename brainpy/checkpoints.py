@@ -25,7 +25,7 @@ __all__ = [
     'save_pytree', 'load_pytree', 'AsyncManager',
 ]
 
-AsyncManager = braintools.file.AsyncManager
+AsyncManager = braintools.file.AsyncManager  # type: ignore[misc]  # re-export alias; AsyncManager is a type
 
 
 def _array_dict_state(x: Array) -> Dict[str, jax.Array]:
@@ -46,7 +46,7 @@ def save_pytree(
     overwrite: bool = True,
     async_manager: Optional[AsyncManager] = None,
     verbose: bool = True,
-) -> None:
+) -> Optional[str]:
     """Save a checkpoint of the model. Suitable for single-host.
 
     In this method, every JAX process saves the checkpoint on its own. Do not
@@ -96,7 +96,7 @@ def load_pytree(
     filename: str,
     target: Optional[Any] = None,
     parallel: bool = True,
-) -> PyTree:
+) -> Any:
     """Load the checkpoint from the given checkpoint path.
 
     Parameters

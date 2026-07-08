@@ -47,7 +47,7 @@ class SynConn(Projection):
         self,
         pre: DynamicalSystem,
         post: DynamicalSystem,
-        conn: Union[TwoEndConnector, ArrayType, Dict[str, ArrayType]] = None,
+        conn: Optional[Union[TwoEndConnector, ArrayType, Dict[str, ArrayType]]] = None,
         name: Optional[str] = None,
         mode: Optional[bm.Mode] = None,
     ):

@@ -14,6 +14,7 @@
 # limitations under the License.
 # ==============================================================================
 import warnings
+from typing import Any, Dict, Optional
 
 import jax.numpy as jnp
 import numpy as np
@@ -48,7 +49,7 @@ __all__ = [
     'register_offline_method',
 ]
 
-name2func = dict()
+name2func: Dict[str, Any] = dict()
 
 
 class OfflineAlgorithm(BrainPyObject):
@@ -78,7 +79,7 @@ class OfflineAlgorithm(BrainPyObject):
         """
         return self.call(targets, inputs, outputs)
 
-    def call(self, targets, inputs, outputs=None) -> ArrayType:
+    def call(self, targets, inputs, outputs=None):
         """The training procedure.
 
         Parameters
@@ -132,10 +133,10 @@ class RegressionAlgorithm(OfflineAlgorithm):
 
     def __init__(
         self,
-        max_iter: int = None,
-        learning_rate: float = None,
-        regularizer: Regularization = None,
-        name: str = None
+        max_iter: Optional[int] = None,
+        learning_rate: Optional[float] = None,
+        regularizer: Optional[Regularization] = None,
+        name: Optional[str] = None
     ):
         super(RegressionAlgorithm, self).__init__(name=name)
         self.max_iter = max_iter
@@ -192,7 +193,7 @@ class LinearRegression(RegressionAlgorithm):
 
     def __init__(
         self,
-        name: str = None,
+        name: Optional[str] = None,
 
         # parameters for using gradient descent
         max_iter: int = 1000,
@@ -248,8 +249,8 @@ class RidgeRegression(RegressionAlgorithm):
     def __init__(
         self,
         alpha: float = 1e-7,
-        beta: float = None,
-        name: str = None,
+        beta: Optional[float] = None,
+        name: Optional[str] = None,
 
         # parameters for using gradient descent
         max_iter: int = 1000,
@@ -321,7 +322,7 @@ class LassoRegression(RegressionAlgorithm):
         alpha: float = 1.0,
         degree: int = 2,
         add_bias: bool = False,
-        name: str = None,
+        name: Optional[str] = None,
 
         # parameters for using gradient descent
         max_iter: int = 1000,
@@ -378,7 +379,7 @@ class LogisticRegression(RegressionAlgorithm):
         learning_rate: float = .1,
         gradient_descent: bool = True,
         max_iter: int = 4000,
-        name: str = None,
+        name: Optional[str] = None,
     ):
         super(LogisticRegression, self).__init__(name=name,
                                                  max_iter=max_iter,
@@ -386,7 +387,7 @@ class LogisticRegression(RegressionAlgorithm):
         self.gradient_descent = gradient_descent
         self.sigmoid = Sigmoid()
 
-    def call(self, targets, inputs, outputs=None) -> ArrayType:
+    def call(self, targets, inputs, outputs=None):
         # prepare data
         inputs = _check_data_2d_atls(bm.as_jax(inputs))
         targets = _check_data_2d_atls(bm.as_jax(targets))
@@ -437,7 +438,7 @@ class PolynomialRegression(LinearRegression):
     def __init__(
         self,
         degree: int = 2,
-        name: str = None,
+        name: Optional[str] = None,
         add_bias: bool = False,
 
         # parameters for using gradient descent
@@ -472,7 +473,7 @@ class PolynomialRidgeRegression(RidgeRegression):
         self,
         alpha: float = 1.0,
         degree: int = 2,
-        name: str = None,
+        name: Optional[str] = None,
         add_bias: bool = False,
 
         # parameters for using gradient descent
@@ -528,7 +529,7 @@ class ElasticNetRegression(RegressionAlgorithm):
         alpha: float = 1.0,
         degree: int = 2,
         l1_ratio: float = 0.5,
-        name: str = None,
+        name: Optional[str] = None,
         add_bias: bool = False,
 
         # parameters for using gradient descent

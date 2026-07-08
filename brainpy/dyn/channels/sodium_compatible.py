@@ -18,7 +18,7 @@ This module implements voltage-dependent sodium channels.
 
 """
 
-from typing import Union, Callable, Sequence
+from typing import Union, Callable, Sequence, Optional
 
 import brainpy.math as bm
 from brainpy.context import share
@@ -84,12 +84,12 @@ class _INa_p3q_markov(IonChannel):
         self,
         size: Union[int, Sequence[int]],
         keep_size: bool = False,
-        E: Union[int, float, ArrayType, Initializer, Callable] = None,
+        E: Optional[Union[int, float, ArrayType, Initializer, Callable]] = None,
         g_max: Union[int, float, ArrayType, Initializer, Callable] = 90.,
         phi: Union[int, float, ArrayType, Initializer, Callable] = 1.,
         method: str = 'exp_auto',
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         super().__init__(size=size,
                          keep_size=keep_size,
@@ -97,7 +97,7 @@ class _INa_p3q_markov(IonChannel):
                          mode=mode)
 
         # parameters
-        self.E = parameter(E, self.varshape, allow_none=False)
+        self.E = parameter(E, self.varshape, allow_none=False)  # type: ignore[arg-type]
         self.phi = parameter(phi, self.varshape, allow_none=False)
         self.g_max = parameter(g_max, self.varshape, allow_none=False)
 
@@ -199,8 +199,8 @@ class INa_Ba2002(_INa_p3q_markov):
         g_max: Union[int, float, ArrayType, Initializer, Callable] = 90.,
         V_sh: Union[int, float, ArrayType, Initializer, Callable] = -50.,
         method: str = 'exp_auto',
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         super().__init__(size,
                          keep_size=keep_size,
@@ -289,8 +289,8 @@ class INa_TM1991(_INa_p3q_markov):
         phi: Union[int, float, ArrayType, Initializer, Callable] = 1.,
         V_sh: Union[int, float, ArrayType, Initializer, Callable] = -63.,
         method: str = 'exp_auto',
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         super().__init__(size,
                          keep_size=keep_size,
@@ -379,8 +379,8 @@ class INa_HH1952(_INa_p3q_markov):
         phi: Union[int, float, ArrayType, Initializer, Callable] = 1.,
         V_sh: Union[int, float, ArrayType, Initializer, Callable] = -45.,
         method: str = 'exp_auto',
-        name: str = None,
-        mode: bm.Mode = None,
+        name: Optional[str] = None,
+        mode: Optional[bm.Mode] = None,
     ):
         super().__init__(size,
                          keep_size=keep_size,
