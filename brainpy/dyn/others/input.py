@@ -230,10 +230,11 @@ class PoissonGroup(NeuDyn):
         self.reset_state(self.mode)
 
     def update(self):
-        spikes = bm.random.rand_like(self.spike.value) <= (self.freqs * share['dt'] / 1000.)
+        # ``dtype=float`` is required: ``self.spike`` is boolean, and ``rand_like``
+        # defaults to the input dtype. Without it the draw is boolean (~all True),
+        # making the ``<= prob`` comparison always False so the group never fires.
+        spikes = bm.random.rand_like(self.spike.value, dtype=float) <= (self.freqs * share['dt'] / 1000.)
         spikes = bm.asarray(spikes, dtype=self.spk_type)
-        # import jax
-        # jax.debug.print('PoissonGroup: freqs = {f}, spikes = {s}', f=self.freqs, s=spikes)
         self.spike.value = spikes
         return spikes
 
