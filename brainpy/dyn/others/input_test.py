@@ -13,9 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+import numpy as np
 from absl.testing import parameterized
 
 import brainpy as bp
+import brainpy.math as bm
 from brainpy.dyn.others import input
 
 
@@ -35,3 +37,36 @@ class Test_input(parameterized.TestCase):
                              progress_bar=False)
         runner.run(30.)
         self.assertTupleEqual(runner.mon['spike'].shape, (300, 2))
+
+    def test_PoissonGroup_fires_at_expected_rate(self):
+        # Regression: PoissonGroup must actually emit spikes at ~freqs Hz.
+        # A dtype bug (boolean rand_like) previously made it fire at 0 Hz while
+        # still returning the correct output shape, so a shape-only check missed it.
+        bm.random.seed(1234)
+        freqs = 200.  # Hz
+        num = 200
+        duration = 1000.  # ms
+        model = input.PoissonGroup(size=num, freqs=freqs)
+        runner = bp.DSRunner(model, monitors=['spike'], progress_bar=False)
+        runner.run(duration)
+        spikes = np.asarray(runner.mon['spike'])
+        empirical_rate = spikes.sum() / num / (duration / 1000.)
+        # Poisson counting noise here is < 1%; 15% tolerance is safe yet still
+        # rejects the 0 Hz regression by a wide margin.
+        self.assertAlmostEqual(empirical_rate, freqs, delta=0.15 * freqs)
+
+    def test_PoissonGroup_fires_in_batching_mode(self):
+        # The float draw must preserve the batched shape of ``spike`` and still
+        # produce the expected rate across the batch axis.
+        bm.random.seed(1234)
+        freqs = 200.  # Hz
+        num, batch = 30, 4
+        duration = 1000.  # ms
+        model = input.PoissonGroup(size=num, freqs=freqs, mode=bm.BatchingMode(batch))
+        runner = bp.DSRunner(model, monitors=['spike'], progress_bar=False)
+        runner.run(duration)
+        spikes = np.asarray(runner.mon['spike'])  # (batch, time, num)
+        self.assertEqual(spikes.shape[0], batch)
+        self.assertEqual(spikes.shape[-1], num)
+        empirical_rate = spikes.sum() / (batch * num) / (duration / 1000.)
+        self.assertAlmostEqual(empirical_rate, freqs, delta=0.15 * freqs)
