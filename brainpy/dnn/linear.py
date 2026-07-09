@@ -226,7 +226,7 @@ class Dense(Layer, SupportSTDP, SupportOnline, SupportOffline):
             self.W.value = Wff
             self.b.value = bias[0]
 
-    def stdp_update(  # type: ignore[override]  # base SupportSTDP.stdp_update is a permissive *args/**kwargs placeholder (with an `onn_post` typo); concrete overrides declare explicit params
+    def stdp_update(  # type: ignore[override]  # base SupportSTDP.stdp_update is a permissive *args/**kwargs placeholder; concrete overrides declare explicit params
         self,
         on_pre: Optional[Dict] = None,
         on_post: Optional[Dict] = None,
@@ -334,7 +334,7 @@ class AllToAll(Layer, SupportSTDP):
                 post_val = pre_val @ self.weight
         return post_val
 
-    def stdp_update(  # type: ignore[override]  # base SupportSTDP.stdp_update is a permissive *args/**kwargs placeholder (with an `onn_post` typo); concrete overrides declare explicit params
+    def stdp_update(  # type: ignore[override]  # base SupportSTDP.stdp_update is a permissive *args/**kwargs placeholder; concrete overrides declare explicit params
         self,
         on_pre: Optional[Dict] = None,
         on_post: Optional[Dict] = None,
@@ -397,7 +397,7 @@ class OneToOne(Layer, SupportSTDP):
     def update(self, pre_val):
         return pre_val * self.weight
 
-    def stdp_update(  # type: ignore[override]  # base SupportSTDP.stdp_update is a permissive *args/**kwargs placeholder (with an `onn_post` typo); concrete overrides declare explicit params
+    def stdp_update(  # type: ignore[override]  # base SupportSTDP.stdp_update is a permissive *args/**kwargs placeholder; concrete overrides declare explicit params
         self,
         on_pre: Optional[Dict] = None,
         on_post: Optional[Dict] = None,
@@ -484,7 +484,7 @@ class MaskedLinear(Layer, SupportSTDP):
     def update(self, x):
         return x @ self.mask_fun(self.weight * self.mask)
 
-    def stdp_update(  # type: ignore[override]  # base SupportSTDP.stdp_update is a permissive *args/**kwargs placeholder (with an `onn_post` typo); concrete overrides declare explicit params
+    def stdp_update(  # type: ignore[override]  # base SupportSTDP.stdp_update is a permissive *args/**kwargs placeholder; concrete overrides declare explicit params
         self,
         on_pre: Optional[Dict] = None,
         on_post: Optional[Dict] = None,
@@ -535,7 +535,7 @@ class _CSRLayer(Layer, SupportSTDP):
             w = bm.TrainVar(w)
         self.weight = w
 
-    def stdp_update(  # type: ignore[override]  # base SupportSTDP.stdp_update is a permissive *args/**kwargs placeholder (with an `onn_post` typo); concrete overrides declare explicit params
+    def stdp_update(  # type: ignore[override]  # base SupportSTDP.stdp_update is a permissive *args/**kwargs placeholder; concrete overrides declare explicit params
         self,
         on_pre: Optional[Dict] = None,
         on_post: Optional[Dict] = None,
