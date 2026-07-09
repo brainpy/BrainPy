@@ -14,8 +14,8 @@
 # limitations under the License.
 # ==============================================================================
 
-__version__ = "2.8.0"
-__version_info__ = tuple(map(int, __version__.split(".")))
+from brainpy._version import __version__ as __version__
+from brainpy._version import __version_info__ as __version_info__
 
 from brainpy import _errors as errors
 # fundamental supporting modules
