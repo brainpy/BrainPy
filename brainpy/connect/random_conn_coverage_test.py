@@ -92,8 +92,11 @@ def test_fixedprob_include_self_false_pure_python(no_numba):
 def test_fixedprob_pre_ratio_pure_python(no_numba):
     fp = rc.FixedProb(0.5, pre_ratio=0.5, seed=3)((10,), (10,))
     indices, indptr = fp.build_csr()
-    # only int(10 * 0.5) = 5 selected pre rows -> 6 indptr entries
-    assert indptr.shape[0] == int(10 * 0.5) + 1
+    # A valid CSR indptr spans the FULL pre range (pre_num + 1 entries); non-selected
+    # pre rows have zero out-degree. The previous truncated length of
+    # int(pre_num * pre_ratio) + 1 was a malformed CSR (H4, audit 2026-07-08).
+    assert indptr.shape[0] == 10 + 1
+    assert int(np.asarray(indptr)[-1]) == np.asarray(indices).shape[0]
 
 
 def test_fixedprob_allow_multi_conn_jax_path():
