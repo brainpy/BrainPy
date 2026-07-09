@@ -1,5 +1,62 @@
 # Changelog
 
+## Version 2.8.1
+
+**Release Date:** July 9, 2026
+
+Version 2.8.1 is a patch release that continues the 2.8.0 correctness focus. Its centerpiece is a second audited, library-wide bug-fix sweep (#868) — 18 confirmed defects across `dnn`, the integrators, encoders, initializers, connectivity, optimizers, `dynold` synaptic plasticity, the offline/online training algorithms, the object-transform layer, and the simulation runners — each backed by a co-located regression test. The release also repairs adaptive pooling on up-sampling, fixes a `PoissonGroup` spiking regression, and moves version metadata into a dedicated `brainpy._version` module.
+
+### Bug Fixes
+
+#### Audited correctness sweep (#868)
+
+**Normalization and encoding**
+- `LayerNorm`: normalize over the trailing `normalized_shape` dimensions instead of the leading batch/time axes.
+- `WeightedPhaseEncoder`: use a float power base so phase weights are non-zero (the encoder previously never spiked).
+
+**Integrators**
+- Stratonovich Euler–Heun SDE: scale the predictor's Wiener increment by `sqrt(dt)`, making it consistent with the corrector.
+
+**Initializers**
+- `TruncatedNormal`: default to a finite 2-sigma truncation and accept `None` bounds as ±inf.
+- `DOGDecay`: produce a symmetric kernel on non-square grids and honor the `normalize` flag.
+- `_compute_fans`: handle 0-D/1-D shapes, fixing VarianceScaling initializers on bias vectors.
+
+**Connectivity**
+- `FixedProb.build_csr`: emit a valid full-range CSR `indptr` when `pre_ratio < 1`.
+- `FixedTotalNum`: accept a fractional `num` as a connection fraction.
+- `GridConn`: de-duplicate periodic-boundary COO edges on small grids.
+
+**Optimizers**
+- `MomentumNesterov`: apply the Nesterov look-ahead (it was previously identical to plain Momentum).
+- `Adadelta`: honor the learning rate.
+- `LARS`: clamp the degenerate zero-norm trust ratio to 1.
+
+**Training algorithms and runners**
+- `Ridge`/`LinearRegression`: fix an IRLS `while_loop` seed that returned the untrained initial weights.
+- `LogisticRegression`: build the Newton diagonal with pure JAX ops, avoiding the `__jax_array__` abstractification error.
+- `OnlineTrainer`: stop crashing on scalar monitor histories and keep time-major output in `data_first_axis='T'` mode.
+- `BPTT.fit`: accept a valid iterable dataset of exactly two `(x, y)` batches.
+- `DSRunner.predict`: forward `shared_args` in the memory-efficient path.
+
+**Object transforms**
+- `vector_grad`: support the parameterized-decorator form (`func=None`).
+
+**Synaptic plasticity**
+- `dynold` short-term plasticity (both implementations): remove a spurious source term so facilitation decays correctly when there are no presynaptic spikes.
+
+#### Other fixes
+- `dnn` pooling: fix an adaptive-pooling `ZeroDivisionError` when a spatial dimension is smaller than its target (up-sampling), and add numpy typing stubs (#867).
+- `dyn`: `PoissonGroup` now spikes correctly (boolean `rand_like` dtype regression) (#862).
+- Fixed a `SupportSTDP.stdp_update` keyword typo and a `DSRunner` deprecation warning (#864).
+- Refreshed documentation notebooks and fixed `clear_buffer`/`pmap` runtime bugs (#863).
+
+### Build and Tooling
+- Drove package-wide `mypy` to zero errors (#863).
+- Moved `__version__`/`__version_info__` into a dedicated `brainpy._version` module (#865) and read the packaged version statically at build time (#866).
+- Bumped `codecov/codecov-action` from 5 to 7 (#861).
+
+
 ## Version 2.8.0
 
 **Release Date:** June 19, 2026
