@@ -146,7 +146,10 @@ exclude_also = [
 # curated set lives in exactly one place. Grow ``files`` (and the override
 # ``module`` list) as more modules are fully typed.
 [tool.mypy]
-python_version = "3.11"
+# Target a modern Python for type-checking. numpy's published stubs use PEP 695
+# ``type`` aliases, which mypy rejects as a syntax error unless the analysis target
+# is Python 3.12+; pinning an older version breaks the check against current numpy.
+python_version = "3.14"
 ignore_missing_imports = true
 follow_imports = "silent"
 warn_unused_ignores = true
