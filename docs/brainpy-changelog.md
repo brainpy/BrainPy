@@ -318,7 +318,7 @@ a2, b2 = prim(np.random.random(1000), np.random.random(1000),
 
 ##### 6. Generalized STDP models which are compatible with diverse synapse models.
 
-See https://github.com/brainpy/BrainPy/blob/master/brainpy/_src/dyn/projections/tests/test_STDP.py
+See https://github.com/brainpy/BrainPy/blob/main/brainpy/_src/dyn/projections/tests/test_STDP.py
 
 
 #### What's Changed
