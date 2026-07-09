@@ -274,5 +274,68 @@ class TestPoolingChannelAxis(parameterized.TestCase):
         self.assertEqual(out.shape, (6, 4, 4))
 
 
+def _adaptive_pool1d_reference(x, target_size, op):
+    """Reference PyTorch-style adaptive pooling of a 1-D array (numpy)."""
+    x = np.asarray(x)
+    size = x.shape[0]
+    out = []
+    for i in range(target_size):
+        start = (i * size) // target_size
+        end = -((-((i + 1) * size)) // target_size)  # ceil((i + 1) * size / target_size)
+        out.append(op(x[start:end]))
+    return np.array(out)
+
+
+class TestAdaptivePool1d(parameterized.TestCase):
+    """Regression coverage for ``_adaptive_pool1d``.
+
+    Guards the fix for the ``ZeroDivisionError: integer modulo by zero`` that arose
+    when ``target_size > size`` (a spatial dimension smaller than its target), which
+    made the old block-reshape implementation build ``reshape(-1, 0)``.
+    """
+
+    @parameterized.product(
+        size_target=((100, 6), (100, 7), (100, 10), (32, 4), (5, 5),
+                     (2, 6), (1, 4), (3, 8)),
+        op=('mean', 'max'),
+    )
+    def test_matches_pytorch_formula(self, size_target, op):
+        from brainpy.dnn.pooling import _adaptive_pool1d
+        size, target = size_target
+        jop, nop = (jnp.mean, np.mean) if op == 'mean' else (jnp.max, np.max)
+        x = np.arange(size, dtype=np.float32) * 0.5 - 3.0
+        got = np.asarray(_adaptive_pool1d(bm.as_jax(x), target, jop))
+        expected = _adaptive_pool1d_reference(x, target, nop)
+        self.assertEqual(got.shape, (target,))
+        np.testing.assert_allclose(got, expected, atol=1e-5)
+
+    def test_upsampling_repeats_elements(self):
+        # target_size (6) > size (2): the previously-crashing case. PyTorch adaptive
+        # max pooling repeats each element across its bins.
+        from brainpy.dnn.pooling import _adaptive_pool1d
+        x = jnp.asarray([10.0, 20.0])
+        out = np.asarray(_adaptive_pool1d(x, 6, jnp.max))
+        np.testing.assert_array_equal(out, [10., 10., 10., 20., 20., 20.])
+
+    def test_rejects_nonpositive_target(self):
+        from brainpy.dnn.pooling import _adaptive_pool1d
+        with self.assertRaises(ValueError):
+            _adaptive_pool1d(jnp.arange(4.0), 0, jnp.mean)
+        with self.assertRaises(ValueError):
+            _adaptive_pool1d(jnp.arange(4.0), -2, jnp.mean)
+
+    @parameterized.product(axis=(-1, 0, 1, 2, 3))
+    def test_adaptivemaxpool3d_spatial_dim_smaller_than_target(self, axis):
+        # A spatial dim of size 2 is pooled to target 6 for every channel_axis that
+        # does not consume it; this raised ZeroDivisionError before the fix.
+        bm.random.seed(123)
+        inp = bm.random.randn(2, 128, 64, 32)
+        net = bp.dnn.AdaptiveMaxPool3d(target_shape=[6, 5, 4], channel_axis=axis)
+        out = net(inp)
+        channel_size = inp.shape[axis]
+        self.assertEqual(sorted(out.shape), sorted([channel_size, 6, 5, 4]))
+        self.assertTrue(bool(jnp.all(jnp.isfinite(out))))
+
+
 if __name__ == '__main__':
     absltest.main()
