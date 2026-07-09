@@ -703,6 +703,13 @@ class AvgPool3d(_AvgPoolNd):
 def _adaptive_pool1d(x, target_size: int, operation: Callable):
     """Adaptive pool 1D.
 
+    Reduces a 1-D array to ``target_size`` values using PyTorch-style adaptive
+    pooling bins: output ``i`` is ``operation`` applied to the input window
+    ``x[floor(i * size / target_size) : ceil((i + 1) * size / target_size)]``.
+    This works for any ``size`` relative to ``target_size`` — including
+    ``target_size > size`` (upsampling, where windows shrink to a single element
+    and are repeated across outputs).
+
     Parameters
     ----------
     x
@@ -710,23 +717,33 @@ def _adaptive_pool1d(x, target_size: int, operation: Callable):
     target_size : int
         The shape of the output after the pooling operation `(target_size,)`.
     operation : Callable
-        The pooling operation to be performed on the input array.
+        The pooling operation to be performed on the input array. It must reduce a
+        1-D array to a scalar (e.g. ``jax.numpy.mean`` or ``jax.numpy.max``).
 
     Returns
     -------
         A JAX array of shape `(target_size, )`.
+
+    Notes
+    -----
+    Bin boundaries are static (derived from ``x``'s shape and ``target_size``), so
+    the per-bin comprehension is unrolled once at trace time rather than executed
+    step-by-step at runtime. Every window is non-empty because
+    ``ceil((i + 1) * size / target_size) > floor(i * size / target_size)`` for
+    ``size >= 1``; the previous block-reshape implementation instead divided by
+    ``size // target_size`` and raised ``ZeroDivisionError`` whenever
+    ``target_size > size``.
     """
+    if target_size <= 0:
+        raise ValueError(f"target_size must be a positive integer, got {target_size}.")
     x = bm.as_jax(x)
-    size = jnp.size(x)
-    num_head_arrays = size % target_size
-    num_block = size // target_size
-    if num_head_arrays != 0:
-        head_end_index = num_head_arrays * (num_block + 1)
-        heads = jax.vmap(operation)(x[:head_end_index].reshape(num_head_arrays, -1))
-        tails = jax.vmap(operation)(x[head_end_index:].reshape(-1, num_block))
-        outs = jnp.concatenate([heads, tails])
-    else:
-        outs = jax.vmap(operation)(x.reshape(-1, num_block))
+    size = x.shape[0]
+    # PyTorch adaptive-pooling bins: start = floor(i * size / T),
+    # end = ceil((i + 1) * size / T) computed with integer arithmetic.
+    outs = jnp.stack([
+        operation(x[(i * size) // target_size: -((-((i + 1) * size)) // target_size)])
+        for i in range(target_size)
+    ])
     return outs
 
 

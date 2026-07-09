@@ -82,7 +82,11 @@ exclude = [
 ]
 
 [tool.setuptools.dynamic]
-version = { attr = "brainpy.__version__" }
+# Read the version statically from the tiny ``brainpy/_version.py`` module. Pointing at
+# ``brainpy.__version__`` would force setuptools to import the whole package at build time
+# (``__init__`` only re-exports the name), which fails in the isolated ``python -m build``
+# environment where BrainPy's runtime deps are absent.
+version = { attr = "brainpy._version.__version__" }
 
 
 # ---------------------------------------------------------------------------
@@ -142,7 +146,10 @@ exclude_also = [
 # curated set lives in exactly one place. Grow ``files`` (and the override
 # ``module`` list) as more modules are fully typed.
 [tool.mypy]
-python_version = "3.11"
+# Target a modern Python for type-checking. numpy's published stubs use PEP 695
+# ``type`` aliases, which mypy rejects as a syntax error unless the analysis target
+# is Python 3.12+; pinning an older version breaks the check against current numpy.
+python_version = "3.14"
 ignore_missing_imports = true
 follow_imports = "silent"
 warn_unused_ignores = true
