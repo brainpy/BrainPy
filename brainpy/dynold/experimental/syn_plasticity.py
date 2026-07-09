@@ -181,7 +181,11 @@ class STP(SynSTPNS):
         self.x = variable_(jnp.ones, self.num, batch_size)
         self.u = variable_(OneInit(self.U), self.num, batch_size)
 
-    du = lambda self, u, t: self.U - u / self.tau_f
+    # Continuous facilitation dynamics are pure decay ``du/dt = -u/tau_f`` (see the
+    # class docstring); the ``+U(1-u^-)`` facilitation is a *discrete* jump applied on
+    # spikes in ``update``. The spurious ``+U`` source term drove ``u`` toward
+    # ``U*tau_f`` even with no spikes (H6, audit 2026-07-08).
+    du = lambda self, u, t: -u / self.tau_f
     dx = lambda self, x, t: (1 - x) / self.tau_d
 
     def update(self, pre_spike):

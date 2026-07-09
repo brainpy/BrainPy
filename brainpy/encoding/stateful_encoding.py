@@ -65,7 +65,10 @@ class WeightedPhaseEncoder(Encoder):
         self.num_phase = check.is_integer(num_phase, 'num_phase', min_bound=1)
         self.min_val = check.is_float(min_val, 'min_val')
         self.max_val = check.is_float(max_val, 'max_val')
-        self.weight_fun = (lambda i: 2 ** (-(i % num_phase + 1))) if weight_fun is None else weight_fun
+        # Use a float base: ``2 ** (-(...))`` with an *integer* base and a negative
+        # exponent evaluates to 0 (integer power under Python/JAX int tracing), which
+        # collapses every phase weight to 0 and emits no spikes (C3, audit 2026-07-08).
+        self.weight_fun = (lambda i: 2.0 ** (-(i % num_phase + 1))) if weight_fun is None else weight_fun
         self.scale = (1 - self.weight_fun(self.num_phase - 1)) / (self.max_val - self.min_val)
 
     def __call__(self, x: ArrayType, num_step: int):

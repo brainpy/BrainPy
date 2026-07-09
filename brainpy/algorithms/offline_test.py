@@ -91,6 +91,16 @@ class TestLinearRegression:
         w = np.asarray(bm.as_jax(algo(y, x)))
         assert np.all(np.isfinite(w))
 
+    def test_gradient_descent_actually_fits(self):
+        # H7 regression: the while_loop was seeded with ``(0, w - 1e-8, w)`` and
+        # ``allclose(w - 1e-8, w)`` is True, so the convergence check fired
+        # immediately, the body never ran, and the *untrained* random init weights
+        # were returned. After the fix the solver must recover the true slope.
+        x, y = _xy(slope=2.0, n=40)
+        algo = offline.LinearRegression(gradient_descent=True, max_iter=20000, learning_rate=1e-3)
+        w = np.asarray(bm.as_jax(algo(y, x))).flatten()
+        assert np.allclose(w[0], 2.0, atol=1e-2), f'did not fit: w={w}'
+
     def test_predict_and_init_weights(self):
         x, y = _xy(slope=2.0)
         algo = offline.LinearRegression()
@@ -172,6 +182,24 @@ class TestLogisticRegression:
         pred = np.asarray(bm.as_jax(algo.predict(bm.asarray(w), bm.asarray(x))))
         acc = np.mean((pred.reshape(-1) > 0.5) == y.reshape(-1))
         assert acc >= 0.8
+
+    def test_newton_path_runs_and_fits(self):
+        # M5 regression: the Newton (``gradient_descent=False``) path built a
+        # ``brainpy.Array`` (``bm.zeros`` + in-place diagonal assignment) inside the
+        # ``while_loop`` body, which current JAX rejects with
+        # "Triggering __jax_array__() during abstractification is no longer supported".
+        rng = np.random.RandomState(2)
+        X = rng.randn(200, 3).astype(np.float32)
+        logits = X @ np.array([0.8, -0.5, 0.3], np.float32)
+        p = 1.0 / (1.0 + np.exp(-logits))
+        y = (rng.rand(200) < p).astype(np.float32)[:, None]  # non-separable (finite MLE)
+        algo = offline.LogisticRegression(gradient_descent=False, max_iter=100)
+        w = np.asarray(bm.as_jax(algo(bm.asarray(y), bm.asarray(X)))).reshape(-1)
+        assert w.shape == (3,)
+        assert np.all(np.isfinite(w))
+        # recovers the sign of the true coefficients (0.8, -0.5, 0.3)
+        assert np.sign(w[0]) == 1
+        assert np.sign(w[1]) == -1
 
     def test_predict_applies_sigmoid(self):
         # ``predict`` itself works in isolation (it does not hit the broken call).

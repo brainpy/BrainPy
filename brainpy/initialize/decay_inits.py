@@ -312,9 +312,13 @@ class DOGDecay(_IntraLayerInitializer):
         value_sizes = np.array([v[1] - v[0] for v in value_ranges])
         if value_sizes.ndim < post_values.ndim:
             value_sizes = np.expand_dims(value_sizes, axis=tuple([i + 1 for i in range(post_values.ndim - 1)]))
-        voxel_ids = np.meshgrid(*[np.arange(s) for s in shape])
-        if np.ndim(voxel_ids[0]) > 1:
-            voxel_ids = tuple(np.moveaxis(m, 0, 1).flatten() for m in voxel_ids)
+        # ``voxel_ids[d][k]`` must index ``values[d]`` to recover ``post_values[d][k]``,
+        # so it has to use the SAME meshgrid+flatten ordering as ``post_values`` above.
+        # The previous ``np.moveaxis(m, 0, 1)`` transposed the first two axes and
+        # scrambled the value<->index mapping on non-square grids, yielding an
+        # asymmetric connectivity matrix (the DoG kernel is symmetric)
+        # (H3 bug 1, audit 2026-07-08).
+        voxel_ids = tuple(m.flatten() for m in np.meshgrid(*[np.arange(s) for s in shape]))
 
         # connectivity matrix
         if self.periodic_boundary:
@@ -325,8 +329,15 @@ class DOGDecay(_IntraLayerInitializer):
             conn_weights = _dog_decay(voxel_ids, values, post_values,
                                       self.max_w_p, self.sigma_p,
                                       self.max_w_n, self.sigma_n)
+        conn_weights = bm.asarray(conn_weights)
+
+        # The ``normalize`` flag was stored but never applied (H3 bug 2). Match
+        # ``GaussianDecay``: normalize to unit peak magnitude before removing
+        # self-connections and thresholding.
+        if self.normalize:
+            max_abs = bm.max(bm.abs(conn_weights))
+            conn_weights = bm.where(max_abs > 0., conn_weights / max_abs, conn_weights)
         if not self.include_self:
-            conn_weights = bm.asarray(conn_weights)
             bm.fill_diagonal(conn_weights, 0.)
 
         # connectivity weights

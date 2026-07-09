@@ -118,6 +118,30 @@ class Test_Normalization(parameterized.TestCase):
         self.assertTrue(bool(jnp.allclose(out.mean(axis=(0, 1)), 0.0, atol=1e-5)))
         self.assertTrue(bool(jnp.allclose(out.var(axis=(0, 1)), 1.0, atol=1e-4)))
 
+    def test_LayerNorm_normalizes_over_trailing_axes(self):
+        # Regression for C1 (audit 2026-07-08): ``LayerNorm`` must normalize over the
+        # trailing ``normalized_shape`` dimensions, not the leading (batch/time) axes.
+        # With the bug it reduced over ``range(0, ndim - len(normalized_shape))`` and
+        # produced results ~1.7 away from the reference.
+        import jax.numpy as jnp
+        bm.random.seed(2718)
+        normalized_shape = (5, 10)
+        net = bp.dnn.LayerNorm(normalized_shape, elementwise_affine=False, mode=bm.training_mode)
+        x = bm.as_jax(bm.random.randn(4, 3, 5, 10) * 3.0 + 2.0)
+        out = bm.as_jax(net(x))
+
+        # Reference: normalize each (5, 10) block independently over its last 2 dims.
+        axes = (-2, -1)
+        mean = jnp.mean(x, axis=axes, keepdims=True)
+        var = jnp.var(x, axis=axes, keepdims=True)
+        ref = (x - mean) / jnp.sqrt(var + 1e-5)
+        self.assertTrue(bool(jnp.allclose(out, ref, atol=1e-4)),
+                        msg=f'max|out-ref|={float(jnp.max(jnp.abs(out - ref)))}')
+
+        # Each normalized block must be (approximately) zero-mean / unit-variance.
+        self.assertTrue(bool(jnp.allclose(jnp.mean(out, axis=axes), 0.0, atol=1e-4)))
+        self.assertTrue(bool(jnp.allclose(jnp.var(out, axis=axes), 1.0, atol=1e-3)))
+
 
 if __name__ == '__main__':
     absltest.main()

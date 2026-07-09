@@ -247,9 +247,16 @@ class OnlineTrainer(DSTrainer):
         hists = bm.for_loop(functools.partial(self._step_func_fit, shared_args=shared_args),
                             (indices, xs, ys),
                             jit=self.jit['fit'])
-        hists = tree_map(lambda x: bm.moveaxis(x, 0, 1),
-                         hists,
-                         is_leaf=lambda x: isinstance(x, bm.Array))
+        # ``for_loop`` stacks results time-major (time, batch, ...). Swap to batch-major
+        # ONLY when the caller uses batch-first data (``data_first_axis == 'B'``), so the
+        # output layout matches the input layout and stays consistent with ``predict``.
+        # Also skip the swap for <2-D leaves (e.g. scalar-per-step monitor histories,
+        # which stack to a 1-D ``(time,)`` array) — ``moveaxis(x, 0, 1)`` raised an axis
+        # error on them (M6, audit 2026-07-08).
+        if self.data_first_axis == 'B':
+            hists = tree_map(lambda x: bm.moveaxis(x, 0, 1) if bm.ndim(x) >= 2 else x,
+                             hists,
+                             is_leaf=lambda x: isinstance(x, bm.Array))
         return hists
 
     def _step_func_fit(self, i, xs: Sequence, ys: Dict, shared_args=None):

@@ -677,6 +677,11 @@ class DSRunner(Runner):
                 run_fun = self._jit_step_func_predict
             else:
                 run_fun = self._step_func_predict
+            # Forward ``shared_args`` into every per-step call, matching the standard
+            # (non-memory-efficient) path below. Previously the memory-efficient loop
+            # dropped ``shared_args`` entirely, silently ignoring user-supplied shared
+            # arguments during ``predict`` (M4, audit 2026-07-08).
+            run_fun = functools.partial(run_fun, shared_args=shared_args)
 
             # Collect the per-step ``update()`` outputs and stack them along a
             # new leading time axis, matching ``bm.for_loop``'s time-major

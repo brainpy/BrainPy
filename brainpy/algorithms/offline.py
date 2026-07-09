@@ -173,8 +173,12 @@ class RegressionAlgorithm(OfflineAlgorithm):
             par_new2 = par_new - self.learning_rate * grad_w
             return i + 1, par_new, par_new2
 
-        # Tune parameters for n iterations
-        r = while_loop(cond_fun, body_fun, (0, w - 1e-8, w))
+        # Tune parameters for n iterations. Seed ``par_old`` FAR from ``par_new`` so
+        # the very first convergence check (``not allclose(par_old, par_new)``) passes
+        # and the body runs at least once. ``w - 1e-8`` is within ``allclose``'s default
+        # tolerance of ``w``, so the loop exited immediately and returned the untrained
+        # initial weights (H7, audit 2026-07-08). Matches the ridge path's ``w + 1.``.
+        r = while_loop(cond_fun, body_fun, (0, w + 1., w))
         return r[-1]
 
     def predict(self, W, X):
@@ -415,10 +419,14 @@ class LogisticRegression(RegressionAlgorithm):
                 # respect to the parameters to minimize the loss
                 par_new2 = par_new - self.learning_rate * (y_pred - targets).dot(inputs)
             else:
-                gradient = self.sigmoid.grad(inputs.dot(par_new))
-                diag_grad = bm.zeros((gradient.size, gradient.size))
-                diag = bm.arange(gradient.size)
-                diag_grad[diag, diag] = gradient
+                # Build the diagonal weight matrix with pure JAX ops. The previous
+                # ``bm.zeros(...)`` + in-place ``diag_grad[diag, diag] = ...`` created a
+                # ``brainpy.Array`` whose ``__jax_array__`` protocol is invoked during
+                # ``while_loop`` abstractification, which current JAX rejects
+                # ("Triggering __jax_array__() during abstractification is no longer
+                # supported") (M5, audit 2026-07-08).
+                gradient = bm.as_jax(self.sigmoid.grad(inputs.dot(par_new)))
+                diag_grad = jnp.diag(gradient)
                 par_new2 = jnp.linalg.pinv(inputs.T.dot(diag_grad).dot(inputs)).dot(inputs.T).dot(
                     diag_grad.dot(inputs).dot(par_new) + targets - y_pred)
             return i + 1, par_new, par_new2

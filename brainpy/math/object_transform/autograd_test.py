@@ -884,6 +884,25 @@ class TestPureFuncVectorGrad(unittest.TestCase):
         _x = bm.ones(10)
         pprint(bm.vector_grad(f, argnums=0)(_x))
 
+    def test_decorator_form(self):
+        # Regression for M2 (audit 2026-07-08): the parameterized-decorator form
+        # ``vector_grad(argnums=...)`` passed ``func=None`` straight through and the
+        # resulting transform crashed when applied to a function. It must now behave
+        # identically to the direct call ``vector_grad(f, argnums=...)``.
+        _x = bm.arange(1., 4.)
+
+        # ``@vector_grad(argnums=0)`` decorator syntax.
+        @bm.vector_grad(argnums=0)
+        def f(x):
+            return x ** 3
+
+        self.assertTrue(bm.array_equal(f(_x), 3 * _x ** 2))
+
+        # Explicit two-step application matches the direct call.
+        g_dec = bm.vector_grad(argnums=0)(lambda x: x ** 2)
+        g_direct = bm.vector_grad(lambda x: x ** 2, argnums=0)
+        self.assertTrue(bm.array_equal(g_dec(_x), g_direct(_x)))
+
     def test2(self):
         def f(x, y):
             dx = x ** 2 + y ** 2 + 10

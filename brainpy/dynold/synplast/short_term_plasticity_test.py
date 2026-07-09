@@ -103,8 +103,10 @@ class TestSTP(unittest.TestCase):
         u_after = float(bm.as_jax(stp.u.value)[0])
         x_after = float(bm.as_jax(stp.x.value)[0])
 
-        # decayed locals at spike arrival (exp_auto integrates exactly here)
-        u_dec = u_prev + (U - u_prev / tau_f) * float(dt)
+        # decayed locals at spike arrival (exp_auto integrates exactly here). The
+        # facilitation ODE is pure decay du/dt = -u/tau_f (H6, audit 2026-07-08), so
+        # u decays exponentially; the +U(1-u) facilitation is the discrete jump below.
+        u_dec = u_prev * np.exp(-float(dt) / tau_f)
         x_dec = x_prev + (1 - x_prev) / tau_d * float(dt)
         u_correct = u_dec + U * (1 - u_dec)
         x_correct = x_dec - u_correct * x_dec
@@ -113,6 +115,22 @@ class TestSTP(unittest.TestCase):
         # buggy variants (using the pre-decay Variables) must be distinguishable
         u_buggy = u_dec + U * (1 - u_prev)
         self.assertNotAlmostEqual(u_correct, u_buggy, places=6)
+
+    def test_facilitation_decays_without_spikes(self):
+        # H6 regression: with no presynaptic spikes u must DECAY toward 0. The
+        # spurious +U source term (du = U - u/tau_f) instead drove u upward toward
+        # U*tau_f (far above 1), inverting the facilitation dynamics.
+        U, tau_f, tau_d = 0.5, 100., 50.
+        stp = _make_stp(1, U=U, tau_f=tau_f, tau_d=tau_d)
+        u0 = float(bm.as_jax(stp.u.value)[0])  # == U
+        share.save(t=0.0, dt=bm.dt)
+        for i in range(20):
+            share.save(t=float(i) * float(bm.dt), dt=bm.dt)
+            stp.update(bm.zeros(1, dtype=bool))  # no spike
+        u_final = float(bm.as_jax(stp.u.value)[0])
+        self.assertLess(u_final, u0)      # decayed, not grown
+        self.assertLess(u_final, U)       # stays below its start
+        self.assertGreaterEqual(u_final, 0.0)
 
 
 if __name__ == '__main__':

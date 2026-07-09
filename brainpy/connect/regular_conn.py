@@ -192,6 +192,18 @@ class GridConn(OneEndConnector):
             strides = jnp.asarray(get_size_length(self.post_size))
             pres = jnp.sum(pres * strides, axis=1)
             posts = jnp.sum(posts * strides, axis=1)
+        if self.periodic_boundary:
+            # On small grids the periodic wrap (``post_ids % sizes``) can map several
+            # strides onto the same post neuron, producing duplicate ``(pre, post)``
+            # edges (e.g. a 2x2 GridFour yields each edge twice). De-duplicate while
+            # preserving order (M1, audit 2026-07-08).
+            pres_np = np.asarray(pres)
+            posts_np = np.asarray(posts)
+            _, uniq_idx = np.unique(np.stack([pres_np, posts_np], axis=1),
+                                    axis=0, return_index=True)
+            uniq_idx = np.sort(uniq_idx)
+            pres = pres_np[uniq_idx]
+            posts = posts_np[uniq_idx]
         return jnp.asarray(pres, dtype=get_idx_type()), jnp.asarray(posts, dtype=get_idx_type())
 
 

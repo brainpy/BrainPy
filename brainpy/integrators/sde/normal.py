@@ -172,10 +172,15 @@ class Euler(SDEIntegrator):
                         shape += noise_shape[-1:]
                     noise = bm.random.randn(*shape)
                     all_noises[key] = noise * jnp.sqrt(dt)
+                    # The Euler-Heun predictor is \bar{Y}=Y + g_n * \Delta W_n, i.e. it
+                    # uses the scaled Wiener increment ``all_noises[key]`` (= noise*sqrt(dt)),
+                    # NOT the raw standard-normal ``noise``. Using raw noise made the
+                    # predictor inconsistent with the corrector (off by a factor sqrt(dt))
+                    # (C2, audit 2026-07-08).
                     if self.wiener_type == constants.VECTOR_WIENER:
-                        y_bar = all_args[key] + jnp.sum(diffusions[key] * noise, axis=-1)
+                        y_bar = all_args[key] + jnp.sum(diffusions[key] * all_noises[key], axis=-1)
                     else:
-                        y_bar = all_args[key] + diffusions[key] * noise
+                        y_bar = all_args[key] + diffusions[key] * all_noises[key]
                     all_args_bar[key] = y_bar
             # g(\bar{Y}_{n})
             diffusion_bars = self.g(**all_args_bar)

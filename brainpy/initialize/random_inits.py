@@ -109,6 +109,16 @@ def _format_shape(shape):
 
 
 def _compute_fans(shape, in_axis=-2, out_axis=-1):
+    # 0-D / 1-D parameter shapes (e.g. bias vectors) have no separate in/out axes;
+    # indexing ``shape[-2]`` on them raised ``IndexError`` and broke every
+    # VarianceScaling initializer (Kaiming/Xavier/Lecun) on such shapes
+    # (L2, audit 2026-07-08). Follow the JAX convention: fan_in == fan_out == size.
+    # Return numpy scalars (not Python floats) so downstream ``.astype(dtype)`` in
+    # ``VarianceScaling`` keeps working, matching the multi-D branch below.
+    if len(shape) < 1:
+        return np.float64(1.0), np.float64(1.0)
+    if len(shape) == 1:
+        return np.float64(shape[0]), np.float64(shape[0])
     receptive_field_size = np.prod(shape) / shape[in_axis] / shape[out_axis]
     fan_in = shape[in_axis] * receptive_field_size
     fan_out = shape[out_axis] * receptive_field_size
@@ -153,20 +163,28 @@ class TruncatedNormal(_InterLayerInitializer):
         The standard deviation of the normal distribution before truncating.
     lower : float, ndarray
         A float or array of floats representing the lower bound for
-        truncation. Must be broadcast-compatible with ``upper``.
+        truncation. Must be broadcast-compatible with ``upper``. Defaults to
+        ``-2.0`` (2-sigma truncation); pass ``None`` for an unbounded (``-inf``)
+        lower bound.
     upper : float, ndarray
         A float or array of floats representing the  upper bound for
-        truncation. Must be broadcast-compatible with ``lower``.
+        truncation. Must be broadcast-compatible with ``lower``. Defaults to
+        ``2.0`` (2-sigma truncation); pass ``None`` for an unbounded (``+inf``)
+        upper bound.
 
     """
 
-    def __init__(self, loc=0., scale=1., lower=None, upper=None, seed=None):
+    def __init__(self, loc=0., scale=1., lower=-2., upper=2., seed=None):
         super(TruncatedNormal, self).__init__()
         assert scale > 0, '`scale` must be positive.'
         self.scale = scale
         self.loc = loc
-        self.lower = lower
-        self.upper = upper
+        # ``rng.truncated_normal`` needs finite/numeric bounds. Default to a 2-sigma
+        # truncation and treat an explicit ``None`` as unbounded (-/+ inf) rather than
+        # forwarding ``None`` into the subtraction, which raised a ``TypeError``
+        # (H2, audit 2026-07-08).
+        self.lower = -np.inf if lower is None else lower
+        self.upper = np.inf if upper is None else upper
         self.rng = bm.random.default_rng(seed)
 
     def __call__(self, shape, dtype=None):

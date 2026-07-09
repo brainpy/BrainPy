@@ -557,7 +557,9 @@ class LayerNorm(Layer):
         if x.shape[-len(self.normalized_shape):] != self.normalized_shape:
             raise ValueError(f'Expect the input shape should be (..., {", ".join(map(str, self.normalized_shape))}), '
                              f'but we got {x.shape}')
-        axis = tuple(range(0, x.ndim - len(self.normalized_shape)))
+        # Normalize over the trailing ``normalized_shape`` dimensions (LayerNorm's
+        # definition), NOT the leading batch/time axes (C1, audit 2026-07-08).
+        axis = tuple(range(x.ndim - len(self.normalized_shape), x.ndim))
         mean = jnp.mean(bm.as_jax(x), axis=axis, keepdims=True)
         variance = jnp.var(bm.as_jax(x), axis=axis, keepdims=True)
         inv = lax.rsqrt(variance + lax.convert_element_type(self.epsilon, x.dtype))

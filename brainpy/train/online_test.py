@@ -220,6 +220,41 @@ def test_online_fit_data_first_axis_time():
     assert trainer.i0 == 8
 
 
+def test_online_fit_time_axis_keeps_time_major_monitors():
+    """M6 regression (audit 2026-07-08): in ``data_first_axis='T'`` mode the
+    monitor history must stay time-major ``(time, batch, ...)`` to match the
+    time-major input and :meth:`predict`.  The old ``_fit`` unconditionally
+    applied ``moveaxis(x, 0, 1)``, wrongly returning batch-major histories in
+    'T' mode (an input/output layout mismatch)."""
+    model = _make_esn()
+    trainer = bp.OnlineTrainer(model, fit_method=RLS(alpha=0.1),
+                               monitors={'rstate': model.r.state},
+                               progress_bar=False, data_first_axis='T')
+    x = bm.random.random((8, 1, 3))  # (time, batch, feature)
+    y = bm.random.random((8, 1, 2))
+    trainer.fit([x, y])
+    # (num_time, num_batch, num_hidden) -- NOT transposed to (batch, time, ...)
+    assert trainer.mon['rstate'].shape[:2] == (8, 1)
+
+
+def test_online_fit_scalar_monitor_does_not_crash():
+    """M6 regression (audit 2026-07-08): a scalar-per-step monitor stacks to a
+    1-D ``(time,)`` history.  The old unconditional ``moveaxis(x, 0, 1)`` raised
+    an axis error on such <2-D leaves; the fix skips the swap for them."""
+    model = _make_esn()
+
+    def scalar_mon():
+        # 0-D reduction over every axis -> one scalar per step.
+        return bm.sum(model.r.state.value)
+
+    trainer = bp.OnlineTrainer(model, fit_method=RLS(alpha=0.1),
+                               monitors={'rscalar': scalar_mon},
+                               progress_bar=False)
+    x, y = _xy()
+    trainer.fit([x, y])  # must not raise
+    assert trainer.mon['rscalar'].shape == (8,)
+
+
 # ---------------------------------------------------------------------------
 # fit() data-validation errors
 # ---------------------------------------------------------------------------
