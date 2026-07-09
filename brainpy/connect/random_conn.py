@@ -133,6 +133,14 @@ class FixedProb(TwoEndConnector):
         return selected_pre_ids.astype(get_idx_type()), selected_post_ids.astype(get_idx_type())
 
     def build_csr(self):
+        if self.pre_ratio < 1.:
+            # Only a subset of pre neurons is selected, so the CSR index pointer must
+            # still span the FULL pre range (non-selected rows have zero out-degree).
+            # The bespoke ``cumsum`` below produced only ``pre_num_to_select + 1``
+            # entries, giving a structurally-invalid CSR (indptr length !=
+            # pre_num + 1). Route the subset case through ``coo2csr`` over the full
+            # pre range instead (H4, audit 2026-07-08).
+            return coo2csr(self.build_coo(), self.pre_num)
         pre_num_to_select, post_num_to_select, selected_post_ids, pre_ids = self._iii()
         pre_nums = jnp.ones(pre_num_to_select) * post_num_to_select
         if not self.include_self:
@@ -188,14 +196,24 @@ class FixedTotalNum(TwoEndConnector):
 
     def build_coo(self):
         mat_element_num = self.pre_num * self.post_num
-        if self.num > mat_element_num:
-            raise ConnectorError(f'"num" must be smaller than "all2all num", '
-                                 f'but got {self.num} > {mat_element_num}')
-        if self.allow_multi_conn:
-            selected_pre_ids = self.rng.randint(0, self.pre_num, (self.num,))
-            selected_post_ids = self.rng.randint(0, self.post_num, (self.num,))
+        # A float ``num`` in [0, 1] is documented/allowed by ``__init__`` and denotes
+        # a *fraction* of the all-to-all connection count; coerce it to an absolute
+        # integer count here since the random routines below need an integer size.
+        # Previously a float ``num`` reached ``randint``/``choice`` and raised
+        # ``TypeError: 'float' object cannot be interpreted as an integer``
+        # (H4, audit 2026-07-08).
+        if isinstance(self.num, float):
+            num = int(round(self.num * mat_element_num))
         else:
-            index = self.rng.choice(mat_element_num, size=(self.num,), replace=False)
+            num = self.num
+        if num > mat_element_num:
+            raise ConnectorError(f'"num" must be smaller than "all2all num", '
+                                 f'but got {num} > {mat_element_num}')
+        if self.allow_multi_conn:
+            selected_pre_ids = self.rng.randint(0, self.pre_num, (num,))
+            selected_post_ids = self.rng.randint(0, self.post_num, (num,))
+        else:
+            index = self.rng.choice(mat_element_num, size=(num,), replace=False)
             selected_pre_ids = index // self.post_num
             selected_post_ids = index % self.post_num
         return selected_pre_ids.astype(get_idx_type()), selected_post_ids.astype(get_idx_type())

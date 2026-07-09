@@ -117,3 +117,68 @@ class TestSM3Fixed:
         opt = O.SM3(lr=0.1, train_vars={'w': v}, momentum=0.5, beta=0.5)
         out = _train(opt, {'w': v}, lambda val: np.ones_like(val), steps=3)
         assert np.all(np.isfinite(out['w']))
+
+
+# ---------------------------------------------------------------------------
+# MomentumNesterov  (H5, audit 2026-07-08)
+# ---------------------------------------------------------------------------
+class TestMomentumNesterovFixed:
+    def test_first_step_uses_lookahead(self):
+        # For a constant gradient g the Nesterov step is
+        #   v1 = -lr*g ; update = momentum*v1 - lr*g = -(1+momentum)*lr*g
+        # so it moves (1 + momentum) times as far as plain momentum on step 1.
+        lr, mom, g = 0.1, 0.9, 2.0
+        p = _scalar_var(0.0)
+        opt = O.MomentumNesterov(lr=lr, train_vars={'w': p}, momentum=mom)
+        opt.update({'w': np.asarray(g, dtype=np.float32)})
+        assert np.allclose(float(bm.as_jax(p.value)), -(1 + mom) * lr * g, atol=1e-5)
+
+    def test_differs_from_plain_momentum(self):
+        lr, mom, g = 0.1, 0.9, 2.0
+        pn = _scalar_var(0.0)
+        on = O.MomentumNesterov(lr=lr, train_vars={'w': pn}, momentum=mom)
+        pm = _scalar_var(0.0)
+        om = O.Momentum(lr=lr, train_vars={'w': pm}, momentum=mom)
+        for _ in range(3):
+            on.update({'w': np.asarray(g, dtype=np.float32)})
+            om.update({'w': np.asarray(g, dtype=np.float32)})
+        assert not np.allclose(float(bm.as_jax(pn.value)), float(bm.as_jax(pm.value)))
+
+
+# ---------------------------------------------------------------------------
+# Adadelta learning rate  (M3, audit 2026-07-08)
+# ---------------------------------------------------------------------------
+class TestAdadeltaLR:
+    def test_default_lr_is_one(self):
+        opt = O.Adadelta(train_vars={'w': _scalar_var(0.0)})
+        assert float(opt.lr()) == 1.0
+
+    def test_lr_scales_the_step(self):
+        # On the first step the (identical) raw Adadelta delta is scaled by lr, so a
+        # 10x smaller lr must give a 10x smaller parameter step. Previously lr was
+        # ignored and both steps were identical.
+        g = 1.0
+        p1 = _scalar_var(0.0)
+        o1 = O.Adadelta(lr=1.0, train_vars={'w': p1})
+        p2 = _scalar_var(0.0)
+        o2 = O.Adadelta(lr=0.1, train_vars={'w': p2})
+        o1.update({'w': np.asarray(g, dtype=np.float32)})
+        o2.update({'w': np.asarray(g, dtype=np.float32)})
+        s1 = abs(float(bm.as_jax(p1.value)))
+        s2 = abs(float(bm.as_jax(p2.value)))
+        assert s1 > 0.0
+        assert np.allclose(s2, 0.1 * s1, rtol=1e-4)
+
+
+# ---------------------------------------------------------------------------
+# LARS degenerate-norm guard  (L3, audit 2026-07-08)
+# ---------------------------------------------------------------------------
+class TestLARSGuard:
+    def test_zero_gradient_disables_adaptation(self):
+        # With a zero gradient the trust ratio must be 1 (no layer-wise adaptation),
+        # giving m = lr*weight_decay*p and p -= m. The previous ``jnp.maximum`` let a
+        # trust ratio > 1 (here ~9.09) through, producing a much larger step.
+        p = _vec_var([1.0])
+        opt = O.LARS(lr=1.0, train_vars={'w': p})  # wd=1e-4, tc=1e-3, eps=1e-5
+        opt.update({'w': np.zeros(1, dtype=np.float32)})  # g_norm == 0
+        assert np.allclose(np.asarray(bm.as_jax(p.value)), 1.0 - 1e-4, atol=1e-7)

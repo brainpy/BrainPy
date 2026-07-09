@@ -414,6 +414,16 @@ def vector_grad(
     func : GradientTransform
       The vector gradient function.
     """
+    # Support the parameterized-decorator form ``@vector_grad(grad_vars=..., ...)``:
+    # when ``func`` is omitted, return a decorator that is later applied to the target
+    # function. Previously ``func=None`` was forwarded straight through and the
+    # resulting transform crashed when called (M2, audit 2026-07-08).
+    if func is None:
+        return lambda f: vector_grad(f,
+                                     grad_vars=grad_vars,
+                                     argnums=argnums,
+                                     return_value=return_value,
+                                     has_aux=has_aux)
     return brainstate.transform.vector_grad(
         warp_to_no_state_input_output(func),
         grad_states=grad_vars,

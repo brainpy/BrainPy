@@ -58,10 +58,16 @@ def test_fixedprob_include_self_false_and_pre_ratio():
     # no self connections
     assert bool(np.all(np.asarray(pre) != np.asarray(post)))
     indices, indptr = fp.build_csr()
-    # with pre_ratio < 1 only the selected pre rows appear in the indptr
-    # (int(30 * 0.5) = 15 rows -> 16 indptr entries), and counts are monotone.
-    assert indptr.shape[0] == int(30 * 0.5) + 1
+    # A valid CSR indptr always spans the FULL pre range (pre_num + 1 entries);
+    # with pre_ratio < 1 the non-selected pre rows simply have zero out-degree
+    # (equal consecutive indptr values). The previous truncated indptr of length
+    # int(pre_num * pre_ratio) + 1 was a malformed CSR (H4, audit 2026-07-08).
+    assert indptr.shape[0] == 30 + 1
     assert bool(np.all(np.diff(np.asarray(indptr)) >= 0))
+    # indptr is internally consistent: its last entry equals the number of CSR
+    # indices (edges). (``build_coo`` re-samples per call, so we do not cross-check
+    # against the separate ``pre`` draw above.)
+    assert int(np.asarray(indptr)[-1]) == np.asarray(indices).shape[0]
     mat = fp.build_mat()
     # diagonal cleared
     assert not bool(np.any(np.diagonal(np.asarray(mat))))

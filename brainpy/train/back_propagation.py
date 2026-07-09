@@ -256,8 +256,17 @@ class BPTrainer(DSTrainer):
                 raise NoLongerSupportError('Please set batch size in your data. '
                                            'Specifically, make an iterable dataset '
                                            'which return a batch of (X, Y) data.')
-            if isinstance(train_data, (tuple, list)):
-                if len(train_data) == 2:
+            if isinstance(train_data, (tuple, list)) and len(train_data) == 2:
+                # The removed raw ``(X, Y)`` API is a length-2 sequence whose two
+                # elements are the data/target tensors themselves (arrays, or dicts
+                # of arrays). Only reject *that*; do NOT reject a valid iterable
+                # dataset that merely holds exactly two ``(x, y)`` batches -- there
+                # each element is itself an ``(x, y)`` pair, and ``for x, y in
+                # train_data`` consumes it correctly (L4, audit 2026-07-08).
+                def _is_xy_tensor(d):
+                    return isinstance(d, (bm.Array, jnp.ndarray, np.ndarray, dict))
+
+                if _is_xy_tensor(train_data[0]) and _is_xy_tensor(train_data[1]):
                     raise UnsupportedError(msg)
 
             if fun_after_report is not None:

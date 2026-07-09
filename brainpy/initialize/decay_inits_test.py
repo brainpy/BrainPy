@@ -101,3 +101,31 @@ class TestDOGDecayInit(unittest.TestCase):
         # visualize neuron(3, 4)
         mat_visualize(weights[:, 3 * 12 + 4].reshape((10, 12)), cmap=matplotlib.colormaps['Reds'])
         plt.close()
+
+
+class TestDOGDecayCorrectness(unittest.TestCase):
+    """Regression for H3 (audit 2026-07-08)."""
+
+    def test_symmetric_on_rectangular_grids(self):
+        # The DoG weight depends only on |v_i - v_j|, so W must be symmetric. The
+        # ``moveaxis`` in the voxel-id construction scrambled non-square grids and
+        # produced an asymmetric matrix.
+        init = bp.init.DOGDecay(sigmas=(1., 2.5), max_ws=(1.0, 0.7), min_w=0.,
+                                normalize=False, include_self=True)
+        for size in [(3, 5), (2, 6), (4, 3)]:
+            W = np.asarray(bm.as_jax(init(size)))
+            asym = float(np.max(np.abs(W - W.T)))
+            self.assertLess(asym, 1e-5, msg=f'size={size} asymmetry={asym}')
+
+    def test_normalize_flag_scales_peak_to_unity(self):
+        # The ``normalize`` flag (default True) was stored but never applied.
+        common = dict(sigmas=(1., 2.5), max_ws=(1.0, 0.7), min_w=0., include_self=True)
+        W_raw = np.asarray(bm.as_jax(bp.init.DOGDecay(normalize=False, **common)((5, 5))))
+        W_norm = np.asarray(bm.as_jax(bp.init.DOGDecay(normalize=True, **common)((5, 5))))
+        peak_raw = float(np.max(np.abs(W_raw)))
+        self.assertGreater(peak_raw, 0.)
+        # Raw (un-normalized) peak is not 1 ...
+        self.assertNotAlmostEqual(peak_raw, 1.0, places=3)
+        # ... but the normalized matrix peaks at unit magnitude and is a pure rescale.
+        self.assertAlmostEqual(float(np.max(np.abs(W_norm))), 1.0, places=5)
+        np.testing.assert_allclose(W_norm, W_raw / peak_raw, atol=1e-5)

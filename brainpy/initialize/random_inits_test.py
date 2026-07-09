@@ -188,3 +188,50 @@ class TestDeltaOrthogonalUnit(unittest.TestCase):
         for size in [(20, 20, 20), (10, 20, 30, 40), (50, 40, 30, 20, 20)]:
             weights = init(size)
             assert weights.shape == size
+
+
+class TestTruncatedNormalInit(unittest.TestCase):
+    """Regression for H2 (audit 2026-07-08): ``TruncatedNormal`` defaulted its bounds
+    to ``None`` and forwarded them into an arithmetic op, raising ``TypeError``."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        bp.math.random.seed()
+
+    def test_default_bounds_do_not_crash(self):
+        import numpy as np
+        init = bp.init.TruncatedNormal()
+        for size in [(100,), (10, 20)]:
+            w = np.asarray(bp.math.as_jax(init(size)))
+            self.assertEqual(w.shape, size)
+            # Default is a 2-sigma truncation (scale=1).
+            self.assertLessEqual(float(np.max(np.abs(w))), 2.0 + 1e-4)
+
+    def test_explicit_none_bounds_are_unbounded(self):
+        import numpy as np
+        init = bp.init.TruncatedNormal(lower=None, upper=None, scale=1.)
+        w = np.asarray(bp.math.as_jax(init((10000,))))
+        self.assertTrue(np.isfinite(w).all())
+        # Without truncation some samples should exceed the 2-sigma band.
+        self.assertGreater(float(np.max(np.abs(w))), 2.0)
+
+
+class TestComputeFansLowRank(unittest.TestCase):
+    """Regression for L2 (audit 2026-07-08): ``_compute_fans`` raised ``IndexError``
+    on 0-D/1-D shapes, breaking every VarianceScaling initializer for bias vectors."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        bp.math.random.seed()
+
+    def test_compute_fans_1d(self):
+        from brainpy.initialize.random_inits import _compute_fans
+        self.assertEqual(_compute_fans((7,)), (7.0, 7.0))
+        self.assertEqual(_compute_fans(()), (1.0, 1.0))
+
+    def test_variance_scaling_inits_on_1d_shapes(self):
+        for name in ['KaimingNormal', 'KaimingUniform', 'XavierNormal',
+                     'XavierUniform', 'LecunNormal', 'LecunUniform']:
+            init = getattr(bp.init, name)()
+            w = init((6,))
+            self.assertEqual(w.shape, (6,), msg=f'{name} failed on 1-D shape')

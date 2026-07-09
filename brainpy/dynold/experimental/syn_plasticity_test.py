@@ -111,13 +111,27 @@ class TestSTP(unittest.TestCase):
 
     def test_du_dx_rhs(self):
         stp = self._make_stp()
-        # du = U - u/tau_f ; dx = (1-x)/tau_d
+        # Continuous facilitation is pure decay du = -u/tau_f (H6, audit 2026-07-08);
+        # the +U(1-u^-) facilitation is a discrete spike jump in ``update``.
+        # dx = (1-x)/tau_d.
         u = bm.ones(4)
         du = bm.as_jax(stp.du(u, 0.))
-        np.testing.assert_allclose(du, 0.15 - bm.as_jax(u) / 1500.)
+        np.testing.assert_allclose(du, - bm.as_jax(u) / 1500.)
         x = bm.full(4, 0.5)
         dx = bm.as_jax(stp.dx(x, 0.))
         np.testing.assert_allclose(dx, (1 - bm.as_jax(x)) / 200.)
+
+    def test_facilitation_decays_without_spikes(self):
+        # H6 regression: without spikes u must decay toward 0, not diverge upward
+        # toward U*tau_f as the spurious +U source term made it.
+        stp = self._make_stp(U=0.15, tau_f=1500., tau_d=200.)
+        u0 = float(bm.as_jax(stp.u.value)[0])  # == U
+        for i in range(50):
+            share.save(t=float(i) * float(bm.dt), dt=bm.dt)
+            stp.update(bm.zeros(4, dtype=bool))  # no spike
+        u_final = float(bm.as_jax(stp.u.value)[0])
+        self.assertLess(u_final, u0)
+        self.assertGreaterEqual(u_final, 0.0)
 
     def test_update_no_spike(self):
         stp = self._make_stp()

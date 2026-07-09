@@ -342,6 +342,21 @@ def test_bptt_fit_xy_tuple_raises_unsupported():
         trainer.fit((bm.ones((2, 5, 2)), bm.ones((2, 5, 1))))
 
 
+def test_bptt_fit_two_batch_list_is_accepted():
+    """L4 regression (audit 2026-07-08): a valid iterable dataset holding exactly
+    two ``(x, y)`` batches must train, not be mistaken for the removed bare
+    ``(X, Y)`` API. The old guard rejected *any* length-2 ``train_data``; the
+    fix only rejects the raw tensor/dict pair form."""
+    model = _make_rnn()
+    trainer = bp.BPTT(model, loss_fun=_mse, optimizer=bp.optim.Adam(lr=0.02),
+                      progress_bar=False)
+    X = bm.random.random((2, 5, 2))
+    Y = bm.random.random((2, 5, 1))
+    # a *two*-element list of (x, y) batches -- previously wrongly rejected.
+    trainer.fit([(X, Y), (X, Y)], num_epoch=1)
+    assert trainer.train_losses is not None
+
+
 def test_bptt_fit_bad_fun_after_report_raises():
     model = _make_rnn()
     trainer = bp.BPTT(model, loss_fun=_mse, optimizer=bp.optim.Adam(lr=0.02),

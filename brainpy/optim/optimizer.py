@@ -287,10 +287,14 @@ class MomentumNesterov(CommonOpt):
             g = grads[key]
             v = self.implicit_vars[key + '_v']
             v.value = self.momentum * v.value - lr * g
+            # Nesterov look-ahead: step with the *anticipated* velocity
+            # ``momentum * v - lr * g`` rather than ``v`` itself. Without it this was
+            # byte-identical to plain ``Momentum`` (H5, audit 2026-07-08).
+            update = self.momentum * v.value - lr * g
             if self.weight_decay is None:
-                p.value += v
+                p.value += update
             else:
-                p.value = (1 - self.weight_decay) * p + v
+                p.value = (1 - self.weight_decay) * p + update
         self.lr.step_call()
 
 
@@ -415,7 +419,11 @@ class Adadelta(CommonOpt):
 
     def __init__(
         self,
-        lr: Union[float, Scheduler, bm.Variable] = 0.01,
+        # The paper uses no learning rate (i.e. lr == 1.0), and the docstring above
+        # recommends keeping it there. Default to 1.0 so the (previously ignored) lr
+        # is both honoured and backward-compatible with the prior effective behaviour
+        # (M3, audit 2026-07-08).
+        lr: Union[float, Scheduler, bm.Variable] = 1.0,
         train_vars: Optional[Dict[str, bm.Variable]] = None,
         weight_decay: Optional[float] = None,
         epsilon: float = 1e-6,
@@ -444,6 +452,7 @@ class Adadelta(CommonOpt):
 
     def update(self, grads: dict):
         self.check_grads(grads)
+        lr = self.lr()
         for key, p in self.vars_to_train.items():
             g = grads[key]
             c = self.implicit_vars[key + '_cache']
@@ -451,10 +460,13 @@ class Adadelta(CommonOpt):
             c.value = self.rho * c.value + (1 - self.rho) * g ** 2
             update = g * jnp.sqrt(d.value + self.epsilon) / jnp.sqrt(c + self.epsilon)
             d.value = self.rho * d.value + (1 - self.rho) * update ** 2
+            # Scale the parameter step by the learning rate (the delta accumulator
+            # above uses the un-scaled update, matching PyTorch). Previously ``lr``
+            # was silently ignored (M3, audit 2026-07-08).
             if self.weight_decay is None:
-                p.value -= update
+                p.value -= lr * update
             else:
-                p.value = (1 - self.weight_decay) * p - update
+                p.value = (1 - self.weight_decay) * p - lr * update
         self.lr.step_call()
 
     def __repr__(self):
@@ -712,7 +724,12 @@ class LARS(CommonOpt):
             p_norm = jnp.linalg.norm(p.value)
             g_norm = jnp.linalg.norm(g)
             trust_ratio = self.tc * p_norm / (g_norm + self.weight_decay * p_norm + self.eps)
-            local_lr = lr * jnp.maximum(jnp.logical_or(p_norm == 0, g_norm == 0), trust_ratio)
+            # A degenerate (zero) parameter- or gradient-norm disables the layer-wise
+            # adaptation (trust ratio == 1). ``jnp.maximum`` failed to clamp to 1 when
+            # ``g_norm == 0`` but the trust ratio exceeded 1; ``jnp.where`` selects
+            # exactly 1.0 in the degenerate case (L3, audit 2026-07-08).
+            guard = jnp.logical_or(p_norm == 0, g_norm == 0)
+            local_lr = lr * jnp.where(guard, 1.0, trust_ratio)
             m.value = self.momentum * m.value + local_lr * (g + self.weight_decay * p.value)
             p.value -= m.value
         self.lr.step_call()

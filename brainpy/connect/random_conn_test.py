@@ -40,6 +40,44 @@ class TestFixedProb(unittest.TestCase):
         mat = conn2.require(10, 20, bp.connect.CONN_MAT)
         self.assertTrue(mat.shape == (10, 20))
 
+    def test_build_csr_valid_with_pre_ratio(self):
+        # Regression for H4 (audit 2026-07-08): with ``pre_ratio < 1`` the CSR index
+        # pointer only spanned the *selected* pre neurons (len == pre_num_to_select+1)
+        # instead of the full pre range (len == pre_num+1), producing an invalid CSR.
+        import numpy as np
+        pre_num = 10
+        conn = bp.connect.FixedProb(prob=0.5, pre_ratio=0.5, seed=42, allow_multi_conn=True)
+        conn(pre_size=pre_num, post_size=10)
+        indices, indptr = conn.build_csr()
+        indices = np.asarray(indices)
+        indptr = np.asarray(indptr)
+        self.assertEqual(len(indptr), pre_num + 1)
+        self.assertEqual(int(indptr[0]), 0)
+        self.assertTrue(np.all(np.diff(indptr) >= 0))
+        self.assertEqual(int(indptr[-1]), len(indices))
+        self.assertTrue(np.all((indices >= 0) & (indices < 10)))
+        # Exactly ``int(pre_num * pre_ratio)`` rows carry out-going connections.
+        nonempty_rows = int(np.sum(np.diff(indptr) > 0))
+        self.assertEqual(nonempty_rows, int(pre_num * 0.5))
+
+
+class TestFixedTotalNum(unittest.TestCase):
+    def test_float_num_is_fraction_of_all2all(self):
+        # Regression for H4 (audit 2026-07-08): a float ``num`` (documented as allowed
+        # in [0, 1]) reached ``randint``/``choice`` and raised ``TypeError`` because a
+        # float cannot be a shape. It now denotes a fraction of the all-to-all count.
+        conn = bp.connect.FixedTotalNum(num=0.1, seed=1)
+        conn(pre_size=10, post_size=10)  # all2all == 100
+        pre_ids, post_ids = conn.build_coo()
+        self.assertEqual(len(pre_ids), 10)
+        self.assertEqual(len(post_ids), 10)
+
+    def test_int_num_unchanged(self):
+        conn = bp.connect.FixedTotalNum(num=25, seed=1)
+        conn(pre_size=10, post_size=10)
+        pre_ids, _ = conn.build_coo()
+        self.assertEqual(len(pre_ids), 25)
+
 
 def test_random_fix_pre1():
     for num in [0.4, 20]:

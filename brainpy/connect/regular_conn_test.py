@@ -116,3 +116,21 @@ class TestGridConn(unittest.TestCase):
 
                     print(f'periodic_boundary = {periodic_boundary}, include_self = {include_self}, size = {size}')
                     self.assertTrue(bp.math.allclose(mat, new_mat))
+
+    def test_periodic_boundary_no_duplicate_edges(self):
+        # Regression for M1 (audit 2026-07-08): on small grids the periodic wrap
+        # (``post_ids % sizes``) maps several strides onto the same post neuron,
+        # producing duplicate (pre, post) COO edges (e.g. a 2x2 GridFour yields every
+        # edge twice). Duplicates are invisible in a boolean matrix but double-count
+        # weights in COO-based synapses.
+        for cls, kwargs in [(bp.conn.GridFour, {}),
+                            (bp.conn.GridEight, {}),
+                            (bp.conn.GridN, {'N': 2})]:
+            for size in [(2, 2), (2, 3), (3, 3)]:
+                conn = cls(periodic_boundary=True, **kwargs)(size, size)
+                pre_ids, post_ids = conn.build_coo()
+                pairs = np.stack([np.asarray(pre_ids), np.asarray(post_ids)], axis=1)
+                n_unique = len(np.unique(pairs, axis=0))
+                self.assertEqual(len(pairs), n_unique,
+                                 msg=f'{cls.__name__} size={size}: '
+                                     f'{len(pairs) - n_unique} duplicate edges')

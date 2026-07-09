@@ -45,6 +45,33 @@ class TestWeightedPhaseEncoder(unittest.TestCase):
         with self.assertRaises(Exception):
             WeightedPhaseEncoder(0., 1., 0)
 
+    def test_default_weights_are_nonzero(self):
+        # Regression for C3 (audit 2026-07-08): the default ``weight_fun`` used an
+        # integer base (``2 ** -n``) which evaluates to 0, collapsing every phase
+        # weight to 0.
+        enc = WeightedPhaseEncoder(0., 1., num_phase=8)
+        weights = np.array([float(enc.weight_fun(i)) for i in range(8)])
+        self.assertTrue(np.all(weights > 0.0),
+                        msg=f'phase weights collapsed to zero: {weights}')
+        # First phase carries weight 1/2, halving thereafter.
+        self.assertAlmostEqual(weights[0], 0.5, places=6)
+        self.assertAlmostEqual(weights[1], 0.25, places=6)
+
+    def test_encoding_reconstructs_input(self):
+        # Weighted-phase coding is a binary expansion: decoding the spike train with
+        # the phase weights must recover the (normalized) input. With the integer-base
+        # bug the weights were 0, spikes were all-ones, and the reconstruction was a
+        # constant far from the input.
+        num_phase = 8
+        enc = WeightedPhaseEncoder(0., 1., num_phase=num_phase)
+        x = bm.array([0.1, 0.5, 0.9])
+        v = np.asarray(x) * enc.scale  # normalized target fed into the encoder
+        out = np.asarray(bm.as_jax(enc(x, num_step=num_phase)))  # (num_phase, 3)
+        weights = np.array([float(enc.weight_fun(i)) for i in range(num_phase)])
+        decoded = (out * weights[:, None]).sum(axis=0)
+        self.assertTrue(np.allclose(decoded, v, atol=2.0 ** (-num_phase) + 1e-6),
+                        msg=f'decoded={decoded} target={v}')
+
 
 class TestLatencyEncoderConstructor(unittest.TestCase):
     def test_bad_method_raises(self):
