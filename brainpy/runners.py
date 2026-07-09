@@ -452,9 +452,9 @@ class DSRunner(Runner):
         """
 
         if inputs_are_batching is not None:
-            raise warnings.warn(  # type: ignore[misc]  # latent bug: warnings.warn returns None; preserved to avoid behavior change
+            warnings.warn(
                 f'''
-        `inputs_are_batching` is no longer supported. 
+        `inputs_are_batching` is no longer supported.
         The target mode of {self.target.mode} has already indicated the input should be batching.
         ''',
                 UserWarning
