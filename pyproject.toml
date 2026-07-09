@@ -82,7 +82,11 @@ exclude = [
 ]
 
 [tool.setuptools.dynamic]
-version = { attr = "brainpy.__version__" }
+# Read the version statically from the tiny ``brainpy/_version.py`` module. Pointing at
+# ``brainpy.__version__`` would force setuptools to import the whole package at build time
+# (``__init__`` only re-exports the name), which fails in the isolated ``python -m build``
+# environment where BrainPy's runtime deps are absent.
+version = { attr = "brainpy._version.__version__" }
 
 
 # ---------------------------------------------------------------------------
