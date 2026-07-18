@@ -34,6 +34,11 @@ from brainstate.random import uniform
 
 from .ndarray import Array
 
+try:
+    from jax.extend.core import concrete_or_error
+except ImportError:  # JAX < 0.10 exposes it only on jax.core
+    from jax.core import concrete_or_error
+
 __all__ = [
     'celu',
     'elu',
@@ -466,7 +471,7 @@ def one_hot(x, num_classes, *, dtype=None, axis=-1):
         the axis or axes along which the function should be
         computed.
     """
-    num_classes = jax.core.concrete_or_error(
+    num_classes = concrete_or_error(
         int, num_classes, "The error arose in jax.nn.one_hot argument `num_classes`.")
     dtype = jax.dtypes.canonicalize_dtype(jnp.float64 if dtype is None else dtype)
     x = jnp.asarray(x.value if isinstance(x, Array) else x)
