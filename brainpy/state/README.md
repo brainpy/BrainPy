@@ -6,6 +6,8 @@ The `brainpy.state` module provides a state-based programming interface for brai
 
 State-based programming offers an alternative paradigm for defining and managing neural models, emphasizing explicit state management and transformations for building complex brain dynamics systems.
 
+`brainpy.state` is the recommended starting point for new `State`-based, differentiable models; the classic `DynamicalSystem`-based `brainpy` API (`brainpy.dyn`, `brainpy.math`, `brainpy.integrators`) is unchanged and fully supported. The two paradigms coexist — see the [relationship declaration](https://brainx.chaobrain.com/brainpy-state/project/relationship.html) for how they relate.
+
 ## Features
 
 - **Explicit State Management**: Clear separation between model state and computation logic
@@ -17,7 +19,7 @@ State-based programming offers an alternative paradigm for defining and managing
 
 For comprehensive documentation on state-based programming in BrainPy, please visit:
 
-- **State-based Documentation**: https://brainpy-state.readthedocs.io/
+- **State-based Documentation**: https://brainx.chaobrain.com/brainpy-state/
 - **Main BrainPy Documentation**: https://brainpy.readthedocs.io/
 
 ## Source Repository
