@@ -20,7 +20,7 @@ API Documentation
    apis/optim.rst
    apis/running.rst
    apis/mixin.rst
-   ``brainpy.state`` module <https://brainx.chaobrain.com/brainpy-state/apis/index.html>
+   `brainpy.state` module <https://brainx.chaobrain.com/brainpy-state/apis/index.html>
 
 .. admonition:: ``brainpy`` and ``brainpy.state``
 
