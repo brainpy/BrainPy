@@ -1,5 +1,24 @@
 # Changelog
 
+## Version 2.8.2
+
+**Release Date:** July 23, 2026
+
+Version 2.8.2 is a maintenance release focused on compatibility, documentation, and CI/release infrastructure. It restores compatibility with JAX >= 0.11, completes the `master` → `main` branch rename started in 2.8.1, and fixes the Codecov coverage badge, which had been stuck reporting "unknown" because Codecov's own project settings still pointed at the retired `master` branch.
+
+### Bug Fixes
+- Import `concrete_or_error` from `jax.extend.core` on JAX >= 0.11, where it was removed from `jax.interpreters.partial_eval` (#871).
+- `docs/api.rst`: use single-backtick toctree link syntax for the `brainpy.state` entry so it renders as a working external link instead of plain text.
+
+### Documentation
+- Add a `brainpy.state` relationship admonition to the API reference and repoint `brainpy.state` doc links at the canonical `brainx.chaobrain.com/brainpy-state` URLs, replacing the outdated `brainpy-state.readthedocs.io` links (#873).
+
+### Build and Tooling
+- Finish updating branch references from `master` to `main` across the repository (#870).
+- Bump `actions/setup-python` from 6 to 7 in CI (#872).
+- Add `codecov.yml` pinning `codecov.branch: main` so Codecov tracks `main` as the default branch and the README coverage badge reports real coverage instead of "unknown".
+
+
 ## Version 2.8.1
 
 **Release Date:** July 9, 2026
