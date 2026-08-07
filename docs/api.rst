@@ -32,6 +32,12 @@ API Documentation
    and fully supported. See the `brainpy.state relationship page
    <https://brainx.chaobrain.com/brainpy-state/project/relationship.html>`_.
 
+   Looking for where a ``brainpy`` symbol lives in the wider ecosystem? The
+   `BrainPy migration notes <https://brainx.chaobrain.com/summ/brainpy-migration-notes.html>`_
+   map the classic modules onto their BrainX counterparts, and
+   `BrainPy to BrainX <https://brainx.chaobrain.com/summ/brainpy-to-brainx.html>`_
+   explains how the packages relate.
+
 The following APIs will no longer be maintained in the future, but you can still use them normally.
 
 .. toctree::
