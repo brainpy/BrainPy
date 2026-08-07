@@ -21,6 +21,8 @@ For comprehensive documentation on state-based programming in BrainPy, please vi
 
 - **State-based Documentation**: https://brainx.chaobrain.com/brainpy-state/
 - **Main BrainPy Documentation**: https://brainpy.readthedocs.io/
+- **BrainPy and BrainX**: https://brainx.chaobrain.com/summ/brainpy-to-brainx.html
+- **Migration notes**: https://brainx.chaobrain.com/summ/brainpy-migration-notes.html
 
 ## Source Repository
 
