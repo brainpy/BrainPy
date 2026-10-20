@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "brainpy"
 description = "BrainPy: Brain Dynamics Programming in Python"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 authors = [
     { name = "BrainPy Team", email = "chao.brain@qq.com" }
 ]
@@ -15,10 +15,10 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: Apache Software License",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
@@ -35,7 +35,7 @@ keywords = [
 ]
 dependencies = [
     "numpy>=1.15",
-    "jax",
+    "jax>=0.9.0",
     "tqdm",
     "brainstate>=0.5.1",
     "brainunit>=0.2.0",
@@ -53,10 +53,10 @@ dynamic = ['version']
 "Source Code" = "https://github.com/brainpy/BrainPy"
 
 [project.optional-dependencies]
-cpu = ["jax[cpu]", 'brainevent[cpu]']
-cuda12 = ["jax[cuda12]", 'brainevent[cuda12]']
-cuda13 = ["jax[cuda13]", 'brainevent[cuda13]']
-tpu = ["jax[tpu]", 'brainevent[tpu]']
+cpu = ["jax[cpu]>=0.9.0", 'brainevent[cpu]']
+cuda12 = ["jax[cuda12]>=0.9.0", 'brainevent[cuda12]']
+cuda13 = ["jax[cuda13]>=0.9.0", 'brainevent[cuda13]']
+tpu = ["jax[tpu]>=0.9.0", 'brainevent[tpu]']
 
 [tool.setuptools]
 package-dir = { "" = "." }

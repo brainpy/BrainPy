@@ -4,5 +4,5 @@ brainevent>=0.0.7
 braintools>=0.3.0
 brainstate>=0.5.1
 brainpy_state>=0.0.3
-jax
+jax>=0.9.0
 tqdm
