@@ -149,8 +149,14 @@ class TestClsJIT(unittest.TestCase):
         print()
         print(new_b1, )
         print(new_b2, )
-        with self.assertRaises(jax.errors.TracerBoolConversionError):
+        if jax.__version_info__ >= (0, 12):
+            # JAX >= 0.12 maps a positional argument onto ``static_argnames``,
+            # so ``fit=False`` passed positionally is static as well.
             new_b3 = program.call2(False)
+            self.assertEqual(new_b3.shape, (2,))
+        else:
+            with self.assertRaises(jax.errors.TracerBoolConversionError):
+                program.call2(False)
 
     @pytest.mark.skip(reason="not implemented")
     def test_class_jit1_with_disable(self):
