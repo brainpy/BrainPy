@@ -20,17 +20,16 @@ API Documentation
    apis/optim.rst
    apis/running.rst
    apis/mixin.rst
-   `brainpy.state` module <https://brainx.chaobrain.com/brainpy-state/apis/index.html>
+   apis/state.rst
 
 .. admonition:: ``brainpy`` and ``brainpy.state``
 
-   ``brainpy.state`` is the state-based modeling layer of BrainPy — developed and
-   released as the standalone ``brainpy_state`` package and surfaced here through the
-   ``brainpy.state`` namespace (bundled with ``brainpy >= 2.7.6``; no separate install
-   needed). It is the recommended starting point for new ``State``-based, differentiable
-   spiking-network models, while the classic ``DynamicalSystem``-based API is unchanged
-   and fully supported. See the `brainpy.state relationship page
-   <https://brainx.chaobrain.com/brainpy-state/project/relationship.html>`_.
+   ``brainpy.state`` is the state-based modeling layer of BrainPy, built on
+   ``brainstate`` for compatibility with the BrainX ecosystem: its models carry
+   physical units through ``brainunit`` and can be trained online with
+   ``braintrace``. It is the recommended starting point for new ``State``-based,
+   differentiable models, while the classic ``DynamicalSystem``-based API is
+   unchanged and fully supported.
 
    Looking for where a ``brainpy`` symbol lives in the wider ecosystem? The
    `BrainPy migration notes <https://brainx.chaobrain.com/summ/brainpy-migration-notes.html>`_

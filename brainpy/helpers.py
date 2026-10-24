@@ -58,7 +58,7 @@ def reset_level(level: int = 0):
 def reset_state(target: DynamicalSystem, *args, **kwargs):
     """Reset states of all children nodes in the given target.
 
-    See https://brainpy.readthedocs.io/en/latest/tutorial_toolbox/state_resetting.html for details.
+    See https://brainpy.readthedocs.io/tutorial_toolbox/state_resetting.html for details.
 
     Parameters
     ----------

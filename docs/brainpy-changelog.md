@@ -103,7 +103,7 @@ This release contains many new features and fixes. It is the first release with 
 5. Add ``brainpy.math.scan`` transformation.
 6. Rebase all customized operators using Taichi JIT compiler. On the CPU platform, the speed performance can be boosted ten to hundred times. On the GPU platforms, the flexibility can be greatly improved.
 7. Many bug fixes. 
-8. A new version of ``brainpylib>=0.2.4`` has been released, supporting operator customization through the Taichi compiler. The supported backends include Linux, Windows, MacOS Intel, and MacOS M1 platforms. Tutorials please see https://brainpy.readthedocs.io/en/latest/tutorial_advanced/operator_custom_with_taichi.html
+8. A new version of ``brainpylib>=0.2.4`` has been released, supporting operator customization through the Taichi compiler. The supported backends include Linux, Windows, MacOS Intel, and MacOS M1 platforms. Tutorials please see https://brainpy.readthedocs.io/tutorial_advanced/operator_custom_with_taichi.html
 
 #### What's Changed
 * [docs] Add taichi customized operators tutorial by @Routhleck in https://github.com/brainpy/BrainPy/pull/545
@@ -1457,7 +1457,7 @@ trainer.fit(loader)
 
 2. Consolidated object-oriented transformation in ``brainpy.math.object_transform`` module. All brainpy transformations generate a new ``BrainPyObject`` instance so that objects in brainpy can be composed hierarchically.  ``brainpy.math.to_object()`` transformation transforms a pure Python function into a ``BrainPyObject``.
 
-3. New [documentation](https://brainpy.readthedocs.io/en/latest/tutorial_math/brainpy_transform_concept.html) is currently online for introducing the consolidated BrainPy concept of object-oriented transformation. 
+3. New [documentation](https://brainpy.readthedocs.io/tutorial_math/brainpy_transform_concept.html) is currently online for introducing the consolidated BrainPy concept of object-oriented transformation. 
 
 4. Change ``brainpy.math.JaxArray`` to ``brainpy.math.Array``.
 

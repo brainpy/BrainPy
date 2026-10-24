@@ -215,7 +215,7 @@ pytest --cov=brainpy tests/
 - Keep the API reference up to date
 - Fix typos and improve clarity
 
-For comprehensive contribution guidelines, see our [detailed documentation](https://brainpy.readthedocs.io/en/latest/tutorial_advanced/contributing.html).
+For comprehensive contribution guidelines, see our [detailed documentation](https://brainpy.readthedocs.io/tutorial_advanced/contributing.html).
 
 ## Community
 

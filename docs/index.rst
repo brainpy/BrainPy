@@ -118,7 +118,7 @@ Learn more
 
       .. card:: :material-regular:`data_exploration;2em` ``brainpy.state`` APIs
          :class-card: sd-text-black sd-bg-light
-         :link: https://brainx.chaobrain.com/brainpy-state/
+         :link: state/index.html
 
    .. grid-item::
       :columns: 6 6 6 4

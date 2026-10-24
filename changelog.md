@@ -1,5 +1,23 @@
 # Changelog
 
+## Version 2.9.0
+
+**Release Date:** Unreleased
+
+Version 2.9.0 brings `brainpy.state` back into the BrainPy repository. `brainpy.state` exists to make BrainPy models compatible with the BrainX ecosystem: its models are built on `brainstate`, carry physical units through `brainunit`, and train online with `braintrace`. The state-based models are now BrainPy's own code instead of a re-export of the standalone `brainpy_state` package, and `brainpy` no longer depends on `brainpy_state`.
+
+### Breaking Changes
+- `brainpy.state` now contains only the state-based models: `Dynamics`, `Neuron`, `Synapse`, the LIF / HH / Izhikevich / reduced neuron families, `Expon` / `DualExpon` / `Alpha` / `AMPA` / `GABAa` / `BioNMDA`, `SynOut` / `COBA` / `CUBA` / `MgBlock`, `STP` / `STD`, the projections (`AlignPostProj`, `DeltaProj`, `CurrentProj`, `align_pre_projection`, `align_post_projection`, gap junctions), `LeakyRateReadout`, and the input generators.
+- Every other name previously re-exported from `brainpy_state` (for example the `Network` / `Builder` / `Simulator` API and its `*Proj` rules, and the `dist`, `spatial`, and `network` submodules) is no longer available from `brainpy.state`.
+
+### Build and Tooling
+- Drop the `brainpy_state` dependency and raise the `brainevent` floor to `>=0.2.1`.
+
+### Documentation
+- Host the `brainpy.state` tutorials, how-to guides, concept chapters, example gallery, and API reference in the BrainPy documentation (`docs/state/`, `docs/apis/state.rst`), and move the example scripts to `examples/state/`.
+- Document `CubaLIF`, `CobaLIF`, `FitzHughNagumo`, `HindmarshRose`, and the current-input generators, which were missing from the API reference.
+
+
 ## Version 2.8.2
 
 **Release Date:** July 23, 2026

@@ -39,9 +39,8 @@ dependencies = [
     "tqdm",
     "brainstate>=0.5.1",
     "brainunit>=0.2.0",
-    "brainevent>=0.0.7",
+    "brainevent>=0.2.1",
     "braintools>=0.3.0",
-    'brainpy_state>=0.0.3',
 ]
 
 dynamic = ['version']

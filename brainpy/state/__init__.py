@@ -13,9 +13,81 @@
 # limitations under the License.
 # ==============================================================================
 
-from brainpy_state import *
-from brainpy_state import __all__
+r"""
+State-based brain dynamics models built on ``brainstate``.
 
-if __name__ == '__main__':
-    print(LIF)  # type: ignore[name-defined]  # provided by `from brainpy_state import *`
-    print(__all__)
+This module provides composable neuron, synapse, projection, readout, and
+input models with explicit ``State`` objects, so they compose with
+``brainstate`` transformations (``jit``, ``grad``, ``vmap``, ``for_loop``).
+"""
+
+from brainpy.state._base import Dynamics, Neuron, Synapse
+from brainpy.state.exponential import Expon, DualExpon
+from brainpy.state.hh import HH, MorrisLecar, WangBuzsakiHH
+from brainpy.state.inputs import SpikeTime, PoissonSpike, PoissonEncoder, PoissonInput, poisson_input
+from brainpy.state.inputs import (SectionInput, ConstantInput, StepInput, RampInput,
+                                  SinusoidalInput, OUProcessInput, WienerProcessInput)
+from brainpy.state.izhikevich import Izhikevich, IzhikevichRef
+from brainpy.state.lif import (
+    IF, LIF, LIFRef, ALIF,
+    ExpIF, ExpIFRef,
+    AdExIF, AdExIFRef,
+    QuaIF, AdQuaIF, AdQuaIFRef,
+    Gif, GifRef,
+    CubaLIF, CobaLIF,
+)
+from brainpy.state.projection import (
+    Projection, AlignPostProj, DeltaProj, CurrentProj,
+    align_pre_projection, align_post_projection,
+)
+from brainpy.state.readout import LeakyRateReadout
+from brainpy.state.reduced import FitzHughNagumo, HindmarshRose
+from brainpy.state.stp import STP, STD
+from brainpy.state.synapse import Alpha, AMPA, GABAa, BioNMDA
+from brainpy.state.synaptic_projection import SymmetryGapJunction, AsymmetryGapJunction
+from brainpy.state.synouts import SynOut, COBA, CUBA, MgBlock
+
+__all__ = [
+    # Base models
+    'Dynamics', 'Neuron', 'Synapse',
+
+    # Neuron models - LIF family
+    'IF', 'LIF', 'LIFRef', 'ALIF',
+    'ExpIF', 'ExpIFRef',
+    'AdExIF', 'AdExIFRef',
+    'QuaIF', 'AdQuaIF', 'AdQuaIFRef',
+    'Gif', 'GifRef',
+    'CubaLIF', 'CobaLIF',
+
+    # Neuron models - Hodgkin-Huxley family
+    'HH', 'MorrisLecar', 'WangBuzsakiHH',
+
+    # Neuron models - Izhikevich family
+    'Izhikevich', 'IzhikevichRef',
+
+    # Neuron models - reduced (FitzHugh-Nagumo, Hindmarsh-Rose)
+    'FitzHughNagumo', 'HindmarshRose',
+
+    # Synapse models
+    'Expon', 'DualExpon',
+    'Alpha', 'AMPA', 'GABAa', 'BioNMDA',
+
+    # Synaptic outputs
+    'SynOut', 'COBA', 'CUBA', 'MgBlock',
+
+    # Short-term plasticity
+    'STP', 'STD',
+
+    # Projections
+    'Projection', 'AlignPostProj', 'DeltaProj', 'CurrentProj',
+    'align_pre_projection', 'align_post_projection',
+    'SymmetryGapJunction', 'AsymmetryGapJunction',
+
+    # Readouts
+    'LeakyRateReadout',
+
+    # Input generators
+    'SpikeTime', 'PoissonSpike', 'PoissonEncoder', 'PoissonInput', 'poisson_input',
+    'SectionInput', 'ConstantInput', 'StepInput', 'RampInput',
+    'SinusoidalInput', 'OUProcessInput', 'WienerProcessInput',
+]
