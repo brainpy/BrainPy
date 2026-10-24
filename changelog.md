@@ -2,7 +2,7 @@
 
 ## Version 2.9.0
 
-**Release Date:** Unreleased
+**Release Date:** October 25, 2026
 
 Version 2.9.0 brings `brainpy.state` back into the BrainPy repository. `brainpy.state` exists to make BrainPy models compatible with the BrainX ecosystem: its models are built on `brainstate`, carry physical units through `brainunit`, and train online with `braintrace`. The state-based models are now BrainPy's own code instead of a re-export of the standalone `brainpy_state` package, and `brainpy` no longer depends on `brainpy_state`.
 
