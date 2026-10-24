@@ -2,11 +2,13 @@
 
 ## Overview
 
-The `brainpy.state` module provides a state-based programming interface for brain dynamics modeling in BrainPy. This module is maintained as a separate package [`brainpy_state`](https://github.com/chaobrain/brainpy.state) and re-exported through BrainPy for seamless integration.
+The `brainpy.state` module provides a state-based programming interface for brain dynamics modeling in BrainPy, built on [`brainstate`](https://github.com/chaobrain/brainstate).
+
+Its motivation is compatibility with the [BrainX ecosystem](https://brainx.chaobrain.com): `brainpy.state` models carry physical units through [`brainunit`](https://github.com/chaobrain/brainunit), compose with `brainstate` transformations, and can be trained online with [`braintrace`](https://github.com/chaobrain/braintrace).
 
 State-based programming offers an alternative paradigm for defining and managing neural models, emphasizing explicit state management and transformations for building complex brain dynamics systems.
 
-`brainpy.state` is the recommended starting point for new `State`-based, differentiable models; the classic `DynamicalSystem`-based `brainpy` API (`brainpy.dyn`, `brainpy.math`, `brainpy.integrators`) is unchanged and fully supported. The two paradigms coexist — see the [relationship declaration](https://brainx.chaobrain.com/brainpy-state/project/relationship.html) for how they relate.
+`brainpy.state` is the recommended starting point for new `State`-based, differentiable models; the classic `DynamicalSystem`-based `brainpy` API (`brainpy.dyn`, `brainpy.math`, `brainpy.integrators`) is unchanged and fully supported.
 
 ## Features
 
@@ -17,18 +19,10 @@ State-based programming offers an alternative paradigm for defining and managing
 
 ## Documentation
 
-For comprehensive documentation on state-based programming in BrainPy, please visit:
-
-- **State-based Documentation**: https://brainx.chaobrain.com/brainpy-state/
-- **Main BrainPy Documentation**: https://brainpy.readthedocs.io/
+- **State-based Documentation**: https://brainpy.readthedocs.io/state/index.html
+- **API Reference**: https://brainpy.readthedocs.io/apis/state.html
 - **BrainPy and BrainX**: https://brainx.chaobrain.com/summ/brainpy-to-brainx.html
 - **Migration notes**: https://brainx.chaobrain.com/summ/brainpy-migration-notes.html
-
-## Source Repository
-
-This module is maintained in a separate repository:
-
-- **GitHub**: https://github.com/chaobrain/brainpy.state
 
 ## Installation
 
@@ -38,28 +32,17 @@ The `brainpy.state` module is included when you install BrainPy:
 pip install brainpy -U
 ```
 
-For development or to install the state module separately:
-
-```bash
-pip install brainpy.state -U
-```
-
 ## Usage
 
-Import the state module from BrainPy:
-
 ```python
-import brainpy as bp
-from brainpy import state
+import brainpy
 
-# Use state-based components
-# (See documentation for detailed examples)
+neuron = brainpy.state.LIF(100)
 ```
 
 ## Support
 
 - **Bug Reports**: Please report issues at https://github.com/brainpy/BrainPy/issues
-- **State Module Issues**: For state-specific issues, see https://github.com/chaobrain/brainpy.state/issues
 
 ## License
 

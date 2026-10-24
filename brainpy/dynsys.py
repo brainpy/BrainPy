@@ -283,7 +283,7 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
 
         ``reset()`` function is a collective behavior which resets all states in this model.
 
-        See https://brainpy.readthedocs.io/en/latest/tutorial_toolbox/state_resetting.html for details.
+        See https://brainpy.readthedocs.io/tutorial_toolbox/state_resetting.html for details.
         """
         global reset_state
         if reset_state is None:
@@ -297,7 +297,7 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
         Simply speaking, this function should implement the logic of resetting of
         local variables in this node.
 
-        See https://brainpy.readthedocs.io/en/latest/tutorial_toolbox/state_resetting.html for details.
+        See https://brainpy.readthedocs.io/tutorial_toolbox/state_resetting.html for details.
         """
         pass
 
@@ -511,7 +511,7 @@ class DynamicalSystem(bm.BrainPyObject, DelayRegister, SupportInputProj):
                 self.reset(*args, **kwargs)
                 warnings.warn(
                     '''
-                From version >= 2.4.6, the policy of ``.reset_state()`` has been changed. See https://brainpy.readthedocs.io/en/latest/tutorial_toolbox/state_saving_and_loading.html for details.
+                From version >= 2.4.6, the policy of ``.reset_state()`` has been changed. See https://brainpy.readthedocs.io/tutorial_toolbox/state_saving_and_loading.html for details.
           
                 1. If you are resetting all states in a network by calling "net.reset_state(*args, **kwargs)", please use
                    "bp.reset_state(net, *args, **kwargs)" function, or "net.reset(*args, **kwargs)". 

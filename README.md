@@ -7,7 +7,7 @@
 <p align="center">
 	<a href="https://pypi.org/project/brainpy/"><img alt="Supported Python Version" src="https://img.shields.io/pypi/pyversions/brainpy"></a>
 	<a href="https://github.com/brainpy/BrainPy"><img alt="LICENSE" src="https://img.shields.io/badge/license-%20%20GNU%20GPLv3%20-green?style=plastic"></a>
-  	<a href="https://brainpy.readthedocs.io/en/latest/?badge=latest"><img alt="Documentation" src="https://readthedocs.org/projects/brainpy/badge/?version=latest"></a>
+  	<a href="https://brainpy.readthedocs.io/?badge=latest"><img alt="Documentation" src="https://readthedocs.org/projects/brainpy/badge/?version=latest"></a>
   	<a href="https://badge.fury.io/py/brainpy"><img alt="PyPI version" src="https://badge.fury.io/py/brainpy.svg"></a>
     <a href="https://github.com/brainpy/BrainPy/actions/workflows/CI.yml"><img alt="Continuous Integration" src="https://github.com/brainpy/BrainPy/actions/workflows/CI.yml/badge.svg"></a>
     <a href="https://codecov.io/gh/brainpy/BrainPy"><img alt="Test Coverage" src="https://codecov.io/gh/brainpy/BrainPy/branch/main/graph/badge.svg"></a>
@@ -19,7 +19,7 @@ BrainPy is a flexible, efficient, and extensible framework for computational neu
 - **Source**: https://github.com/brainpy/BrainPy
 - **Bug reports**: https://github.com/brainpy/BrainPy/issues
 - **Documentation**: https://brainpy.readthedocs.io/
-- **Documentation (state-based)**: https://brainx.chaobrain.com/brainpy-state
+- **Documentation (state-based)**: https://brainpy.readthedocs.io/state/index.html
 - **Ecosystem**: https://brainx.chaobrain.com
 - **BrainPy and BrainX**: https://brainx.chaobrain.com/summ/brainpy-to-brainx.html
 
@@ -64,7 +64,6 @@ We provide a Binder environment for BrainPy. You can use the following button to
 
 - **[brain modeling ecosystem](https://brainmodeling.readthedocs.io/)**: A collection of tools and libraries for brain modeling and simulation.
 - **[brainpy-examples](https://github.com/brainpy/examples)**: Comprehensive examples of BrainPy computation. 
-- **[brainpy-state](https://github.com/chaobrain/brainpy.state)**: Moderize BrainPy simulation with `brainstate` syntax.
 - **[BrainPy to BrainX](https://brainx.chaobrain.com/summ/brainpy-to-brainx.html)**: How `brainpy` relates to the BrainX packages, and [migration notes](https://brainx.chaobrain.com/summ/brainpy-migration-notes.html) for moving a project across.
 - [《神经计算建模实战》 (Neural Modeling in Action)](https://github.com/c-xy17/NeuralModeling)
 - [第一届神经计算建模与编程培训班 (First Training Course on Neural Modeling and Programming)](https://github.com/brainpy/1st-neural-modeling-and-programming-course)
