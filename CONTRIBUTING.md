@@ -15,7 +15,7 @@ Thank you for your interest in contributing to BrainPy! We welcome contributions
 
 ## Code of Conduct
 
-This project and everyone participating in it is governed by our [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to brainpy@foxmail.com.
+This project and everyone participating in it is governed by our [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to chaobrain@outlook.com.
 
 ## How Can I Contribute?
 
