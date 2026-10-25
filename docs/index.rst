@@ -111,7 +111,7 @@ Learn more
 
       .. card:: :material-regular:`settings;2em` Ecosystem
          :class-card: sd-text-black sd-bg-light
-         :link: https://brainmodeling.readthedocs.io
+         :link: https://brainx.chaobrain.com/
 
    .. grid-item::
       :columns: 6 6 6 4
@@ -133,7 +133,7 @@ Learn more
 See also the ecosystem
 ^^^^^^^^^^^^^^^^^^^^^^
 
-``brainpy`` is one part of our `brain simulation ecosystem <https://brainmodeling.readthedocs.io/>`_.
+``brainpy`` is one part of our `brain simulation ecosystem <https://brainx.chaobrain.com/>`_.
 
 
 ----

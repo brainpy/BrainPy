@@ -108,7 +108,7 @@ python dynamics_simulation/ei_nets.py
 
 - [BrainPy 2.x Documentation](https://brainpy-v2.readthedocs.io)
 - [BrainPy 3.x Documentation](https://brainpy.readthedocs.io)
-- [BrainPy Ecosystem](https://brainmodeling.readthedocs.io)
+- [BrainPy Ecosystem](https://brainx.chaobrain.com/)
 
 ## Migrating to Version 3.x
 

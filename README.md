@@ -19,7 +19,6 @@ BrainPy is a flexible, efficient, and extensible framework for computational neu
 - **Source**: https://github.com/brainpy/BrainPy
 - **Bug reports**: https://github.com/brainpy/BrainPy/issues
 - **Documentation**: https://brainpy.readthedocs.io/
-- **Documentation (state-based)**: https://brainpy.readthedocs.io/state/index.html
 - **Ecosystem**: https://brainx.chaobrain.com
 - **BrainPy and BrainX**: https://brainx.chaobrain.com/summ/brainpy-to-brainx.html
 
@@ -62,7 +61,7 @@ We provide a Binder environment for BrainPy. You can use the following button to
 
 ## Ecosystem
 
-- **[brain modeling ecosystem](https://brainmodeling.readthedocs.io/)**: A collection of tools and libraries for brain modeling and simulation.
+- **[brain modeling ecosystem](https://brainx.chaobrain.com/)**: A collection of tools and libraries for brain modeling and simulation.
 - **[brainpy-examples](https://github.com/brainpy/examples)**: Comprehensive examples of BrainPy computation. 
 - **[BrainPy to BrainX](https://brainx.chaobrain.com/summ/brainpy-to-brainx.html)**: How `brainpy` relates to the BrainX packages, and [migration notes](https://brainx.chaobrain.com/summ/brainpy-migration-notes.html) for moving a project across.
 - [《神经计算建模实战》 (Neural Modeling in Action)](https://github.com/c-xy17/NeuralModeling)

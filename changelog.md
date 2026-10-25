@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Documentation
+- Point the ecosystem links at the official BrainX site `https://brainx.chaobrain.com/`, replacing the redirecting `brainmodeling.readthedocs.io` and `brainunit.readthedocs.io` URLs, and drop the separate "Documentation (state-based)" entry from the README.
+- Move the `brainpy.state` overview from the API index to the `brainpy.state` API page, and drop the BrainPy and BrainX admonition from the API index.
+
 ## Version 2.9.0
 
 **Release Date:** October 25, 2026

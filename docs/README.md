@@ -57,7 +57,7 @@ pip install -U brainpy[cpu]
 - [Tutorials](tutorials.rst) - Learn through examples
 - [API Documentation](api.rst) - Complete reference
 - [BrainPy Examples](https://brainpy-v2.readthedocs.io/projects/examples/) - Code examples
-- [BrainPy Ecosystem](https://brainmodeling.readthedocs.io) - Related projects
+- [BrainPy Ecosystem](https://brainx.chaobrain.com/) - Related projects
 
 ## Support
 

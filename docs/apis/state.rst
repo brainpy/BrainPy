@@ -7,9 +7,12 @@ output, projection, short-term plasticity, readout, and input models built on
 so it composes with the ``brainstate`` transformations (``jit``, ``grad``,
 ``vmap``, ``for_loop``) for both simulation and gradient-based training.
 
-The motivation of ``brainpy.state`` is compatibility with the BrainX
-ecosystem: models carry physical units through ``brainunit`` and can be
-trained online with ``braintrace``.
+``brainpy.state`` is the state-based modeling layer of BrainPy, built on
+``brainstate`` for compatibility with the BrainX ecosystem: its models carry
+physical units through ``brainunit`` and can be trained online with
+``braintrace``. It is the recommended starting point for new ``State``-based,
+differentiable models, while the classic ``DynamicalSystem``-based API is
+unchanged and fully supported.
 
 .. toctree::
    :maxdepth: 1
